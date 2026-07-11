@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.33
-SHA-256: ff37c65820ed240b57b2b373fd43eec2dec5bc061e04368976c3eaf29e3146ad
+Version: 1.34
+SHA-256: dbc32c68ff4d21cd93faee21e103cc337f613dfa11d50b4686a721b85c53873a
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -309,6 +309,11 @@ The v1.32 trace stops inside the first worker exit call. `CallWorker()` attempts
 desktop priority boosting and its reply wait calls `Plat_IsInDebugSession()`,
 the probe already proven unsafe during startup. Version 1.33 disables priority
 boosting for PS4 exit calls and treats reply waits as non-debug sessions.
+
+The v1.33 trace completes worker exit delivery, all joins/deletions, filesystem
+and tracker teardown, and the outer app-system shutdown. It then stops after
+`steamApplication.Run()` returns. Version 1.34 traces result-stage handling,
+reslist continuation, command-line override cleanup, and loop completion.
 
 Reproduce the current cross-build with:
 

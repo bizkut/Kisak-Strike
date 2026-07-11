@@ -1958,6 +1958,7 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 		g_pOtherMiniProfilers = NULL;
 #endif
 
+		Ps4LauncherBreadcrumb( "kisak-ps4: before application stage" );
 		if ( steamApplication.GetCurrentStage() == CSourceAppSystemGroup::INITIALIZATION )
 		{
 			bRestart = (nRetval == INIT_RESTART);
@@ -1966,16 +1967,20 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 		{
 			bRestart = true;
 		}
+		Ps4LauncherBreadcrumb( "kisak-ps4: after application stage" );
 
 		bool bReslistCycle = false;
 		if ( !bRestart )
 		{
+			Ps4LauncherBreadcrumb( "kisak-ps4: before reslist continue" );
 			bReslistCycle = reslistgenerator->ShouldContinue();
+			Ps4LauncherBreadcrumb( "kisak-ps4: after reslist continue" );
 			bRestart = bReslistCycle;
 		}
 		
 		if ( !bReslistCycle )
 		{
+			Ps4LauncherBreadcrumb( "kisak-ps4: before override cleanup" );
 			// Remove any overrides in case settings changed
 			CommandLine()->RemoveParm( "-w" );
 			CommandLine()->RemoveParm( "-h" );
@@ -1989,7 +1994,9 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 			CommandLine()->RemoveParm( "-fullscreen" );
 			CommandLine()->RemoveParm( "-autoconfig" );
 			CommandLine()->RemoveParm( "+mat_hdr_level" );
+			Ps4LauncherBreadcrumb( "kisak-ps4: after override cleanup" );
 		}
+		Ps4LauncherBreadcrumb( "kisak-ps4: launcher iteration complete" );
 	}
 
 #ifdef WIN32
