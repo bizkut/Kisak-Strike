@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.34
-SHA-256: dbc32c68ff4d21cd93faee21e103cc337f613dfa11d50b4686a721b85c53873a
+Version: 1.35
+SHA-256: 6738ac69570526f6196f95f39ebe17fc9bc6c7451b0fd9e64c1c5c65734c9cb8
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -314,6 +314,11 @@ The v1.33 trace completes worker exit delivery, all joins/deletions, filesystem
 and tracker teardown, and the outer app-system shutdown. It then stops after
 `steamApplication.Run()` returns. Version 1.34 traces result-stage handling,
 reslist continuation, command-line override cleanup, and loop completion.
+
+The v1.34 trace completes all explicit result, reslist, and override cleanup,
+then stops while leaving the launcher iteration scope. Version 1.35 marks entry
+to each `CAppSystemGroup` destructor to distinguish Steam-application member
+cleanup from child Source-group cleanup.
 
 Reproduce the current cross-build with:
 

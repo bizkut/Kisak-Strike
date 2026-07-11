@@ -112,6 +112,7 @@ public:
 public:
 	// constructor
 	CAppSystemGroup( CAppSystemGroup *pParentAppSystem = NULL );
+	~CAppSystemGroup();
 
 	// Runs the app system group.
 	// First, modules are loaded, next they are connected, followed by initialization
@@ -298,5 +299,4 @@ SuggestGameInfoDirFn_t SetSuggestGameInfoDirFn( SuggestGameInfoDirFn_t pfnNewFn 
 
 
 #endif // APPSYSTEMGROUP_H
-
 

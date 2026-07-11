@@ -50,6 +50,11 @@ CAppSystemGroup::CAppSystemGroup( CAppSystemGroup *pAppSystemParent ) : m_System
 	m_pParentAppSystem = pAppSystemParent;
 }
 
+CAppSystemGroup::~CAppSystemGroup()
+{
+	PS4_APP_BREADCRUMB( "kisak-ps4: app group destructor entered" );
+}
+
 
 //-----------------------------------------------------------------------------
 // Actually loads a DLL
