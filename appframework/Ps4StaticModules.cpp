@@ -49,5 +49,6 @@ extern "C" int KisakRegisterStaticModules()
     const bool studiorender = RegisterStaticModule( "studiorender", KisakStudioRenderFactory() );
     const bool soundemittersystem = RegisterStaticModule( "soundemittersystem", KisakSoundEmitterSystemFactory() );
     const bool vscript = RegisterStaticModule( "vscript", KisakVScriptFactory() );
-    return tier0 && vstdlib && launcher && filesystem && engine && inputsystem && vphysics && materialsystem && datacache && studiorender && soundemittersystem && vscript ? 0 : -1;
+    const bool vgui2 = RegisterStaticModule( "vgui2", KisakVGuiFactory() );
+    return tier0 && vstdlib && launcher && filesystem && engine && inputsystem && vphysics && materialsystem && datacache && studiorender && soundemittersystem && vscript && vgui2 ? 0 : -1;
 }

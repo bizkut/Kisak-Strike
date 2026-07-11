@@ -571,11 +571,16 @@ int CSystem::GetAvailableDrives(char *buf, int bufLen)
 //-----------------------------------------------------------------------------
 double CSystem::GetFreeDiskSpace(const char *path)
 {
+#if defined( PLATFORM_PS4 )
+	(void)path;
+	return 0.0;
+#else
 	struct statfs64 buf;
 	int ret = statfs64( path, &buf );
 	if ( ret < 0 )
 		return 0.0;
 	return (double) ( buf.f_bsize * buf.f_bfree );
+#endif
 }
 
 //-----------------------------------------------------------------------------

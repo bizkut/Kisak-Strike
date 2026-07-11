@@ -32,9 +32,12 @@ typedef COSXFont font_t;
 #elif defined(LINUX)
 #include "linuxfont.h"
 typedef CLinuxFont font_t;
+#elif defined(PLATFORM_PS4)
+#include "ps4font.h"
+typedef CPs4Font font_t;
 #else
 #error
 #endif
 
 
-#endif //VGUIFONT_H 
+#endif //VGUIFONT_H

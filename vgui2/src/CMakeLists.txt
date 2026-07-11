@@ -33,7 +33,7 @@ target_sources(${OUTBINNAME} PRIVATE "${SRCDIR}/public/filesystem_init.cpp")
 if( WINDOWS )
     #$File	"htmlwindow.cpp"				[$WINDOWS]
 endif()
-if( WINDOWS OR X360 OR PS3 OR LINUXALL )
+if( WINDOWS OR X360 OR PS3 OR LINUXALL OR ORBIS )
     target_sources(${OUTBINNAME} PRIVATE "InputWin32.cpp")
 endif()
 if( OSXALL )
@@ -61,3 +61,7 @@ target_sources(${OUTBINNAME} PRIVATE "VPanelWrapper.cpp")
 target_sources(${OUTBINNAME} PRIVATE "keyrepeat.cpp")
 
 target_link_libraries(${OUTBINNAME} vgui_surfacelib_client tier2_client tier3_client libvstdlib_client)
+
+if( ORBIS )
+    target_compile_options(${OUTBINNAME} PRIVATE -Wno-c++11-narrowing)
+endif()

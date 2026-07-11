@@ -15,6 +15,7 @@ CreateInterfaceFn KisakDataCacheFactory();
 CreateInterfaceFn KisakStudioRenderFactory();
 CreateInterfaceFn KisakSoundEmitterSystemFactory();
 CreateInterfaceFn KisakVScriptFactory();
+CreateInterfaceFn KisakVGuiFactory();
 
 extern "C" int KisakRegisterStaticModules();
 

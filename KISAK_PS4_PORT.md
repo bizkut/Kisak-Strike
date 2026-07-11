@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.45
-SHA-256: 5e5f305b10973955afb28a2e2922060f983a6efd7845157e1944c94e173c8be4
+Version: 1.46
+SHA-256: 90f8714397ae4aabdb9d094eee11a9d171272baa7fc2f0ef4326e1ecede37bb9
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -410,6 +410,17 @@ uses Source's generic console contract to exclude desktop remote-debug sockets
 and unbuilt Lua support. Its console buffer fast path now retains full 64-bit
 addresses when checking float and double write alignment.
 
+The v1.45 hardware run remained stable through the complete launcher and
+filesystem shutdown lifecycle. This validates the Squirrel runtime constructors
+and `VScriptManager009` factory without creating a guest script VM at startup.
+
+Version 1.46 links the Source VGUI core and surface-support archives and
+registers the `VGUI_ivgui008` factory. The generic input implementation supplies
+the panel/input contracts without a desktop window system. A PS4 font boundary
+provides deterministic metrics and transparent glyph output for lifecycle
+validation; real font rasterization and UI drawing remain deferred to the
+RocketUI/OpenGNM integration milestone.
+
 Reproduce the current cross-build with:
 
 ```sh
@@ -437,8 +448,8 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
    and filesystem shutdown lifecycle is hardware validated at each checkpoint.
 5. **Engine initialization — in progress.**
    Filesystem, input, Kisak physics, material-system core, all datacache
-   interfaces, studio-render core, sound-emitter base, and Squirrel VScript are
-   linked and statically registered. VGUI/RocketUI and full
+   interfaces, studio-render core, sound-emitter base, Squirrel VScript, and the
+   VGUI core are linked and statically registered. RocketUI controls and full
    engine/client/server modules remain; renderer and AudioOut device backends
    are still pending.
 6. **Content filesystem — pending.**

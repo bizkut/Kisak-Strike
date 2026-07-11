@@ -19,6 +19,7 @@ if( LINUXALL )
 endif()
 
 add_definitions(-DALLOW_TEXT_MODE=1)
+include_directories(${SRCDIR}/common/vgui_surfacelib)
 
 target_sources(${OUTLIBNAME} PRIVATE "BitmapFont.cpp")
 target_sources(${OUTLIBNAME} PRIVATE "FontAmalgam.cpp")
@@ -33,4 +34,8 @@ target_sources(${OUTLIBNAME} PRIVATE "texturedictionary.cpp")
 #$File	"osxfont.cpp"			[$OSXALL]
 if( LINUXALL )
     target_sources(${OUTLIBNAME} PRIVATE "linuxfont.cpp")
+endif()
+if( ORBIS )
+    target_sources(${OUTLIBNAME} PRIVATE "ps4font.cpp")
+    target_compile_options(${OUTLIBNAME} PRIVATE -Wno-c++11-narrowing)
 endif()

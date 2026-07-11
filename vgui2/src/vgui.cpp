@@ -253,6 +253,13 @@ private:
 CVGui g_VGui;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CVGui, IVGui, VGUI_IVGUI_INTERFACE_VERSION, g_VGui);
 
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakVGuiFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
+
 bool IsDispatchingMessageQueue( void )
 {
 	return g_VGui.IsDispatchingMessages();
