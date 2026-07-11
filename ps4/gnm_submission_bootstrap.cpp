@@ -349,9 +349,9 @@ bool LoadDiagnosticShaders()
         float color[4];
     };
     static const DiagnosticVertex vertices[3] = {
-        { { -0.5f, -0.4f, 0.0f, 1.0f }, { 1.0f, 0.1f, 0.0f, 1.0f } },
-        { {  0.0f,  0.6f, 0.0f, 1.0f }, { 1.0f, 0.5f, 0.0f, 1.0f } },
-        { {  0.5f, -0.4f, 0.0f, 1.0f }, { 1.0f, 0.9f, 0.0f, 1.0f } }
+        { { -0.42f, -0.35f, 0.14f, 0.70f }, { 1.0f, 0.1f, 0.0f, 1.0f } },
+        { {  0.00f,  0.91f, 0.84f, 1.40f }, { 1.0f, 0.5f, 0.0f, 1.0f } },
+        { {  0.60f, -0.50f, 0.30f, 1.00f }, { 1.0f, 0.9f, 0.0f, 1.0f } }
     };
     gpuCursor = reinterpret_cast< uint8_t * >(
         ( reinterpret_cast< uintptr_t >( gpuCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
@@ -645,6 +645,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
         sceGnmPsShaderInputSemanticTable( g_TexturePixelShader ), g_TexturePixelShader->numinputsemantics );
     Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
     GnmSetViewportInfo farViewport = viewport;
+    farViewport.offset[0] += 180.0f;
     farViewport.offset[2] = 0.75f;
     g_DrawState.SetViewport( 0, farViewport );
     Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
@@ -870,6 +871,13 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             KisakPs4StartupBreadcrumb(
                 "kisak-ps4: D3D9 facade indexed diagnostic draw emitted" );
             g_FacadeDrawLogged = true;
+        }
+        static bool threeDimensionalDrawLogged = false;
+        if ( !threeDimensionalDrawLogged )
+        {
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: perspective depth-overlap diagnostic emitted" );
+            threeDimensionalDrawLogged = true;
         }
     }
 

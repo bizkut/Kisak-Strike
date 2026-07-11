@@ -956,6 +956,19 @@ must visibly demonstrate interpolation and depth rejection, retain EOP/flip
 stability, and use the façade declaration, indexed packet, constant snapshot,
 and depth-state paths. It will be kept separate from the established 2D bars
 and triangle until validated.
+
+Version 2.59 adds the first 3D hardware gate without changing shader binaries.
+The three clip-space vertices carry distinct W and Z values, exercising
+perspective division and perspective-correct color interpolation. A second copy
+uses a farther viewport depth and a +180-pixel X offset: its non-overlapping
+edge should remain visible while the near triangle rejects the overlapping
+fragments. The stable bars remain behind both draws. Startup logs
+`kisak-ps4: perspective depth-overlap diagnostic emitted` after the façade
+scene completes.
+The v2.59 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`f7ab1a3e5d524129a1f0055d4c38fe4336a97c362f495642c288ccc8743c50c5`,
+with marker `kisak-ps4: build marker perspective_depth_draw_v259`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
