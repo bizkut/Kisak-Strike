@@ -700,6 +700,8 @@ failure. The source and Orbis archive timestamps also showed that the archive
 was stale, so the concurrent OpenGNM track rebuilt `libopengnm.a` and committed
 `cc8315a`, preserving early invalid-argument diagnostics before the layout
 path. Kisak v1.73 packages that rebuilt archive for the next PS4 run.
+OpenGNM commit `ed3df0e` adds a host regression test for both invalid
+create-info forms and their stage/code breadcrumbs.
 
 Version 1.70 extends `GnmVideoOut` with a diagnostic open-stage field and makes
 the helper classify those six boundaries. Kisak logs the stage-specific result
