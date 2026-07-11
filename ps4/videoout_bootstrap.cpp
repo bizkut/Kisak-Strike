@@ -1,6 +1,7 @@
 #include <gnm_helpers.h>
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
@@ -31,9 +32,15 @@ extern "C" bool KisakPs4VideoOutInitialize()
 		return false;
 	}
 	KisakPs4StartupBreadcrumb( "kisak-ps4: videoout layout valid" );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: videoout helper diagnostics v1.74" );
     KisakPs4StartupBreadcrumb( "kisak-ps4: videoout before open" );
     if ( sceGnmVideoOutOpen( &g_VideoOut, &info ) != GNM_ERROR_OK )
     {
+		char diagnostic[96];
+		snprintf( diagnostic, sizeof( diagnostic ),
+		    "kisak-ps4: videoout open stage=%u code=%d",
+		    g_VideoOut.last_error_stage, g_VideoOut.last_error_code );
+		KisakPs4StartupBreadcrumb( diagnostic );
 		if ( g_VideoOut.last_error_stage == 1 && g_VideoOut.last_error_code == GNM_ERROR_INVALID_ARGS )
 			KisakPs4StartupBreadcrumb( "kisak-ps4: videoout open layout invalid args" );
 		else if ( g_VideoOut.last_error_stage == 1 && g_VideoOut.last_error_code == GNM_ERROR_OVERFLOW )

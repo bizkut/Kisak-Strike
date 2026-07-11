@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.73
-SHA-256: e8218444fd1ab4fce85875382b0dfe88d1f985bef07188ccb9db602ed58ed15d
+Version: 1.74
+SHA-256: f3e23e12aaf6a95570c1e2047014573d65951763b1b97e1f7f8ce788d0e78540
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -36,6 +36,12 @@ initializes diagnostic state before validating create-info arguments, so an
 ABI or stale-archive mismatch is reported as an explicit stage/code pair.
 Kisak v1.73 links a freshly rebuilt Orbis `libopengnm.a` containing that fix;
 hardware validation is the next checkpoint.
+
+The latest pulled hardware log still contains the v1.72 generic layout-failure
+sequence, so it cannot yet distinguish an unlaunched v1.73 package from a new
+OpenGNM return code. Kisak v1.74 adds a bounded helper-diagnostics marker and
+raw `stage=<n> code=<n>` breadcrumb immediately after `sceGnmVideoOutOpen`
+fails. The package is staged for the next hardware run.
 
 Expected hardware log:
 
