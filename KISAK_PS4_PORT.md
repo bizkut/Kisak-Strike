@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.04
-SHA-256: 688ed669c4569c518e26dcde44d228daf84c8fdeddd130c336bf069e8953d63b
+Version: 1.05
+SHA-256: 8b66ad5b5c1c8d04c82968e8ea1cfc312a6b6aa1888bf61191222af1ededb5b6
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -154,6 +154,13 @@ The v1.03 trace completed constructor slots 43 and 42, then failed in slot 41,
 queues, lists, counters, and test operation objects rather than production
 runtime state. Version 1.04 excludes `tslist.cpp` from the Orbis tier0 archive
 instead of relaxing the failing lock-free queue invariant.
+
+The v1.04 run completed the remaining 36 constructors after the removed TSList
+slot, then failed at the new slot 6, `_GLOBAL__sub_I_jobthread.cpp`. That
+initializer combines the required global thread pool with developer-only
+`ThreadPoolTest` events and counters. Version 1.05 excludes the test namespace
+and retains an inert `RunThreadPoolTests()` probe, leaving the production global
+thread pool constructor in place for direct validation.
 
 Reproduce the current cross-build with:
 

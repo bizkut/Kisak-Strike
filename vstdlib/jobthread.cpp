@@ -1289,6 +1289,7 @@ CJob *CThreadPool::GetDummyJob()
 }
 
 
+#if !defined( PLATFORM_PS4 )
 namespace ThreadPoolTest 
 {
 int g_iSleep;
@@ -1612,3 +1613,8 @@ void RunThreadPoolTests()
 
 	ThreadPoolTest::TestForcedExecute();
 }
+#else
+void RunThreadPoolTests()
+{
+}
+#endif
