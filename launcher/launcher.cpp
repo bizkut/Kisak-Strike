@@ -72,6 +72,8 @@
 #include "vstdlib/jobthread.h"
 
 #if defined( PLATFORM_PS4 )
+#include "ps4_content_paths.h"
+
 static void Ps4LauncherBreadcrumb( const char *message )
 {
 	FILE *log = fopen( "/data/kisak-strike/startup.log", "a" );
@@ -924,9 +926,33 @@ bool CSourceAppSystemGroup::PreInit()
 	g_pVJobs = ( IVJobs* )factory( VJOBS_INTERFACE_VERSION, NULL );  // this is done only once; g_pVJobs doesn't change even after multiple reloads of VJobs.prx
 	FileSystem_AddSearchPath_Platform( g_pFullFileSystem, GetGameDirectory() );
 #elif defined( PLATFORM_PS4 )
-	// PS4 uses /app0 and /data search roots; Steam environment setup is not
-	// available or required for the monolithic OpenOrbis client.
-	FileSystem_AddSearchPath_Platform( g_pFullFileSystem, GetGameDirectory() );
+	KisakPs4ContentLayout contentLayout;
+	const char *requestedGame = CommandLine()->ParmValue( "-game", "csgo" );
+	if ( !KisakPs4BuildContentLayout( requestedGame, &contentLayout ) )
+	{
+		Ps4LauncherBreadcrumb( "kisak-ps4: content path invalid" );
+		return false;
+	}
+
+	SetGameDirectory( contentLayout.externalGame );
+	g_pFullFileSystem->AddSearchPath( contentLayout.packagedGame, "GAME", PATH_ADD_TO_TAIL );
+	g_pFullFileSystem->AddSearchPath( contentLayout.packagedGame, "MOD", PATH_ADD_TO_TAIL );
+	g_pFullFileSystem->AddSearchPath( contentLayout.packagedRoot, "GAME", PATH_ADD_TO_TAIL );
+	g_pFullFileSystem->AddSearchPath( contentLayout.packagedRoot, "MOD", PATH_ADD_TO_TAIL );
+	g_pFullFileSystem->AddSearchPath( contentLayout.packagedPlatform, "PLATFORM", PATH_ADD_TO_TAIL );
+	g_pFullFileSystem->AddSearchPath( contentLayout.externalRoot, "GAME", PATH_ADD_TO_HEAD );
+	g_pFullFileSystem->AddSearchPath( contentLayout.externalRoot, "MOD", PATH_ADD_TO_HEAD );
+	g_pFullFileSystem->AddSearchPath( contentLayout.externalGame, "GAME", PATH_ADD_TO_HEAD );
+	g_pFullFileSystem->AddSearchPath( contentLayout.externalGame, "MOD", PATH_ADD_TO_HEAD );
+	g_pFullFileSystem->AddSearchPath( contentLayout.externalPlatform, "PLATFORM", PATH_ADD_TO_HEAD );
+	g_pFullFileSystem->AddSearchPath( contentLayout.writeRoot, "DEFAULT_WRITE_PATH", PATH_ADD_TO_HEAD );
+	g_pFullFileSystem->AddSearchPath( contentLayout.writeRoot, "LOGDIR", PATH_ADD_TO_HEAD );
+	Ps4LauncherBreadcrumb( "kisak-ps4: content search paths mounted" );
+
+	if ( g_pFullFileSystem->FileExists( "gameinfo.txt", "GAME" ) )
+		Ps4LauncherBreadcrumb( "kisak-ps4: content gameinfo found" );
+	else
+		Ps4LauncherBreadcrumb( "kisak-ps4: content gameinfo missing" );
 #else // _PS3
 	CFSSteamSetupInfo steamInfo;
 	steamInfo.m_bToolsMode = false;

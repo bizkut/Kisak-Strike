@@ -26,3 +26,11 @@ target_include_directories(ps4_static_modules_test PRIVATE ../public)
 target_compile_definitions(ps4_static_modules_test PRIVATE POSIX _POSIX GNUC COMPILER_GCC)
 set_target_properties(ps4_static_modules_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_static_modules COMMAND ps4_static_modules_test)
+
+add_executable(ps4_content_paths_test
+    ps4_content_paths_test.cpp
+    ../launcher/ps4_content_paths.cpp
+)
+target_include_directories(ps4_content_paths_test PRIVATE ../launcher)
+set_target_properties(ps4_content_paths_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
+add_test(NAME ps4_content_paths COMMAND ps4_content_paths_test)

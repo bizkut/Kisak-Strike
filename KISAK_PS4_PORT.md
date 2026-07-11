@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.78
-SHA-256: 438f2ab7f78e5f214fb80a85168a73bcd60ef289de161e78e1b784803d71a0ec
+Version: 1.79
+SHA-256: cda596f8fdae9ee0efd1f3b7c8905676df47a22240748d341776997af7d9cd3a
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -42,6 +42,14 @@ Current hardware baseline:
   geometry reaches the GPU yet.
 - The sound-emitter system tolerates missing content, but complete `/app0` and
   `/data/kisak-strike` content mounting is not yet validated.
+
+Version 1.79 adds a host-tested PS4 content layout. It normalizes relative game
+paths, rejects absolute and traversal inputs, mounts `/data/kisak-strike/csgo`
+and `/data/kisak-strike` ahead of `/app0/csgo` and `/app0`, layers both
+platform roots, and keeps writes under `/data/kisak-strike`. The next hardware
+log will report either
+`content gameinfo found` or `content gameinfo missing` through the normal
+`GAME` search path.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, or VideoOut. It is content mounting
@@ -85,7 +93,8 @@ cmake --build /tmp/kisak-platform-tests
 ctest --test-dir /tmp/kisak-platform-tests --output-on-failure
 ```
 
-Both host tests currently pass.
+All three host tests currently pass, including PS4 content-path normalization
+and layout coverage.
 
 ## Current implementation attempt
 
@@ -792,10 +801,10 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
 
 ## Immediate implementation slice
 
-1. Add host-tested PS4 path normalization and root selection for `/app0` and
-   `/data/kisak-strike`.
-2. Mount loose content and VPK search paths, then replace the sound-manifest
-   fallback with a successful normal asset read.
+1. **Complete:** add host-tested PS4 path normalization and root selection for
+   `/app0` and `/data/kisak-strike`.
+2. **Hardware validation:** mount loose content and VPK search paths, then
+   replace the sound-manifest fallback with a successful normal asset read.
 3. Validate VMT/VTF and BSP reads before introducing GPU resource creation.
 4. Add the PS4 ShaderAPI target and the minimal D3D object/resource skeleton;
    keep `shaderapiempty` as an explicit diagnostic fallback until clear and

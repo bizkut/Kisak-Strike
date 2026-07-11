@@ -18,6 +18,21 @@ CreateInterfaceFn Sys_GetFactoryThis()
     return TestFactory;
 }
 
+CreateInterfaceFn KisakFilesystemFactory() { return TestFactory; }
+CreateInterfaceFn KisakEngineBootstrapFactory() { return TestFactory; }
+CreateInterfaceFn KisakRocketUIBootstrapFactory() { return TestFactory; }
+CreateInterfaceFn KisakInputSystemFactory() { return TestFactory; }
+CreateInterfaceFn KisakVPhysicsFactory() { return TestFactory; }
+CreateInterfaceFn KisakShaderApiEmptyFactory() { return TestFactory; }
+CreateInterfaceFn KisakMaterialSystemFactory() { return TestFactory; }
+CreateInterfaceFn KisakDataCacheFactory() { return TestFactory; }
+CreateInterfaceFn KisakStudioRenderFactory() { return TestFactory; }
+CreateInterfaceFn KisakSoundEmitterSystemFactory() { return TestFactory; }
+CreateInterfaceFn KisakVScriptFactory() { return TestFactory; }
+CreateInterfaceFn KisakVGuiFactory() { return TestFactory; }
+CreateInterfaceFn KisakLocalizeFactory() { return TestFactory; }
+CreateInterfaceFn KisakVGuiMatSurfaceFactory() { return TestFactory; }
+
 int main()
 {
     ClearStaticModuleRegistryForTesting();
