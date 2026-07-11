@@ -123,6 +123,16 @@ from contaminating PS4 archives. This is a GPU memory-clear checkpoint, not yet
 a shader/render-target draw. Expected hardware success marker:
 `GPU VideoOut clear and EOP passed`.
 
+The v1.83 hardware run produced both the initial two-frame EOP marker and
+`GPU VideoOut clear and EOP passed`, with no CPU-fallback, submission, timeout,
+flip, or presentation failure. It completed all 1800 frames at the reported
+60 FPS, released the submission pool, and returned cleanly. The visible output
+was reported as grey rather than the intended dark packed color. GPU writes,
+EOP ordering, scanout, and lifetime reuse are therefore validated, but color
+interpretation is not. Before introducing the clear shader, emit distinct
+primary-color regions to verify A8B8G8R8 byte order, pitch, and linear VideoOut
+layout on hardware.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
