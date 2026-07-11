@@ -566,12 +566,18 @@ INLINE_ON_PS3 void* CThread::ThreadProc(LPVOID pv)
 #else
 	std::auto_ptr<ThreadInit_t> pInit((ThreadInit_t *)pv);
 #endif
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child entered" );
+	#endif
 
 #ifdef _X360
 	// Make sure all threads are consistent w.r.t floating-point math
 	SetupFPUControlWord();
 #endif
 	AllocateThreadID();
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child after thread id" );
+	#endif
 
 	CThread *pThread = pInit->pThread;
 #ifdef _PS3
@@ -579,6 +585,9 @@ INLINE_ON_PS3 void* CThread::ThreadProc(LPVOID pv)
 #else
 	g_pCurThread = pThread;
 #endif
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child after current thread" );
+	#endif
 
 	pThread->m_pStackBase = AlignValue( &pThread, 4096 );
 
@@ -597,7 +606,13 @@ INLINE_ON_PS3 void* CThread::ThreadProc(LPVOID pv)
 #else
 	try
 	{
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child before init" );
+		#endif
 		bInitSuccess = pInit->pThread->Init();
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child after init" );
+		#endif
 	}
 
 	catch (...)

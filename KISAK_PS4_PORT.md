@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.24
-SHA-256: 0e81b41372c53f2831ce9f78c65c3c6baeba85215a3f49adc48841d354846ced
+Version: 1.25
+SHA-256: 6b5c087ff3604936e624cc9df6c89ec5f996559927d47de072415fbaee0beeac
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -265,6 +265,11 @@ handshake.
 The v1.23 trace remains inside `CThread::Start()` before the outer call returns.
 Version 1.24 splits its object-lock acquisition, create-complete event
 construction, raw `pthread_create`, and initialization wait.
+
+The v1.24 trace reaches the raw `pthread_create` call but the process terminates
+before the parent returns from it. Since a simple tracker pthread already
+starts successfully, version 1.25 traces the `CThread` child trampoline through
+thread-ID allocation, current-thread TLS assignment, and virtual `Init()`.
 
 Reproduce the current cross-build with:
 
