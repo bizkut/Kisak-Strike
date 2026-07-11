@@ -398,7 +398,7 @@ void CursorSelect( InputContextHandle_t hContext, HCursor hCursor )
 	};
 	
 	g_pInputSystem->SetMouseCursorVisible( s_bCursorVisible );
-#elif defined( _PS3 )
+#elif defined( _PS3 ) || defined( PLATFORM_PS4 )
 #elif defined( LINUX )
 #error
 #else
@@ -429,6 +429,8 @@ void ActivateCurrentCursor( InputContextHandle_t hContext )
 		{
 			CGDisplayShowCursor(kCGDirectMainDisplay);
 		}
+#elif defined( PLATFORM_PS4 )
+		(void)hContext;
 #else
 #error
 #endif
@@ -449,6 +451,8 @@ void ActivateCurrentCursor( InputContextHandle_t hContext )
 		{
 			CGDisplayHideCursor(kCGDirectMainDisplay);
 		}
+#elif defined( PLATFORM_PS4 )
+		(void)hContext;
 #else
 #error
 #endif
@@ -538,7 +542,6 @@ void CursorRunFrame()
 	}	
 }
 #endif
-
 
 
 

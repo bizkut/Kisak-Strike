@@ -163,6 +163,13 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CMatSystemSurface, ISurface,
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CMatSystemSurface, ISchemeSurface, 
 						SCHEME_SURFACE_INTERFACE_VERSION, g_MatSystemSurface );
 
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakVGuiMatSurfaceFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
+
 #ifdef LINUX
 CUtlDict< CMatSystemSurface::font_entry, unsigned short > CMatSystemSurface::m_FontData;
 #endif
@@ -2383,6 +2390,8 @@ bool CMatSystemSurface::AddCustomFontFile( const char *fontFileName )
 #endif // X360
 #elif defined( _PS3 )
 	return true;
+#elif defined( PLATFORM_PS4 )
+	return false;
 #elif defined( OSX )
 	// Just load the font data, decrypt in memory and register for this process
 	CUtlBuffer buf;

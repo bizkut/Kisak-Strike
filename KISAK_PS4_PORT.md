@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.48
-SHA-256: ad36d1f245418123fe758f7f0694d9e458b45b85d5fb43bb90e598952733e567
+Version: 1.49
+SHA-256: 83a4e1eec349fcafa0e934a7fce8ff1ec38b09bd3b65007a61e528f8ed95a28c
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -440,6 +440,17 @@ with the established Orbis compatibility for legacy DMX metadata. This archive
 has no standalone `CreateInterface` factory and remains dormant until a later
 client/UI module calls `VGui_InitInterfacesList`.
 
+The v1.48 hardware run remained stable through the complete launcher and
+filesystem shutdown lifecycle. This confirms the controls archive adds no
+unexpected runtime constructors or initialization side effects.
+
+Version 1.49 links the DMX loader and material-system VGUI surface, registers
+the `VGUI_Surface031` factory, and preserves the Source-required ordering before
+`vgui2`. PS4 cursor activation is a controller-oriented no-op, and OS custom
+font registration reports unsupported until the real glyph backend exists.
+Actual drawing remains deferred until the material system has an OpenGNM
+ShaderAPI/device.
+
 Reproduce the current cross-build with:
 
 ```sh
@@ -468,9 +479,10 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
 5. **Engine initialization — in progress.**
    Filesystem, input, Kisak physics, material-system core, all datacache
    interfaces, studio-render core, sound-emitter base, Squirrel VScript, and the
-   VGUI core are linked and statically registered, and the VGUI controls archive
-   compiles for Orbis. RocketUI integration and full engine/client/server
-   modules remain; renderer and AudioOut device backends are still pending.
+   VGUI core and material surface are linked and statically registered, and the
+   VGUI controls archive compiles for Orbis. RocketUI integration and full
+   engine/client/server modules remain; renderer and AudioOut device backends
+   are still pending.
 6. **Content filesystem — pending.**
    Layer `/app0` and `/data/kisak-strike` VPK/search paths using little-endian
    Kisak/PC content.

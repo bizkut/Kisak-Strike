@@ -57,9 +57,11 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_subdirectory(studiorender)
     add_subdirectory(soundemittersystem)
     add_subdirectory(vscript)
+    add_subdirectory(dmxloader)
     add_subdirectory(vgui2/vgui_surfacelib)
     add_subdirectory(vgui2/src)
     add_subdirectory(vgui2/vgui_controls)
+    add_subdirectory(vguimatsurface)
     add_subdirectory(appframework)
     add_subdirectory(launcher)
 
@@ -114,6 +116,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         vgui2_client
         vgui_surfacelib_client
         vgui_controls_client
+        vguimatsurface_client
+        dmxloader_client
         shaderlib_client
         vtf_client
         bitmap_client
