@@ -785,7 +785,7 @@ That legacy predicate enables a mixture of Xbox 360 and PS3 filesystem,
 byte-order, packed-asset, memory, shader, and renderer assumptions. PS4 must
 continue to report `IsPC() == 1` and `IsGameConsole() == 0` so it can consume
 Kisak's little-endian PC VPK/VTF/BSP content. PS4-specific code uses `IsPS4()`;
-controller-first UI behavior uses the new `IsConsoleUI()` predicate.
+controller-first UI behavior uses the new `IsPlatformConsoleUI()` predicate.
 
 Scaleform 4.2 source is available as the external sibling tree
 `../scaleform_sdk`. It contains the AS2/GFx player, render core, D3D9 HAL, and

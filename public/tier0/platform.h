@@ -478,9 +478,9 @@
 // but must not enter the Xbox/PS3 asset, filesystem, endian, or renderer paths
 // selected by IsGameConsole().
 #if defined( PLATFORM_X360 ) || defined( _PS3 ) || defined( PLATFORM_PS4 )
-	#define IsConsoleUI() 1
+	#define IsPlatformConsoleUI() 1
 #else
-	#define IsConsoleUI() 0
+	#define IsPlatformConsoleUI() 0
 #endif
 
 

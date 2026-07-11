@@ -137,7 +137,7 @@ IGameConsole *staticGameConsole = NULL;
 bool s_bWindowsInputEnabled = true;
 
 ConVar r_drawvgui( "r_drawvgui", "1", FCVAR_CHEAT, "Enable the rendering of vgui panels" );
-ConVar gameui_xbox( "gameui_xbox", "0", 0 );
+ConVar gameui_xbox( "gameui_xbox", IsPlatformConsoleUI() ? "1" : "0", 0 );
 
 // Tracks whether console window is open or not - true as soon as we receive the request to open it, until after it has shutdown
 ConVar cv_console_window_open( "console_window_open", NULL, FCVAR_HIDDEN, "Is the console window active" );
@@ -3014,4 +3014,3 @@ CON_COMMAND( vgui_dump_panels, "vgui_dump_panels [visible]" )
 	VPANEL embedded = surface()->GetEmbeddedPanel();
 	DumpPanels_r( embedded, 0, bVisibleOnly );
 }
-
