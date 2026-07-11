@@ -28,6 +28,8 @@ CPs4GnmDrawState::CPs4GnmDrawState()
     memset( &m_pixelShader, 0, sizeof( m_pixelShader ) );
     memset( &m_blendControl, 0, sizeof( m_blendControl ) );
     m_blendIndex = 0;
+    m_indexSize = GNM_INDEX_16;
+    m_indexCachePolicy = GNM_POLICY_LRU;
     memset( m_scissor, 0, sizeof( m_scissor ) );
 }
 
@@ -125,6 +127,16 @@ void CPs4GnmDrawState::SetBlendControl( uint32_t index, const GnmBlendControl &c
     }
 }
 
+void CPs4GnmDrawState::SetIndexSize( GnmIndexSize size, GnmCachePolicy policy )
+{
+    if ( m_indexSize != size || m_indexCachePolicy != policy )
+    {
+        m_indexSize = size;
+        m_indexCachePolicy = policy;
+        m_dirtyMask |= kDirtyIndexSize;
+    }
+}
+
 uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
 {
     if ( !command )
@@ -152,6 +164,8 @@ uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
         sceGnmDrawCmdSetPsShader( command, &m_pixelShader );
     if ( emitted & kDirtyBlend )
         sceGnmDrawCmdSetBlendControl( command, m_blendIndex, &m_blendControl );
+    if ( emitted & kDirtyIndexSize )
+        sceGnmDrawCmdSetIndexSize( command, m_indexSize, m_indexCachePolicy );
     m_dirtyMask = 0;
     return emitted;
 }

@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.97
-SHA-256: 1bf27605da47338b843568f2d9c0d3401f56987ec6164f07090873db77a35528
+Version: 1.98
+SHA-256: a43aa4f565524fa1144f44ac2da63769adcb7a76821a7dd838cb0c92db261d22
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -312,6 +312,15 @@ cached target and VS/PS register binding. Version 1.97 adds render-target-indexe
 blend control to `CPs4GnmDrawState` and routes the diagnostic's explicit
 disabled-blend state through the cache. This is the no-regression baseline for
 the subsequent alpha-blend and indexed-geometry diagnostics.
+
+The v1.97 hardware run passed its no-regression gate at 60 FPS with the same
+visible triangle and `0xff00bcff` center readback. Version 1.98 changes the
+triangle from `DrawIndexAuto` to a real 16-bit index buffer allocated in the
+current device frame arena. `CPs4GnmDrawState` now caches index size and cache
+policy, and the command emits `DrawIndex` for indices `{0,1,2}`. Because the
+procedural VS consumes `gl_VertexIndex`, this isolates index allocation,
+binding, and indexed packet execution without yet introducing vertex-fetch
+shader or descriptor variables. The next gate adds fetched vertex attributes.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

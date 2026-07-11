@@ -207,7 +207,7 @@ bool LoadDiagnosticShaders()
     return true;
 }
 
-void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination )
+void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const uint16_t *indices )
 {
     GnmRenderTarget renderTarget = {};
     if ( sceGnmRtCreateColorTarget( &renderTarget, destination, GNM_FMT_R8G8B8A8_SRGB,
@@ -246,6 +246,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination )
     g_DrawState.SetRenderTargetMask( 0xf );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
     g_DrawState.SetPixelShader( g_PixelShader->registers );
+    g_DrawState.SetIndexSize( GNM_INDEX_16, GNM_POLICY_LRU );
     g_DrawState.Apply( command );
     if ( g_FetchShader )
         sceGnmDrawCmdSetPointerUserData( command, GNM_STAGE_VS, 0, g_FetchShader );
@@ -253,7 +254,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination )
         sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
         sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
     sceGnmDrawCmdSetPrimitiveType( command, GNM_PT_TRILIST );
-    sceGnmDrawCmdDrawIndexAuto( command, 3 );
+    sceGnmDrawCmdDrawIndex( command, 3, indices );
 }
 }
 
@@ -419,8 +420,18 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
     }
     if ( g_ShadersReady )
     {
+        uint16_t *indices = static_cast< uint16_t * >(
+            g_Device.FrameArena().Allocate( 3 * sizeof( uint16_t ), 8 ) );
+        if ( !indices )
+        {
+            g_Device.CancelFrame();
+            return false;
+        }
+        indices[0] = 0;
+        indices[1] = 1;
+        indices[2] = 2;
         sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_CB0 );
-        EmitDiagnosticTriangle( &command, destination );
+        EmitDiagnosticTriangle( &command, destination, indices );
     }
 
     sceGnmDrawCmdEventWriteEop( &command, GNM_CACHE_FLUSH_AND_INV_TS_EVENT,
