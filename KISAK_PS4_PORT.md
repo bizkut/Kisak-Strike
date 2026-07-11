@@ -19,14 +19,23 @@ kernel sleep loop. The first package returned from `main()` after writing all
 markers; the PS4 shell reported that normal return as an application crash.
 Commit `b8f56b31` fixed the behavior by keeping the bootstrap alive.
 
-Latest validated bootstrap package:
+Latest staged monolithic package:
 
 ```text
-Package: IV0000-KISK00001_00-KISAKBOOTSTRAP00.pkg
-Version: 1.01
-SHA-256: 04e06501d0ce999355dfafdb9843fe6b876688d05ab1a1e9ed66605eb3dfbec8
-Staged:  /data/pkg/IV0000-KISK00001_00-KISAKBOOTSTRAP00.pkg
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 1.73
+SHA-256: 22d3debc0abc2768868f661b77ed918205e3c5240cb60129d7898b79afc0d6d9
+Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
+
+The v1.72 hardware run stayed alive through the bounded 120-frame loop but
+reported `videoout layout valid` followed by the helper's generic
+`videoout layout failed`. This means the direct and internal OpenGNM checks
+disagree before any VideoOut service call. OpenGNM commit `cc8315a` now
+initializes diagnostic state before validating create-info arguments, so an
+ABI or stale-archive mismatch is reported as an explicit stage/code pair.
+Kisak v1.73 links a freshly rebuilt Orbis `libopengnm.a` containing that fix;
+hardware validation is the next checkpoint.
 
 Expected hardware log:
 
@@ -684,6 +693,13 @@ direct pre-check did not report an error. Version 1.72 extends OpenGNM's
 `GnmVideoOut` diagnostic state with the raw helper error code and logs a
 successful direct layout check plus any repeated-open layout error. This tests
 for an ABI/stale-archive mismatch before changing VideoOut parameters.
+
+The v1.72 hardware run confirmed the mismatch: the direct layout check logged
+success, but `sceGnmVideoOutOpen` still returned the helper's generic layout
+failure. The source and Orbis archive timestamps also showed that the archive
+was stale, so the concurrent OpenGNM track rebuilt `libopengnm.a` and committed
+`cc8315a`, preserving early invalid-argument diagnostics before the layout
+path. Kisak v1.73 packages that rebuilt archive for the next PS4 run.
 
 Version 1.70 extends `GnmVideoOut` with a diagnostic open-stage field and makes
 the helper classify those six boundaries. Kisak logs the stage-specific result
