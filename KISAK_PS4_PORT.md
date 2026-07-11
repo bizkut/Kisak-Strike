@@ -469,6 +469,14 @@ expands the shared resource's used size to the maximum compatible descriptor
 footprint. Table placement follows that expanded size. The red triangle must
 return before offscreen writes proceed.
 
+The v2.14 hardware run restored the opaque red sampled triangle, retained
+center pixel `0xff6363ff`, and reported a 512-byte shared texture/target
+footprint. This proves the render-target view expanded the original 256-byte
+texture footprint safely without overlapping the following combined descriptor
+table. Shared descriptor compatibility is complete; the next gate writes a
+known color through the 4x4 render target, inserts CB-write-to-texture-read
+synchronization, and samples that result on the display triangle.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
