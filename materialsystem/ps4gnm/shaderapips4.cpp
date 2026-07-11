@@ -1,5 +1,6 @@
 #include "interface.h"
 #include "shaderapi/IShaderDevice.h"
+#include "shaderapi/ishadershadow.h"
 
 #include <string.h>
 
@@ -137,6 +138,66 @@ private:
 
 CShaderDevicePs4 g_DevicePs4;
 
+class CShaderShadowPs4 : public IShaderShadow
+{
+public:
+    CShaderShadowPs4() : m_delegate( 0 ) {}
+    void SetDelegate( IShaderShadow *delegate ) { m_delegate = delegate; }
+
+    void SetDefaultState() { if ( m_delegate ) m_delegate->SetDefaultState(); }
+    void DepthFunc( ShaderDepthFunc_t function ) { if ( m_delegate ) m_delegate->DepthFunc( function ); }
+    void EnableDepthWrites( bool enable ) { if ( m_delegate ) m_delegate->EnableDepthWrites( enable ); }
+    void EnableDepthTest( bool enable ) { if ( m_delegate ) m_delegate->EnableDepthTest( enable ); }
+    void EnablePolyOffset( PolygonOffsetMode_t mode ) { if ( m_delegate ) m_delegate->EnablePolyOffset( mode ); }
+    void EnableColorWrites( bool enable ) { if ( m_delegate ) m_delegate->EnableColorWrites( enable ); }
+    void EnableAlphaWrites( bool enable ) { if ( m_delegate ) m_delegate->EnableAlphaWrites( enable ); }
+    void EnableBlending( bool enable ) { if ( m_delegate ) m_delegate->EnableBlending( enable ); }
+    void EnableBlendingForceOpaque( bool enable )
+    { if ( m_delegate ) m_delegate->EnableBlendingForceOpaque( enable ); }
+    void BlendFunc( ShaderBlendFactor_t source, ShaderBlendFactor_t destination )
+    { if ( m_delegate ) m_delegate->BlendFunc( source, destination ); }
+    void EnableBlendingSeparateAlpha( bool enable )
+    { if ( m_delegate ) m_delegate->EnableBlendingSeparateAlpha( enable ); }
+    void BlendFuncSeparateAlpha( ShaderBlendFactor_t source, ShaderBlendFactor_t destination )
+    { if ( m_delegate ) m_delegate->BlendFuncSeparateAlpha( source, destination ); }
+    void EnableAlphaTest( bool enable ) { if ( m_delegate ) m_delegate->EnableAlphaTest( enable ); }
+    void AlphaFunc( ShaderAlphaFunc_t function, float reference )
+    { if ( m_delegate ) m_delegate->AlphaFunc( function, reference ); }
+    void PolyMode( ShaderPolyModeFace_t face, ShaderPolyMode_t mode )
+    { if ( m_delegate ) m_delegate->PolyMode( face, mode ); }
+    void EnableCulling( bool enable ) { if ( m_delegate ) m_delegate->EnableCulling( enable ); }
+    void VertexShaderVertexFormat( unsigned int flags, int texCoordCount, int *texCoordDimensions,
+                                   int userDataSize )
+    { if ( m_delegate ) m_delegate->VertexShaderVertexFormat( flags, texCoordCount, texCoordDimensions, userDataSize ); }
+    void SetVertexShader( const char *fileName, int staticIndex )
+    { if ( m_delegate ) m_delegate->SetVertexShader( fileName, staticIndex ); }
+    void SetPixelShader( const char *fileName, int staticIndex = 0 )
+    { if ( m_delegate ) m_delegate->SetPixelShader( fileName, staticIndex ); }
+    void EnableSRGBWrite( bool enable ) { if ( m_delegate ) m_delegate->EnableSRGBWrite( enable ); }
+    void EnableSRGBRead( Sampler_t sampler, bool enable )
+    { if ( m_delegate ) m_delegate->EnableSRGBRead( sampler, enable ); }
+    void EnableTexture( Sampler_t sampler, bool enable )
+    { if ( m_delegate ) m_delegate->EnableTexture( sampler, enable ); }
+    void FogMode( ShaderFogMode_t mode, bool vertexFog )
+    { if ( m_delegate ) m_delegate->FogMode( mode, vertexFog ); }
+    void DisableFogGammaCorrection( bool disable )
+    { if ( m_delegate ) m_delegate->DisableFogGammaCorrection( disable ); }
+    void EnableAlphaToCoverage( bool enable )
+    { if ( m_delegate ) m_delegate->EnableAlphaToCoverage( enable ); }
+    void EnableVertexTexture( VertexTextureSampler_t sampler, bool enable )
+    { if ( m_delegate ) m_delegate->EnableVertexTexture( sampler, enable ); }
+    void BlendOp( ShaderBlendOp_t operation ) { if ( m_delegate ) m_delegate->BlendOp( operation ); }
+    void BlendOpSeparateAlpha( ShaderBlendOp_t operation )
+    { if ( m_delegate ) m_delegate->BlendOpSeparateAlpha( operation ); }
+    float GetLightMapScaleFactor() const
+    { return m_delegate ? m_delegate->GetLightMapScaleFactor() : 1.0f; }
+
+private:
+    IShaderShadow *m_delegate;
+};
+
+CShaderShadowPs4 g_ShaderShadowPs4;
+
 void *Ps4CreateInterface( const char *interfaceName, int *returnCode )
 {
     if ( !g_EmptyFactory )
@@ -166,6 +227,17 @@ void *Ps4CreateInterface( const char *interfaceName, int *returnCode )
         if ( returnCode )
             *returnCode = 0;
         return &g_DevicePs4;
+    }
+    if ( interfaceName && strcmp( interfaceName, SHADERSHADOW_INTERFACE_VERSION ) == 0 )
+    {
+        IShaderShadow *delegate = static_cast< IShaderShadow * >(
+            g_EmptyFactory( interfaceName, returnCode ) );
+        if ( !delegate )
+            return 0;
+        g_ShaderShadowPs4.SetDelegate( delegate );
+        if ( returnCode )
+            *returnCode = 0;
+        return &g_ShaderShadowPs4;
     }
     return g_EmptyFactory( interfaceName, returnCode );
 }

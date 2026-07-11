@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.19
-SHA-256: fb888daa9c40d75434bdc8df9ea7a91bbced7b6355d7b46cfba05d89dce8a737
+Version: 2.20
+SHA-256: 52654935d5f0a57e3d13dd2a0aca40b8438c93733cdaf7a129541dec12cb6c80
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -549,6 +549,14 @@ mesh, and buffer entry points. Every operation still delegates to the empty
 device in this transition build, so behavior is unchanged while device calls
 now have a PS4 interception point. The manager, ShaderAPI, shadow, and hardware
 configuration lookups retain their existing behavior.
+
+The v2.19 hardware run validated the PS4-owned device wrapper: shader binaries
+loaded, the triangle-over-bars EOP gate passed, and the opaque orange copied
+texture remained stable at 60 FPS. Version 2.20 adds a complete PS4-owned
+`IShaderShadow` boundary for depth, blend, alpha, culling, texture, fog, vertex
+format, and static shader state. Calls still delegate unchanged in this gate;
+the next step after hardware validation is replacing individual shadow-state
+methods with the native OpenGNM draw-state cache.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
