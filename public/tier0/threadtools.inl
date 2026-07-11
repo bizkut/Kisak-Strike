@@ -98,7 +98,13 @@ INLINE_ON_PS3 void CThread::SetName(const char *pszName)
 // Start thread running  - error if already running
 INLINE_ON_PS3 bool CThread::Start( unsigned nBytesStack, ThreadPriorityEnum_t nPriority )
 {
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread start entered" );
+	#endif
 	AUTO_LOCK( m_Lock );
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread start lock acquired" );
+	#endif
 
 	if ( IsAlive() )
 	{
@@ -107,7 +113,13 @@ INLINE_ON_PS3 bool CThread::Start( unsigned nBytesStack, ThreadPriorityEnum_t nP
 	}
 
 	bool  bInitSuccess = false;
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread before create event" );
+	#endif
 	CThreadEvent createComplete;
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread after create event" );
+	#endif
 	ThreadInit_t init = { this, &createComplete, &bInitSuccess };
 
 #if defined( THREAD_PARENT_STACK_TRACE_ENABLED )
@@ -173,6 +185,7 @@ INLINE_ON_PS3 bool CThread::Start( unsigned nBytesStack, ThreadPriorityEnum_t nP
 	// OpenOrbis's public pthread_attr_t layout does not match the runtime's
 	// writes. Avoid stack corruption and use the runtime default stack here.
 	m_threadInit = ThreadInit_t( init );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread before pthread create" );
 	if ( pthread_create( &m_threadId, NULL, (void *(*)(void *))GetThreadProc(), &m_threadInit ) != 0 )
 	#else
 	pthread_attr_t attr;
@@ -188,11 +201,17 @@ INLINE_ON_PS3 bool CThread::Start( unsigned nBytesStack, ThreadPriorityEnum_t nP
 		AssertMsg1( 0, "Failed to create thread (error 0x%x)", GetLastError() );
 		return false;
 	}
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread after pthread create" );
+	#endif
 	bInitSuccess = true;
 #endif
 
 
 
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread before create wait" );
+	#endif
 	if ( !WaitForCreateComplete( &createComplete ) )
 	{
 		Msg( "Thread failed to initialize\n" );
@@ -207,6 +226,9 @@ INLINE_ON_PS3 bool CThread::Start( unsigned nBytesStack, ThreadPriorityEnum_t nP
 
 		return false;
 	}
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread after create wait" );
+	#endif
 
 	if ( !bInitSuccess )
 	{
