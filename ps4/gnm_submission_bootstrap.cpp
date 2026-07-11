@@ -165,6 +165,14 @@ bool LoadDiagnosticShaders()
     fetchInfo.numinputusages = g_VertexShader->common.numinputusageslots;
     fetchInfo.vtxinputs = sceGnmVsShaderInputSemanticTable( g_VertexShader );
     fetchInfo.numvtxinputs = g_VertexShader->numinputsemantics;
+    if ( fetchInfo.numvtxinputs == 0 )
+    {
+        g_FetchShader = 0;
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "ready vsbytes=%u psbytes=%u fetchbytes=0 procedural=1",
+            g_VertexShader->common.shadersize, g_PixelShader->common.shadersize );
+        return true;
+    }
     uint32_t fetchSize = 0;
     if ( sceGnmFetchShaderCalcSize( &fetchSize, &fetchInfo ) != GNM_ERROR_OK )
     {
@@ -232,7 +240,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination )
     sceGnmDrawCmdSetRenderTargetMask( command, 0xf );
     sceGnmDrawCmdSetVsShader( command, &g_VertexShader->registers, 0 );
     sceGnmDrawCmdSetPsShader( command, &g_PixelShader->registers );
-    sceGnmDrawCmdSetPointerUserData( command, GNM_STAGE_VS, 0, g_FetchShader );
+    if ( g_FetchShader )
+        sceGnmDrawCmdSetPointerUserData( command, GNM_STAGE_VS, 0, g_FetchShader );
     sceGnmDrawCmdSetPsInputUsage( command,
         sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
         sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );

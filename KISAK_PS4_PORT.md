@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.92
-SHA-256: 9d39f832f755fb14de1d6f024335578d118be0ec26ff2e78abfd1b9e240fa8a8
+Version: 1.93
+SHA-256: 787d0dd74c422fbb06bab02e23d5276923b5e7e9428a7665f1eaba3b1bba17a2
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -242,6 +242,15 @@ full-screen guard bands. It also logs the center framebuffer pixel after EOP.
 That readback will distinguish missing raster output from a VideoOut visibility
 or cache-coherency problem instead of treating command completion as proof that
 the triangle changed the render target.
+
+The v1.92 readback was `0xffff0000`, exactly the untouched blue band at the
+framebuffer center. Rasterization therefore produced no color despite clean
+submission and EOP completion. The matching FreeGNM procedural-triangle
+example binds the zero-input vertex shader directly and does not create,
+modify registers for, or bind a fetch shader. Version 1.93 follows that path:
+zero-input programs retain their compiler-provided VS registers and report
+`fetchbytes=0 procedural=1`; fetch generation remains enabled for shaders with
+real vertex attributes. The center-pixel probe remains active for validation.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
