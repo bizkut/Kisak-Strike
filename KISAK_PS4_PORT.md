@@ -895,6 +895,67 @@ cmake -S . -B build-ps4-engine \
 cmake --build build-ps4-engine --target launcher_client --parallel 4
 ```
 
+## Selective Tupoy improvements
+
+The sibling `Kisak-Strike-tupoy-ya` repository is a reference source, not an
+integration base. A tracked-file comparison found 20,511 common files, 247
+modified common files, and 585 Tupoy-only files. Most of that divergence is
+HL2/Portal integration or its later reversion: 223 of the 247 modified common
+files are governed by those changes. Do not merge, rebase, or cherry-pick a
+commit range from that repository. Port individually reviewed fixes with PS4
+tests and preserve this plan's CS:GO-only, monolithic, Steam-free architecture.
+
+Adopt the following improvements in priority order:
+
+1. **VPK close accounting.** Change `CPackFile` destruction to use
+   `Trace_FClose` instead of bypassing the filesystem tracker with
+   `FS_fclose`. Add a host test that mounts and releases a VPK repeatedly and
+   verifies balanced tracked handles. Complete this before relying on long map
+   reload or shutdown soaks.
+2. **Empty `CUtlBuffer` correctness.** Accept a zero-length external buffer by
+   asserting `nSize >= 0`, while continuing to reject negative sizes. Cover
+   empty and non-empty construction in a tier1 host test; this affects asset,
+   network, and manifest parsing.
+3. **Deterministic VGUI text state.** Initialize `TextEntry::_dataChanged` in
+   the constructor. Exercise construction and first-frame editing before the
+   RocketUI/menu navigation gate.
+4. **Search-path-safe debug materials.** Replace hard-coded
+   `//platform/materials/...` debug-material names with normal
+   `debug/...` material names so the layered `PLATFORM` roots and platform VPK
+   resolve them. Validate every `CStudioRender::InitDebugMaterials` lookup
+   before model rendering is enabled.
+5. **Bot hitbox targeting.** Port the focused `CCSBot::ComputePartPositions`
+   correction, but validate it against the actual CS:GO player hitbox set
+   instead of assuming model-independent numeric indexes. This is part of the
+   offline bot-match acceptance gate.
+6. **Complete the x86-64 pointer audit.** Use `intptr_t`/`uintptr_t` for
+   collision-set hash values, KeyValues pointer payloads, VGUI panel handles,
+   mesh cookies, and other pointer/integer round trips. Never import Tupoy's
+   remaining `unsigned` pointer truncations. Add compile-time size assertions
+   and focused round-trip tests where possible.
+7. **Mine client/server CMake only as inventory.** Use Tupoy's expanded source
+   lists to check the real engine/client/server static targets for omitted
+   CS:GO files and dependencies. Reconstruct lists deliberately; do not copy
+   its targets wholesale.
+
+Explicitly reject the following Tupoy changes for this port:
+
+- HL2, episodic, Portal 2, and template-game source additions.
+- The documented nonworking Jolt VPhysics backend; retain Kisak IVP physics.
+- Steam overlay, GC, Workshop, inventory, Scaleform, and desktop dynamic-module
+  dependencies.
+- Unbounded filesystem worker counts, tcmalloc/ASAN runtime integration, and
+  threaded bone setup before the PS4 thread/job and memory budgets are proven.
+- `unsigned` pointer casts, Linux `dlopen` assumptions, broad module renames,
+  and large revert/merge commits.
+
+Sequence this backlog around the main port gates: items 1-3 may land as small
+host-tested correctness patches now; item 4 lands before model rendering; item
+5 lands with the offline server/bot slice; item 6 is performed incrementally as
+each subsystem enters the monolithic link; item 7 informs the engine/client/
+server registration milestone. Every imported change must remain an isolated
+commit with its originating Tupoy commit recorded in the commit message body.
+
 ## Revised delivery plan and progress
 
 1. **Boot, static modules, and monolithic launcher — complete.**
