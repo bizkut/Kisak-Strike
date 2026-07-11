@@ -1042,6 +1042,15 @@ The v2.65 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `19f0b4c89880607233761eaacb5a128f2a588884722d439d14024bc1f117ce4a`,
 with marker `kisak-ps4: build marker direct_depth_control_v265`.
+
+The untouched `/data/pkg/IV0000-FGNM00001_00-CUBESAMPLE000000.pkg`
+(SHA-256 `b99208b2d8145b78f85603c0ba8be2475296f5f55146f71cb5aef3c9c7c9d576`)
+renders a correct spinning 3D cube on the same console. This proves the PS4,
+OpenGNM depth implementation, and reference pipeline are sound; Kisak's custom
+preprojected cube is the faulty layer. Kisak packaging now includes the
+reference `cube.vert.sb`/`cube.frag.sb` as dedicated manifest entries. The next
+slice binds their exact position/UV layout, MVP descriptor set, texture/sampler
+descriptor set, and 36-vertex draw through the façade.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

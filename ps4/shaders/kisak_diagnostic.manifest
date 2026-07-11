@@ -3,3 +3,5 @@ kisak_diagnostic|vertex|0|0|1|/app0/kisak_diagnostic.vert.sb|2|0|0|0
 kisak_diagnostic|pixel|0|0|0|/app0/kisak_diagnostic.frag.sb|0|0|0|1
 kisak_texture_sample|pixel|0|0|0|/app0/kisak_texture_sample.frag.sb|0|0|1|1
 kisak_depth_clear|pixel|0|0|0|/app0/kisak_depth_clear.frag.sb|0|0|0|1
+kisak_reference_cube|vertex|0|0|2|/app0/kisak_reference_cube.vert.sb|2|0|0|0
+kisak_reference_cube|pixel|0|0|0|/app0/kisak_reference_cube.frag.sb|0|0|1|1

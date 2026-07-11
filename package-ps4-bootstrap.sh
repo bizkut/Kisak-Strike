@@ -6,6 +6,7 @@ VARIANT="${KISAK_PS4_VARIANT:-bootstrap}"
 CONTENT_PROBE="$ROOT_DIR/ps4/content/kisak_ps4_content_probe.txt"
 DIAGNOSTIC_SHADER_DIR="${KISAK_PS4_DIAGNOSTIC_SHADER_DIR:-$ROOT_DIR/../freegnm-examples/eden-renderer-draw/assets/misc}"
 CLEAR_SHADER="${KISAK_PS4_CLEAR_SHADER:-$ROOT_DIR/../freegnm-examples/cube/assets/misc/clear.frag.sb}"
+CUBE_SHADER_DIR="${KISAK_PS4_CUBE_SHADER_DIR:-$ROOT_DIR/../freegnm-examples/cube/assets/misc}"
 if [[ "$VARIANT" == "monolithic" ]]; then
     BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
     TITLE="Kisak-Strike PS4 Monolithic"
@@ -72,6 +73,12 @@ if [[ "$VARIANT" == "monolithic" ]]; then
         echo "Missing PS4 depth clear shader: $CLEAR_SHADER" >&2
         exit 1
     fi
+    for shader in cube.vert.sb cube.frag.sb; do
+        if [[ ! -f "$CUBE_SHADER_DIR/$shader" ]]; then
+            echo "Missing reference cube shader: $CUBE_SHADER_DIR/$shader" >&2
+            exit 1
+        fi
+    done
 fi
 
 rm -rf "$PACKAGE_DIR"
@@ -87,6 +94,8 @@ if [[ "$VARIANT" == "monolithic" ]]; then
     cp "$DIAGNOSTIC_SHADER_DIR/tri.frag.sb" "$PACKAGE_DIR/kisak_diagnostic.frag.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/texture_sample.frag.sb" "$PACKAGE_DIR/kisak_texture_sample.frag.sb"
     cp "$CLEAR_SHADER" "$PACKAGE_DIR/kisak_depth_clear.frag.sb"
+    cp "$CUBE_SHADER_DIR/cube.vert.sb" "$PACKAGE_DIR/kisak_reference_cube.vert.sb"
+    cp "$CUBE_SHADER_DIR/cube.frag.sb" "$PACKAGE_DIR/kisak_reference_cube.frag.sb"
     cp "$SHADER_MANIFEST" "$PACKAGE_DIR/kisak_diagnostic.manifest"
 
     manifest_entries=0
@@ -136,7 +145,7 @@ pushd "$PACKAGE_DIR" >/dev/null
 
 PACKAGE_FILES="eboot.bin sce_sys/about/right.sprx sce_sys/param.sfo sce_sys/icon0.png sce_module/libc.prx sce_module/libSceFios2.prx"
 if [[ "$VARIANT" == "monolithic" ]]; then
-    PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt kisak_diagnostic.vert.sb kisak_diagnostic.frag.sb kisak_texture_sample.frag.sb kisak_depth_clear.frag.sb kisak_diagnostic.manifest"
+    PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt kisak_diagnostic.vert.sb kisak_diagnostic.frag.sb kisak_texture_sample.frag.sb kisak_depth_clear.frag.sb kisak_reference_cube.vert.sb kisak_reference_cube.frag.sb kisak_diagnostic.manifest"
 fi
 "$CREATE_GP4" -out=pkg.gp4 -content-id="$CONTENT_ID" -files "$PACKAGE_FILES"
 "$PKGTOOL" pkg_build pkg.gp4 .
