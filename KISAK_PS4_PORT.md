@@ -911,7 +911,7 @@ Version 2.53 forces a GFx render-tree capture and verifies that the movie's
 from the forthcoming OpenGNM HAL and draw submission.
 The v2.53 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
-`d6be0e8fb9d44020132cd646a2a8a552a8b7e0218c7c022328123640cb81b15d`,
+`304394411ed27d3a9a4ab32c3b08b140890de555130cec273da13c04e94838e3`,
 with marker `kisak-ps4: build marker scaleform_render_tree_v253`.
 
 ## Completed work
