@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.90
-SHA-256: 5f39538cb157f8fd6923c2dfe11a9cd1051951f8a79082a78b3b654284b06732
+Version: 1.91
+SHA-256: f96385db5ee2ce492b5b467d1b39286878d898b492a23694361d0840edd5d018
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -223,6 +223,15 @@ layouts, reads the executable length from the bounded trailer, and updates the
 wrapped-container regression test. Version 1.90 stages this fix. Its expected
 next boundary is either `diagnostic shader detail ready ...` followed by the
 triangle markers, or a precise fetch-shader failure after both programs load.
+
+The v1.90 run remained stable at 60 FPS and confirmed both wrapped programs
+load, then reported `fetch creation failed bytes=12`. The diagnostic vertex
+shader is procedural and has zero vertex attributes. OpenGNM's size calculator
+correctly reserved three DWORDs, but fetch creation entered its attribute-load
+`do` loop once even with zero inputs and emitted a fourth DWORD. Commit
+`6275f67` changes this to a guarded loop and adds an exact-size zero-input
+regression test. Version 1.91 stages the fix; it should reach the first PM4
+triangle submission rather than retaining the bars during shader setup.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
