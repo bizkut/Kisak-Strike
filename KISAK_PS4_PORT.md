@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.30
-SHA-256: d1aa740c9be9615e2dafa6db52ed69a0aa5b369ca1cea259e8f497554903054f
+Version: 1.31
+SHA-256: 3e77f4e5e827cba333b6c0d1dd5eaf887c9161bf3bc8f8d3c6e147527ad860b0
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -295,6 +295,11 @@ and reaches the child app group. Its currently incomplete module set fails
 creation cleanly; the later crash occurs during outer shutdown. Version 1.30
 traces each system shutdown plus filesystem async flush, pool stop, and tracker
 thread teardown.
+
+The v1.30 trace stops in `AsyncFlush()` before pool shutdown. No asynchronous
+requests exist during this failed startup, but the generic flush still enters
+`AbortAll()` and suspends every worker. Version 1.31 returns immediately for an
+empty PS4 async queue, preserving `AbortAll()` when jobs actually exist.
 
 Reproduce the current cross-build with:
 

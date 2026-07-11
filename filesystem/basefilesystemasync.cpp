@@ -1143,6 +1143,12 @@ FSAsyncStatus_t CBaseFileSystem::AsyncFlush()
 {
 	if ( m_pThreadPool )
 	{
+		#if defined( PLATFORM_PS4 )
+		// AbortAll suspends every worker even when the queue is empty. Avoid that
+		// handshake during early startup teardown when no async work was issued.
+		if ( m_pThreadPool->GetJobCount() == 0 )
+			return FSASYNC_OK;
+		#endif
 		m_pThreadPool->AbortAll();
 	}
 
