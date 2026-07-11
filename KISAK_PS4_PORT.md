@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.30
-SHA-256: 1442c0d5b6928859a89112ebb4611c924aa2e1f4899416f4ae2f6d7014ee2e9a
+Version: 2.31
+SHA-256: ed193a95f01d3b339ba0ac84f34b50d97b8fa6e07a84b0ab0c7d3b942ff65837
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -641,6 +641,14 @@ Version 2.30 adds a complete PS4-owned `IDebugTextureInfo` interface while
 delegating the current empty-backend behavior. This seven-method boundary is
 the future home for native texture inventory and PS4 GPU-memory statistics and
 avoids attempting the 227-method `IShaderAPI` replacement as one unsafe step.
+
+The v2.30 hardware run validated the native debug-texture interface boundary
+with both shadow masks, the opaque orange triangle, and 60 FPS intact. Version
+2.31 makes its first method native. `CPs4GnmTexture` now accounts actual backing
+bytes across initialization, render-target-view footprint growth, reset, and
+destruction. `IDebugTextureInfo::MEMORY_TOTAL_LOADED` reports that bounded total
+instead of the empty backend's zero, and startup logs the value after both
+diagnostic textures are ready. Other debug-memory categories still delegate.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

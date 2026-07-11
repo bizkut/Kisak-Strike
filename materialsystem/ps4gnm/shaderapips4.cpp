@@ -4,10 +4,12 @@
 #include "materialsystem/idebugtextureinfo.h"
 #include "interfaces/interfaces.h"
 #include "ps4_gnm_draw_state.h"
+#include "ps4_gnm_texture.h"
 #include "ps4_shadow_state_translate.h"
 #include "shaderapips4.h"
 
 #include <string.h>
+#include <limits.h>
 
 extern CreateInterfaceFn KisakShaderApiEmptyFactory();
 
@@ -361,7 +363,15 @@ public:
     void UnlockDebugTextureList()
     { if ( m_delegate ) m_delegate->UnlockDebugTextureList(); }
     int GetTextureMemoryUsed( TextureMemoryType memoryType )
-    { return m_delegate ? m_delegate->GetTextureMemoryUsed( memoryType ) : 0; }
+    {
+        if ( memoryType == MEMORY_TOTAL_LOADED )
+        {
+            const uint64_t bytes = CPs4GnmTexture::TotalBackingBytes();
+            return bytes > static_cast< uint64_t >( INT_MAX )
+                ? INT_MAX : static_cast< int >( bytes );
+        }
+        return m_delegate ? m_delegate->GetTextureMemoryUsed( memoryType ) : 0;
+    }
     bool IsDebugTextureListFresh( int framesAllowed = 1 )
     { return m_delegate && m_delegate->IsDebugTextureListFresh( framesAllowed ); }
     bool SetDebugTextureRendering( bool enable )
@@ -469,4 +479,10 @@ extern "C" void KisakPs4SetShaderShadowBlend( bool enabled,
     g_ShaderShadowPs4.BlendFuncSeparateAlpha( static_cast< ShaderBlendFactor_t >( alphaSource ),
         static_cast< ShaderBlendFactor_t >( alphaDestination ) );
     g_ShaderShadowPs4.BlendOpSeparateAlpha( static_cast< ShaderBlendOp_t >( alphaOperation ) );
+}
+
+extern "C" int KisakPs4TextureMemoryUsed()
+{
+    return g_DebugTextureInfoPs4.GetTextureMemoryUsed(
+        IDebugTextureInfo::MEMORY_TOTAL_LOADED );
 }

@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+uint64_t CPs4GnmTexture::s_totalBackingBytes = 0;
+
 CPs4GnmTexture::CPs4GnmTexture()
     : m_data( 0 ), m_size( 0 ), m_capacity( 0 ), m_alignment( 0 ), m_width( 0 ), m_height( 0 ),
       m_bytesPerElement( 0 ), m_valid( false )
@@ -9,6 +11,11 @@ CPs4GnmTexture::CPs4GnmTexture()
     memset( &m_texture, 0, sizeof( m_texture ) );
     memset( &m_colorTarget, 0, sizeof( m_colorTarget ) );
     m_colorTargetValid = false;
+}
+
+CPs4GnmTexture::~CPs4GnmTexture()
+{
+    Reset();
 }
 
 bool CPs4GnmTexture::Initialize2D( void *memory, size_t memorySize,
@@ -54,6 +61,7 @@ bool CPs4GnmTexture::Initialize2D( void *memory, size_t memorySize,
         return false;
     }
     m_valid = true;
+    s_totalBackingBytes += m_size;
     return true;
 }
 
@@ -98,13 +106,18 @@ bool CPs4GnmTexture::CreateColorTargetView( GnmDataFormat format,
         return false;
     }
     if ( requiredSize > m_size )
+    {
+        s_totalBackingBytes += requiredSize - m_size;
         m_size = requiredSize;
+    }
     m_colorTargetValid = true;
     return true;
 }
 
 void CPs4GnmTexture::Reset()
 {
+    if ( m_valid )
+        s_totalBackingBytes -= m_size;
     memset( &m_texture, 0, sizeof( m_texture ) );
     memset( &m_colorTarget, 0, sizeof( m_colorTarget ) );
     m_data = 0;

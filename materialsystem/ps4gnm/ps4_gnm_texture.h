@@ -10,6 +10,7 @@ class CPs4GnmTexture
 {
 public:
     CPs4GnmTexture();
+    ~CPs4GnmTexture();
 
     bool Initialize2D( void *memory, size_t memorySize, GnmDataFormat format,
         uint32_t width, uint32_t height, uint32_t mipCount, GnmTileMode tileMode,
@@ -27,6 +28,7 @@ public:
     void *Data() const { return m_data; }
     uint64_t Size() const { return m_size; }
     uint32_t Alignment() const { return m_alignment; }
+    static uint64_t TotalBackingBytes() { return s_totalBackingBytes; }
 
 private:
     GnmTexture m_texture;
@@ -40,6 +42,7 @@ private:
     uint32_t m_bytesPerElement;
     bool m_valid;
     bool m_colorTargetValid;
+    static uint64_t s_totalBackingBytes;
 };
 
 #endif

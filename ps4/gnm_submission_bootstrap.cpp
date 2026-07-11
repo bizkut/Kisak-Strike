@@ -70,6 +70,7 @@ bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 bool g_ShadowStateApplyLogged = false;
 bool g_ShadowDisplayApplyLogged = false;
+bool g_TextureMemoryLogged = false;
 char g_ShaderDiagnostic[160] = "not attempted";
 
 void LogResult( const char *stage, int result )
@@ -371,6 +372,14 @@ bool LoadDiagnosticShaders()
         fetchSize, g_VertexShader->numinputsemantics,
         static_cast< unsigned long long >( depthSize ),
         static_cast< unsigned long long >( g_DiagnosticTexture.Size() ) );
+    if ( !g_TextureMemoryLogged )
+    {
+        char message[112];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: native debug texture memory bytes=%d", KisakPs4TextureMemoryUsed() );
+        KisakPs4StartupBreadcrumb( message );
+        g_TextureMemoryLogged = true;
+    }
     return true;
 }
 

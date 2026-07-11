@@ -11,5 +11,6 @@ extern "C" void KisakPs4SetShaderShadowDepth( bool testEnabled,
 extern "C" void KisakPs4SetShaderShadowBlend( bool enabled,
     int colorSource, int colorDestination, int colorOperation,
     bool separateAlpha, int alphaSource, int alphaDestination, int alphaOperation );
+extern "C" int KisakPs4TextureMemoryUsed();
 
 #endif
