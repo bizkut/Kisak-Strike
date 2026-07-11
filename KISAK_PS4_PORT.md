@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.38
-SHA-256: 26fbf2988b12a60739fdbcd6986749b34aa079e1c1a3234c3e4a71632f61fd49
+Version: 1.39
+SHA-256: 59e3af0bed7bd51b433dd1aa45405c43215cf0c6ec4e3e8745375130a75c692a
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -338,6 +338,11 @@ examined. Version 1.38 adds a PS4 engine-bootstrap app system implementing that
 real cvar-linkability contract and registers it as the transitional `engine`
 factory. The full engine factory will replace it as renderer/audio/network
 dependencies are brought into the monolith.
+
+Version 1.39 adds the existing input-system and math libraries to the Orbis
+monolith, anchors `InputSystemVersion001` in the static registry, and excludes
+the desktop Steam Controller implementation and proprietary Steam API link.
+DualShock 4 device sampling remains a later `libScePad` backend unit.
 
 Reproduce the current cross-build with:
 

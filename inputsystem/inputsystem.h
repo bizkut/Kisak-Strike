@@ -261,6 +261,11 @@ public:
 		float m_fCurrentRumble;
 		bool m_bRumbleEnabled;
 
+#elif defined( PLATFORM_PS4 )
+		void *m_pDevice;
+		float m_fCurrentRumble;
+		bool m_bRumbleEnabled;
+
 #else
 #error
 #endif

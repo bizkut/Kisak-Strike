@@ -50,6 +50,14 @@ static CInputSystem g_InputSystem;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CInputSystem, IInputSystem, 
 						INPUTSYSTEM_INTERFACE_VERSION, g_InputSystem );
 
+#if defined( PLATFORM_PS4 )
+extern CreateInterfaceFn Sys_GetFactoryThis();
+CreateInterfaceFn KisakInputSystemFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
+
 #ifdef _PS3
 IVJobs * g_pVJobs = NULL;
 #endif
@@ -420,6 +428,7 @@ void CInputSystem::AttachToWindow( void* hWnd )
 	
 #endif
 #elif defined( _PS3 )
+#elif defined( PLATFORM_PS4 )
 #else
 #error
 #endif
@@ -1075,6 +1084,7 @@ void CInputSystem::PollInputState( bool bIsInGame )
 #elif defined( WIN32 )
 	PollInputState_Windows();
 #elif defined( _PS3 )
+#elif defined( PLATFORM_PS4 )
 #else
 #error
 #endif
@@ -1289,7 +1299,7 @@ uint64 CInputSystem::GetMotionControllerDeviceStatusFlags( ) const
 	return m_nMotionControllerStatusFlags;
 }
 
-#if defined( _OSX ) || defined (LINUX)
+#if defined( _OSX ) || defined( LINUX ) || defined( PLATFORM_PS4 )
 // this is defined in xcontroller.cpp, but that file isn't included
 // in posix builds
 void CInputSystem::SetMotionControllerCalibrationInvalid( void )
@@ -1467,6 +1477,9 @@ void CInputSystem::SetCursorPosition( int x, int y )
 	POINT pt;
 	pt.x = x; pt.y = y;
 	SetCursorPos( pt.x, pt.y );
+#elif defined( PLATFORM_PS4 )
+	(void)x;
+	(void)y;
 #else
 #error
 #endif
@@ -2403,7 +2416,7 @@ bool CInputSystem::IsSamplingForCurrentDevice( void )
 }
 
 
-#ifndef LINUX
+#if !defined( LINUX ) && !defined( PLATFORM_PS4 )
 
 #if !defined( _CERT )
 // [mhansen] Add support for pressing Xbox 360 controller buttons (should work on PS3 too)

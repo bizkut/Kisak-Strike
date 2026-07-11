@@ -39,8 +39,10 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_subdirectory(tier2)
     add_subdirectory(tier3)
     add_subdirectory(vstdlib)
+    add_subdirectory(mathlib)
     add_subdirectory(vpklib)
     add_subdirectory(filesystem)
+    add_subdirectory(inputsystem)
     add_subdirectory(appframework)
     add_subdirectory(launcher)
 
@@ -85,6 +87,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         tier3_client
         tier2_client
         tier1_client
+        inputsystem_client
+        mathlib_client
         filesystem_stdio_client
         vpklib_client
         interfaces_client
