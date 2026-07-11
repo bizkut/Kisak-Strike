@@ -832,9 +832,18 @@ external `KISAK_SCALEFORM_SDK_ROOT` (default `../scaleform_sdk`), validates the
 required GFx 4.2 and D3D9 HAL layout, and compiles `GFx.h` for
 `x86_64-ps4-elf`. The probe verifies `SF_OS_ORBIS`, Scaleform 4.2, and the
 64-bit pointer ABI, then exposes the detected `4.2.22` version in startup
-diagnostics. This is a header/ABI gate only; no GFx player or renderer objects
-are linked yet. The next Scaleform slice is the minimal Kernel static library,
-followed by Render/GFx AS2 source groups and the renderer adapter.
+diagnostics. Version 2.47 builds the generic and HeapMH Kernel inventory as an
+OpenOrbis static library, links it into the monolithic executable, and runs a
+bounded allocator/global-heap initialization and shutdown self-test at startup.
+Thread support and AMP are disabled because this SDK snapshot has no
+OpenOrbis pthread implementation and AMP prematurely pulls in the Render graph.
+The staged v2.47 package is
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`accba4fd4423cee655ac272e692e10adc819cc9e4bd1bd36e8026da3b1f160c2`, with
+marker `kisak-ps4: build marker scaleform_kernel_v247`. Hardware must confirm
+`kisak-ps4: scaleform kernel self-test passed` before Render sources are added.
+The next Scaleform slice is the Render core static library, followed by GFx/AS2
+source groups and the renderer adapter.
 
 ## Completed work
 

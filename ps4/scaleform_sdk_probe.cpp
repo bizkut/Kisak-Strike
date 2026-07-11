@@ -1,6 +1,5 @@
-#include "GFx.h"
 #include "GFxVersion.h"
-#include "Kernel/SF_Types.h"
+#include "Kernel/SF_System.h"
 
 #if !defined( SF_OS_ORBIS )
 #error "Scaleform did not recognize the OpenOrbis target"
@@ -14,4 +13,10 @@ static_assert( sizeof( Scaleform::UPInt ) == sizeof( void * ),
 extern "C" const char *KisakPs4ScaleformSdkVersion()
 {
     return "kisak-ps4: scaleform sdk " GFX_VERSION_STRING;
+}
+
+extern "C" bool KisakPs4ScaleformKernelSelfTest()
+{
+    Scaleform::System system;
+    return Scaleform::Memory::GetGlobalHeap() != NULL;
 }

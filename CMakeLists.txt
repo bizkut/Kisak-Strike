@@ -41,6 +41,35 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
                 message(FATAL_ERROR "Scaleform SDK is incomplete at ${KISAK_SCALEFORM_SDK_ROOT}: missing ${KISAK_SCALEFORM_REQUIRED_FILE}")
             endif()
         endforeach()
+
+        file(STRINGS "${KISAK_SCALEFORM_SDK_ROOT}/Projects/libgfx.txt"
+            KISAK_SCALEFORM_PROJECT_LINES)
+        set(KISAK_SCALEFORM_KERNEL_SOURCES)
+        foreach(KISAK_SCALEFORM_PROJECT_LINE IN LISTS KISAK_SCALEFORM_PROJECT_LINES)
+            if(KISAK_SCALEFORM_PROJECT_LINE MATCHES "^Src/Kernel/.*\\.cpp$" AND
+               NOT KISAK_SCALEFORM_PROJECT_LINE MATCHES "^Src/Kernel/HeapPT/" AND
+               NOT KISAK_SCALEFORM_PROJECT_LINE MATCHES "(PS3|PSVita|Wii|WinAPI|WinRT|3DS).*\\.cpp$" AND
+               EXISTS "${KISAK_SCALEFORM_SDK_ROOT}/${KISAK_SCALEFORM_PROJECT_LINE}")
+                list(APPEND KISAK_SCALEFORM_KERNEL_SOURCES
+                    "${KISAK_SCALEFORM_SDK_ROOT}/${KISAK_SCALEFORM_PROJECT_LINE}")
+            endif()
+        endforeach()
+        if(NOT KISAK_SCALEFORM_KERNEL_SOURCES)
+            message(FATAL_ERROR "Scaleform Kernel source inventory is empty")
+        endif()
+
+        add_library(kisak_scaleform_kernel STATIC ${KISAK_SCALEFORM_KERNEL_SOURCES})
+        target_include_directories(kisak_scaleform_kernel PUBLIC
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${KISAK_SCALEFORM_SDK_ROOT}/Include"
+            "${KISAK_SCALEFORM_SDK_ROOT}/Src")
+        target_compile_definitions(kisak_scaleform_kernel PUBLIC
+            SF_BUILD_STATICLIB
+            SF_CONFIG_H="ps4/scaleform_orbis_config.h")
+        set_target_properties(kisak_scaleform_kernel PROPERTIES
+            CXX_STANDARD 11
+            CXX_STANDARD_REQUIRED ON
+            CXX_EXTENSIONS ON)
     endif()
     set(USE_SCALEFORM OFF CACHE BOOL "" FORCE)
     set(USE_ROCKETUI ON CACHE BOOL "" FORCE)
@@ -103,7 +132,10 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         target_include_directories(kisak_ps4_monolithic PRIVATE
             "${KISAK_SCALEFORM_SDK_ROOT}/Include"
             "${KISAK_SCALEFORM_SDK_ROOT}/Src")
-        target_compile_definitions(kisak_ps4_monolithic PRIVATE SF_BUILD_STATICLIB)
+        target_compile_definitions(kisak_ps4_monolithic PRIVATE
+            SF_BUILD_STATICLIB
+            SF_CONFIG_H="ps4/scaleform_orbis_config.h")
+        target_link_libraries(kisak_ps4_monolithic PRIVATE kisak_scaleform_kernel)
     endif()
     set_target_properties(kisak_ps4_monolithic PROPERTIES
         LINKER_LANGUAGE CXX

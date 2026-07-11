@@ -18,6 +18,7 @@ extern "C" void KisakPs4VideoOutShutdown();
 extern "C" bool KisakPs4GnmSubmissionSelfTest();
 extern "C" void KisakPs4GnmSubmissionShutdown();
 extern "C" const char *KisakPs4ScaleformSdkVersion();
+extern "C" bool KisakPs4ScaleformKernelSelfTest();
 
 namespace
 {
@@ -106,8 +107,11 @@ public:
     int Run() override
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-		KisakPs4StartupBreadcrumb( "kisak-ps4: build marker live_shader_handles_v246" );
+		KisakPs4StartupBreadcrumb( "kisak-ps4: build marker scaleform_kernel_v247" );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformSdkVersion() );
+		KisakPs4StartupBreadcrumb( KisakPs4ScaleformKernelSelfTest()
+			? "kisak-ps4: scaleform kernel self-test passed"
+			: "kisak-ps4: scaleform kernel self-test failed" );
 		IRocketUI *rocketUI = RocketUI();
 		const bool videoOutReady = KisakPs4VideoOutInitialize();
 		KisakPs4GnmSubmissionSelfTest();
