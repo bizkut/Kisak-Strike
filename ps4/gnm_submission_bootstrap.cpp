@@ -53,10 +53,10 @@ void *g_Mapped = 0;
 CPs4GnmDevice g_Device;
 CPs4GnmDrawState g_DrawState;
 uint64_t g_CompletedLabel = 0;
-uint8_t g_VsStorage[1024];
 GnmVsShader *g_VertexShader = 0;
 GnmPsShader *g_PixelShader = 0;
 GnmPsShader *g_TexturePixelShader = 0;
+CPs4GnmShader g_VertexShaderResource;
 CPs4GnmShader g_SolidPixelShaderResource;
 CPs4GnmShader g_TexturePixelShaderResource;
 void *g_FetchShader = 0;
@@ -245,36 +245,31 @@ bool LoadDiagnosticShaders()
             free( fileData );
             return false;
         }
-        if ( shader != 0 )
+        CPs4GnmShader &resource = shader == 0 ? g_VertexShaderResource
+            : ( shader == 1 ? g_SolidPixelShaderResource : g_TexturePixelShaderResource );
+        const GnmShaderType resourceType = shader == 0 ? GNM_SHADER_VERTEX : GNM_SHADER_PIXEL;
+        if ( !resource.Initialize( fileData, fileSize, resourceType,
+                gpuCursor, static_cast< size_t >( gpuEnd - gpuCursor ) ) )
         {
-            CPs4GnmShader &resource = shader == 1
-                ? g_SolidPixelShaderResource : g_TexturePixelShaderResource;
-            if ( !resource.Initialize( fileData, fileSize,
-                    GNM_SHADER_PIXEL, gpuCursor, static_cast< size_t >( gpuEnd - gpuCursor ) ) )
-            {
-                snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
-                    "shader resource failed stage=%u", shader );
-                free( fileData );
-                return false;
-            }
-            if ( shader == 1 )
-                g_PixelShader = resource.PixelShader();
-            else
-                g_TexturePixelShader = resource.PixelShader();
-            char message[112];
-            snprintf( message, sizeof( message ),
-                "kisak-ps4: native GNM shader resource role=%s codebytes=%u",
-                shader == 1 ? "solid_pixel" : "texture_pixel", resource.CodeSize() );
-            KisakPs4StartupBreadcrumb( message );
+            snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+                "shader resource failed stage=%u", shader );
+            free( fileData );
+            return false;
         }
+        if ( shader == 0 )
+            g_VertexShader = resource.VertexShader();
+        else if ( shader == 1 )
+            g_PixelShader = resource.PixelShader();
         else
-        {
-            memcpy( g_VsStorage, metadata.stage, metadata.stagesize );
-            memcpy( gpuCursor, metadata.shadercode, metadata.shadercodesize );
-            g_VertexShader = reinterpret_cast< GnmVsShader * >( g_VsStorage );
-            sceGnmVsRegsSetAddress( &g_VertexShader->registers, gpuCursor );
-        }
-        gpuCursor += metadata.shadercodesize;
+            g_TexturePixelShader = resource.PixelShader();
+        const char *role = shader == 0 ? "vertex"
+            : ( shader == 1 ? "solid_pixel" : "texture_pixel" );
+        char message[112];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: native GNM shader resource role=%s codebytes=%u",
+            role, resource.CodeSize() );
+        KisakPs4StartupBreadcrumb( message );
+        gpuCursor += resource.CodeSize();
         free( fileData );
     }
 

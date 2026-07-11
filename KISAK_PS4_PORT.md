@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.43
-SHA-256: 0376cdcd6641e11710c992274680bb8772dbd0393e8abeb43638cd059c739318
+Version: 2.44
+SHA-256: a349422f0ef5bbd37828e5bfac28dc612e3a16bf5d0fd35b562aa20c85df11f9
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -749,6 +749,13 @@ pixel shader as well. Both PS stages now use independent `CPs4GnmShader`
 objects; only the vertex shader retains its legacy 1 KiB stage buffer. Runtime
 logs `role=solid_pixel` and `role=texture_pixel` with their code sizes before
 the established shader-loaded marker.
+
+The v2.43 hardware run logged both pixel resources (`52` and `84` code bytes)
+and preserved the opaque orange triangle at 60 FPS. Version 2.44 migrates the
+vertex shader, removes the last legacy stage array, and loads all three stages
+through `CPs4GnmShader`. GPU code placement now advances using each resource's
+validated code size. Runtime logs `role=vertex` in addition to both pixel roles
+before fetch-shader construction and the established shader-loaded marker.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
