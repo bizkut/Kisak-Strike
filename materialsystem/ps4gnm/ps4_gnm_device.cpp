@@ -58,3 +58,35 @@ void CPs4GnmDevice::CancelFrame()
 {
     m_frameOpen = false;
 }
+
+bool CPs4GnmDevice::BeginSubmission( uint64_t completedLabel, size_t commandBytes,
+    size_t commandAlignment, SubmissionFrame *submission )
+{
+    if ( !submission || !commandBytes || !commandAlignment ||
+        !BeginFrame( completedLabel ) )
+        return false;
+
+    submission->commandMemory = FrameArena().Allocate( commandBytes, commandAlignment );
+    submission->completionLabel = static_cast< volatile uint64_t * >(
+        FrameArena().Allocate( sizeof( uint64_t ), 8 ) );
+    submission->submittedLabel = SubmittedLabel() + 1;
+    if ( !submission->commandMemory || !submission->completionLabel )
+    {
+        CancelFrame();
+        submission->commandMemory = 0;
+        submission->completionLabel = 0;
+        submission->submittedLabel = 0;
+        return false;
+    }
+
+    *submission->completionLabel = 0;
+    return true;
+}
+
+bool CPs4GnmDevice::CommitSubmission( const SubmissionFrame &submission )
+{
+    if ( !m_frameOpen || !submission.commandMemory || !submission.completionLabel ||
+        submission.submittedLabel != m_submittedLabel + 1 )
+        return false;
+    return EndFrame() == submission.submittedLabel;
+}

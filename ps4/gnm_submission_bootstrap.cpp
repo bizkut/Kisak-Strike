@@ -288,23 +288,19 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
         kDirectMemorySize - kShaderMemorySize );
     for ( unsigned int submit = 0; passed && submit < 3; ++submit )
     {
-        passed = g_Device.BeginFrame( g_CompletedLabel );
-        void *commandMemory = passed ? g_Device.FrameArena().Allocate( kCommandBufferSize, 256 ) : 0;
-        volatile uint64_t *eopLabel = passed ? static_cast< volatile uint64_t * >(
-            g_Device.FrameArena().Allocate( sizeof( uint64_t ), 8 ) ) : 0;
-        if ( !commandMemory || !eopLabel )
+        CPs4GnmDevice::SubmissionFrame submission = {};
+        passed = g_Device.BeginSubmission( g_CompletedLabel, kCommandBufferSize, 256, &submission );
+        if ( !passed )
         {
-            passed = false;
             break;
         }
 
-        const uint64_t submittedLabel = g_Device.SubmittedLabel() + 1;
-        *eopLabel = 0;
-        GnmCommandBuffer command = sceGnmCmdInit( commandMemory, kCommandBufferSize, 0, 0 );
+        GnmCommandBuffer command = sceGnmCmdInit( submission.commandMemory, kCommandBufferSize, 0, 0 );
         sceGnmDrawCmdInitDefaultHardwareState( &command );
         sceGnmDrawCmdDrawIndexAuto( &command, 0 );
         sceGnmDrawCmdEventWriteEop( &command, GNM_CACHE_FLUSH_AND_INV_TS_EVENT,
-            (uint64_t)(uintptr_t)eopLabel, GNM_DATA_SEL_SEND_DATA64, submittedLabel );
+            (uint64_t)(uintptr_t)submission.completionLabel, GNM_DATA_SEL_SEND_DATA64,
+            submission.submittedLabel );
 
         void *dcbAddresses[1] = { command.beginptr };
         uint32_t dcbSizes[1] = {
@@ -315,6 +311,7 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
         if ( result < 0 )
         {
             LogResult( "submit failed", result );
+            g_Device.CancelFrame();
             passed = false;
             break;
         }
@@ -322,18 +319,19 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
         if ( result < 0 )
         {
             LogResult( "submit done failed", result );
+            g_Device.CancelFrame();
             passed = false;
             break;
         }
 
-        const uint64_t recordedLabel = g_Device.EndFrame();
-        passed = recordedLabel == submittedLabel && WaitForLabel( eopLabel, submittedLabel );
+        passed = g_Device.CommitSubmission( submission ) &&
+            WaitForLabel( submission.completionLabel, submission.submittedLabel );
         if ( !passed )
         {
             KisakPs4StartupBreadcrumb( "kisak-ps4: gnm submission EOP timeout" );
             break;
         }
-        g_CompletedLabel = submittedLabel;
+        g_CompletedLabel = submission.submittedLabel;
     }
 
     KisakPs4StartupBreadcrumb( passed
@@ -351,28 +349,22 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
 
 extern "C" bool KisakPs4GnmFillAndWait( void *destination, uint32_t size, uint32_t value )
 {
-    if ( !g_Mapped || !destination || !size || !g_Device.BeginFrame( g_CompletedLabel ) )
+    if ( !g_Mapped || !destination || !size )
         return false;
 
-    void *commandMemory = g_Device.FrameArena().Allocate( kCommandBufferSize, 256 );
-    volatile uint64_t *eopLabel = static_cast< volatile uint64_t * >(
-        g_Device.FrameArena().Allocate( sizeof( uint64_t ), 8 ) );
-    if ( !commandMemory || !eopLabel )
-    {
-        g_Device.CancelFrame();
+    CPs4GnmDevice::SubmissionFrame submission = {};
+    if ( !g_Device.BeginSubmission( g_CompletedLabel, kCommandBufferSize, 256, &submission ) )
         return false;
-    }
 
-    const uint64_t submittedLabel = g_Device.SubmittedLabel() + 1;
-    *eopLabel = 0;
-    GnmCommandBuffer command = sceGnmCmdInit( commandMemory, kCommandBufferSize, 0, 0 );
+    GnmCommandBuffer command = sceGnmCmdInit( submission.commandMemory, kCommandBufferSize, 0, 0 );
     if ( !sceGnmDrawCmdFillMemory( &command, (uint64_t)(uintptr_t)destination, size, value ) )
     {
         g_Device.CancelFrame();
         return false;
     }
     sceGnmDrawCmdEventWriteEop( &command, GNM_CACHE_FLUSH_AND_INV_TS_EVENT,
-        (uint64_t)(uintptr_t)eopLabel, GNM_DATA_SEL_SEND_DATA64, submittedLabel );
+        (uint64_t)(uintptr_t)submission.completionLabel, GNM_DATA_SEL_SEND_DATA64,
+        submission.submittedLabel );
 
     void *dcbAddresses[1] = { command.beginptr };
     uint32_t dcbSizes[1] = {
@@ -381,27 +373,25 @@ extern "C" bool KisakPs4GnmFillAndWait( void *destination, uint32_t size, uint32
     };
     const int submitResult = sceGnmSubmitCommandBuffers( 1, dcbAddresses, dcbSizes, 0, 0 );
     if ( submitResult < 0 || sceGnmSubmitDone() < 0 )
+    {
+        g_Device.CancelFrame();
         return false;
-    if ( g_Device.EndFrame() != submittedLabel || !WaitForLabel( eopLabel, submittedLabel ) )
+    }
+    if ( !g_Device.CommitSubmission( submission ) ||
+        !WaitForLabel( submission.completionLabel, submission.submittedLabel ) )
         return false;
-    g_CompletedLabel = submittedLabel;
+    g_CompletedLabel = submission.submittedLabel;
     return true;
 }
 
 extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
 {
-    if ( !g_Mapped || !destination || size < 16 || ( size & 15 ) ||
-        !g_Device.BeginFrame( g_CompletedLabel ) )
+    if ( !g_Mapped || !destination || size < 16 || ( size & 15 ) )
         return false;
 
-    void *commandMemory = g_Device.FrameArena().Allocate( kCommandBufferSize, 256 );
-    volatile uint64_t *eopLabel = static_cast< volatile uint64_t * >(
-        g_Device.FrameArena().Allocate( sizeof( uint64_t ), 8 ) );
-    if ( !commandMemory || !eopLabel )
-    {
-        g_Device.CancelFrame();
+    CPs4GnmDevice::SubmissionFrame submission = {};
+    if ( !g_Device.BeginSubmission( g_CompletedLabel, kCommandBufferSize, 256, &submission ) )
         return false;
-    }
 
     const uint32_t bandSize = size / 4;
     const uint32_t colors[4] = {
@@ -410,7 +400,7 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         0xffff0000, // blue
         0xffffffff  // white
     };
-    GnmCommandBuffer command = sceGnmCmdInit( commandMemory, kCommandBufferSize, 0, 0 );
+    GnmCommandBuffer command = sceGnmCmdInit( submission.commandMemory, kCommandBufferSize, 0, 0 );
     for ( unsigned int band = 0; band < 4; ++band )
     {
         const uintptr_t address = reinterpret_cast< uintptr_t >( destination ) + band * bandSize;
@@ -426,10 +416,9 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         EmitDiagnosticTriangle( &command, destination );
     }
 
-    const uint64_t submittedLabel = g_Device.SubmittedLabel() + 1;
-    *eopLabel = 0;
     sceGnmDrawCmdEventWriteEop( &command, GNM_CACHE_FLUSH_AND_INV_TS_EVENT,
-        (uint64_t)(uintptr_t)eopLabel, GNM_DATA_SEL_SEND_DATA64, submittedLabel );
+        (uint64_t)(uintptr_t)submission.completionLabel, GNM_DATA_SEL_SEND_DATA64,
+        submission.submittedLabel );
     void *dcbAddresses[1] = { command.beginptr };
     uint32_t dcbSizes[1] = {
         static_cast< uint32_t >( reinterpret_cast< uintptr_t >( command.cmdptr ) -
@@ -437,10 +426,14 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
     };
     if ( sceGnmSubmitCommandBuffers( 1, dcbAddresses, dcbSizes, 0, 0 ) < 0 ||
         sceGnmSubmitDone() < 0 )
+    {
+        g_Device.CancelFrame();
         return false;
-    if ( g_Device.EndFrame() != submittedLabel || !WaitForLabel( eopLabel, submittedLabel ) )
+    }
+    if ( !g_Device.CommitSubmission( submission ) ||
+        !WaitForLabel( submission.completionLabel, submission.submittedLabel ) )
         return false;
-    g_CompletedLabel = submittedLabel;
+    g_CompletedLabel = submission.submittedLabel;
     if ( g_ShadersReady && !g_TriangleReadbackLogged )
     {
         const uint32_t centerPixel = static_cast< const volatile uint32_t * >( destination )[540 * 1920 + 960];

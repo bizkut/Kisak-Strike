@@ -11,14 +11,25 @@ class CPs4GnmDevice
 public:
     enum { kFrameCount = 2 };
 
+    struct SubmissionFrame
+    {
+        void *commandMemory;
+        volatile uint64_t *completionLabel;
+        uint64_t submittedLabel;
+    };
+
     CPs4GnmDevice();
 
     bool Initialize( void *frameMemory, size_t frameMemorySize );
     bool BeginFrame( uint64_t completedLabel );
     void CancelFrame();
     uint64_t EndFrame();
+    bool BeginSubmission( uint64_t completedLabel, size_t commandBytes,
+        size_t commandAlignment, SubmissionFrame *submission );
+    bool CommitSubmission( const SubmissionFrame &submission );
 
     bool IsInitialized() const { return m_initialized; }
+    bool IsFrameOpen() const { return m_frameOpen; }
     unsigned int CurrentFrame() const { return m_frameIndex; }
     uint64_t SubmittedLabel() const { return m_submittedLabel; }
     CPs4GnmMemory &FrameArena() { return m_frames[m_frameIndex].arena; }

@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.93
-SHA-256: 787d0dd74c422fbb06bab02e23d5276923b5e7e9428a7665f1eaba3b1bba17a2
+Version: 1.94
+SHA-256: 4f6961ffa79bd037082e559085be98103dde16d8aaa2cfb927428e89156e8a18
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -261,6 +261,17 @@ visibility, EOP synchronization, and repeated VideoOut flips. The bootstrap
 triangle milestone is complete. Further renderer work should now move behind
 the PS4 D3D9-compatible device boundary and use this path as its hardware
 smoke test rather than expanding the standalone diagnostic renderer.
+
+Version 1.94 begins that migration. `CPs4GnmDevice` now owns submission-frame
+reservation as one transaction: selecting a recyclable frame, resetting its
+arena, allocating aligned command and EOP-label storage, reserving the next
+monotonic label, committing it after successful submission, and cancelling
+cleanly on allocation or driver failure. The bootstrap self-test, fill, and
+bars-plus-triangle paths all use this device API instead of duplicating the
+lifetime rules. Host tests cover successful commit, label progression,
+oversized allocation rollback, and frame-open state; the complete OpenOrbis
+build also passes. Hardware v1.94 is a regression gate for the same visible
+triangle before device-owned draw state is added.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

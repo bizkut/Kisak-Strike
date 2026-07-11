@@ -25,5 +25,20 @@ int main()
     device.CancelFrame();
     assert( device.BeginFrame( 1 ) );
     assert( device.EndFrame() == 3 );
+
+    CPs4GnmDevice::SubmissionFrame submission = {};
+    assert( device.BeginSubmission( 2, 128, 64, &submission ) );
+    assert( submission.commandMemory );
+    assert( submission.completionLabel );
+    assert( submission.submittedLabel == 4 );
+    assert( device.CommitSubmission( submission ) );
+    assert( device.SubmittedLabel() == 4 );
+
+    CPs4GnmDevice::SubmissionFrame oversized = {};
+    assert( !device.BeginSubmission( 3, sizeof( storage ), 64, &oversized ) );
+    assert( !device.IsFrameOpen() );
+    assert( oversized.commandMemory == 0 );
+    assert( oversized.completionLabel == 0 );
+    assert( oversized.submittedLabel == 0 );
     return 0;
 }
