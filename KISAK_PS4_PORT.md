@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.29
-SHA-256: bd58ca8df264be3a659eb0a10de3a55b5be4d35cff004f498172cb2d4ae54b59
+Version: 2.30
+SHA-256: 1442c0d5b6928859a89112ebb4611c924aa2e1f4899416f4ae2f6d7014ee2e9a
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -633,6 +633,14 @@ The offscreen pass disables blending through the shadow bridge; the display
 pass selects source-alpha/inverse-source-alpha color blending with separate
 one/zero alpha blending. Both bootstrap `GnmBlendControl` emissions are removed.
 The second native apply should now report depth plus blend (`0x410`).
+
+The v2.29 hardware run logged the expected display depth-plus-blend mask
+`0x410` and preserved the opaque orange triangle at 60 FPS. Render-target mask,
+primitive setup, depth, and blend are therefore all exclusively shadow-owned.
+Version 2.30 adds a complete PS4-owned `IDebugTextureInfo` interface while
+delegating the current empty-backend behavior. This seven-method boundary is
+the future home for native texture inventory and PS4 GPU-memory statistics and
+avoids attempting the 227-method `IShaderAPI` replacement as one unsafe step.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

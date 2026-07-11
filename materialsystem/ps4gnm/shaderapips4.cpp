@@ -1,6 +1,8 @@
 #include "interface.h"
 #include "shaderapi/IShaderDevice.h"
 #include "shaderapi/ishadershadow.h"
+#include "materialsystem/idebugtextureinfo.h"
+#include "interfaces/interfaces.h"
 #include "ps4_gnm_draw_state.h"
 #include "ps4_shadow_state_translate.h"
 #include "shaderapips4.h"
@@ -344,6 +346,33 @@ private:
 
 CShaderShadowPs4 g_ShaderShadowPs4;
 
+class CDebugTextureInfoPs4 : public IDebugTextureInfo
+{
+public:
+    CDebugTextureInfoPs4() : m_delegate( 0 ) {}
+    void SetDelegate( IDebugTextureInfo *delegate ) { m_delegate = delegate; }
+
+    void EnableDebugTextureList( bool enable )
+    { if ( m_delegate ) m_delegate->EnableDebugTextureList( enable ); }
+    void EnableGetAllTextures( bool enable )
+    { if ( m_delegate ) m_delegate->EnableGetAllTextures( enable ); }
+    KeyValues *LockDebugTextureList()
+    { return m_delegate ? m_delegate->LockDebugTextureList() : 0; }
+    void UnlockDebugTextureList()
+    { if ( m_delegate ) m_delegate->UnlockDebugTextureList(); }
+    int GetTextureMemoryUsed( TextureMemoryType memoryType )
+    { return m_delegate ? m_delegate->GetTextureMemoryUsed( memoryType ) : 0; }
+    bool IsDebugTextureListFresh( int framesAllowed = 1 )
+    { return m_delegate && m_delegate->IsDebugTextureListFresh( framesAllowed ); }
+    bool SetDebugTextureRendering( bool enable )
+    { return m_delegate && m_delegate->SetDebugTextureRendering( enable ); }
+
+private:
+    IDebugTextureInfo *m_delegate;
+};
+
+CDebugTextureInfoPs4 g_DebugTextureInfoPs4;
+
 void *Ps4CreateInterface( const char *interfaceName, int *returnCode )
 {
     if ( !g_EmptyFactory )
@@ -384,6 +413,17 @@ void *Ps4CreateInterface( const char *interfaceName, int *returnCode )
         if ( returnCode )
             *returnCode = 0;
         return &g_ShaderShadowPs4;
+    }
+    if ( interfaceName && strcmp( interfaceName, DEBUG_TEXTURE_INFO_VERSION ) == 0 )
+    {
+        IDebugTextureInfo *delegate = static_cast< IDebugTextureInfo * >(
+            g_EmptyFactory( interfaceName, returnCode ) );
+        if ( !delegate )
+            return 0;
+        g_DebugTextureInfoPs4.SetDelegate( delegate );
+        if ( returnCode )
+            *returnCode = 0;
+        return &g_DebugTextureInfoPs4;
     }
     return g_EmptyFactory( interfaceName, returnCode );
 }
