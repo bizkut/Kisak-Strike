@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.53
-SHA-256: fd473845dff6b15771b58ccc03aa6c30d3acbd94851ee930355bb8923650d3d4
+Version: 1.54
+SHA-256: a5f97f4388a44c55deeba770119ac29a9f91e1db5626026fda5d7e959286a53d
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -492,6 +492,18 @@ lifecycle and interface contract are available to the monolithic launcher, but
 rendering, document loading, and input remain deliberately inert until the
 RocketUI renderer is connected to OpenGNM. This advances startup without
 linking RocketUI's existing POSIX OpenGL/ToGL implementation.
+
+The v1.53 hardware run remained stable and resolved `rocketui / RocketUI001`.
+All ordered child systems were created successfully, after which startup
+returned during `LoadDependentSystems` before the connection stage. The app
+then performed a complete orderly filesystem/thread-pool shutdown and returned
+from `LauncherMain`; the engine launcher's `Connect`, `Init`, and `Run`
+breadcrumbs did not execute.
+
+Version 1.54 adds bounded dependency-owner, module, interface, factory-hit,
+module-load, add-system, and ordering breadcrumbs to `LoadDependentSystems`.
+This diagnostic checkpoint will identify the exact transitive app-system
+contract preventing the child group from reaching `ConnectSystems`.
 
 Reproduce the current cross-build with:
 

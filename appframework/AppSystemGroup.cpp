@@ -609,12 +609,15 @@ const char *CAppSystemGroup::FindSystemName( int nIndex )
 bool CAppSystemGroup::LoadDependentSystems()
 {
 	LibraryDependencies_t dependencies;
+	PS4_APP_BREADCRUMB( "kisak-ps4: dependency scan entered" );
 
 	// First, load dependencies.
 	for ( int i = 0; i < m_Systems.Count(); ++i )
 	{
 		IAppSystem *pSystem = m_Systems[i];
 		const char *pInterfaceName = FindSystemName( i );
+		PS4_APP_BREADCRUMB( "kisak-ps4: dependency owner" );
+		PS4_APP_BREADCRUMB( pInterfaceName ? pInterfaceName : "<unnamed>" );
 		dependencies.AddString( pInterfaceName );
 
 		const AppSystemInfo_t *pDependencies = pSystem->GetDependencies();
@@ -623,24 +626,37 @@ bool CAppSystemGroup::LoadDependentSystems()
 
 		for ( ; pDependencies->m_pInterfaceName && pDependencies->m_pInterfaceName[0]; ++pDependencies )
 		{
+			PS4_APP_BREADCRUMB( "kisak-ps4: dependency interface" );
+			PS4_APP_BREADCRUMB( pDependencies->m_pInterfaceName );
+			PS4_APP_BREADCRUMB( "kisak-ps4: dependency module" );
+			PS4_APP_BREADCRUMB( pDependencies->m_pModuleName ? pDependencies->m_pModuleName : "<unnamed>" );
 			dependencies[ pInterfaceName ].AddString( pDependencies->m_pInterfaceName );
 
 			CreateInterfaceFn factory = GetFactory();
-			if ( factory( pDependencies->m_pInterfaceName, NULL ) ) 
+			if ( factory( pDependencies->m_pInterfaceName, NULL ) )
+			{
+				PS4_APP_BREADCRUMB( "kisak-ps4: dependency already satisfied" );
 				continue;
+			}
 
+			PS4_APP_BREADCRUMB( "kisak-ps4: dependency before module load" );
 			AppModule_t module = LoadModule( pDependencies->m_pModuleName );
+			PS4_APP_BREADCRUMB( "kisak-ps4: dependency after module load" );
 			IAppSystem *pSystem = AddSystem( module, pDependencies->m_pInterfaceName );
 			if ( !pSystem )
 			{
+				PS4_APP_BREADCRUMB( "kisak-ps4: dependency add failed" );
 				Warning( "Unable to load interface %s from %s (Dependency of %s)\n", pDependencies->m_pInterfaceName, pDependencies->m_pModuleName, pInterfaceName );
 				return false;
 			}
+			PS4_APP_BREADCRUMB( "kisak-ps4: dependency add complete" );
 		}
 	}
 
+	PS4_APP_BREADCRUMB( "kisak-ps4: dependency before ordering" );
 	ComputeDependencies( dependencies );
 	SortDependentLibraries( dependencies );
+	PS4_APP_BREADCRUMB( "kisak-ps4: dependency scan complete" );
 	return true;
 }
 
