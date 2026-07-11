@@ -142,6 +142,17 @@ bounded failure behavior remain unchanged. Expected success marker:
 pitch, and linear scanout; swapped colors isolate channel order, while broken
 boundaries indicate a pitch or layout mismatch.
 
+The v1.84 hardware run displayed all four horizontal color bars correctly and
+logged `GPU VideoOut RGBA bars and EOP passed`. It then reached frame 1800,
+released the GNM submission pool, closed VideoOut, and returned from
+`LauncherMain` without a flip, presentation, EOP, or fallback failure. The
+subsequent black screen is the expected result of the bounded diagnostic loop
+ending while the outer bootstrap keeps the process alive; it is not a crash.
+A8B8G8R8 byte order, 1920-pixel pitch, linear scanout, GPU fill, and EOP-before-
+flip ordering are validated. The next runtime change should replace the fixed
+1800-frame loop with a quit-aware engine loop that retains VideoOut and GPU
+arenas until actual application shutdown.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
