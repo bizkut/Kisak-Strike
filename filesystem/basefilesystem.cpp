@@ -2062,7 +2062,7 @@ CRC32_t CZipPackFile::GetKVPoolKey()
 
 bool CZipPackFile::GetStringFromKVPool( unsigned int key, char *pOutBuff, int buflen )
 {
-	return m_KVStringPool.String( (FileNameHandle_t)key, pOutBuff, buflen );
+	return m_KVStringPool.String( (FileNameHandle_t)(uintptr_t)key, pOutBuff, buflen );
 }
 
 //-----------------------------------------------------------------------------
