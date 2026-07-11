@@ -374,8 +374,8 @@ bool LoadDiagnosticShaders()
             const float rotatedY = 0.8660254f * source[1] - 0.5f * rotatedZ;
             const float cameraZ = 3.5f + 0.5f * source[1] + 0.8660254f * rotatedZ;
             DiagnosticVertex &vertex = vertices[face * 4 + corner];
-            vertex.position[0] = rotatedX * 1.25f;
-            vertex.position[1] = rotatedY * 1.25f;
+            vertex.position[0] = rotatedX * 0.45f;
+            vertex.position[1] = rotatedY * 0.45f;
             vertex.position[2] = ( cameraZ - 1.5f ) * 0.45f;
             vertex.position[3] = cameraZ;
             memcpy( vertex.color, faceColors[face], sizeof( vertex.color ) );
@@ -644,7 +644,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     sceGnmDrawCmdSetHwScreenOffset( command, 60, 32 );
     sceGnmDrawCmdSetGuardBands( command, 33.0f, 59.0f, 1.0f, 1.0f );
     KisakPs4SetShaderShadowDepth( g_DepthTargetReady, g_DepthTargetReady, 3 );
-    KisakPs4SetShaderShadowBlend( true, 4, 5, 0, true, 1, 0, 0 );
+    KisakPs4SetShaderShadowBlend( false, 1, 0, 0, false, 1, 0, 0 );
     const uint32_t displayStateMask = KisakPs4ApplyShaderShadowState( command );
     if ( !g_ShadowDisplayApplyLogged )
     {

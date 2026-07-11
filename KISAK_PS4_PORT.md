@@ -982,6 +982,19 @@ The v2.60 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `c4bc798b9784ce50ec3c0ddb18bf0b80d73cf80f7032eb91702143f8075305a8`,
 with marker `kisak-ps4: build marker indexed_color_cube_v260`.
+
+The v2.60 hardware run was stable and emitted all cube faces, but the screenshot
+showed a screen-filling inside-room presentation. Its center readback was
+`0x80e38c9b`; alpha `0x80` proved the display blend state was still active.
+Version 2.61 reduces projected X/Y scale from 1.25 to 0.45 and disables both
+color and alpha blending for the cube pass. The expected result is a compact,
+centered, opaque cube over the unchanged bars. Double-sided rasterization stays
+enabled so back-face culling can be validated separately. The capture is
+`hardware-captures/logs/2026-07-12/kisak_v260_indexed_color_cube_live.txt`.
+The v2.61 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`e6916a9c8fdfee0c15bff5e5edbcdc6564e5728ca65bf6327fa9bfbd681e9c55`,
+with marker `kisak-ps4: build marker compact_opaque_cube_v261`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
