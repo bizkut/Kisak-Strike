@@ -18,6 +18,13 @@
 
 // NOTE: This has to be the last file included! (turned off below, since this is included like a header)
 #include "tier0/memdbgon.h"
+
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_STEAM_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_STEAM_BREADCRUMB( line ) ( (void)0 )
+#endif
 //asdf
 //-----------------------------------------------------------------------------
 // Globals...
@@ -95,18 +102,28 @@ CSteamApplication::CSteamApplication( CSteamAppSystemGroup *pAppSystemGroup )
 //-----------------------------------------------------------------------------
 bool CSteamApplication::Create( )
 {
+	PS4_STEAM_BREADCRUMB( "kisak-ps4: steam create entered" );
 	FileSystem_SetErrorMode( FS_ERRORMODE_NONE );
+	PS4_STEAM_BREADCRUMB( "kisak-ps4: steam after filesystem error mode" );
 
 	char pFileSystemDLL[MAX_PATH];
+	PS4_STEAM_BREADCRUMB( "kisak-ps4: steam before filesystem name" );
 	if ( FileSystem_GetFileSystemDLLName( pFileSystemDLL, MAX_PATH, m_bSteam ) != FS_OK )
 		return false;
+	PS4_STEAM_BREADCRUMB( "kisak-ps4: steam after filesystem name" );
 
 	// Add in the cvar factory
+	PS4_STEAM_BREADCRUMB( "kisak-ps4: steam before cvar load" );
 	AppModule_t cvarModule = LoadModule( VStdLib_GetICVarFactory() );
+	PS4_STEAM_BREADCRUMB( "kisak-ps4: steam after cvar load" );
 	AddSystem( cvarModule, CVAR_INTERFACE_VERSION );	
+	PS4_STEAM_BREADCRUMB( "kisak-ps4: steam after cvar add" );
 
+	PS4_STEAM_BREADCRUMB( "kisak-ps4: steam before filesystem load" );
 	AppModule_t fileSystemModule = LoadModule( pFileSystemDLL );
+	PS4_STEAM_BREADCRUMB( "kisak-ps4: steam after filesystem load" );
 	m_pFileSystem = (IFileSystem*)AddSystem( fileSystemModule, FILESYSTEM_INTERFACE_VERSION );
+	PS4_STEAM_BREADCRUMB( "kisak-ps4: steam after filesystem add" );
 	if ( !m_pFileSystem )
 	{
 		Error( "Unable to load %s", pFileSystemDLL );
@@ -177,4 +194,3 @@ void CSteamApplication::Shutdown()
 
 // Turn off memdbg macros (turned on up top) since this is included like a header
 #include "tier0/memdbgoff.h"
-

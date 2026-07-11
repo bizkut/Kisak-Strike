@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.16
-SHA-256: 33c9f39d2afe988d0e2b680693732bbf7e9e5cd6e4f0b807755fb43ec326b1c7
+Version: 1.17
+SHA-256: 538bf79458219586ca088b03d0d44f09d55230e641aface6da0ad92c165fdde2
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -224,6 +224,11 @@ The v1.15 trace reached `before application run` after both application-group
 objects constructed. Version 1.16 traces the shared app-system lifecycle across
 creation, dependency loading, connection, pre-initialization, main, and
 shutdown.
+
+The v1.16 trace entered the outer app-system lifecycle and stopped inside
+`CSteamApplication::Create()`. Version 1.17 splits filesystem-name selection,
+static cvar factory loading/registration, and filesystem module
+loading/registration.
 
 Reproduce the current cross-build with:
 
