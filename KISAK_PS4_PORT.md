@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.29
-SHA-256: 8bcb29d98aa098a7c0b2459146b40947067129ebc23060e97e0cd58f77252367
+Version: 1.30
+SHA-256: d1aa740c9be9615e2dafa6db52ed69a0aa5b369ca1cea259e8f497554903054f
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -289,6 +289,12 @@ parent's create-wait return.
 The v1.28 trace reaches run dispatch but stops before virtual `Run()` while
 calling the desktop `Plat_IsInDebugSession()` probe. Version 1.29 bypasses that
 probe on PS4 and directly enters the worker run method.
+
+The v1.29 run starts all three filesystem workers, completes filesystem init,
+and reaches the child app group. Its currently incomplete module set fails
+creation cleanly; the later crash occurs during outer shutdown. Version 1.30
+traces each system shutdown plus filesystem async flush, pool stop, and tracker
+thread teardown.
 
 Reproduce the current cross-build with:
 

@@ -771,8 +771,17 @@ void CBaseFileSystem::ShutdownAsync()
 {
 	if ( m_pThreadPool )
 	{
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem before async flush" );
+		#endif
 		AsyncFlush();
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem before pool stop" );
+		#endif
 		m_pThreadPool->Stop();
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem after pool stop" );
+		#endif
 		SafeRelease( m_pThreadPool );
 	}
 }

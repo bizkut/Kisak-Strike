@@ -689,7 +689,9 @@ void CAppSystemGroup::ShutdownSystems()
 	// Shutdown in reverse order of initialization
 	for (int i = m_Systems.Count(); --i >= 0; )
 	{
+		PS4_APP_BREADCRUMB( "kisak-ps4: app before system shutdown" );
 		m_Systems[i]->Shutdown();
+		PS4_APP_BREADCRUMB( "kisak-ps4: app after system shutdown" );
 	}
 }
 

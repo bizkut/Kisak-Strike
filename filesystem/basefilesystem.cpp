@@ -878,8 +878,17 @@ InitReturnVal_t CBaseFileSystem::Init()
 
 void CBaseFileSystem::Shutdown()
 {
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem shutdown entered" );
+	#endif
 	ShutdownAsync();
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem after async shutdown" );
+	#endif
 	m_FileTracker2.ShutdownAsync();
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem after tracker shutdown" );
+	#endif
 
 #if !defined( _X360 ) && !defined( _PS3 )
 	if( m_pLogFile )
@@ -9487,5 +9496,4 @@ CON_COMMAND( fs_fios_cancel_prefetches, "Cancels all the prefetches in progress.
 }
 
 #endif
-
 
