@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.89
-SHA-256: 92aa9daa8b6402fa1e560b3c58199b48827bdbe1e5c43c0e54d1b6ad8b468136
+Version: 1.90
+SHA-256: 5f39538cb157f8fd6923c2dfe11a9cd1051951f8a79082a78b3b654284b06732
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -211,6 +211,18 @@ fetch-allocation, or fetch-creation failure and includes the relevant sizes and
 result codes. A successful load reports the vertex, pixel, and fetch byte
 counts. This turns the next hardware capture into a definitive package and
 loader-stage check before further PM4 draw changes.
+
+The v1.89 hardware run confirmed the new marker and isolated vertex metadata:
+`result=2 type=1 stagebytes=44 filebytes=264`. OpenGNM was locating the wrapped
+`Shdr` header but incorrectly using `headersizedwords` as the offset to the GNM
+stage structure. That field is the stage-header size; the structure begins
+immediately after the fixed 16-byte file header. The helper also used the
+common size as executable length even though wrapped PSSL binaries include a
+trailing `OrbShdr` record in that size. OpenGNM commit `a99926a` fixes both
+layouts, reads the executable length from the bounded trailer, and updates the
+wrapped-container regression test. Version 1.90 stages this fix. Its expected
+next boundary is either `diagnostic shader detail ready ...` followed by the
+triangle markers, or a precise fetch-shader failure after both programs load.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
