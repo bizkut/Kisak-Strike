@@ -7,6 +7,9 @@ extern int sceKernelUsleep( unsigned int microseconds );
 #if defined( KISAK_PS4_MONOLITHIC )
 extern int KisakRegisterStaticModules( void );
 extern int LauncherMain( int argc, char **argv );
+typedef void (*KisakConstructor)( void );
+extern KisakConstructor __kisak_ctors_start[];
+extern KisakConstructor __kisak_ctors_end[];
 #endif
 
 static FILE *OpenStartupLog( void )
@@ -30,6 +33,21 @@ int main( int argc, char **argv )
     LogLine( log, "kisak-ps4: bootstrap entered" );
 
 #if defined( KISAK_PS4_MONOLITHIC )
+    KisakConstructor *constructor = __kisak_ctors_end;
+    unsigned int constructorIndex = (unsigned int)(__kisak_ctors_end - __kisak_ctors_start);
+    while ( constructor != __kisak_ctors_start )
+    {
+        char marker[64];
+        --constructor;
+        --constructorIndex;
+        snprintf( marker, sizeof( marker ), "kisak-ps4: before ctor %u", constructorIndex );
+        LogLine( log, marker );
+        (*constructor)();
+        snprintf( marker, sizeof( marker ), "kisak-ps4: after ctor %u", constructorIndex );
+        LogLine( log, marker );
+    }
+    LogLine( log, "kisak-ps4: constructors complete" );
+
     if ( KisakRegisterStaticModules() != 0 )
     {
         LogLine( log, "kisak-ps4: static module registration failed" );

@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.02
-SHA-256: 5482d83bcaf9ff7c85c51e60e9d5fdf0a92adb16c5e9f268561de0001d9cc1c4
+Version: 1.03
+SHA-256: 0aa00bece121fb2fdd9dd8c2a3a0537679a7c289cafdb813444fe083279e68bb
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -141,6 +141,13 @@ OpenOrbis linker script only populated `.init_array`; the failing executable
 had `DT_INIT_ARRAYSZ = 0`. Version 1.02 uses a generated derivative of the SDK
 link script that retains `.ctors` inside `.init_array`. The rebuilt executable
 has a 352-byte initialization array covering 44 constructor entries.
+
+The v1.02 run crashed before `main()`, proving at least one restored constructor
+is not yet PS4-safe. Version 1.03 moves the same 44 entries into a private
+`.kisak_ctors` section and keeps the runtime initialization array empty. The
+bootstrap walks the constructor table in legacy reverse order after opening the
+log, writing before/after markers for every constructor index. This turns the
+pre-main crash into a bounded constructor-level diagnostic.
 
 Reproduce the current cross-build with:
 

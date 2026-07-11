@@ -43,7 +43,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_subdirectory(launcher)
 
     file(READ "${OPENORBIS_ROOT}/link.x" KISAK_OPENORBIS_LINK_SCRIPT)
-    string(REPLACE "*(.init_array);" "*(.init_array); KEEP(*(.ctors .ctors.*));"
+    string(REPLACE "\t.data.sce_process_param"
+        "\t.kisak_ctors : {\n\t\t__kisak_ctors_start = .;\n\t\tKEEP(*(.ctors .ctors.*));\n\t\t__kisak_ctors_end = .;\n\t}\n\n\t.data.sce_process_param"
         KISAK_OPENORBIS_LINK_SCRIPT "${KISAK_OPENORBIS_LINK_SCRIPT}")
     set(KISAK_PS4_LINK_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/kisak-link.x")
     file(WRITE "${KISAK_PS4_LINK_SCRIPT}" "${KISAK_OPENORBIS_LINK_SCRIPT}")
