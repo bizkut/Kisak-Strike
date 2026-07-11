@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.49
-SHA-256: 83a4e1eec349fcafa0e934a7fce8ff1ec38b09bd3b65007a61e528f8ed95a28c
+Version: 1.50
+SHA-256: 556777e7b5c9a7a5a56e9542b793eb8d7a63af485408595d2076e84ce3bf8113
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -450,6 +450,17 @@ the `VGUI_Surface031` factory, and preserves the Source-required ordering before
 font registration reports unsupported until the real glyph backend exists.
 Actual drawing remains deferred until the material system has an OpenGNM
 ShaderAPI/device.
+
+The v1.49 hardware run remained stable through the complete constructor walk,
+launcher lifecycle, and filesystem shutdown. This validates the material VGUI
+surface singleton and both of its static interfaces without entering drawing.
+
+Version 1.50 extends the transitional PS4 `engine` factory with an inert
+`VENGINE_LAUNCHER_API_VERSION004` app system. This satisfies the final ordered
+launcher contract and adds bounded connect, init, startup-info, run, shutdown,
+and disconnect breadcrumbs. It does not replace the real engine: the existing
+engine archive still requires staged removal of Steam, desktop renderer/audio,
+and monolithic dependency assumptions before promotion.
 
 Reproduce the current cross-build with:
 

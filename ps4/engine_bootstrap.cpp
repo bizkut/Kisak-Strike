@@ -1,7 +1,10 @@
 #include "icvar.h"
+#include "common/engine_launcher_api.h"
 #include "tier1/convar.h"
 
 #include <string.h>
+
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 
 namespace
 {
@@ -51,7 +54,59 @@ public:
     }
 };
 
+class CPs4EngineLauncher final : public IEngineAPI
+{
+public:
+    bool Connect( CreateInterfaceFn ) override
+    {
+        KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap connect" );
+        return true;
+    }
+    void Disconnect() override
+    {
+        KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap disconnect" );
+    }
+
+    void *QueryInterface( const char *name ) override
+    {
+        return name && strcmp( name, VENGINE_LAUNCHER_API_VERSION ) == 0 ? this : NULL;
+    }
+
+    InitReturnVal_t Init() override
+    {
+        KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap init" );
+        return INIT_OK;
+    }
+    void Shutdown() override
+    {
+        KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap shutdown" );
+    }
+
+    bool SetStartupInfo( StartupInfo_t &info ) override
+    {
+        KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap startup info" );
+        m_StartupInfo = info;
+        return true;
+    }
+
+    int Run() override
+    {
+        KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
+        return RUN_OK;
+    }
+    void SetEngineWindow( void * ) override {}
+    void PostConsoleCommand( const char * ) override {}
+    bool IsRunningSimulation() const override { return m_bSimulationActive; }
+    void ActivateSimulation( bool active ) override { m_bSimulationActive = active; }
+    void SetMap( const char * ) override {}
+
+private:
+    StartupInfo_t m_StartupInfo = {};
+    bool m_bSimulationActive = false;
+};
+
 CPs4CvarQuery g_Ps4CvarQuery;
+CPs4EngineLauncher g_Ps4EngineLauncher;
 }
 
 CreateInterfaceFn KisakEngineBootstrapFactory();
@@ -61,6 +116,8 @@ namespace
 void *EngineBootstrapCreateInterface( const char *name, int *returnCode )
 {
     void *result = g_Ps4CvarQuery.QueryInterface( name );
+    if ( !result )
+        result = g_Ps4EngineLauncher.QueryInterface( name );
     if ( returnCode )
         *returnCode = result ? 0 : 1;
     return result;
