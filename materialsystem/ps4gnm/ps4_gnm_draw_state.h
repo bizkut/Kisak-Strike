@@ -56,6 +56,7 @@ public:
         const GnmBuffer &buffer );
     uint32_t Apply( GnmCommandBuffer *command );
     void RetainDirtyMask( uint32_t mask ) { m_dirtyMask &= mask; }
+    void Invalidate( uint32_t mask ) { m_dirtyMask |= mask & kDirtyAll; }
 
     uint32_t DirtyMask() const { return m_dirtyMask; }
 

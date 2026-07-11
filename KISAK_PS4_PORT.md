@@ -1172,6 +1172,18 @@ undersized-storage rejection. Marker:
 The v2.74 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `238f059bb90ee628b25420c018b905dc670ab77fe2ac4794818eb7b4c0623dd4`.
+
+The v2.74 hardware run retained the spinning cube, navy contrast regions, and
+60 FPS, validating resource-owned texture/sampler tables. Version 2.75 moves
+the final reference cube DB and depth/stencil controls out of direct bootstrap
+emission and into `CPs4GnmDrawState`. A targeted `Invalidate` API forces those
+two cached groups dirty after the offscreen/shader-shadow paths modify native
+state outside the cache, ensuring the proven zeroed DB control plus enabled
+LEQUAL/Z-write depth control is emitted before the cube. Marker:
+`kisak-ps4: build marker cached_reference_depth_v275`.
+The v2.75 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`5e4dc3aa76be53d3756718ba484a78c099638e7056327552323087fe588e1152`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

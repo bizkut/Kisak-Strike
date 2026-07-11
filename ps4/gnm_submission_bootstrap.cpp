@@ -956,8 +956,10 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     referenceDepthControl.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
     referenceDepthControl.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
     referenceDepthControl.depthenable = true;
-    sceGnmDrawCmdSetDbRenderControl( command, &referenceDbControl );
-    sceGnmDrawCmdSetDepthStencilControl( command, &referenceDepthControl );
+    g_DrawState.SetDbRenderControl( referenceDbControl );
+    g_DrawState.SetDepthStencilControl( referenceDepthControl );
+    g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDbRender |
+        CPs4GnmDrawState::kDirtyDepthStencil );
     g_DrawState.SetPrimitiveType( cubePacket.primitiveType );
     g_DrawState.Apply( command );
     sceGnmDrawCmdDrawIndexAuto( command, cubePacket.vertexCount );
