@@ -47,5 +47,6 @@ extern "C" int KisakRegisterStaticModules()
     const bool materialsystem = RegisterStaticModule( "materialsystem", KisakMaterialSystemFactory() );
     const bool datacache = RegisterStaticModule( "datacache", KisakDataCacheFactory() );
     const bool studiorender = RegisterStaticModule( "studiorender", KisakStudioRenderFactory() );
-    return tier0 && vstdlib && launcher && filesystem && engine && inputsystem && vphysics && materialsystem && datacache && studiorender ? 0 : -1;
+    const bool soundemittersystem = RegisterStaticModule( "soundemittersystem", KisakSoundEmitterSystemFactory() );
+    return tier0 && vstdlib && launcher && filesystem && engine && inputsystem && vphysics && materialsystem && datacache && studiorender && soundemittersystem ? 0 : -1;
 }

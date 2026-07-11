@@ -13,6 +13,7 @@ CreateInterfaceFn KisakVPhysicsFactory();
 CreateInterfaceFn KisakMaterialSystemFactory();
 CreateInterfaceFn KisakDataCacheFactory();
 CreateInterfaceFn KisakStudioRenderFactory();
+CreateInterfaceFn KisakSoundEmitterSystemFactory();
 
 extern "C" int KisakRegisterStaticModules();
 

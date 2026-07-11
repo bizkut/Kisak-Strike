@@ -55,6 +55,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_subdirectory(materialsystem)
     add_subdirectory(datacache)
     add_subdirectory(studiorender)
+    add_subdirectory(soundemittersystem)
     add_subdirectory(appframework)
     add_subdirectory(launcher)
 
@@ -104,6 +105,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         materialsystem_client
         datacache_client
         studiorender_client
+        soundemittersystem_client
         shaderlib_client
         vtf_client
         bitmap_client

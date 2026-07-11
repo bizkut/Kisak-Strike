@@ -1969,3 +1969,10 @@ void CSoundEmitterSystemBase::Flush()
 CSoundEmitterSystemBase g_SoundEmitterSystemBase;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CSoundEmitterSystemBase, ISoundEmitterSystemBase, 
 						SOUNDEMITTERSYSTEM_INTERFACE_VERSION, g_SoundEmitterSystemBase );
+
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakSoundEmitterSystemFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif

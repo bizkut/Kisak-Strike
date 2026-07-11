@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.43
-SHA-256: 444a1e03ef3c6bbcbc0a82f670cc93294af67950224bb73cb27e55c97fc7d280
+Version: 1.44
+SHA-256: a82794f6c1c1450c224aedf7c51fa836ed2b49228190dc1a14119ac66a6179e1
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -391,6 +391,15 @@ narrowing compatibility for this module. GPU work remains deferred: studio
 render now participates in static interface discovery, but material rendering
 will not initialize until the OpenGNM ShaderAPI/device boundary is available.
 
+The v1.43 hardware run remained stable through the complete launcher and
+filesystem shutdown lifecycle. This validates the studio-render constructors
+and `VStudioRender026` factory without prematurely entering GPU initialization.
+
+Version 1.44 links the Source sound-emitter base system and registers its
+`VSoundEmitter003` factory. This checkpoint brings sound-script manifest and
+parameter parsing into the monolith; actual playback remains deferred until the
+PS4 `libSceAudioOut` device is connected at Source's existing mixing boundary.
+
 Reproduce the current cross-build with:
 
 ```sh
@@ -418,9 +427,9 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
    and filesystem shutdown lifecycle is hardware validated at each checkpoint.
 5. **Engine initialization — in progress.**
    Filesystem, input, Kisak physics, material-system core, all datacache
-   interfaces, and studio-render core are linked and statically registered.
-   Sound emitter, script, VGUI/RocketUI, and full engine/client/server modules
-   remain; the material system still awaits its OpenGNM ShaderAPI backend.
+   interfaces, studio-render core, and sound-emitter base are linked and
+   statically registered. Script, VGUI/RocketUI, and full engine/client/server
+   modules remain; renderer and AudioOut device backends are still pending.
 6. **Content filesystem — pending.**
    Layer `/app0` and `/data/kisak-strike` VPK/search paths using little-endian
    Kisak/PC content.
