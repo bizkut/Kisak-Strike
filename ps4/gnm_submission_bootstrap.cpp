@@ -5,6 +5,7 @@
 #include "materialsystem/ps4gnm/ps4_gnm_shader.h"
 #include "materialsystem/ps4gnm/ps4_gnm_shader_handles.h"
 #include "materialsystem/ps4gnm/ps4_shader_manifest.h"
+#include "materialsystem/ps4gnm/ps4_gnm_constants.h"
 #include "materialsystem/ps4gnm/shaderapips4.h"
 
 #include <gnm_commandbuffer.h>
@@ -92,10 +93,9 @@ CPs4ShaderManifest g_ShaderManifest;
 void *g_TextureSamplerTable = 0;
 void *g_ReferenceCubeFetchShader = 0;
 GnmBuffer *g_ReferenceCubeVertexBuffers = 0;
-GnmBuffer *g_ReferenceCubeVsDescriptor = 0;
-float *g_ReferenceCubeMvp = 0;
 CPs4GnmBuffer g_ReferenceCubeVertexBuffer;
 CPs4GnmVertexDeclaration g_ReferenceCubeVertexDeclaration;
+CPs4GnmConstants g_ReferenceCubeConstants;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 bool g_ShadowStateApplyLogged = false;
@@ -123,10 +123,8 @@ void MultiplyMatrices( const float *left, const float *right, float *result )
         }
 }
 
-void UpdateReferenceCubeMvp()
+bool UpdateReferenceCubeMvp()
 {
-    if ( !g_ReferenceCubeMvp )
-        return;
     static uint64_t startTime = 0;
     static uint64_t updateCount = 0;
     const uint64_t now = sceKernelGetProcessTime();
@@ -149,8 +147,12 @@ void UpdateReferenceCubeMvp()
         cosY, 0, -sinY, 0, 0, 1, 0, 0, sinY, 0, cosY, 0, 0, 0, 0, 1
     };
     float rotation[16];
+    float mvp[16];
     MultiplyMatrices( rotationY, rotationX, rotation );
-    MultiplyMatrices( kReferenceCubeBaseMvp, rotation, g_ReferenceCubeMvp );
+    MultiplyMatrices( kReferenceCubeBaseMvp, rotation, mvp );
+    if ( !g_ReferenceCubeConstants.SetFloat(
+        CPs4GnmConstants::kVertex, 0, mvp, 4 ) )
+        return false;
     if ( updateCount == 1 || updateCount == 120 )
     {
         char message[160];
@@ -158,9 +160,10 @@ void UpdateReferenceCubeMvp()
             "kisak-ps4: reference cube MVP update=%llu time_us=%llu m00=%.4f m02=%.4f",
             static_cast< unsigned long long >( updateCount ),
             static_cast< unsigned long long >( now >= startTime ? now - startTime : 0 ),
-            g_ReferenceCubeMvp[0], g_ReferenceCubeMvp[8] );
+            mvp[0], mvp[8] );
         KisakPs4StartupBreadcrumb( message );
     }
+    return true;
 }
 
 void LogResult( const char *stage, int result )
@@ -666,7 +669,7 @@ bool LoadDiagnosticShaders()
     referenceCursor = reinterpret_cast< uint8_t * >(
         ( reinterpret_cast< uintptr_t >( referenceCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
     const size_t referenceVertexBytes = 36 * 8 * sizeof( float );
-    if ( referenceVertexBytes + 2 * sizeof( GnmBuffer ) + 64 + sizeof( GnmBuffer ) >
+    if ( referenceVertexBytes + 2 * sizeof( GnmBuffer ) >
         static_cast< size_t >( gpuEnd - referenceCursor ) )
         return false;
     float *referenceVertices = reinterpret_cast< float * >( referenceCursor );
@@ -708,15 +711,6 @@ bool LoadDiagnosticShaders()
         return false;
     }
     referenceCursor += 2 * sizeof( GnmBuffer );
-    referenceCursor = reinterpret_cast< uint8_t * >(
-        ( reinterpret_cast< uintptr_t >( referenceCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
-    g_ReferenceCubeMvp = reinterpret_cast< float * >( referenceCursor );
-    memcpy( g_ReferenceCubeMvp, kReferenceCubeBaseMvp, sizeof( kReferenceCubeBaseMvp ) );
-    referenceCursor += sizeof( kReferenceCubeBaseMvp );
-    g_ReferenceCubeVsDescriptor = reinterpret_cast< GnmBuffer * >( referenceCursor );
-    *g_ReferenceCubeVsDescriptor = sceGnmCreateConstBuffer(
-        g_ReferenceCubeMvp, sizeof( kReferenceCubeBaseMvp ) );
-    referenceCursor += sizeof( GnmBuffer );
     GnmFetchShaderCreateInfo referenceFetchInfo = {};
     referenceFetchInfo.regs = &g_ReferenceCubeVertexShader->registers;
     referenceFetchInfo.inputusages = sceGnmVsShaderInputUsageSlotTable( g_ReferenceCubeVertexShader );
@@ -791,7 +785,8 @@ bool ClearDiagnosticDepth( GnmCommandBuffer *command )
 
 void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     const CPs4GnmDevice::IndexedDrawPacket &packet,
-    const CPs4GnmDevice::PrimitiveDrawPacket &cubePacket )
+    const CPs4GnmDevice::PrimitiveDrawPacket &cubePacket,
+    GnmBuffer *cubeVsDescriptor )
 {
     GnmRenderTarget renderTarget = {};
     if ( sceGnmRtCreateColorTarget( &renderTarget, destination, GNM_FMT_R8G8B8A8_SRGB,
@@ -889,7 +884,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetPixelShader( g_ReferenceCubePixelShader->registers );
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_ReferenceCubeFetchShader );
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_ReferenceCubeVertexBuffers );
-    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 6, g_ReferenceCubeVsDescriptor );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 6, cubeVsDescriptor );
     g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_TextureSamplerTable );
     g_DrawState.SetPsInputUsage(
         sceGnmVsShaderExportSemanticTable( g_ReferenceCubeVertexShader ),
@@ -1079,7 +1074,19 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
     }
     if ( g_ShadersReady )
     {
-        UpdateReferenceCubeMvp();
+        if ( !UpdateReferenceCubeMvp() )
+        {
+            g_Device.CancelFrame();
+            return false;
+        }
+        GnmBuffer *cubeVsDescriptor = static_cast< GnmBuffer * >(
+            g_Device.FrameArena().Allocate( sizeof( GnmBuffer ), 16 ) );
+        if ( !cubeVsDescriptor || !g_ReferenceCubeConstants.BuildBuffer(
+            CPs4GnmConstants::kVertex, &g_Device.FrameArena(), cubeVsDescriptor ) )
+        {
+            g_Device.CancelFrame();
+            return false;
+        }
         uint16_t *indices = static_cast< uint16_t * >(
             g_Device.FrameArena().Allocate( kDiagnosticIndexCount * sizeof( uint16_t ), 8 ) );
         if ( !indices )
@@ -1129,7 +1136,8 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             return false;
         }
         sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_CB0 );
-        EmitDiagnosticTriangle( &command, destination, packet, cubePacket );
+        EmitDiagnosticTriangle( &command, destination, packet, cubePacket,
+            cubeVsDescriptor );
         if ( !g_Device.EndScene() )
         {
             g_Device.CancelFrame();

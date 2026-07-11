@@ -1126,6 +1126,19 @@ constructs the cube's `GnmBuffer` descriptors directly. Marker:
 The v2.70 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `69860dc88d871f9fa837c95c6dc3c36f5c556c0d38cf355650873d98a03600a7`.
+
+The v2.70 hardware run retained the spinning textured cube and four bars at
+60 FPS, validating façade-owned stream binding and vertex-declaration
+translation. Version 2.71 migrates the animated MVP into
+`CPs4GnmConstants`. Each frame writes four vertex constant registers, snapshots
+them into the active two-frame arena, creates the matching `GnmBuffer`
+descriptor in that arena, and binds the frame-local descriptor at VS slot 6.
+The bootstrap's persistent hand-built constant allocation and descriptor are
+removed. Marker:
+`kisak-ps4: build marker facade_cube_constants_v271`.
+The v2.71 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`987eaa69211486fe7a01eb14edc4ae86e55355904ec7716aab5b43cc2bb83055`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
