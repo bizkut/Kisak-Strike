@@ -9,6 +9,9 @@
 #include <thread>
 
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+extern "C" bool KisakPs4VideoOutInitialize();
+extern "C" bool KisakPs4VideoOutSubmitClear();
+extern "C" void KisakPs4VideoOutShutdown();
 
 namespace
 {
@@ -96,7 +99,8 @@ public:
     int Run() override
     {
         KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-		IRocketUI *rocketUI = RocketUI();
+        IRocketUI *rocketUI = RocketUI();
+		const bool videoOutReady = KisakPs4VideoOutInitialize();
 		for ( int frame = 0; frame < 120; ++frame )
 		{
 			if ( g_pInputSystem )
@@ -112,8 +116,11 @@ public:
 			}
 			if ( frame == 59 )
 				KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher frame 60" );
+			if ( frame == 0 && videoOutReady )
+				(void)KisakPs4VideoOutSubmitClear();
 			std::this_thread::sleep_for( std::chrono::milliseconds( 16 ) );
 		}
+		KisakPs4VideoOutShutdown();
         return RUN_OK;
     }
     void SetEngineWindow( void * ) override {}

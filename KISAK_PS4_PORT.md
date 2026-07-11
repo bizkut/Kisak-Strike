@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.68
-SHA-256: a3c6ca5e6d3a6ca858a18716189535158cca2e850fba4d060b28df07f6e992d4
+Version: 1.69
+SHA-256: 8128ab09ccac428ccc60ce0181e09572d82a3d838eda011ce70d248dab474a56
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -658,6 +658,16 @@ input system, advances RocketUI at a 60 Hz timestep, invokes the menu-render
 hook, and yields for approximately 16 ms. First-frame and frame-60 markers
 bound the loop. This is a timing/input validation loop only; production
 shutdown signaling and OpenGNM presentation remain follow-up work.
+
+The v1.68 hardware run reached the frame-60 marker and completed its bounded
+input/UI loop without a crash.
+
+Version 1.69 integrates OpenGNM's existing PS4 VideoOut helper into the
+monolithic target. It initializes two 1920x1080 direct-memory buffers, registers
+them with VideoOut, clears and submits one VSYNC flip on the first frame, and
+closes the helper after the loop. OpenGNM/VideoOut failures are logged and kept
+non-fatal for this first presentation checkpoint; the temporary empty ShaderAPI
+still supplies no GPU draw commands.
 
 Reproduce the current cross-build with:
 

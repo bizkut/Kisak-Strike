@@ -33,6 +33,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     set(USE_ROCKETUI ON CACHE BOOL "" FORCE)
     set(USE_KISAK_PHYSICS ON CACHE BOOL "" FORCE)
 
+    set(KISAK_OPENGNM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../opengnm" CACHE PATH "OpenGNM PS4 source/build root")
+
     add_subdirectory(interfaces)
     add_subdirectory(tier0)
     add_subdirectory(tier1)
@@ -78,6 +80,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_executable(kisak_ps4_monolithic
         ps4/bootstrap_main.c
         ps4/engine_bootstrap.cpp
+        ps4/videoout_bootstrap.cpp
         ps4/rocketui_bootstrap.cpp
     )
     set_target_properties(kisak_ps4_monolithic PROPERTIES
@@ -96,6 +99,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/inputsystem"
         "${CMAKE_CURRENT_SOURCE_DIR}/common"
+        "${KISAK_OPENGNM_ROOT}/include"
     )
     target_link_options(kisak_ps4_monolithic PRIVATE
         -m elf_x86_64
@@ -109,6 +113,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         "${OPENORBIS_ROOT}/lib/crti.o"
         --start-group
         launcher_client
+        "${KISAK_OPENGNM_ROOT}/libopengnm.a"
         appframework_client
         libvstdlib_client
         tier3_client
@@ -147,6 +152,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         c++abi
         c
         kernel
+        SceGnmDriver
+        SceVideoOut
         "${OPENORBIS_ROOT}/lib/crtn.o"
     )
 
