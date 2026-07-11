@@ -28,6 +28,18 @@ static void LogLine( FILE *log, const char *line )
     fflush( log );
 }
 
+#if defined( KISAK_PS4_MONOLITHIC )
+int g_KisakPs4TraceThreadPool;
+
+void KisakPs4StartupBreadcrumb( const char *line )
+{
+    FILE *log = OpenStartupLog();
+    LogLine( log, line );
+    if ( log )
+        fclose( log );
+}
+#endif
+
 int main( int argc, char **argv )
 {
     FILE *log = OpenStartupLog();

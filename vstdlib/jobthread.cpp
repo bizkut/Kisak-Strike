@@ -496,7 +496,9 @@ IThreadPool *g_pThreadPool;
 
 extern "C" int KisakInitializeGlobalThreadPool()
 {
+	g_KisakPs4TraceThreadPool = 1;
 	CGlobalThreadPool *threadPool = new ( g_ThreadPoolStorage ) CGlobalThreadPool;
+	g_KisakPs4TraceThreadPool = 0;
 	g_pThreadPool = threadPool;
 	return 0;
 }
@@ -517,6 +519,9 @@ CThreadPool::CThreadPool() :
 	m_nJobs( 0 ),
 	m_nSuspend( 0 )
 {
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool members complete" );
+	#endif
 }
 
 //---------------------------------------------------------

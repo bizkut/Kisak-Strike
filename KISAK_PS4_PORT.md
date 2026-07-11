@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.07
-SHA-256: 13144cf4e77388c690f7569ba298fdac79a4e27549e122a2756fa2fb554736aa
+Version: 1.08
+SHA-256: fb8a15ed53664fe4d6907ad7c910ba214da490818251318bc398e83c4fcb256b
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -175,6 +175,13 @@ queue heads, but Source's legacy `DECL_ALIGN` macro expands to nothing for this
 OpenOrbis Clang configuration. Version 1.07 explicitly aligns the singleton's
 backing storage to 16 bytes so the queue-head invariant is satisfied before the
 pool constructor runs.
+
+The v1.07 trace still stopped before the explicit pool constructor returned.
+The linked storage and first `CJobQueue` address are both 16-byte aligned, so
+version 1.08 adds bounded breadcrumbs around each lock-free queue's dummy-node
+allocation and after all `CThreadPool` members finish construction. This splits
+Source allocator readiness from mutex/event construction without changing the
+runtime path.
 
 Reproduce the current cross-build with:
 

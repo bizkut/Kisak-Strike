@@ -28,6 +28,11 @@
 #include "tier0/memalloc.h"
 #include "tier0/memdbgoff.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" int g_KisakPs4TraceThreadPool;
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#endif
+
 #if defined( _X360 )
 #define USE_NATIVE_SLIST
 #endif
@@ -728,6 +733,10 @@ public:
 
 	CTSQueue()
 	{
+		#if defined( PLATFORM_PS4 )
+		if ( g_KisakPs4TraceThreadPool )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool queue enter" );
+		#endif
 		COMPILE_TIME_ASSERT( sizeof(Node_t) >= sizeof(TSLNodeBase_t) );
 		if ( ((size_t)&m_Head) % TSLIST_HEAD_ALIGNMENT != 0 )
 		{
@@ -741,7 +750,15 @@ public:
 		}
 		m_Count = 0;
 		m_Head.value.sequence = m_Tail.value.sequence = 0;
+		#if defined( PLATFORM_PS4 )
+		if ( g_KisakPs4TraceThreadPool )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool queue before node" );
+		#endif
 		m_Head.value.pNode = m_Tail.value.pNode = new Node_t; // list always contains a dummy node
+		#if defined( PLATFORM_PS4 )
+		if ( g_KisakPs4TraceThreadPool )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool queue after node" );
+		#endif
 		m_Head.value.pNode->pNext = End();
 	}
 
