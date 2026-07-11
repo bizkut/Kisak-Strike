@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+extern int sceKernelUsleep( unsigned int microseconds );
+
 #if defined( KISAK_PS4_MONOLITHIC )
 extern void KisakRegisterStaticModules( void );
 extern int LauncherMain( int argc, char **argv );
@@ -37,8 +39,10 @@ int main( int argc, char **argv )
 #else
     LogLine( log, "kisak-ps4: bootstrap-only build" );
     LogLine( log, "kisak-ps4: launcher not linked" );
+    LogLine( log, "kisak-ps4: bootstrap idle" );
     if ( log )
         fclose( log );
-    return 0;
+    for ( ;; )
+        sceKernelUsleep( 1000000 );
 #endif
 }

@@ -38,7 +38,12 @@ The bootstrap-only package writes these bounded markers:
 kisak-ps4: bootstrap entered
 kisak-ps4: bootstrap-only build
 kisak-ps4: launcher not linked
+kisak-ps4: bootstrap idle
 ```
+
+The bootstrap remains in a one-second kernel sleep loop after the final marker;
+returning from a headless bootstrap is treated as abnormal application exit by
+the PS4 shell.
 
 `KISAK_PS4_MONOLITHIC=ON` changes the entry point to call
 `KisakRegisterStaticModules()` and then `LauncherMain(argc, argv)` directly.
