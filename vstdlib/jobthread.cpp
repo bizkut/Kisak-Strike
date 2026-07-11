@@ -62,6 +62,10 @@ public:
 		m_nItems( 0 ),
 		m_nMaxItems( INT_MAX )
 	{
+		#if defined( PLATFORM_PS4 )
+		if ( g_KisakPs4TraceThreadPool )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool job queue complete" );
+		#endif
 	}
 
 	int Count()

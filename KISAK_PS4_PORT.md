@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.10
-SHA-256: 617a7c34c58aa9045e67009c63093d004db9a1735fb373a97ff2e8f675a5b805
+Version: 1.11
+SHA-256: 0c941816dbf927541c817442b12deacd055ff47157d6e0f07c1ff81c717211a0
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -193,6 +193,11 @@ attribute initialization, recursive type selection, and mutex creation. It
 then stopped before the `CJobQueue` members completed. Version 1.10 traces the
 following manual event across its mutex attribute, mutex, and condition-variable
 initialization calls.
+
+The v1.10 trace completed the manual event's mutex, attribute teardown, and
+condition-variable initialization. It stopped before the next pool mutex.
+Version 1.11 marks the completed `CJobQueue` body and the empty thread-vector's
+debug-pointer setup, the only non-trivial boundaries remaining between them.
 
 Reproduce the current cross-build with:
 

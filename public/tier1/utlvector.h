@@ -650,7 +650,15 @@ template< typename T, class A >
 inline CUtlVector<T, A>::CUtlVector( int growSize, int initSize )	: 
 	m_Memory(growSize, initSize), m_Size(0)
 {
+	#if defined( PLATFORM_PS4 )
+	if ( g_KisakPs4TraceThreadPool )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool vector before debug info" );
+	#endif
 	ResetDbgInfo();
+	#if defined( PLATFORM_PS4 )
+	if ( g_KisakPs4TraceThreadPool )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool vector complete" );
+	#endif
 }
 
 template< typename T, class A >
