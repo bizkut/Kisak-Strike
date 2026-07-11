@@ -960,14 +960,11 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetDepthStencilControl( referenceDepthControl );
     g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDbRender |
         CPs4GnmDrawState::kDirtyDepthStencil );
-    g_DrawState.SetPrimitiveType( cubePacket.primitiveType );
-    g_DrawState.Apply( command );
-    sceGnmDrawCmdDrawIndexAuto( command, cubePacket.vertexCount );
+    if ( !Ps4EmitPrimitiveDraw( command, &g_DrawState, cubePacket ) )
+        return;
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_CubeEdgeVertexBuffers );
     g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_CubeEdgeSamplerTable );
-    g_DrawState.SetPrimitiveType( edgePacket.primitiveType );
-    g_DrawState.Apply( command );
-    sceGnmDrawCmdDrawIndexAuto( command, edgePacket.vertexCount );
+    Ps4EmitPrimitiveDraw( command, &g_DrawState, edgePacket );
 }
 }
 

@@ -1184,6 +1184,19 @@ LEQUAL/Z-write depth control is emitted before the cube. Marker:
 The v2.75 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `5e4dc3aa76be53d3756718ba484a78c099638e7056327552323087fe588e1152`.
+
+The v2.75 hardware run retained the spinning cube, navy contrast regions, and
+60 FPS, validating cached restoration of the reference depth controls.
+Version 2.76 adds `Ps4EmitPrimitiveDraw` beside the existing indexed façade
+helper. It validates the primitive packet, applies its topology through
+`CPs4GnmDrawState`, emits only dirty state, and performs the OpenGNM auto-index
+draw. Both the 12-triangle filled cube and 12-line edge pass now use this
+shared path; the bootstrap no longer calls `sceGnmDrawCmdDrawIndexAuto` for
+either live diagnostic draw. Marker:
+`kisak-ps4: build marker facade_draw_auto_v276`.
+The v2.76 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`827a1abcc3c7ca4c4be4a480daf7bcc43d45870346021f767a0a179e2cecf32d`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

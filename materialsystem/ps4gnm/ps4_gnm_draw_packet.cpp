@@ -20,3 +20,18 @@ bool Ps4EmitIndexedDraw( GnmCommandBuffer *command, CPs4GnmDrawState *drawState,
         *emittedDirtyMask = emitted;
     return true;
 }
+
+bool Ps4EmitPrimitiveDraw( GnmCommandBuffer *command,
+    CPs4GnmDrawState *drawState,
+    const CPs4GnmDevice::PrimitiveDrawPacket &packet,
+    uint32_t *emittedDirtyMask )
+{
+    if ( !command || !drawState || !packet.vertexCount )
+        return false;
+    drawState->SetPrimitiveType( packet.primitiveType );
+    const uint32_t emitted = drawState->Apply( command );
+    sceGnmDrawCmdDrawIndexAuto( command, packet.vertexCount );
+    if ( emittedDirtyMask )
+        *emittedDirtyMask = emitted;
+    return true;
+}
