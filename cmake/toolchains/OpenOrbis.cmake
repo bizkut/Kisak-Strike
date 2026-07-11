@@ -1,0 +1,32 @@
+set(CMAKE_SYSTEM_NAME Orbis)
+set(CMAKE_SYSTEM_PROCESSOR x86_64)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+if(NOT DEFINED ENV{OO_PS4_TOOLCHAIN})
+    message(FATAL_ERROR "OO_PS4_TOOLCHAIN must point to an OpenOrbis SDK")
+endif()
+set(OPENORBIS_ROOT "$ENV{OO_PS4_TOOLCHAIN}" CACHE PATH "OpenOrbis SDK root")
+
+if(DEFINED ENV{LLVM18_PREFIX})
+    set(_llvm_bin "$ENV{LLVM18_PREFIX}/bin")
+else()
+    set(_llvm_bin "")
+endif()
+
+find_program(CMAKE_C_COMPILER clang HINTS "${_llvm_bin}" REQUIRED)
+find_program(CMAKE_CXX_COMPILER clang++ HINTS "${_llvm_bin}" REQUIRED)
+find_program(CMAKE_AR llvm-ar HINTS "${_llvm_bin}" REQUIRED)
+find_program(CMAKE_RANLIB llvm-ranlib HINTS "${_llvm_bin}" REQUIRED)
+find_program(CMAKE_LINKER ld.lld HINTS "${_llvm_bin}" REQUIRED)
+
+set(CMAKE_C_COMPILER_TARGET x86_64-ps4-elf)
+set(CMAKE_CXX_COMPILER_TARGET x86_64-ps4-elf)
+set(CMAKE_SYSROOT "${OPENORBIS_ROOT}")
+set(CMAKE_FIND_ROOT_PATH "${OPENORBIS_ROOT}")
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+set(ORBIS ON CACHE BOOL "Build for PS4" FORCE)
+set(CMAKE_C_FLAGS_INIT "-fPIC -isystem ${OPENORBIS_ROOT}/include")
+set(CMAKE_CXX_FLAGS_INIT "-fPIC -isystem ${OPENORBIS_ROOT}/include")
