@@ -16,6 +16,10 @@ include(${CMAKE_MODULE_PATH}/source_dll_base.cmake)
 
 add_definitions(-DFILESYSTEM_STDIO_EXPORTS -DDONT_PROTECT_FILEIO_FUNCTIONS -DPROTECTED_THINGS_ENABLE)
 
+if( ORBIS )
+    target_compile_options(${OUTBINNAME} PRIVATE -Wno-c++11-narrowing)
+endif()
+
 target_sources(${OUTBINNAME} PRIVATE "basefilesystem.cpp")
 target_sources(${OUTBINNAME} PRIVATE "basefilesystemasync.cpp")
 target_sources(${OUTBINNAME} PRIVATE "filetracker.cpp")

@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.18
-SHA-256: 2b62d129a10c11269b58d4f9fe3bf8bb4c7c7300f35f116223f8577a6285f77a
+Version: 1.19
+SHA-256: 00028d9e08a31658476f4df040448c5cc35610548f528f0b3b2b96667e461121
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -234,6 +234,12 @@ The v1.17 trace stops in `FileSystem_GetFileSystemDLLName()` before it returns
 a module name. That helper attempted POSIX executable-directory discovery even
 though PS4 loads modules from the static registry. Version 1.18 returns the
 normalized `filesystem_stdio` registry identifier directly on PS4.
+
+The v1.18 trace returns the static filesystem name, registers cvar, and then
+fails cleanly because `filesystem_stdio` is not yet part of the monolith.
+Version 1.19 adds the existing VPK and stdio-filesystem targets to the Orbis
+build/link and registers the filesystem module name with the monolithic
+`CreateInterface` factory.
 
 Reproduce the current cross-build with:
 

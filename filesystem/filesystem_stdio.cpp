@@ -470,7 +470,7 @@ public:
 	virtual int FS_fflush();
 	virtual char *FS_fgets( char *dest, int destSize );
 
-#if defined( POSIX ) && !defined( _PS3 )
+#if defined( POSIX ) && !defined( _PS3 ) && !defined( PLATFORM_PS4 )
 	static CUtlMap< int, CInterlockedInt > m_LockedFDMap;
 #endif
 private:
@@ -483,7 +483,7 @@ private:
 	bool m_bWriteable;
 };
 
-#if defined( POSIX ) && !defined( _PS3 )
+#if defined( POSIX ) && !defined( _PS3 ) && !defined( PLATFORM_PS4 )
 CUtlMap< int, CInterlockedInt > CStdioFile::m_LockedFDMap;
 #endif
 
@@ -631,7 +631,7 @@ CFileSystem_Stdio::CFileSystem_Stdio()
 {
 	m_bMounted = false;
 	m_bCanAsync = true;
-#if defined( POSIX ) && !defined( _PS3 )
+#if defined( POSIX ) && !defined( _PS3 ) && !defined( PLATFORM_PS4 )
 	SetDefLessFunc( CStdioFile::m_LockedFDMap );
 #endif
 }
@@ -1194,7 +1194,7 @@ CStdioFile *CStdioFile::FS_fopen( const char *filename, const char *options, int
 		if ( strchr(options,'w') || strchr(options,'a') )
 			bWriteable = true;
 		
-#if defined( POSIX ) && !defined( _PS3 )
+#if defined( POSIX ) && !defined( _PS3 ) && !defined( PLATFORM_PS4 )
 		if ( bWriteable )
 		{
 			// Win32 has an undocumented feature that is serialized ALL writes to a file across threads (i.e only 1 thread can open a file at a time)
@@ -1274,7 +1274,7 @@ void CStdioFile::FS_setbufsize( unsigned nBytes )
 //-----------------------------------------------------------------------------
 void CStdioFile::FS_fclose()
 {
-#if defined( POSIX ) && !defined( _PS3 )
+#if defined( POSIX ) && !defined( _PS3 ) && !defined( PLATFORM_PS4 )
 	if ( m_bWriteable )
 	{
 		fflush( m_pFile );
@@ -2122,4 +2122,3 @@ char *CFiosReadOnlyFile::FS_fgets( char *dest, int destSize )
 
 
 #endif
-
