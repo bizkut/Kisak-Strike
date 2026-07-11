@@ -274,6 +274,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.SetPrimitiveSetup( primitiveSetup );
     GnmDepthStencilControl depthControl = {};
     g_DrawState.SetDepthStencilControl( depthControl );
+    g_DrawState.ClearDepthRenderTarget();
     GnmDbRenderControl dbControl = {};
     g_DrawState.SetDbRenderControl( dbControl );
     GnmBlendControl blendControl = {};

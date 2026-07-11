@@ -22,7 +22,8 @@ public:
         kDirtyPixelShader = 1u << 9,
         kDirtyBlend = 1u << 10,
         kDirtyIndexSize = 1u << 11,
-        kDirtyAll = ( 1u << 12 ) - 1
+        kDirtyDepthTarget = 1u << 12,
+        kDirtyAll = ( 1u << 13 ) - 1
     };
 
     CPs4GnmDrawState();
@@ -40,6 +41,8 @@ public:
     void SetPixelShader( const GnmPsStageRegisters &registers );
     void SetBlendControl( uint32_t index, const GnmBlendControl &control );
     void SetIndexSize( GnmIndexSize size, GnmCachePolicy policy );
+    void SetDepthRenderTarget( const GnmDepthRenderTarget &target );
+    void ClearDepthRenderTarget();
     uint32_t Apply( GnmCommandBuffer *command );
 
     uint32_t DirtyMask() const { return m_dirtyMask; }
@@ -54,6 +57,7 @@ private:
     GnmVsStageRegisters m_vertexShader;
     GnmPsStageRegisters m_pixelShader;
     GnmBlendControl m_blendControl;
+    GnmDepthRenderTarget m_depthTarget;
     uint32_t m_viewportIndex;
     uint32_t m_scissor[4];
     uint32_t m_renderTargetMask;
@@ -62,6 +66,7 @@ private:
     uint32_t m_blendIndex;
     GnmIndexSize m_indexSize;
     GnmCachePolicy m_indexCachePolicy;
+    bool m_depthTargetBound;
     uint32_t m_dirtyMask;
 };
 

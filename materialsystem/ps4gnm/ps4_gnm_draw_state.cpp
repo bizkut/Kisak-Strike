@@ -27,9 +27,11 @@ CPs4GnmDrawState::CPs4GnmDrawState()
     memset( &m_vertexShader, 0, sizeof( m_vertexShader ) );
     memset( &m_pixelShader, 0, sizeof( m_pixelShader ) );
     memset( &m_blendControl, 0, sizeof( m_blendControl ) );
+    memset( &m_depthTarget, 0, sizeof( m_depthTarget ) );
     m_blendIndex = 0;
     m_indexSize = GNM_INDEX_16;
     m_indexCachePolicy = GNM_POLICY_LRU;
+    m_depthTargetBound = false;
     memset( m_scissor, 0, sizeof( m_scissor ) );
 }
 
@@ -137,6 +139,25 @@ void CPs4GnmDrawState::SetIndexSize( GnmIndexSize size, GnmCachePolicy policy )
     }
 }
 
+void CPs4GnmDrawState::SetDepthRenderTarget( const GnmDepthRenderTarget &target )
+{
+    const bool targetChanged = AssignIfChanged( m_depthTarget, target );
+    if ( !m_depthTargetBound || targetChanged )
+    {
+        m_depthTargetBound = true;
+        m_dirtyMask |= kDirtyDepthTarget;
+    }
+}
+
+void CPs4GnmDrawState::ClearDepthRenderTarget()
+{
+    if ( m_depthTargetBound )
+    {
+        m_depthTargetBound = false;
+        m_dirtyMask |= kDirtyDepthTarget;
+    }
+}
+
 uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
 {
     if ( !command )
@@ -166,6 +187,9 @@ uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
         sceGnmDrawCmdSetBlendControl( command, m_blendIndex, &m_blendControl );
     if ( emitted & kDirtyIndexSize )
         sceGnmDrawCmdSetIndexSize( command, m_indexSize, m_indexCachePolicy );
+    if ( emitted & kDirtyDepthTarget )
+        sceGnmDrawCmdSetDepthRenderTarget( command,
+            m_depthTargetBound ? &m_depthTarget : 0 );
     m_dirtyMask = 0;
     return emitted;
 }

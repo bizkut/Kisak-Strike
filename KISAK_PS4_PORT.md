@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.00
-SHA-256: 23b11f83361718858c08f38eae2173b0cc27e98c1c109670e467721404ec0227
+Version: 2.01
+SHA-256: fb1e04257c488eabae8e302a7ba512751e6f354dc202d1ca34112a55a02e49ec
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -338,6 +338,13 @@ shader deliberately emits alpha 0.5, so version 2.00 enables cached
 source-alpha RGB blending over the DMA bars while preserving source alpha via a
 separate alpha equation. The next readback must contain a mixture of the prior
 orange source and blue destination rather than either unblended value.
+
+The v2.00 hardware readback is `0x80bc89bc`, confirming blend-unit output from
+the half-alpha triangle over the blue bar. Version 2.01 adds cached depth-target
+bind and unbind state to `CPs4GnmDrawState` and routes the diagnostic through an
+explicit unbound-depth baseline. This keeps the image unchanged while proving
+the new PM4 state group before a tiled depth allocation and shader-based clear
+are introduced for overlapping depth-tested geometry.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
