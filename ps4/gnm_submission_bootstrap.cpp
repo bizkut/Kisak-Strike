@@ -277,7 +277,14 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     GnmDbRenderControl dbControl = {};
     g_DrawState.SetDbRenderControl( dbControl );
     GnmBlendControl blendControl = {};
-    blendControl.blendenabled = false;
+    blendControl.blendenabled = true;
+    blendControl.colorfunc = GNM_COMB_DST_PLUS_SRC;
+    blendControl.colorsrcmult = GNM_BLEND_SRC_ALPHA;
+    blendControl.colordstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
+    blendControl.alphafunc = GNM_COMB_DST_PLUS_SRC;
+    blendControl.alphasrcmult = GNM_BLEND_ONE;
+    blendControl.alphadstmult = GNM_BLEND_ZERO;
+    blendControl.separatealphaenable = true;
     g_DrawState.SetBlendControl( 0, blendControl );
     g_DrawState.SetRenderTarget( 0, renderTarget );
     g_DrawState.SetRenderTargetMask( 0xf );

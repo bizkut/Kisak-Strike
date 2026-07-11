@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.99
-SHA-256: c8d75803ff3e5a363b63d85467b701ba6cf9c9c5f2432fe8ed0f0f3a03ebfa6a
+Version: 2.00
+SHA-256: 23b11f83361718858c08f38eae2173b0cc27e98c1c109670e467721404ec0227
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -330,6 +330,14 @@ position/color vertices, builds two `GnmBuffer` descriptors, generates a fetch
 shader for the reflected input semantics, patches VS resource registers, and
 binds fetch and vertex-buffer tables at VS user-data slots 0 and 2. The indexed
 draw remains unchanged, isolating fetched attributes and descriptor binding.
+
+The v1.99 hardware run validates fetched attributes: it remained stable at 60
+FPS, reported two vertex inputs and a 44-byte fetch shader, displayed the same
+gradient triangle, and read center pixel `0x8000bcff`. The packaged fragment
+shader deliberately emits alpha 0.5, so version 2.00 enables cached
+source-alpha RGB blending over the DMA bars while preserving source alpha via a
+separate alpha equation. The next readback must contain a mixture of the prior
+orange source and blue destination rather than either unblended value.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
