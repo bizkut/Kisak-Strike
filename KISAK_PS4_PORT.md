@@ -163,6 +163,15 @@ that belongs to the real input/menu path. Hardware validation should show the
 RGBA bars and 60 FPS continuing beyond frame 1800 with no `pool released`,
 `videoout closed`, or `LauncherMain returned` marker during the active run.
 
+The v1.85 hardware run retained the four correct GPU color bars at the reported
+60 FPS through at least frame 3600. The log contains no CPU-fallback, flip,
+presentation, or EOP failure and no `pool released`, `videoout closed`, or
+`LauncherMain returned` marker. Persistent VideoOut ownership and long-lived
+two-frame arena reuse are validated beyond the former 1800-frame boundary. The
+next rendering checkpoint is a shader-driven fullscreen clear/triangle using
+packaged `.sb` binaries and explicit binding metadata; the DMA bars remain the
+diagnostic fallback.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
