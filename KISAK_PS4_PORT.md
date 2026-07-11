@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.15
-SHA-256: 5b214ead4fe93e50e43b7ad290ae5283970d2c0fae49829e8b97d9bec75594c2
+Version: 2.16
+SHA-256: a6091733cfb25b71527124da330b45465d6da7b736cfce327a944c1df5515bcf
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -494,6 +494,15 @@ of the 1080p color/depth state, and subsequent sampling. The minimum
 render-to-texture gate is complete. Next, copy the offscreen backing into a
 separate texture allocation and sample the copy to validate copy/resolve and
 resource-transition behavior without aliasing.
+
+Version 2.16 adds generic synchronized GPU memory copies to OpenGNM commit
+`551b5df`, including argument, command-capacity, multi-packet, and exact PM4
+layout coverage. Kisak allocates a second non-aliased 4x4 texture with the same
+512-byte compatible footprint and its own combined descriptor table. After the
+offscreen draw and CB barrier, a DMA_DATA copy transfers the full source
+footprint, a destination visibility barrier follows, and the display pass binds
+only the copied texture. The opaque orange `0xff00daff` result must remain;
+doing so proves copy ordering and sampling without shared-backing aliasing.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

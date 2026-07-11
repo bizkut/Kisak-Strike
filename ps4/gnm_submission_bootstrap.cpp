@@ -63,6 +63,7 @@ bool g_DepthTargetReady = false;
 void *g_DepthMemory = 0;
 uint32_t g_DepthMemorySize = 0;
 CPs4GnmTexture g_DiagnosticTexture;
+CPs4GnmTexture g_DiagnosticCopyTexture;
 void *g_TextureSamplerTable = 0;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
@@ -336,6 +337,31 @@ bool LoadDiagnosticShaders()
     sampler->mipfilter = GNM_MIPFILTER_NONE;
     sampler->bordercolortype = GNM_BORDER_COLOR_OPAQUE_BLACK;
     g_TextureSamplerTable = tableCursor;
+    uint8_t *copyCursor = tableCursor + sizeof( GnmTexture ) + sizeof( GnmSampler );
+    copyCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( copyCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
+    if ( !g_DiagnosticCopyTexture.Initialize2D( copyCursor,
+        static_cast< size_t >( gpuEnd - copyCursor ), GNM_FMT_R8G8B8A8_UNORM,
+        4, 4, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) ||
+        !g_DiagnosticCopyTexture.CreateColorTargetView( GNM_FMT_R8G8B8A8_UNORM,
+            4, 4, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ), "copy texture allocation failed" );
+        return false;
+    }
+    uint8_t *copyTableCursor = static_cast< uint8_t * >( g_DiagnosticCopyTexture.Data() ) +
+        g_DiagnosticCopyTexture.Size();
+    copyTableCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( copyTableCursor ) + 15 ) & ~static_cast< uintptr_t >( 15 ) );
+    if ( sizeof( GnmTexture ) + sizeof( GnmSampler ) >
+        static_cast< size_t >( gpuEnd - copyTableCursor ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ), "copy texture table failed" );
+        return false;
+    }
+    *reinterpret_cast< GnmTexture * >( copyTableCursor ) = g_DiagnosticCopyTexture.Descriptor();
+    *reinterpret_cast< GnmSampler * >( copyTableCursor + sizeof( GnmTexture ) ) = *sampler;
+    g_TextureSamplerTable = copyTableCursor;
     snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
         "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u depthbytes=%llu texturebytes=%llu",
         g_VertexShader->common.shadersize, g_PixelShader->common.shadersize,
@@ -406,6 +432,12 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.SetPrimitiveType( GNM_PT_TRILIST );
     g_DrawState.Apply( command );
     sceGnmDrawCmdDrawIndex( command, 3, indices );
+    sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
+    if ( !sceGnmDrawCmdCopyMemory( command,
+        static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticCopyTexture.Data() ) ),
+        static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticTexture.Data() ) ),
+        static_cast< uint32_t >( g_DiagnosticTexture.Size() ) ) )
+        return;
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
 
     g_DrawState.SetViewport( 0, viewport );
