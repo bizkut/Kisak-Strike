@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.28
-SHA-256: 9ed15cb5edc72cf166138ba631a3ceb29f25cf8060269994fc2b806b734a8c7e
+Version: 1.29
+SHA-256: 8bcb29d98aa098a7c0b2459146b40947067129ebc23060e97e0cd58f77252367
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -285,6 +285,10 @@ The v1.27 trace completes both success publication and the atomic create signal.
 Version 1.28 traces the child transition into virtual `Run()` and the job
 worker's idle-count/event publication, separating child execution from the
 parent's create-wait return.
+
+The v1.28 trace reaches run dispatch but stops before virtual `Run()` while
+calling the desktop `Plat_IsInDebugSession()` probe. Version 1.29 bypasses that
+probe on PS4 and directly enters the worker run method.
 
 Reproduce the current cross-build with:
 

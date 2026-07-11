@@ -645,6 +645,11 @@ INLINE_ON_PS3 void* CThread::ThreadProc(LPVOID pv)
 	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child before run dispatch" );
 	#endif
 
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child before run" );
+	pInit->pThread->m_result = pInit->pThread->Run();
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child after run" );
+	#else
 	if ( !Plat_IsInDebugSession() && (pInit->pThread->m_flags & SUPPORT_STOP_PROTOCOL) )
 	{
 #ifndef _PS3
@@ -674,6 +679,7 @@ INLINE_ON_PS3 void* CThread::ThreadProc(LPVOID pv)
 		#endif
 #endif
 	}
+	#endif
 
 	pInit->pThread->OnExit();
 #ifdef _PS3
