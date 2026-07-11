@@ -1,6 +1,6 @@
 # Kisak-Strike PS4 Multiplayer Plan
 
-Status: design proposal  
+Status: tracked follow-on; implementation blocked on offline-match acceptance
 Target: OpenOrbis PS4 homebrew, no PSN or Steam runtime dependency  
 Priority: offline stability first, LAN second, Internet dedicated servers third,
 player-hosted NAT traversal last
@@ -11,8 +11,9 @@ Steam P2P will not be used on PS4. The replacement is an open, host-centric
 session stack consisting of:
 
 - ICE candidate negotiation;
-- Cloudflare STUN for public-address discovery;
-- Cloudflare TURN for relay fallback;
+- standards-based STUN for public-address discovery;
+- standards-based TURN for relay fallback, with Cloudflare as an optional
+  provider rather than a client ABI dependency;
 - a small HTTPS/WebSocket service for signaling, lobbies, invites, and
   short-lived TURN credential issuance;
 - Source UDP and `CNetChan` for actual match traffic after ICE selects a route.
@@ -24,7 +25,7 @@ The best practical PS4 multiplayer path is:
 3. Support Internet community/dedicated servers with public UDP endpoints.
 4. Add a small HTTPS server directory and session-signaling service.
 5. Replace Steam P2P with ICE for player-hosted listen servers, using direct UDP
-   whenever possible and Cloudflare Realtime STUN/TURN as the fallback relay.
+   whenever possible and a configured STUN/TURN provider as the fallback relay.
 
 Cloudflare Realtime TURN is technically usable, but it is not a replacement for
 a Source server, master-server directory, lobby service, or authentication
@@ -416,6 +417,17 @@ shipped on PS4.
 - Provide a relay-only privacy option only after cost and latency are measured.
 
 ## Implementation sequence
+
+Entry gates before multiplayer implementation:
+
+- the offline bot-match acceptance gate in `KISAK_PS4_PORT.md` passes;
+- engine/client/server modules run through clean startup and shutdown;
+- PS4 content and protocol versions are deterministic and reject mismatches;
+- the PS4 binary has no Steam API, Steam P2P, or Steam identity dependency.
+
+Networking work then proceeds in independently releasable layers. LAN and
+public dedicated servers must not wait for signaling, ICE, TURN, or account
+services.
 
 1. Port `net_ws.cpp` socket calls to OpenOrbis and pass UDP loopback tests.
 2. Complete offline listen-server operation and bot-match acceptance.

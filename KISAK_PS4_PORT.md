@@ -28,58 +28,24 @@ SHA-256: 438f2ab7f78e5f214fb80a85168a73bcd60ef289de161e78e1b784803d71a0ec
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
-The v1.72 hardware run stayed alive through the bounded 120-frame loop but
-reported `videoout layout valid` followed by the helper's generic
-`videoout layout failed`. This means the direct and internal OpenGNM checks
-disagree before any VideoOut service call. OpenGNM commit `cc8315a` now
-initializes diagnostic state before validating create-info arguments, so an
-ABI or stale-archive mismatch is reported as an explicit stage/code pair.
-Kisak v1.73 links a freshly rebuilt Orbis `libopengnm.a` containing that fix;
-hardware validation is the next checkpoint.
+Current hardware baseline:
 
-The latest pulled hardware log still contains the v1.72 generic layout-failure
-sequence, so it cannot yet distinguish an unlaunched v1.73 package from a new
-OpenGNM return code. Kisak v1.74 adds a bounded helper-diagnostics marker and
-raw `stage=<n> code=<n>` breadcrumb immediately after `sceGnmVideoOutOpen`
-fails. The v1.74 run reached that marker and reported `stage=1 code=0`, proving
-the OpenGNM Orbis branch was compiled out and returned `GNM_ERROR_UNSUPPORTED`
-without recording it. OpenGNM commit `8f9def5` defines `OPENGNM_ORBIS` in its
-Makefile and records the fallback code; Kisak v1.75 packages the native helper
-path for the next hardware run.
+- The monolithic executable reaches `LauncherMain`, initializes the registered
+  Source app systems, runs RocketUI frame hooks, and shuts down cleanly.
+- OpenGNM opens two 1920x1080 VideoOut buffers and completes repeated VSYNC
+  flips. The v1.78 run sustains approximately 60 FPS without a crash.
+- The presentation stress loop has reached at least frame 1200 with matching
+  `before flip`/`flip complete` markers. The 1800-frame completion marker is the
+  remaining confirmation for this bounded checkpoint.
+- The current frame is a CPU-cleared buffer. `shaderapiempty` is still active;
+  no Source draw call, PM4 draw packet, converted shader, texture, or world
+  geometry reaches the GPU yet.
+- The sound-emitter system tolerates missing content, but complete `/app0` and
+  `/data/kisak-strike` content mounting is not yet validated.
 
-The v1.75 hardware run reached `videoout opened` and completed
-`videoout flip complete` without crashing. Its low reported frame rate was
-expected: the bootstrap only submitted the first frame and ran the remaining
-119 UI iterations without presentation. Kisak v1.76 submits and checks a
-VideoOut flip on every frame, so a second-flip wait or error will be visible
-instead of leaving the display on the first buffer.
-
-The v1.76 hardware run completed 120 `before flip`/`flip complete` pairs and
-then shut down normally, explaining the apparent stall after roughly two to
-four seconds: the bounded loop had ended, not hung. Kisak v1.77 extends the
-same presentation stress loop to 1,800 frames and emits a heartbeat every 60
-frames, giving the next run about a minute of continuous evidence before
-shutdown.
-
-The v1.77 cadence was approximately 28–30 FPS because each VSYNC flip already
-waited for presentation and the loop then added a second 16 ms sleep. Kisak
-v1.78 removes that redundant sleep whenever VideoOut is active; the VSYNC wait
-now provides the frame pacing, while the no-VideoOut fallback retains its
-sleep.
-
-The v1.78 hardware run is now sustaining approximately 60 FPS: the live log
-has reached the frame-1200 heartbeat with matching flip progress and no crash
-or failure marker. The extended run remains active; frame 1800 and clean
-shutdown will close this presentation-stability checkpoint.
-
-Expected hardware log:
-
-```text
-kisak-ps4: bootstrap entered
-kisak-ps4: bootstrap-only build
-kisak-ps4: launcher not linked
-kisak-ps4: bootstrap idle
-```
+The detailed version-by-version bring-up record remains below. The active
+boundary is no longer boot, module loading, or VideoOut. It is content mounting
+followed by the minimum OpenGNM-backed D3D9 draw path.
 
 ## Completed work
 
@@ -123,10 +89,16 @@ Both host tests currently pass.
 
 ## Current implementation attempt
 
-The root CMake build now has an Orbis-only minimal graph containing:
+The Orbis build now produces one monolithic executable with a static Source
+module registry. Its currently linked runtime graph includes:
 
 ```text
-interfaces → tier0 → tier1 → tier2 → tier3 → vstdlib → appframework → launcher
+platform/tier libraries
+  → filesystem + input + physics
+  → material system + shaderapiempty
+  → datacache + studiorender + sound emitter + VScript
+  → VGUI + RocketUI
+  → launcher bootstrap + OpenGNM VideoOut
 ```
 
 Former shared-library targets become static archives on Orbis. Proprietary
@@ -135,10 +107,10 @@ dedicated `/orbis` library output directory. The SDK's libc++ headers are added
 explicitly because Clang did not discover `${OO_PS4_TOOLCHAIN}/include/c++/v1`
 from the PS4 sysroot automatically.
 
-The initial core archive set now compiles successfully for Orbis: tier0, tier1,
-tier2, tier3, interfaces, vstdlib, appframework, and launcher. The build
-produces `launcher_client.a`; it has not yet produced the monolithic engine
-executable.
+The sibling OpenGNM archive is rebuilt before every monolithic link. Its native
+Orbis VideoOut path is hardware validated. The remaining graphics work is to
+replace `shaderapiempty` with a PS4 D3D9-compatible façade and issue real PM4
+draws while preserving Source material-system behavior.
 
 ## Cleared compiler blockers
 
@@ -154,24 +126,15 @@ The core compile pass fixed the following PS4 compatibility gaps:
 7. Added a temporary PS4 `D3DFORMAT` declaration until the PS4 D3D façade owns
    the complete format definitions.
 
-The active boundary is now link closure: combine the archives with the
-bootstrap, libc++, libc++abi, OpenOrbis libraries, and the additional Source
-subsystems referenced by `LauncherMain`.
+Link closure is complete for the current module set. `kisak_ps4_monolithic`
+combines the bootstrap, Source archives, libc++, libc++abi, libc, libkernel,
+OpenGNM, GnmDriver, and VideoOut. The PS4 build enables `cmpxchg16b` so Source's
+128-bit lock-free list operation does not require a missing `libatomic`
+runtime. Former DLL skeleton memory overrides are omitted so tier0 remains the
+single allocator owner.
 
-The first link closure is now complete. `kisak_ps4_monolithic` combines the
-bootstrap, all eight core archives, libc++, libc++abi, libc, and libkernel. The
-PS4 build enables `cmpxchg16b` so Source's 128-bit lock-free list operation does
-not require a missing `libatomic` runtime. Former DLL skeleton memory overrides
-are omitted so tier0 remains the single allocator owner.
-
-Latest monolithic diagnostic package:
-
-```text
-Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.72
-SHA-256: b111d255346839656946dd4b3ce129ec040f7c2c65636e97f6f5c4d99b449a3d
-Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-```
+The active compiler/link boundary is the next set of real engine/client/server
+modules and the replacement PS4 ShaderAPI, not the bootstrap executable.
 
 The v1.00 hardware run reached bootstrap entry, static module registration, and
 the call into `LauncherMain`, then crashed before any launcher-local marker.
@@ -772,41 +735,77 @@ cmake -S . -B build-ps4-engine \
 cmake --build build-ps4-engine --target launcher_client --parallel 4
 ```
 
-## Delivery plan and progress
+## Revised delivery plan and progress
 
-1. **OpenOrbis bootstrap and logging — complete.**
-   Hardware boot, writable data path, stable process, package validation.
-2. **Static module registry — complete.**
-   Name-to-factory lookup integrated into `CAppSystemGroup`.
-3. **Compile core Source libraries — complete.**
-   tier0–tier3, interfaces, vstdlib, appframework, and launcher archives build
-   for `x86_64-ps4-elf`.
-4. **Direct monolithic launcher startup — in progress.**
-   The executable links, enables `KISAK_PS4_MONOLITHIC`, registers factories,
-   and calls `LauncherMain(argc, argv)` without `dlopen`. The complete launcher
-   and filesystem shutdown lifecycle is hardware validated at each checkpoint.
-5. **Engine initialization — in progress.**
-   Filesystem, input, Kisak physics, material-system core, all datacache
-   interfaces, studio-render core, sound-emitter base, Squirrel VScript, and the
-   VGUI core and material surface are linked and statically registered, and the
-   VGUI controls archive compiles for Orbis. RocketUI integration and full
-   engine/client/server modules remain; renderer and AudioOut device backends
-   are still pending.
-6. **Content filesystem — pending.**
-   Layer `/app0` and `/data/kisak-strike` VPK/search paths using little-endian
-   Kisak/PC content.
-7. **OpenGNM renderer — pending.**
-   Implement the PS4 D3D9 façade, memory pools, dirty-state PM4 emission,
-   resource lifetime, EOP synchronization, and VideoOut presentation.
-8. **Offline shader pipeline — pending.**
-   Expand Source shader combinations, compile HLSL to SPIR-V, compile SPIR-V
-   to `.sb` with `opengnm-psbc`, and generate strict binding manifests.
-9. **PS4 services — pending.**
-   Pad, AudioOut, sockets, timing, threads, events, virtual memory, assertions,
-   and bounded diagnostics.
-10. **Acceptance — pending.**
-    RocketUI menu, BSP/world rendering, models/effects, audio/input, offline bot
-    match, clean shutdown, 30-minute stability, and base-PS4 30 FPS gate.
+1. **Boot, static modules, and monolithic launcher — complete.**
+   The package boots on hardware, writes diagnostics, resolves Source modules
+   without `dlopen`, enters `LauncherMain`, initializes the current app-system
+   graph, and completes its shutdown lifecycle.
+2. **OpenGNM VideoOut presentation baseline — complete.**
+   Two 1920x1080 direct-memory buffers open, flip, recycle, and close correctly.
+   Repeated presentation is stable and reaches approximately 60 FPS. This
+   validates presentation only; it is not the Source renderer.
+3. **Content filesystem and persistent engine loop — next.**
+   Layer packaged `/app0` bootstrap content with writable/external
+   `/data/kisak-strike` content, normalize Source paths, mount VPKs, and replace
+   the finite diagnostic loop with a quit-aware engine loop. Exit gate: load
+   `gameinfo.txt`, the sound manifest, one VMT/VTF pair, and one BSP through
+   normal `GAME` search paths, then shut down cleanly.
+4. **Complete monolithic engine/client/server registration — in progress.**
+   The supporting systems are linked, but the real engine, client, and server
+   factories and lifecycles must replace the bootstrap launcher stand-in. Exit
+   gate: reach the real menu state without missing interface versions or
+   proprietary runtime modules.
+5. **Minimum PS4 D3D9/OpenGNM renderer — pending.**
+   Add `CPs4GnmDevice`, draw-state, texture, memory, and flip components beside
+   the PS3 architecture. First implement aligned pools, two frame arenas, EOP
+   labels, deferred destruction, vertex/index buffers, declarations, viewport,
+   clear, indexed draw, depth, blend, texture sampling, render targets, copy,
+   and resolve. Exit gate: hardware clear, triangle, indexed texture, depth,
+   blend, and render-to-texture tests pass without timeout or memory growth.
+6. **Offline shader conversion and manifest — pending.**
+   Generate the minimum UI/world combinations from Source shader metadata,
+   compile HLSL to SPIR-V and then PS4 `.sb`, preserve Source register numbers,
+   and emit strict binding metadata. Missing referenced combinations fail the
+   package; diagnostic builds display an error shader and log the combo key.
+7. **RocketUI plus DualShock 4 input — pending.**
+   Replace the no-device PS4 input backend with `libScePad` sampling, button and
+   analog mapping, reconnect handling, and rumble. Route RocketUI through the
+   real ShaderAPI. Exit gate: navigate the menu using only a DualShock 4 for a
+   30-minute soak.
+8. **World and gameplay rendering — pending.**
+   Load a BSP, then add static props, models, skinning, decals, particles,
+   shadows, and required post-processing in that order. Unsupported states or
+   formats must fail visibly rather than render silently black.
+9. **Audio and offline-match acceptance — pending.**
+   Feed Source's mixer into stereo 48 kHz `libSceAudioOut` on a dedicated
+   submission thread, then complete an offline listen-server bot round with
+   graphics, input, audio, saves, and clean shutdown. Gate: 30 minutes without
+   memory growth, command-buffer overflow, EOP timeout, GPU hang, or audio
+   starvation; base PS4 must sustain 30 FPS. Optimize the full game toward
+   60 FPS only after this correctness gate.
+10. **Multiplayer follow-on — blocked on offline acceptance.**
+    Preserve Source UDP/netchannel, then ship loopback, LAN, and public
+    community/dedicated-server support in that order. Player-hosted Internet
+    sessions and optional ICE/TURN remain last. Steam login and Steam P2P are
+    not PS4 runtime dependencies.
+
+## Immediate implementation slice
+
+1. Add host-tested PS4 path normalization and root selection for `/app0` and
+   `/data/kisak-strike`.
+2. Mount loose content and VPK search paths, then replace the sound-manifest
+   fallback with a successful normal asset read.
+3. Validate VMT/VTF and BSP reads before introducing GPU resource creation.
+4. Add the PS4 ShaderAPI target and the minimal D3D object/resource skeleton;
+   keep `shaderapiempty` as an explicit diagnostic fallback until clear and
+   triangle tests pass.
+5. Add command/constant arenas and EOP completion before permitting resource
+   reuse across frames.
+
+Each slice must update this document with the package version, hash, hardware
+evidence, and the next unresolved boundary. Avoid broad renderer or gameplay
+changes until the preceding exit gate is proven.
 
 ## Multiplayer follow-on
 
