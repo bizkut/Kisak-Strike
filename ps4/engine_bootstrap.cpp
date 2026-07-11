@@ -17,6 +17,7 @@ extern "C" bool KisakPs4VideoOutSubmitClear();
 extern "C" void KisakPs4VideoOutShutdown();
 extern "C" bool KisakPs4GnmSubmissionSelfTest();
 extern "C" void KisakPs4GnmSubmissionShutdown();
+extern "C" const char *KisakPs4ScaleformSdkVersion();
 
 namespace
 {
@@ -106,6 +107,7 @@ public:
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
 		KisakPs4StartupBreadcrumb( "kisak-ps4: build marker live_shader_handles_v246" );
+		KisakPs4StartupBreadcrumb( KisakPs4ScaleformSdkVersion() );
 		IRocketUI *rocketUI = RocketUI();
 		const bool videoOutReady = KisakPs4VideoOutInitialize();
 		KisakPs4GnmSubmissionSelfTest();

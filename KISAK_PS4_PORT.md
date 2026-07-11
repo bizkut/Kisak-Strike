@@ -827,6 +827,15 @@ The console UI exit gate is the authentic Scaleform main menu rendered through
 OpenGNM and navigable using only a DualShock 4. It does not require changing
 the global engine meaning of `IsGameConsole()`.
 
+Scaleform integration status (2026-07-12): the OpenOrbis build now accepts an
+external `KISAK_SCALEFORM_SDK_ROOT` (default `../scaleform_sdk`), validates the
+required GFx 4.2 and D3D9 HAL layout, and compiles `GFx.h` for
+`x86_64-ps4-elf`. The probe verifies `SF_OS_ORBIS`, Scaleform 4.2, and the
+64-bit pointer ABI, then exposes the detected `4.2.22` version in startup
+diagnostics. This is a header/ABI gate only; no GFx player or renderer objects
+are linked yet. The next Scaleform slice is the minimal Kernel static library,
+followed by Render/GFx AS2 source groups and the renderer adapter.
+
 ## Completed work
 
 ### Orbis platform and build foundation

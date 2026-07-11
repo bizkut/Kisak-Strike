@@ -29,6 +29,19 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CXX_EXTENSIONS ON)
     add_compile_options(-mcx16)
+    option(KISAK_PS4_ENABLE_SCALEFORM "Build the externally supplied Scaleform SDK integration" ON)
+    set(KISAK_SCALEFORM_SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../scaleform_sdk" CACHE PATH "External Scaleform 4.2 SDK root")
+    if(KISAK_PS4_ENABLE_SCALEFORM)
+        foreach(KISAK_SCALEFORM_REQUIRED_FILE
+            "Include/GFx.h"
+            "Include/GFxVersion.h"
+            "Src/Kernel/SF_Types.h"
+            "Src/Render/D3D9/D3D9_HAL.h")
+            if(NOT EXISTS "${KISAK_SCALEFORM_SDK_ROOT}/${KISAK_SCALEFORM_REQUIRED_FILE}")
+                message(FATAL_ERROR "Scaleform SDK is incomplete at ${KISAK_SCALEFORM_SDK_ROOT}: missing ${KISAK_SCALEFORM_REQUIRED_FILE}")
+            endif()
+        endforeach()
+    endif()
     set(USE_SCALEFORM OFF CACHE BOOL "" FORCE)
     set(USE_ROCKETUI ON CACHE BOOL "" FORCE)
     set(USE_KISAK_PHYSICS ON CACHE BOOL "" FORCE)
@@ -85,6 +98,13 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         ps4/videoout_bootstrap.cpp
         ps4/rocketui_bootstrap.cpp
     )
+    if(KISAK_PS4_ENABLE_SCALEFORM)
+        target_sources(kisak_ps4_monolithic PRIVATE ps4/scaleform_sdk_probe.cpp)
+        target_include_directories(kisak_ps4_monolithic PRIVATE
+            "${KISAK_SCALEFORM_SDK_ROOT}/Include"
+            "${KISAK_SCALEFORM_SDK_ROOT}/Src")
+        target_compile_definitions(kisak_ps4_monolithic PRIVATE SF_BUILD_STATICLIB)
+    endif()
     set_target_properties(kisak_ps4_monolithic PROPERTIES
         LINKER_LANGUAGE CXX
         OUTPUT_NAME kisak_ps4_monolithic
