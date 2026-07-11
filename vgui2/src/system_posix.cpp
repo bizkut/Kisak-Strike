@@ -155,11 +155,27 @@ vgui::ISystem *g_pSystem = &g_System;
 #define REGISTRY_NAME "cfg/registry.vdf"
 #define REGISTRY_SAVE_INTERVAL 30
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#endif
+
+static KeyValues *EnsureRegistry( KeyValues *&pRegistry )
+{
+	if ( !pRegistry )
+	{
+		pRegistry = new KeyValues( "registry" );
+	}
+	return pRegistry;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
 CSystem::CSystem()
 {
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: vgui system ctor entered" );
+#endif
 	m_bStaticWatchForComputerUse = false;
 	m_flFrameTime = 0.0;
 	m_flRegistrySaveTime = 0.0;
@@ -171,8 +187,14 @@ CSystem::CSystem()
 	
 //	char *pchHome = getenv( "HOME" );
 	Q_snprintf( m_szRegistryPath, sizeof(m_szRegistryPath), "%s", REGISTRY_NAME );
-	
+
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: vgui system ctor path ready" );
+	m_pRegistry = NULL;
+	KisakPs4StartupBreadcrumb( "kisak-ps4: vgui system ctor registry deferred" );
+#else
 	m_pRegistry = new KeyValues( "registry" );
+#endif
 	//m_pRegistry->LoadFromFile( g_pFileSystem, REGISTRY_NAME, NULL );
 }
 
@@ -488,13 +510,13 @@ int CSystem::GetClipboardText(int offset, wchar_t *buf, int bufLen)
 bool CSystem::SetRegistryString(const char *key, const char *value)
 {
 	m_bRegistryDirty = true;
-	m_pRegistry->SetString( key, value );
+	EnsureRegistry( m_pRegistry )->SetString( key, value );
 	return true;
 }
 
 bool CSystem::GetRegistryString(const char *key, char *value, int valueLen)
 {
-	const char *pchVal = m_pRegistry->GetString( key );
+	const char *pchVal = EnsureRegistry( m_pRegistry )->GetString( key );
 	if ( pchVal )
 		Q_strncpy( value, pchVal, valueLen );
 	return pchVal != NULL;
@@ -503,13 +525,13 @@ bool CSystem::GetRegistryString(const char *key, char *value, int valueLen)
 bool CSystem::SetRegistryInteger(const char *key, int value)
 {
 	m_bRegistryDirty = true;
-	m_pRegistry->SetInt( key, value );
+	EnsureRegistry( m_pRegistry )->SetInt( key, value );
 	return false;
 }
 
 bool CSystem::GetRegistryInteger(const char *key, int &value)
 {
-	value = m_pRegistry->GetInt( key );
+	value = EnsureRegistry( m_pRegistry )->GetInt( key );
 	return value != 0;
 }
 

@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.46
-SHA-256: 90f8714397ae4aabdb9d094eee11a9d171272baa7fc2f0ef4326e1ecede37bb9
+Version: 1.47
+SHA-256: 9cb798339fc7a9f0ed9fc09cd46bcbf0334e8b1830fbd07b5d935cfd9165a435
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -420,6 +420,15 @@ the panel/input contracts without a desktop window system. A PS4 font boundary
 provides deterministic metrics and transparent glyph output for lifecycle
 validation; real font rasterization and UI drawing remain deferred to the
 RocketUI/OpenGNM integration milestone.
+
+The v1.46 hardware run regressed during the manual constructor walk. It stopped
+at `before ctor 128`; the `.kisak_ctors` relocation for that slot resolves to
+`_GLOBAL__sub_I_system_posix.cpp`. The `CSystem` singleton was allocating its
+registry `KeyValues` before the remaining runtime constructors completed.
+
+Version 1.47 defers that registry allocation until the first registry call and
+adds bounded constructor breadcrumbs around path setup and deferral. The VGUI
+interface set is unchanged; only its pre-runtime initialization order changes.
 
 Reproduce the current cross-build with:
 
