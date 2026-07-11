@@ -40,5 +40,21 @@ int main()
     assert( oversized.commandMemory == 0 );
     assert( oversized.completionLabel == 0 );
     assert( oversized.submittedLabel == 0 );
+
+    uint8_t vertices[3 * 16] = {};
+    uint16_t indices[3] = { 0, 1, 2 };
+    assert( device.BeginScene() );
+    assert( !device.BeginScene() );
+    assert( !device.SetStreamSource( CPs4GnmDevice::kMaxVertexStreams,
+        vertices, sizeof( vertices ), 0, 16 ) );
+    assert( device.SetStreamSource( 0, vertices, sizeof( vertices ), 0, 16 ) );
+    assert( device.SetIndices( indices, sizeof( indices ), false ) );
+    device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
+    assert( device.ValidateDrawIndexed( 0, 3, 0, 3 ) );
+    assert( !device.ValidateDrawIndexed( 1, 3, 0, 3 ) );
+    assert( !device.ValidateDrawIndexed( 0, 3, 1, 3 ) );
+    assert( device.EndScene() );
+    assert( !device.EndScene() );
+    assert( !device.ValidateDrawIndexed( 0, 3, 0, 3 ) );
     return 0;
 }

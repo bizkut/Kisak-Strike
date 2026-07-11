@@ -802,6 +802,11 @@ RocketUI remains the open-source fallback and development diagnostic UI.
 
 Bring up Scaleform in these bounded steps:
 
+0. Complete the reusable `CPs4GnmDevice` D3D9-compatible façade first. Scene
+   lifetime, vertex/index buffers, stream/declaration binding, textures,
+   render/depth targets, fixed-function state translation, shaders/constants,
+   queries, draws, and presentation belong to the material-system backend and
+   must be covered by host tests rather than implemented inside Scaleform.
 1. Add an optional `KISAK_SCALEFORM_SDK_ROOT` external build input and compile
    the required Kernel, Render, GFx/AS2, image, and font components as static
    libraries for OpenOrbis. Never copy SDK source or binaries into Kisak.
@@ -820,6 +825,19 @@ Bring up Scaleform in these bounded steps:
    `gameuirootmovie.gfx`, `mainmenu.gfx`, `pausemenu.gfx`, and one HUD movie in
    that order.
 5. Feed `libScePad` events into Source `InputEvent_t` and then Scaleform.
+
+The OpenGNM Scaleform HAL is deferred until `CPs4GnmDevice` passes its minimum
+indexed textured draw, dynamic-buffer, blend/depth, render-target,
+shader-constant, and EOP recycling tests. The later Scaleform adapter consumes
+that façade and must not duplicate PM4, resource lifetime, or D3D9 state-cache
+behavior.
+
+The first post-v2.53 façade slice now gives `CPs4GnmDevice` deterministic
+`BeginScene`/`EndScene` lifetime, eight vertex-stream bindings, 16/32-bit index
+binding, primitive-topology state, and overflow-safe indexed-draw range
+validation. Host tests cover missing bindings, double scene entry/exit, stream
+limits, index range overflow, and vertex range overflow. The OpenOrbis monolith
+also links with this state layer; live command emission remains the next slice.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

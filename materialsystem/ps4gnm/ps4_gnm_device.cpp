@@ -1,10 +1,14 @@
 #include "ps4_gnm_device.h"
 
 CPs4GnmDevice::CPs4GnmDevice()
-    : m_frameIndex( 0 ), m_submittedLabel( 0 ), m_initialized( false ), m_frameOpen( false )
+    : m_frameIndex( 0 ), m_submittedLabel( 0 ), m_initialized( false ), m_frameOpen( false ),
+      m_sceneOpen( false ), m_topology( kPrimitiveTriangles )
 {
     for ( unsigned int i = 0; i < kFrameCount; ++i )
         m_frames[i].pendingLabel = 0;
+    for ( unsigned int i = 0; i < kMaxVertexStreams; ++i )
+        m_streams[i] = StreamBinding{ 0, 0, 0, 0 };
+    m_indices = IndexBinding{ 0, 0, false };
 }
 
 bool CPs4GnmDevice::Initialize( void *frameMemory, size_t frameMemorySize )
@@ -24,6 +28,11 @@ bool CPs4GnmDevice::Initialize( void *frameMemory, size_t frameMemorySize )
     m_frameIndex = 0;
     m_submittedLabel = 0;
     m_frameOpen = false;
+    m_sceneOpen = false;
+    for ( unsigned int i = 0; i < kMaxVertexStreams; ++i )
+        m_streams[i] = StreamBinding{ 0, 0, 0, 0 };
+    m_indices = IndexBinding{ 0, 0, false };
+    m_topology = kPrimitiveTriangles;
     m_initialized = true;
     return true;
 }
@@ -89,4 +98,72 @@ bool CPs4GnmDevice::CommitSubmission( const SubmissionFrame &submission )
         submission.submittedLabel != m_submittedLabel + 1 )
         return false;
     return EndFrame() == submission.submittedLabel;
+}
+
+bool CPs4GnmDevice::BeginScene()
+{
+    if ( !m_initialized || m_sceneOpen )
+        return false;
+    m_sceneOpen = true;
+    return true;
+}
+
+bool CPs4GnmDevice::EndScene()
+{
+    if ( !m_sceneOpen )
+        return false;
+    m_sceneOpen = false;
+    return true;
+}
+
+bool CPs4GnmDevice::SetStreamSource( uint32_t stream, const void *buffer,
+    size_t bufferSize, size_t offset, uint32_t stride )
+{
+    if ( stream >= kMaxVertexStreams )
+        return false;
+    if ( !buffer )
+    {
+        m_streams[stream] = StreamBinding{ 0, 0, 0, 0 };
+        return bufferSize == 0 && offset == 0 && stride == 0;
+    }
+    if ( !bufferSize || !stride || offset >= bufferSize )
+        return false;
+    m_streams[stream] = StreamBinding{ buffer, bufferSize, offset, stride };
+    return true;
+}
+
+bool CPs4GnmDevice::SetIndices( const void *buffer, size_t bufferSize, bool index32 )
+{
+    if ( !buffer )
+    {
+        m_indices = IndexBinding{ 0, 0, false };
+        return bufferSize == 0;
+    }
+    const size_t indexSize = index32 ? 4 : 2;
+    if ( !bufferSize || bufferSize % indexSize )
+        return false;
+    m_indices = IndexBinding{ buffer, bufferSize, index32 };
+    return true;
+}
+
+void CPs4GnmDevice::SetPrimitiveTopology( PrimitiveTopology topology )
+{
+    m_topology = topology;
+}
+
+bool CPs4GnmDevice::ValidateDrawIndexed( uint32_t firstIndex, uint32_t indexCount,
+    int32_t baseVertex, uint32_t vertexCount ) const
+{
+    if ( !m_sceneOpen || !indexCount || !vertexCount || baseVertex < 0 ||
+        !m_streams[0].buffer || !m_indices.buffer )
+        return false;
+    const size_t indexSize = m_indices.index32 ? 4 : 2;
+    if ( firstIndex > m_indices.bufferSize / indexSize ||
+        indexCount > m_indices.bufferSize / indexSize - firstIndex )
+        return false;
+    const StreamBinding &stream = m_streams[0];
+    const size_t availableVertices =
+        ( stream.bufferSize - stream.offset ) / stream.stride;
+    return static_cast< size_t >( baseVertex ) <= availableVertices &&
+        vertexCount <= availableVertices - static_cast< size_t >( baseVertex );
 }
