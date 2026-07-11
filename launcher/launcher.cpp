@@ -1583,10 +1583,14 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 
 	// GS - If we didn't specify a game name then default to CSGO
 	// This is required for running from a HDD Boot Game package
+	Ps4LauncherBreadcrumb( "kisak-ps4: before default game check" );
 	if ( CommandLine()->CheckParm( "-game") == NULL )
 	{
+		Ps4LauncherBreadcrumb( "kisak-ps4: before default game append" );
 		CommandLine()->AppendParm( "-game", "csgo" );
+		Ps4LauncherBreadcrumb( "kisak-ps4: after default game append" );
 	}
+	Ps4LauncherBreadcrumb( "kisak-ps4: after default game check" );
 
 #if defined _PS3
 
@@ -1601,9 +1605,11 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 #endif
 
 	bool bDvdDev, bSpewDllInfo, bWaitForConsole;
+	Ps4LauncherBreadcrumb( "kisak-ps4: before console parm checks" );
 	bDvdDev         = CommandLine()->CheckParm( "-dvddev"    ) != NULL;
 	bSpewDllInfo    = CommandLine()->CheckParm( "-dllinfo"   ) != NULL;
 	bWaitForConsole = CommandLine()->CheckParm( "-vxconsole" ) != NULL;
+	Ps4LauncherBreadcrumb( "kisak-ps4: after console parm checks" );
 
 #if defined( _X360 )
 	XboxConsoleInit();

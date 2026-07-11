@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.12
-SHA-256: 036bc33347d38213d10c800f583d110f34c1069b75dd049c55538b4e79d2a875
+Version: 1.13
+SHA-256: 40c45b6694c5f56d5da6e6a89d5c4f870d57730718d790c44b6b7f545bfd096d
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -204,6 +204,12 @@ the `CJobQueue` body. Disassembly shows the next operation is the constructor's
 stack-canary check. OpenOrbis's pthread runtime overwrote the undersized local
 `pthread_mutexattr_t`. Version 1.12 removes that local attribute on PS4 and
 initializes the event's non-recursive private mutex with default attributes.
+
+The v1.12 run validates the fix: all pool members completed, static modules
+registered, and `LauncherMain` passed logging, hardware-key, command-line, and
+base-directory setup. It then stopped after `after base dir`. Version 1.13
+splits the immediately following default `-game csgo` append and console-option
+queries.
 
 Reproduce the current cross-build with:
 
