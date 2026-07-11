@@ -67,6 +67,11 @@ v1.78 removes that redundant sleep whenever VideoOut is active; the VSYNC wait
 now provides the frame pacing, while the no-VideoOut fallback retains its
 sleep.
 
+The v1.78 hardware run is now sustaining approximately 60 FPS: the live log
+has reached the frame-1200 heartbeat with matching flip progress and no crash
+or failure marker. The extended run remains active; frame 1800 and clean
+shutdown will close this presentation-stability checkpoint.
+
 Expected hardware log:
 
 ```text
