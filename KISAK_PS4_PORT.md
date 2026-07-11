@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.37
-SHA-256: 75a3bcbb935238bf7f1daf365a9ace7c36366a8dbc9403151f3e545795d8035d
+Version: 1.38
+SHA-256: 26fbf2988b12a60739fdbcd6986749b34aa079e1c1a3234c3e4a71632f61fd49
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -331,6 +331,13 @@ The PS4 source mutex release is a no-op, so the remaining path is a normal
 `LauncherMain` return followed by unsafe legacy global destruction. Version
 1.37 records that return and keeps the bootstrap alive, deferring global
 teardown until an explicit PS4 shutdown path exists.
+
+The stable v1.37 run makes the child app's first missing contract explicit:
+`engine` must provide `VCvarQuery001` before the rest of the module list is
+examined. Version 1.38 adds a PS4 engine-bootstrap app system implementing that
+real cvar-linkability contract and registers it as the transitional `engine`
+factory. The full engine factory will replace it as renderer/audio/network
+dependencies are brought into the monolith.
 
 Reproduce the current cross-build with:
 

@@ -52,13 +52,22 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     file(WRITE "${KISAK_PS4_LINK_SCRIPT}" "${KISAK_OPENORBIS_LINK_SCRIPT}")
 
     set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
-    add_executable(kisak_ps4_monolithic ps4/bootstrap_main.c)
+    add_executable(kisak_ps4_monolithic ps4/bootstrap_main.c ps4/engine_bootstrap.cpp)
     set_target_properties(kisak_ps4_monolithic PROPERTIES
         LINKER_LANGUAGE CXX
         OUTPUT_NAME kisak_ps4_monolithic
         SUFFIX ""
     )
-    target_compile_definitions(kisak_ps4_monolithic PRIVATE KISAK_PS4_MONOLITHIC)
+    target_compile_definitions(kisak_ps4_monolithic PRIVATE
+        KISAK_PS4_MONOLITHIC
+        ORBIS PLATFORM_PS4 PLATFORM_CONSOLE PLATFORM_64BITS
+        POSIX _POSIX GNUC COMPILER_GCC STATIC_LINK
+        CSTRIKE15 CSTRIKE_REL_BUILD RAD_TELEMETRY_DISABLED
+    )
+    target_include_directories(kisak_ps4_monolithic PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
     target_link_options(kisak_ps4_monolithic PRIVATE
         -m elf_x86_64
         -pie

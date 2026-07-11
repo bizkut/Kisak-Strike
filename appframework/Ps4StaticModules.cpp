@@ -41,5 +41,6 @@ extern "C" int KisakRegisterStaticModules()
     const bool vstdlib = RegisterStaticModule( "vstdlib", KisakVstdlibFactory() );
     const bool launcher = RegisterStaticModule( "launcher", KisakLauncherFactory() );
     const bool filesystem = RegisterStaticModule( "filesystem_stdio", KisakFilesystemFactory() );
-    return tier0 && vstdlib && launcher && filesystem ? 0 : -1;
+    const bool engine = RegisterStaticModule( "engine", KisakEngineBootstrapFactory() );
+    return tier0 && vstdlib && launcher && filesystem && engine ? 0 : -1;
 }
