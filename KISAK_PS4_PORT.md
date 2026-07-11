@@ -102,6 +102,14 @@ VideoOut loop remains active. The mapped pool is released after the test. The
 expected success marker is
 `gnm submission two-frame EOP passed`.
 
+The v1.82 hardware run produced that success marker with no allocation,
+mapping, submission, `SubmitDone`, or EOP-timeout failure. All representative
+content probes remained readable and the CPU-clear presentation loop sustained
+the reported 60 FPS through at least frame 1200 without a crash. Real OpenGNM
+command submission and GPU-completion visibility are therefore validated. The
+next boundary is to retain these arenas for the presentation lifetime and emit
+a GPU render-target clear into a VideoOut-compatible buffer.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
@@ -862,10 +870,10 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
    device object, and diagnostic `shaderapiempty` delegation are hardware
    validated at 60 FPS. Next replace delegated device/resource interfaces
    through clear and triangle.
-5. **Hardware validation:** two command/constant frame arenas now submit real
-   OpenGNM command buffers and gate reuse on GPU-written EOP labels. Next prove
-   the three-submit self-test on hardware, then retain the arenas for the
-   runtime clear path instead of releasing the test pool.
+5. **Complete:** two command/constant frame arenas submit real OpenGNM command
+   buffers and gate reuse on GPU-written EOP labels; the three-submit hardware
+   test passed at 60 FPS. Next retain the arenas for the runtime GPU-clear path
+   instead of releasing the test pool.
 
 Each slice must update this document with the package version, hash, hardware
 evidence, and the next unresolved boundary. Avoid broad renderer or gameplay
