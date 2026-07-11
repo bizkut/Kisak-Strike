@@ -38,6 +38,7 @@ CPs4GnmDrawState::CPs4GnmDrawState()
     m_pixelInputs = 0;
     m_vertexExportCount = 0;
     m_pixelInputCount = 0;
+    m_primitiveType = GNM_PT_TRILIST;
     memset( m_scissor, 0, sizeof( m_scissor ) );
 }
 
@@ -204,6 +205,15 @@ void CPs4GnmDrawState::SetPsInputUsage(
     }
 }
 
+void CPs4GnmDrawState::SetPrimitiveType( GnmPrimitiveType primitiveType )
+{
+    if ( m_primitiveType != primitiveType )
+    {
+        m_primitiveType = primitiveType;
+        m_dirtyMask |= kDirtyPrimitiveType;
+    }
+}
+
 uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
 {
     if ( !command )
@@ -248,6 +258,8 @@ uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
     if ( emitted & kDirtyPsInputUsage )
         sceGnmDrawCmdSetPsInputUsage( command, m_vertexExports,
             m_vertexExportCount, m_pixelInputs, m_pixelInputCount );
+    if ( emitted & kDirtyPrimitiveType )
+        sceGnmDrawCmdSetPrimitiveType( command, m_primitiveType );
     m_dirtyMask = 0;
     return emitted;
 }

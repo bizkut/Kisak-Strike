@@ -364,8 +364,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.SetPsInputUsage(
         sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
         sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
+    g_DrawState.SetPrimitiveType( GNM_PT_TRILIST );
     g_DrawState.Apply( command );
-    sceGnmDrawCmdSetPrimitiveType( command, GNM_PT_TRILIST );
     sceGnmDrawCmdDrawIndex( command, 3, indices );
     GnmSetViewportInfo farViewport = viewport;
     farViewport.offset[2] = 0.75f;

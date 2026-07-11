@@ -25,7 +25,8 @@ public:
         kDirtyDepthTarget = 1u << 12,
         kDirtyPointerUserData = 1u << 13,
         kDirtyPsInputUsage = 1u << 14,
-        kDirtyAll = ( 1u << 15 ) - 1
+        kDirtyPrimitiveType = 1u << 15,
+        kDirtyAll = ( 1u << 16 ) - 1
     };
 
     CPs4GnmDrawState();
@@ -49,6 +50,7 @@ public:
     void SetPsInputUsage( const GnmVertexExportSemantic *vertexExports,
         uint32_t vertexExportCount, const GnmPixelInputSemantic *pixelInputs,
         uint32_t pixelInputCount );
+    void SetPrimitiveType( GnmPrimitiveType primitiveType );
     uint32_t Apply( GnmCommandBuffer *command );
 
     uint32_t DirtyMask() const { return m_dirtyMask; }
@@ -86,6 +88,7 @@ private:
     const GnmPixelInputSemantic *m_pixelInputs;
     uint32_t m_vertexExportCount;
     uint32_t m_pixelInputCount;
+    GnmPrimitiveType m_primitiveType;
     uint32_t m_dirtyMask;
 };
 

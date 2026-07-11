@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.08
-SHA-256: c8ab6faabca192fb979ca7c8d93a2bbb5b4ddf3836e93f7764980ac8254c4ff1
+Version: 2.09
+SHA-256: a458dd0e5ba30147a958887e6c52215068dc0863060bbdf739b8d5979c97a6d8
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -405,6 +405,14 @@ within the supplied persistent range, and resets atomically on failure. Startup
 uses it to create a persistent 4x4 linear RGBA checker resource after the depth
 allocation and reports its byte size. Sampling is the next hardware gate;
 v2.08 should preserve the existing image.
+
+The v2.08 hardware run created the 256-byte diagnostic texture, preserved the
+depth-tested blended triangle and `0x80bc89bc` center pixel, and stayed stable
+at 60 FPS. Version 2.09 moves primitive topology into `CPs4GnmDrawState`, with
+dirty tracking and command-boundary re-emission. `DrawIndex` is now the only
+direct draw operation after cached fixed pipeline, shaders, semantics, resource
+pointers, topology, and index format. Texture sampling remains next; its
+resource/sampler table layout will be derived from shader input-usage metadata.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
