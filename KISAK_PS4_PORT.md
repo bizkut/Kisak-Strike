@@ -865,6 +865,20 @@ The staged package is
 The marker is
 `kisak-ps4: build marker scaleform_fontlib_probe_v249`.
 
+The v2.49 hardware run passed the real `fontlib.gfx` parse, the two-frame EOP
+test, and continued through at least frame 1200 at 60 FPS without a crash. Its
+log is `hardware-captures/logs/2026-07-12/kisak_v249_scaleform_fontlib_live.txt`.
+Version 2.50 replaces the probe's absolute host path with a Scaleform
+`FileOpener` that resolves `resource/flash/fontlib.gfx` through Source's mounted
+`GAME` search path before opening the resolved file. This is the first bridge
+from GFx URL loading to Kisak's content layout and will also cover VPK-backed
+content once the opener becomes a native `Scaleform::File` adapter instead of
+the current resolved-path `SysFile` bridge. Hardware validation is pending.
+The v2.50 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`489d63a433cc266c0f64779743d59887b1373e30e3f2acd27307aa2eba675145`,
+with marker `kisak-ps4: build marker scaleform_source_fileopener_v250`.
+
 ## Completed work
 
 ### Orbis platform and build foundation

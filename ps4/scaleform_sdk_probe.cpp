@@ -1,5 +1,7 @@
 #include "GFx.h"
 #include "GFxVersion.h"
+#include "Kernel/SF_SysFile.h"
+#include "filesystem.h"
 
 #if !defined( SF_OS_ORBIS )
 #error "Scaleform did not recognize the OpenOrbis target"
@@ -9,6 +11,26 @@ static_assert( GFX_MAJOR_VERSION == 4 && GFX_MINOR_VERSION == 2,
     "Kisak PS4 requires the Scaleform 4.2 API" );
 static_assert( sizeof( Scaleform::UPInt ) == sizeof( void * ),
     "Scaleform pointer-sized integer does not match the PS4 ABI" );
+
+namespace
+{
+class KisakScaleformFileOpener final : public Scaleform::GFx::FileOpener
+{
+public:
+    Scaleform::File *OpenFile( const char *url, int flags, int mode ) override
+    {
+        char fullPath[1024];
+        if ( g_pFullFileSystem != NULL &&
+             g_pFullFileSystem->RelativePathToFullPath(
+                 url, "GAME", fullPath, sizeof( fullPath ) ) != NULL )
+        {
+            return new Scaleform::SysFile( fullPath, flags, mode );
+        }
+
+        return Scaleform::GFx::FileOpener::OpenFile( url, flags, mode );
+    }
+};
+}
 
 extern "C" const char *KisakPs4ScaleformSdkVersion()
 {
@@ -31,11 +53,13 @@ extern "C" bool KisakPs4ScaleformKernelSelfTest()
 extern "C" bool KisakPs4ScaleformMovieProbe()
 {
     Scaleform::System system;
-    Scaleform::GFx::Loader loader;
+    Scaleform::Ptr< KisakScaleformFileOpener > fileOpener =
+        *new KisakScaleformFileOpener();
+    Scaleform::GFx::Loader loader( fileOpener );
     loader.SetAS2Support( Scaleform::Ptr< Scaleform::GFx::AS2Support >(
         *new Scaleform::GFx::AS2Support() ) );
     Scaleform::Ptr< Scaleform::GFx::MovieDef > movie = *loader.CreateMovie(
-        "/data/kisak-strike/csgo/resource/flash/fontlib.gfx",
+        "resource/flash/fontlib.gfx",
         Scaleform::GFx::Loader::LoadAll );
     return movie.GetPtr() != NULL;
 }
