@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.32
-SHA-256: abed41c712eabc4b93dc7cfc1a947d3559b30275ef3c6e3d3da9f2f3c50faff0
+Version: 2.33
+SHA-256: 8957115665f71eed455bd3ef1b94821e8f7dd5079e647dc51356e3e4ce72617d
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -656,6 +656,16 @@ draw passed. Version 2.32 hardens this accounting for Source's threaded loading
 model. Backing-byte add, remove, and read operations now use relaxed atomic
 updates, and `CPs4GnmTexture` is non-copyable so ownership cannot be duplicated
 and subtracted twice. The reported value and rendering should remain unchanged.
+
+The v2.32 hardware run retained the exact 1,024-byte native texture total,
+both shadow masks, the opaque orange triangle, and 60 FPS. Version 2.33 begins
+the Source shader-combo path with a bounded, allocation-free manifest. Entries
+are keyed by shader name, vertex/pixel stage, static combo, dynamic combo, and
+vertex format and own fixed-size copies of their `.sb` paths. Registration
+rejects invalid, oversized, duplicate, or over-capacity entries; lookup is exact
+and deterministic. Host tests cover stage/combo/vertex-format separation,
+duplicate rejection, missing combinations, and reset. Runtime still loads the
+three established diagnostic shaders directly for this no-regression gate.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

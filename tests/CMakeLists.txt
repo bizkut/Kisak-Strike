@@ -56,3 +56,11 @@ target_include_directories(ps4_shadow_state_translate_test PRIVATE
 target_compile_definitions(ps4_shadow_state_translate_test PRIVATE POSIX _POSIX GNUC COMPILER_GCC)
 set_target_properties(ps4_shadow_state_translate_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_shadow_state_translate COMMAND ps4_shadow_state_translate_test)
+
+add_executable(ps4_shader_manifest_test
+    ps4_shader_manifest_test.cpp
+    ../materialsystem/ps4gnm/ps4_shader_manifest.cpp
+)
+target_include_directories(ps4_shader_manifest_test PRIVATE ../materialsystem/ps4gnm)
+set_target_properties(ps4_shader_manifest_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
+add_test(NAME ps4_shader_manifest COMMAND ps4_shader_manifest_test)
