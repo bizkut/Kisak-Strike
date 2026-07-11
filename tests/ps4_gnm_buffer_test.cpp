@@ -19,6 +19,12 @@ int main()
     assert( descriptor.stride == 16 && descriptor.numrecords == 4 );
     assert( !buffer.BuildVertexDescriptor( GNM_FMT_R32G32B32A32_FLOAT,
         16, 5, 0, &descriptor ) );
+    assert( buffer.BuildVertexDescriptor( GNM_FMT_R32G32B32A32_FLOAT,
+        32, 2, 16, &descriptor ) );
+    assert( sceGnmBufGetBaseAddress( &descriptor ) == storage + 16 );
+    assert( descriptor.stride == 32 && descriptor.numrecords == 2 );
+    assert( !buffer.BuildVertexDescriptor( GNM_FMT_R32G32B32A32_FLOAT,
+        32, 3, 16, &descriptor ) );
 
     uint8_t source[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
     assert( buffer.Upload( 4, source, sizeof( source ) ) );

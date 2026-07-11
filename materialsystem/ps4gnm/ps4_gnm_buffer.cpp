@@ -76,8 +76,13 @@ bool CPs4GnmBuffer::BuildVertexDescriptor( GnmDataFormat format, uint32_t stride
     uint32_t vertexCount, size_t offset, GnmBuffer *descriptor ) const
 {
     if ( !descriptor || !m_memory || m_type != kVertexBuffer || !stride ||
-        !vertexCount || offset >= m_size ||
-        vertexCount > ( m_size - offset ) / stride )
+        !vertexCount || offset >= m_size )
+        return false;
+    const size_t elementBytes = sceGnmDfGetBytesPerElement( format );
+    if ( !elementBytes || elementBytes > m_size - offset )
+        return false;
+    const size_t bytesAfterFirstElement = m_size - offset - elementBytes;
+    if ( static_cast< size_t >( vertexCount - 1 ) > bytesAfterFirstElement / stride )
         return false;
     *descriptor = sceGnmCreateVertexBuffer( m_memory + offset, format, stride,
         vertexCount );

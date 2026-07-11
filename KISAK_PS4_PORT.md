@@ -903,6 +903,20 @@ The v2.56 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `77d9d500385f9cca1693ecfe73229415c31e2275a233cfc04e8e3854f5702a38`,
 with marker `kisak-ps4: build marker facade_vertex_table_v256`.
+
+The v2.56 hardware run stayed stable but logged
+`vertex facade descriptor table failed`, so shader setup deliberately retained
+only the four DMA bars. The color attribute begins 16 bytes into a 32-byte
+interleaved vertex. The first range check incorrectly required
+`vertexCount * stride` bytes after that attribute offset; the correct extent is
+`offset + (vertexCount - 1) * stride + elementBytes`. Version 2.57 uses that
+overflow-safe formula and adds a host regression for a nonzero interleaved
+attribute offset. The capture is
+`hardware-captures/logs/2026-07-12/kisak_v256_facade_vertex_table_missing.txt`.
+The v2.57 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`84c9e33c05a49e8ff81eac87596cf6166ba3124ba9a42f08a6fe336e3eb81e82`,
+with marker `kisak-ps4: build marker interleaved_vertex_range_v257`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
