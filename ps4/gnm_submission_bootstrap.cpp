@@ -128,21 +128,17 @@ bool LoadDiagnosticShaders()
         { "kisak_diagnostic", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
         { "kisak_texture_sample", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 }
     };
-    const char *paths[3] = {
-        "/app0/kisak_diagnostic.vert.sb",
-        "/app0/kisak_diagnostic.frag.sb",
-        "/app0/kisak_texture_sample.frag.sb"
-    };
-    g_ShaderManifest.Clear();
-    for ( unsigned int shader = 0; shader < 3; ++shader )
+    uint8_t *manifestData = 0;
+    size_t manifestSize = 0;
+    if ( !ReadShaderFile( "/app0/kisak_diagnostic.manifest", &manifestData, &manifestSize ) ||
+        !g_ShaderManifest.LoadText( reinterpret_cast< const char * >( manifestData ), manifestSize ) )
     {
-        if ( !g_ShaderManifest.Register( keys[shader], paths[shader] ) )
-        {
-            snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
-                "manifest register failed stage=%u", shader );
-            return false;
-        }
+        free( manifestData );
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "manifest file load failed" );
+        return false;
     }
+    free( manifestData );
     if ( !g_ShaderManifestLogged )
     {
         char message[112];

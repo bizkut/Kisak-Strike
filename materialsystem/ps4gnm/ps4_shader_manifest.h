@@ -37,6 +37,7 @@ public:
     CPs4ShaderManifest();
     void Clear();
     bool Register( const Ps4ShaderManifestKey &key, const char *path );
+    bool LoadText( const char *text, size_t length );
     const Ps4ShaderManifestEntry *Find( const Ps4ShaderManifestKey &key ) const;
     size_t Count() const { return m_count; }
 

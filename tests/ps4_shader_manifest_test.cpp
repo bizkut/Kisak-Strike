@@ -33,5 +33,21 @@ int main()
 
     manifest.Clear();
     assert( manifest.Count() == 0 && manifest.Find( vertex ) == 0 );
+
+    const char text[] =
+        "# diagnostic manifest\n"
+        "vertexlitgeneric|vertex|3|7|66051|/app0/shaders/vs.sb\n"
+        "vertexlitgeneric|pixel|3|7|0|/app0/shaders/ps.sb\n";
+    assert( manifest.LoadText( text, sizeof( text ) - 1 ) );
+    assert( manifest.Count() == 2 );
+    found = manifest.Find( vertex );
+    assert( found && strcmp( found->path, "/app0/shaders/vs.sb" ) == 0 );
+    const char duplicate[] =
+        "x|vertex|0|0|0|/app0/a.sb\n"
+        "x|vertex|0|0|0|/app0/b.sb\n";
+    assert( !manifest.LoadText( duplicate, sizeof( duplicate ) - 1 ) );
+    assert( manifest.Count() == 0 );
+    const char invalidStage[] = "x|geometry|0|0|0|/app0/x.sb\n";
+    assert( !manifest.LoadText( invalidStage, sizeof( invalidStage ) - 1 ) );
     return 0;
 }

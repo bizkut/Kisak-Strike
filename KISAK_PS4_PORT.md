@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.34
-SHA-256: 7ee1f0c9d2c14503715fcdba2eede7a3ac81b8cc696b04a4e50e5299c791af50
+Version: 2.35
+SHA-256: 78dc6a7dc58b3579370a585529675b17369d2a59530ea6e24bb3d447e7b452d0
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -674,6 +674,15 @@ are registered with explicit stage/combo/vertex-format identities, then every
 packaged `.sb` path is obtained by exact lookup before file loading. Startup
 logs `native shader manifest entries=3`; registration or lookup failure keeps
 the established visible fallback and reports the failing stage.
+
+The v2.34 hardware run logged `native shader manifest entries=3`, then loaded
+all binaries and preserved the opaque orange triangle at 60 FPS. Version 2.35
+moves those entries into `/app0/kisak_diagnostic.manifest`. A strict bounded
+text parser accepts vertex/pixel stage, combo IDs, vertex format, and `.sb` path;
+it rejects malformed stages, duplicates, oversized lines, invalid entries, and
+empty files atomically. Package construction now requires and includes the
+manifest, and runtime parses it before exact lookup. Host tests cover successful
+multi-entry parsing plus duplicate and invalid-stage rejection.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

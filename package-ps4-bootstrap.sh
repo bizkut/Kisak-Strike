@@ -8,7 +8,7 @@ DIAGNOSTIC_SHADER_DIR="${KISAK_PS4_DIAGNOSTIC_SHADER_DIR:-$ROOT_DIR/../freegnm-e
 if [[ "$VARIANT" == "monolithic" ]]; then
     BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
     TITLE="Kisak-Strike PS4 Monolithic"
-    VERSION="2.34"
+    VERSION="2.35"
     TITLE_ID="KISK00002"
     CONTENT_ID="IV0000-KISK00002_00-KISAKMONOLITHIC0"
     EBOOT_INPUT="$BUILD_DIR/kisak_ps4_monolithic.bin"
@@ -46,10 +46,11 @@ PKGTOOL="${PKGTOOL:-$OO_PS4_TOOLCHAIN/bin/macos/PkgTool.Core}"
 RUNTIME_MODULE_DIR="${RUNTIME_MODULE_DIR:-$OO_PS4_TOOLCHAIN/src/modules}"
 ASSET_DIR="${KISAK_PS4_ASSET_DIR:-$ROOT_DIR/../freegnm-examples/videoout-linear/sce_sys}"
 ICON_PATH="${KISAK_PS4_ICON_PATH:-$ROOT_DIR/ps4/sce_sys/icon0.png}"
+SHADER_MANIFEST="$ROOT_DIR/ps4/shaders/kisak_diagnostic.manifest"
 
 for required in "$CREATE_GP4" "$PKGTOOL" "$RUNTIME_MODULE_DIR/libc.prx" \
     "$RUNTIME_MODULE_DIR/libSceFios2.prx" "$ICON_PATH" \
-    "$ASSET_DIR/about/right.sprx" "$EBOOT_INPUT"; do
+    "$ASSET_DIR/about/right.sprx" "$EBOOT_INPUT" "$SHADER_MANIFEST"; do
     if [[ ! -e "$required" ]]; then
         echo "Missing PS4 package input: $required" >&2
         exit 1
@@ -80,6 +81,7 @@ if [[ "$VARIANT" == "monolithic" ]]; then
     cp "$DIAGNOSTIC_SHADER_DIR/tri.vert.sb" "$PACKAGE_DIR/kisak_diagnostic.vert.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/tri.frag.sb" "$PACKAGE_DIR/kisak_diagnostic.frag.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/texture_sample.frag.sb" "$PACKAGE_DIR/kisak_texture_sample.frag.sb"
+    cp "$SHADER_MANIFEST" "$PACKAGE_DIR/kisak_diagnostic.manifest"
 fi
 
 pushd "$PACKAGE_DIR" >/dev/null
@@ -97,7 +99,7 @@ pushd "$PACKAGE_DIR" >/dev/null
 
 PACKAGE_FILES="eboot.bin sce_sys/about/right.sprx sce_sys/param.sfo sce_sys/icon0.png sce_module/libc.prx sce_module/libSceFios2.prx"
 if [[ "$VARIANT" == "monolithic" ]]; then
-    PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt kisak_diagnostic.vert.sb kisak_diagnostic.frag.sb kisak_texture_sample.frag.sb"
+    PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt kisak_diagnostic.vert.sb kisak_diagnostic.frag.sb kisak_texture_sample.frag.sb kisak_diagnostic.manifest"
 fi
 "$CREATE_GP4" -out=pkg.gp4 -content-id="$CONTENT_ID" -files "$PACKAGE_FILES"
 "$PKGTOOL" pkg_build pkg.gp4 .
