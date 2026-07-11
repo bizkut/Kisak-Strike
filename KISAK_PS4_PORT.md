@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.75
-SHA-256: 66c8f69f88eda2fdb7792f981000fe353fa5ca46e51b56c87591f2711b7eacda
+Version: 1.76
+SHA-256: e071ffcb71cd9ac21bb3c4dc876316d20237a75ee1eac4f599c4288dafd9611d
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -46,6 +46,13 @@ the OpenGNM Orbis branch was compiled out and returned `GNM_ERROR_UNSUPPORTED`
 without recording it. OpenGNM commit `8f9def5` defines `OPENGNM_ORBIS` in its
 Makefile and records the fallback code; Kisak v1.75 packages the native helper
 path for the next hardware run.
+
+The v1.75 hardware run reached `videoout opened` and completed
+`videoout flip complete` without crashing. Its low reported frame rate was
+expected: the bootstrap only submitted the first frame and ran the remaining
+119 UI iterations without presentation. Kisak v1.76 submits and checks a
+VideoOut flip on every frame, so a second-flip wait or error will be visible
+instead of leaving the display on the first buffer.
 
 Expected hardware log:
 

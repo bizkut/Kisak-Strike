@@ -116,8 +116,14 @@ public:
 			}
 			if ( frame == 59 )
 				KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher frame 60" );
-			if ( frame == 0 && videoOutReady )
-				(void)KisakPs4VideoOutSubmitClear();
+			if ( videoOutReady )
+			{
+				if ( !KisakPs4VideoOutSubmitClear() )
+				{
+					KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher frame presentation failed" );
+					break;
+				}
+			}
 			std::this_thread::sleep_for( std::chrono::milliseconds( 16 ) );
 		}
 		KisakPs4VideoOutShutdown();
