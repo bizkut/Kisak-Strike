@@ -524,6 +524,14 @@ device, ShaderAPI, shadow, and hardware-config objects can replace individual
 lookups without another module-loading change. Runtime graphics remain on the
 validated bootstrap path for this no-regression gate.
 
+The v2.17 hardware run passed that gate: the PS4-owned factory completed engine
+initialization, the copied offscreen texture remained opaque orange with center
+pixel `0xff00daff`, EOP synchronization passed, and presentation stayed stable
+at 60 FPS. The factory trampoline is therefore the validated interception point
+for the first native interface. Replace `IShaderDeviceMgr` first while
+forwarding device/API/shadow/config lookups until its adapter enumeration and
+`SetMode` lifecycle are stable.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
