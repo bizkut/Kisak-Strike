@@ -7,6 +7,8 @@ CPs4GnmTexture::CPs4GnmTexture()
       m_bytesPerElement( 0 ), m_valid( false )
 {
     memset( &m_texture, 0, sizeof( m_texture ) );
+    memset( &m_colorTarget, 0, sizeof( m_colorTarget ) );
+    m_colorTargetValid = false;
 }
 
 bool CPs4GnmTexture::Initialize2D( void *memory, size_t memorySize,
@@ -77,9 +79,30 @@ bool CPs4GnmTexture::UploadLinear( const void *source, size_t sourceRowBytes,
     return true;
 }
 
+bool CPs4GnmTexture::CreateColorTargetView( GnmDataFormat format,
+    uint32_t width, uint32_t height, GnmTileMode tileMode, GnmGpuMode gpuMode )
+{
+    memset( &m_colorTarget, 0, sizeof( m_colorTarget ) );
+    m_colorTargetValid = false;
+    if ( !m_valid || width != m_width || height != m_height )
+        return false;
+    uint64_t requiredSize = 0;
+    uint32_t requiredAlignment = 0;
+    if ( sceGnmRtCreateColorTarget( &m_colorTarget, m_data, format, width, height,
+        1, 1, 1, tileMode, gpuMode, &requiredSize, &requiredAlignment ) != GNM_ERROR_OK ||
+        requiredSize > m_size || requiredAlignment > m_alignment )
+    {
+        memset( &m_colorTarget, 0, sizeof( m_colorTarget ) );
+        return false;
+    }
+    m_colorTargetValid = true;
+    return true;
+}
+
 void CPs4GnmTexture::Reset()
 {
     memset( &m_texture, 0, sizeof( m_texture ) );
+    memset( &m_colorTarget, 0, sizeof( m_colorTarget ) );
     m_data = 0;
     m_size = 0;
     m_alignment = 0;
@@ -87,4 +110,5 @@ void CPs4GnmTexture::Reset()
     m_height = 0;
     m_bytesPerElement = 0;
     m_valid = false;
+    m_colorTargetValid = false;
 }

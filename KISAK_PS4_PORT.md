@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.11
-SHA-256: 334a2b52fd198de47d2025fbf2229b3616d7986e47f9f98b555fbf87baffbcb3
+Version: 2.12
+SHA-256: 6bb6031a3454779bb5ce09ceeefc4e55e08939b642128e704e405d9adce40909
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -440,6 +440,14 @@ the earlier purple value came from tightly writing allocation bytes as though
 the texture had no row padding. Pitch-aware upload is therefore validated. The
 next texture milestone is a color target and texture view sharing one backing
 allocation for render-to-texture and resolve/copy testing.
+
+Version 2.12 adds a color-target view to `CPs4GnmTexture` over the same backing
+allocation as its texture descriptor. Creation requires matching dimensions,
+queries the render-target layout, and rejects any view whose size or alignment
+exceeds the texture allocation. Startup creates a 4x4 RGBA target view over the
+sampled checker resource. No offscreen draw is submitted yet, so the expected
+image and red `0xff6363ff` readback remain unchanged; this is the descriptor
+compatibility gate before render-to-texture writes and sampling barriers.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

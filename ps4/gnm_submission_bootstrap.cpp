@@ -308,6 +308,13 @@ bool LoadDiagnosticShaders()
         snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ), "texture upload failed" );
         return false;
     }
+    if ( !g_DiagnosticTexture.CreateColorTargetView( GNM_FMT_R8G8B8A8_UNORM,
+        4, 4, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "texture color target view failed" );
+        return false;
+    }
     uint8_t *tableCursor = static_cast< uint8_t * >( g_DiagnosticTexture.Data() ) +
         g_DiagnosticTexture.Size();
     tableCursor = reinterpret_cast< uint8_t * >(
