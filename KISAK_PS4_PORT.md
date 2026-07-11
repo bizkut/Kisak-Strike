@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.20
-SHA-256: 52654935d5f0a57e3d13dd2a0aca40b8438c93733cdaf7a129541dec12cb6c80
+Version: 2.21
+SHA-256: 3f6dd11d9e3a960e87cfc4eacf6147fefeed82074987b39a06e5a85f69068122
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -557,6 +557,14 @@ texture remained stable at 60 FPS. Version 2.20 adds a complete PS4-owned
 format, and static shader state. Calls still delegate unchanged in this gate;
 the next step after hardware validation is replacing individual shadow-state
 methods with the native OpenGNM draw-state cache.
+
+The v2.20 hardware run validated the shadow wrapper with the opaque orange
+triangle stable at 60 FPS and the shader/EOP gate passing. Version 2.21 adds
+the first `CPs4GnmDrawState` cache behind that boundary. It tracks dirty depth,
+color, blend, raster, texture, and shader categories plus the corresponding
+Source shadow values. Calls still reach the delegate for identical output;
+native PM4 emission can now consume only dirty categories without changing the
+public `IShaderShadow` contract.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

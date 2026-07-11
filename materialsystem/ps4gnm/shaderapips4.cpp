@@ -138,46 +138,136 @@ private:
 
 CShaderDevicePs4 g_DevicePs4;
 
+class CPs4GnmDrawState
+{
+public:
+    enum DirtyBits
+    {
+        DIRTY_DEPTH = 1 << 0,
+        DIRTY_COLOR = 1 << 1,
+        DIRTY_BLEND = 1 << 2,
+        DIRTY_RASTER = 1 << 3,
+        DIRTY_TEXTURE = 1 << 4,
+        DIRTY_SHADER = 1 << 5,
+        DIRTY_ALL = ( 1 << 6 ) - 1
+    };
+
+    CPs4GnmDrawState() { Reset(); }
+
+    void Reset()
+    {
+        depthFunction = SHADER_DEPTHFUNC_NEAREROREQUAL;
+        depthWrites = true;
+        depthTest = true;
+        polygonOffset = SHADER_POLYOFFSET_DISABLE;
+        colorWrites = true;
+        alphaWrites = true;
+        blending = false;
+        forceOpaque = false;
+        sourceBlend = SHADER_BLEND_ONE;
+        destinationBlend = SHADER_BLEND_ZERO;
+        separateAlphaBlend = false;
+        sourceAlphaBlend = SHADER_BLEND_ONE;
+        destinationAlphaBlend = SHADER_BLEND_ZERO;
+        blendOperation = SHADER_BLEND_OP_ADD;
+        alphaBlendOperation = SHADER_BLEND_OP_ADD;
+        alphaTest = false;
+        alphaFunction = SHADER_ALPHAFUNC_ALWAYS;
+        alphaReference = 0.0f;
+        culling = true;
+        sRgbWrite = false;
+        textureEnableMask = 0;
+        sRgbReadMask = 0;
+        vertexTextureEnableMask = 0;
+        vertexFormatFlags = 0;
+        textureCoordinateCount = 0;
+        vertexUserDataSize = 0;
+        vertexShaderIndex = 0;
+        pixelShaderIndex = 0;
+        dirty = DIRTY_ALL;
+    }
+
+    ShaderDepthFunc_t depthFunction;
+    bool depthWrites;
+    bool depthTest;
+    PolygonOffsetMode_t polygonOffset;
+    bool colorWrites;
+    bool alphaWrites;
+    bool blending;
+    bool forceOpaque;
+    ShaderBlendFactor_t sourceBlend;
+    ShaderBlendFactor_t destinationBlend;
+    bool separateAlphaBlend;
+    ShaderBlendFactor_t sourceAlphaBlend;
+    ShaderBlendFactor_t destinationAlphaBlend;
+    ShaderBlendOp_t blendOperation;
+    ShaderBlendOp_t alphaBlendOperation;
+    bool alphaTest;
+    ShaderAlphaFunc_t alphaFunction;
+    float alphaReference;
+    bool culling;
+    bool sRgbWrite;
+    uint32 textureEnableMask;
+    uint32 sRgbReadMask;
+    uint32 vertexTextureEnableMask;
+    unsigned int vertexFormatFlags;
+    int textureCoordinateCount;
+    int vertexUserDataSize;
+    int vertexShaderIndex;
+    int pixelShaderIndex;
+    uint32 dirty;
+};
+
 class CShaderShadowPs4 : public IShaderShadow
 {
 public:
     CShaderShadowPs4() : m_delegate( 0 ) {}
     void SetDelegate( IShaderShadow *delegate ) { m_delegate = delegate; }
 
-    void SetDefaultState() { if ( m_delegate ) m_delegate->SetDefaultState(); }
-    void DepthFunc( ShaderDepthFunc_t function ) { if ( m_delegate ) m_delegate->DepthFunc( function ); }
-    void EnableDepthWrites( bool enable ) { if ( m_delegate ) m_delegate->EnableDepthWrites( enable ); }
-    void EnableDepthTest( bool enable ) { if ( m_delegate ) m_delegate->EnableDepthTest( enable ); }
-    void EnablePolyOffset( PolygonOffsetMode_t mode ) { if ( m_delegate ) m_delegate->EnablePolyOffset( mode ); }
-    void EnableColorWrites( bool enable ) { if ( m_delegate ) m_delegate->EnableColorWrites( enable ); }
-    void EnableAlphaWrites( bool enable ) { if ( m_delegate ) m_delegate->EnableAlphaWrites( enable ); }
-    void EnableBlending( bool enable ) { if ( m_delegate ) m_delegate->EnableBlending( enable ); }
+    void SetDefaultState() { m_state.Reset(); if ( m_delegate ) m_delegate->SetDefaultState(); }
+    void DepthFunc( ShaderDepthFunc_t function )
+    { m_state.depthFunction = function; m_state.dirty |= CPs4GnmDrawState::DIRTY_DEPTH; if ( m_delegate ) m_delegate->DepthFunc( function ); }
+    void EnableDepthWrites( bool enable )
+    { m_state.depthWrites = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_DEPTH; if ( m_delegate ) m_delegate->EnableDepthWrites( enable ); }
+    void EnableDepthTest( bool enable )
+    { m_state.depthTest = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_DEPTH; if ( m_delegate ) m_delegate->EnableDepthTest( enable ); }
+    void EnablePolyOffset( PolygonOffsetMode_t mode )
+    { m_state.polygonOffset = mode; m_state.dirty |= CPs4GnmDrawState::DIRTY_RASTER; if ( m_delegate ) m_delegate->EnablePolyOffset( mode ); }
+    void EnableColorWrites( bool enable )
+    { m_state.colorWrites = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_COLOR; if ( m_delegate ) m_delegate->EnableColorWrites( enable ); }
+    void EnableAlphaWrites( bool enable )
+    { m_state.alphaWrites = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_COLOR; if ( m_delegate ) m_delegate->EnableAlphaWrites( enable ); }
+    void EnableBlending( bool enable )
+    { m_state.blending = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->EnableBlending( enable ); }
     void EnableBlendingForceOpaque( bool enable )
-    { if ( m_delegate ) m_delegate->EnableBlendingForceOpaque( enable ); }
+    { m_state.forceOpaque = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->EnableBlendingForceOpaque( enable ); }
     void BlendFunc( ShaderBlendFactor_t source, ShaderBlendFactor_t destination )
-    { if ( m_delegate ) m_delegate->BlendFunc( source, destination ); }
+    { m_state.sourceBlend = source; m_state.destinationBlend = destination; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->BlendFunc( source, destination ); }
     void EnableBlendingSeparateAlpha( bool enable )
-    { if ( m_delegate ) m_delegate->EnableBlendingSeparateAlpha( enable ); }
+    { m_state.separateAlphaBlend = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->EnableBlendingSeparateAlpha( enable ); }
     void BlendFuncSeparateAlpha( ShaderBlendFactor_t source, ShaderBlendFactor_t destination )
-    { if ( m_delegate ) m_delegate->BlendFuncSeparateAlpha( source, destination ); }
-    void EnableAlphaTest( bool enable ) { if ( m_delegate ) m_delegate->EnableAlphaTest( enable ); }
+    { m_state.sourceAlphaBlend = source; m_state.destinationAlphaBlend = destination; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->BlendFuncSeparateAlpha( source, destination ); }
+    void EnableAlphaTest( bool enable )
+    { m_state.alphaTest = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->EnableAlphaTest( enable ); }
     void AlphaFunc( ShaderAlphaFunc_t function, float reference )
-    { if ( m_delegate ) m_delegate->AlphaFunc( function, reference ); }
+    { m_state.alphaFunction = function; m_state.alphaReference = reference; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->AlphaFunc( function, reference ); }
     void PolyMode( ShaderPolyModeFace_t face, ShaderPolyMode_t mode )
     { if ( m_delegate ) m_delegate->PolyMode( face, mode ); }
-    void EnableCulling( bool enable ) { if ( m_delegate ) m_delegate->EnableCulling( enable ); }
+    void EnableCulling( bool enable )
+    { m_state.culling = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_RASTER; if ( m_delegate ) m_delegate->EnableCulling( enable ); }
     void VertexShaderVertexFormat( unsigned int flags, int texCoordCount, int *texCoordDimensions,
                                    int userDataSize )
-    { if ( m_delegate ) m_delegate->VertexShaderVertexFormat( flags, texCoordCount, texCoordDimensions, userDataSize ); }
+    { m_state.vertexFormatFlags = flags; m_state.textureCoordinateCount = texCoordCount; m_state.vertexUserDataSize = userDataSize; m_state.dirty |= CPs4GnmDrawState::DIRTY_SHADER; if ( m_delegate ) m_delegate->VertexShaderVertexFormat( flags, texCoordCount, texCoordDimensions, userDataSize ); }
     void SetVertexShader( const char *fileName, int staticIndex )
-    { if ( m_delegate ) m_delegate->SetVertexShader( fileName, staticIndex ); }
+    { m_state.vertexShaderIndex = staticIndex; m_state.dirty |= CPs4GnmDrawState::DIRTY_SHADER; if ( m_delegate ) m_delegate->SetVertexShader( fileName, staticIndex ); }
     void SetPixelShader( const char *fileName, int staticIndex = 0 )
-    { if ( m_delegate ) m_delegate->SetPixelShader( fileName, staticIndex ); }
-    void EnableSRGBWrite( bool enable ) { if ( m_delegate ) m_delegate->EnableSRGBWrite( enable ); }
+    { m_state.pixelShaderIndex = staticIndex; m_state.dirty |= CPs4GnmDrawState::DIRTY_SHADER; if ( m_delegate ) m_delegate->SetPixelShader( fileName, staticIndex ); }
+    void EnableSRGBWrite( bool enable )
+    { m_state.sRgbWrite = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_COLOR; if ( m_delegate ) m_delegate->EnableSRGBWrite( enable ); }
     void EnableSRGBRead( Sampler_t sampler, bool enable )
-    { if ( m_delegate ) m_delegate->EnableSRGBRead( sampler, enable ); }
+    { SetMaskBit( m_state.sRgbReadMask, static_cast< int >( sampler ), enable ); m_state.dirty |= CPs4GnmDrawState::DIRTY_TEXTURE; if ( m_delegate ) m_delegate->EnableSRGBRead( sampler, enable ); }
     void EnableTexture( Sampler_t sampler, bool enable )
-    { if ( m_delegate ) m_delegate->EnableTexture( sampler, enable ); }
+    { SetMaskBit( m_state.textureEnableMask, static_cast< int >( sampler ), enable ); m_state.dirty |= CPs4GnmDrawState::DIRTY_TEXTURE; if ( m_delegate ) m_delegate->EnableTexture( sampler, enable ); }
     void FogMode( ShaderFogMode_t mode, bool vertexFog )
     { if ( m_delegate ) m_delegate->FogMode( mode, vertexFog ); }
     void DisableFogGammaCorrection( bool disable )
@@ -185,15 +275,25 @@ public:
     void EnableAlphaToCoverage( bool enable )
     { if ( m_delegate ) m_delegate->EnableAlphaToCoverage( enable ); }
     void EnableVertexTexture( VertexTextureSampler_t sampler, bool enable )
-    { if ( m_delegate ) m_delegate->EnableVertexTexture( sampler, enable ); }
-    void BlendOp( ShaderBlendOp_t operation ) { if ( m_delegate ) m_delegate->BlendOp( operation ); }
+    { SetMaskBit( m_state.vertexTextureEnableMask, static_cast< int >( sampler ), enable ); m_state.dirty |= CPs4GnmDrawState::DIRTY_TEXTURE; if ( m_delegate ) m_delegate->EnableVertexTexture( sampler, enable ); }
+    void BlendOp( ShaderBlendOp_t operation )
+    { m_state.blendOperation = operation; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->BlendOp( operation ); }
     void BlendOpSeparateAlpha( ShaderBlendOp_t operation )
-    { if ( m_delegate ) m_delegate->BlendOpSeparateAlpha( operation ); }
+    { m_state.alphaBlendOperation = operation; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->BlendOpSeparateAlpha( operation ); }
     float GetLightMapScaleFactor() const
     { return m_delegate ? m_delegate->GetLightMapScaleFactor() : 1.0f; }
 
 private:
+    static void SetMaskBit( uint32 &mask, int index, bool enable )
+    {
+        if ( index < 0 || index >= 32 )
+            return;
+        const uint32 bit = 1u << index;
+        mask = enable ? mask | bit : mask & ~bit;
+    }
+
     IShaderShadow *m_delegate;
+    CPs4GnmDrawState m_state;
 };
 
 CShaderShadowPs4 g_ShaderShadowPs4;
