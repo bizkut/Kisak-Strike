@@ -89,6 +89,21 @@ public:
     bool BuildVertexDescriptorTable( const CPs4GnmVertexDeclaration &declaration,
         int32_t baseVertex, uint32_t vertexCount, GnmBuffer *descriptors,
         uint32_t descriptorCapacity ) const;
+    static bool ValidateDisplayRenderTarget( const void *memory,
+        uint32_t width, uint32_t height, uint32_t pitch )
+    {
+        return memory && !( reinterpret_cast< uintptr_t >( memory ) & 255 ) &&
+            width && height && pitch >= width && !( pitch & 7 );
+    }
+    bool BuildDisplayRenderTarget( void *memory, uint32_t width,
+        uint32_t height, uint32_t pitch, GnmRenderTarget *target ) const
+    {
+        return m_initialized && target &&
+            ValidateDisplayRenderTarget( memory, width, height, pitch ) &&
+            sceGnmRtCreateColorTarget( target, memory, GNM_FMT_R8G8B8A8_SRGB,
+                width, height, 1, 1, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED,
+                GNM_GPU_BASE, 0, 0 ) == GNM_ERROR_OK;
+    }
 
     bool IsInitialized() const { return m_initialized; }
     bool IsFrameOpen() const { return m_frameOpen; }

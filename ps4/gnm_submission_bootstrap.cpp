@@ -847,8 +847,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     GnmBuffer *cubeVsDescriptor )
 {
     GnmRenderTarget renderTarget = {};
-    if ( sceGnmRtCreateColorTarget( &renderTarget, destination, GNM_FMT_R8G8B8A8_SRGB,
-        1920, 1080, 1, 1, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE, 0, 0 ) != GNM_ERROR_OK )
+    if ( !g_Device.BuildDisplayRenderTarget(
+        destination, 1920, 1080, 1920, &renderTarget ) )
         return;
     sceGnmDrawCmdInitDefaultHardwareState( command );
     KisakPs4SetShaderShadowCulling( false );

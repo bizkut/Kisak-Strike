@@ -5,6 +5,15 @@
 
 int main()
 {
+    alignas( 256 ) uint8_t displayStorage[256] = {};
+    assert( CPs4GnmDevice::ValidateDisplayRenderTarget(
+        displayStorage, 1920, 1080, 1920 ) );
+    assert( !CPs4GnmDevice::ValidateDisplayRenderTarget(
+        displayStorage + 1, 1920, 1080, 1920 ) );
+    assert( !CPs4GnmDevice::ValidateDisplayRenderTarget(
+        displayStorage, 1920, 1080, 1912 ) );
+    assert( !CPs4GnmDevice::ValidateDisplayRenderTarget(
+        displayStorage, 1920, 1080, 1921 ) );
     uint8_t storage[1024];
     CPs4GnmDevice device;
     assert( !device.Initialize( 0, sizeof( storage ) ) );

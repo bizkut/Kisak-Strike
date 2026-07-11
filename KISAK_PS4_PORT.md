@@ -1197,6 +1197,19 @@ either live diagnostic draw. Marker:
 The v2.76 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `827a1abcc3c7ca4c4be4a480daf7bcc43d45870346021f767a0a179e2cecf32d`.
+
+The v2.76 hardware run retained the spinning cube, navy contrast regions, and
+60 FPS, validating shared non-indexed façade emission. Version 2.77 moves the
+per-frame VideoOut color-target descriptor into
+`CPs4GnmDevice::BuildDisplayRenderTarget`. The device validates initialization,
+non-null 256-byte-aligned scanout memory, nonzero dimensions, pitch at least
+the width, and 8-pixel pitch granularity before creating the fixed PS4 sRGB
+linear target. Host tests cover aligned success and the misalignment,
+undersized-pitch, and invalid-granularity failures. Marker:
+`kisak-ps4: build marker facade_display_target_v277`.
+The v2.77 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`02c4af59006b3855e28a8217e56a8d4531c4ae54129defab87b7eee00150e954`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
