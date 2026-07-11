@@ -1176,7 +1176,7 @@ void BaseSlot::Init( const char* movieName, int slot )
 		{
 			platformCode.SetNumber( 1 );
 		}
-		else if ( IsPS3() || SFINST.GetForcePS3() )
+		else if ( IsPS3() || IsPS4() || SFINST.GetForcePS3() )
 		{
 			platformCode.SetNumber( 2 );
 		}
@@ -1578,5 +1578,4 @@ void CursorSlot::Show( void )
 		m_GlobalValue.Invoke( "Show", NULL );
 	}
 }
-
 

@@ -102,7 +102,14 @@ void ScaleformUIImpl::ClearMembers( void )
 	m_pShaderAPI = NULL;
 
 	m_bPumpScaleformStats = false;
+#if defined( PLATFORM_PS4 )
+	// Use the Sony console presentation and controller glyph conventions only
+	// inside Scaleform. IsGameConsole() remains false for the PS4 engine because
+	// its legacy console path assumes PS3/Xbox content and platform behavior.
+	m_bForcePS3 = true;
+#else
 	m_bForcePS3 = false;
+#endif
 	m_bDenyAllInputToGame = false;
 
 	m_pRenderHAL.Clear();

@@ -787,33 +787,43 @@ continue to report `IsPC() == 1` and `IsGameConsole() == 0` so it can consume
 Kisak's little-endian PC VPK/VTF/BSP content. PS4-specific code uses `IsPS4()`;
 controller-first UI behavior uses the new `IsConsoleUI()` predicate.
 
-Scaleform is not the PS4 UI backend. The checked-in `scaleformui` integration
-depends on the unavailable proprietary GFx runtime and its `.gfx`/`.swf`
-movie pipeline. Forcing PS4 through `IsPS3()` or `m_bForcePS3` would select
-Sony-style prompts inside Scaleform but would neither provide that runtime nor
-make the rest of the PS3 paths valid. PS4 builds therefore keep
-`INCLUDE_SCALEFORM` disabled and select `INCLUDE_ROCKETUI`.
+Scaleform 4.2 source is available as the external sibling tree
+`../scaleform_sdk`. It contains the AS2/GFx player, render core, D3D9 HAL, and
+partial `SF_OS_ORBIS` platform accommodations. The legally supplied content at
+`/Volumes/Untitled/CSGO/csgo/resource/flash` contains the authentic menu, HUD,
+loading, font, `.gfx`, and `.swf` assets. Neither external tree is committed or
+redistributed by Kisak.
 
-RocketUI/RmlUi is the open-source console UI target, but the current PS4
-`CPs4RocketUIBootstrap` is deliberately only an interface/lifecycle stub: it
-returns no contexts or documents and performs no input or rendering. Replace
-it in these bounded steps:
+Scaleform is therefore the preferred compatibility UI for the PS4 port.
+PS4 forces the Sony/PS3 presentation mode only inside `scaleformui` so the
+movies receive platform code 2 and Sony controller conventions. It must not
+change global `IsGameConsole()` or route engine/content code through PS3.
+RocketUI remains the open-source fallback and development diagnostic UI.
 
-1. Link the real `RocketUIImpl`, RmlUi core, filesystem, system interface, and
-   existing CS:GO RocketUI menu/HUD classes into the monolithic registry.
-2. Add a `RocketRenderGnm` implementation of `Rml::RenderInterface` backed by
-   `CPs4GnmDevice`; do not compile `rocketrenderGL.cpp` or link ToGL/OpenGL.
-3. Load `.rml`, `.rcss`, fonts, and textures through the normal `GAME` search
-   path layered over `/app0` and `/data/kisak-strike`, with 1080p safe-area and
-   UI-scale handling.
-4. Feed `libScePad` events into Source `InputEvent_t`, then into RocketUI.
-   Implement D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
-   disconnect/reconnect, and last-input-device prompt switching.
-5. Migrate only required menu/loading/HUD surfaces. Missing documents or
-   renderer resources must show a diagnostic screen and log the resource,
-   never silently fall back to the no-op bootstrap.
+Bring up Scaleform in these bounded steps:
 
-The console UI exit gate is a real RocketUI main menu rendered through
+1. Add an optional `KISAK_SCALEFORM_SDK_ROOT` external build input and compile
+   the required Kernel, Render, GFx/AS2, image, and font components as static
+   libraries for OpenOrbis. Never copy SDK source or binaries into Kisak.
+2. Start from Scaleform's D3D9 HAL because Kisak already exposes the D3D9
+   object model. Audit every required device call and replace its embedded
+   D3D9 shader binaries with PS4 `.sb` shaders generated through the existing
+   SPIR-V/`opengnm-psbc` pipeline. If that adapter becomes more complex than a
+   native backend, implement `Render::GNM::HAL` against the shared Scaleform
+   render core instead.
+3. Link `scaleformui` statically, register `SCALEFORMUI_INTERFACE_VERSION`, and
+   select `INCLUDE_SCALEFORM` for the PS4 monolithic engine/client. Keep the
+   no-op RocketUI bootstrap available only until Scaleform initialization and
+   the visible diagnostic movie pass on hardware.
+4. Mount the supplied `resource/flash` assets through the normal `GAME` search
+   path rather than packaging or committing them. Validate `fontlib.gfx`,
+   `gameuirootmovie.gfx`, `mainmenu.gfx`, `pausemenu.gfx`, and one HUD movie in
+   that order.
+5. Feed `libScePad` events into Source `InputEvent_t` and then Scaleform.
+   Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
+   disconnect/reconnect, and Sony button glyphs.
+
+The console UI exit gate is the authentic Scaleform main menu rendered through
 OpenGNM and navigable using only a DualShock 4. It does not require changing
 the global engine meaning of `IsGameConsole()`.
 
