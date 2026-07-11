@@ -25,7 +25,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <math.h>
-#include <time.h>
 
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 extern "C" int sceKernelUsleep( unsigned int microseconds );
@@ -126,18 +125,15 @@ void UpdateReferenceCubeMvp()
 {
     if ( !g_ReferenceCubeMvp )
         return;
-    static bool clockReady = false;
-    static timespec startTime = {};
-    timespec now = {};
-    if ( clock_gettime( CLOCK_MONOTONIC, &now ) != 0 )
-        return;
-    if ( !clockReady )
-    {
+    static uint64_t startTime = 0;
+    static uint64_t updateCount = 0;
+    const uint64_t now = sceKernelGetProcessTime();
+    if ( !startTime )
         startTime = now;
-        clockReady = true;
-    }
-    const float seconds = static_cast< float >( now.tv_sec - startTime.tv_sec ) +
-        static_cast< float >( now.tv_nsec - startTime.tv_nsec ) * 0.000000001f;
+    ++updateCount;
+    const float seconds = now > startTime || updateCount == 1
+        ? static_cast< float >( now - startTime ) * 0.000001f
+        : static_cast< float >( updateCount - 1 ) * ( 1.0f / 60.0f );
     const float xAngle = seconds * 0.261799388f;
     const float yAngle = seconds * 1.047197551f;
     const float sinX = sinf( xAngle );
@@ -153,6 +149,16 @@ void UpdateReferenceCubeMvp()
     float rotation[16];
     MultiplyMatrices( rotationY, rotationX, rotation );
     MultiplyMatrices( kReferenceCubeBaseMvp, rotation, g_ReferenceCubeMvp );
+    if ( updateCount == 1 || updateCount == 120 )
+    {
+        char message[160];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: reference cube MVP update=%llu time_us=%llu m00=%.4f m02=%.4f",
+            static_cast< unsigned long long >( updateCount ),
+            static_cast< unsigned long long >( now >= startTime ? now - startTime : 0 ),
+            g_ReferenceCubeMvp[0], g_ReferenceCubeMvp[8] );
+        KisakPs4StartupBreadcrumb( message );
+    }
 }
 
 void LogResult( const char *stage, int result )

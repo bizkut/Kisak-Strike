@@ -1085,6 +1085,19 @@ speed independent of the observed 58-62 FPS presentation variation. Marker:
 The v2.67 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `5ade8cf52a7c0ca4852f444b5b3b76b39576128b5470e7e50ef669ba70a07332`.
+
+The v2.67 hardware image remained identical to the fixed v2.66 cube: the MVP
+update never reached a changing value. The reference example writes the same
+garlic constant allocation without a cache flush, isolating the difference to
+Kisak's generic POSIX clock path, which silently retained the base matrix when
+`clock_gettime` failed. Version 2.68 uses OpenOrbis
+`sceKernelGetProcessTime()` directly, retains a deterministic 60 Hz fallback
+if the native counter is unavailable, and logs MVP updates 1 and 120 with
+elapsed microseconds and two changing matrix elements. Marker:
+`kisak-ps4: build marker native_timer_cube_v268`.
+The v2.68 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`f30efe5d7a46bec04a4125bc6ddd2770aaad75badf607aeaf8e8333f8c379292`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
