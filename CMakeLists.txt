@@ -49,6 +49,10 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_subdirectory(ivp/ivp_compact_builder)
     add_subdirectory(ivp/ivp_physics)
     add_subdirectory(vphysics)
+    add_subdirectory(bitmap)
+    add_subdirectory(vtf)
+    add_subdirectory(materialsystem/shaderlib)
+    add_subdirectory(materialsystem)
     add_subdirectory(appframework)
     add_subdirectory(launcher)
 
@@ -95,6 +99,11 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         tier1_client
         inputsystem_client
         kisakvphysics_client
+        materialsystem_client
+        shaderlib_client
+        vtf_client
+        bitmap_client
+        bitmap_byteswap_client
         havana_constraints
         ivp_compactbuilder
         ivp_physics

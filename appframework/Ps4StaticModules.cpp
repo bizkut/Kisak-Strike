@@ -44,5 +44,6 @@ extern "C" int KisakRegisterStaticModules()
     const bool engine = RegisterStaticModule( "engine", KisakEngineBootstrapFactory() );
     const bool inputsystem = RegisterStaticModule( "inputsystem", KisakInputSystemFactory() );
     const bool vphysics = RegisterStaticModule( "kisakvphysics", KisakVPhysicsFactory() );
-    return tier0 && vstdlib && launcher && filesystem && engine && inputsystem && vphysics ? 0 : -1;
+    const bool materialsystem = RegisterStaticModule( "materialsystem", KisakMaterialSystemFactory() );
+    return tier0 && vstdlib && launcher && filesystem && engine && inputsystem && vphysics && materialsystem ? 0 : -1;
 }

@@ -198,7 +198,11 @@ IMaterialSystemInternal *g_pInternalMaterialSystem = &g_MaterialSystem;
 #ifndef _PS3
 IShaderUtil *g_pShaderUtil = &g_MaterialSystem;
 #endif
-IVJobs * g_pVJobs = NULL;
+#if defined( PLATFORM_PS4 )
+extern IVJobs *g_pVJobs;
+#else
+IVJobs *g_pVJobs = NULL;
+#endif
 
 #if defined( USE_SDL ) || defined( OSX )
 
@@ -622,6 +626,13 @@ void CMaterialSystem::CleanUpErrorMaterial()
 	IMaterialInternal::DestroyMaterial( pErrorMaterial );
 }
 
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakMaterialSystemFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Constructor
 //-----------------------------------------------------------------------------
@@ -833,6 +844,10 @@ bool CMaterialSystem::Connect( CreateInterfaceFn factory )
 		return false;
 
 #elif defined(_WIN32)
+
+#elif defined( PLATFORM_PS4 )
+	// The OpenGNM ShaderAPI supplies hardware configuration during renderer
+	// initialization; there is no desktop launcher-manager dependency on PS4.
 
 #else
 

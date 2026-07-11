@@ -1984,6 +1984,11 @@ bool ThreadInterlockedAssignIf( Ps4InterlockedInt_t volatile *pDest, Ps4Interloc
 
 #if !defined( USE_INTRINSIC_INTERLOCKED ) 
 
+void *ThreadInterlockedExchangePointer( void * volatile *pDest, void *value )
+{
+	return __sync_lock_test_and_set( pDest, value );
+}
+
 void *ThreadInterlockedCompareExchangePointer( void *volatile *pDest, void *value, void *comperand )
 {	
 	return  __sync_val_compare_and_swap( pDest, comperand, value );
