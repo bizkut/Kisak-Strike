@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.83
-SHA-256: a0c522dac381dda8c4c0c6ab1e159d66dd378c7e2a037c47af42e840c6d4d1aa
+Version: 1.84
+SHA-256: 6818d679b6b0558fea42823374ee3828a5ae29ae2d05c9909445baf866faa28d
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -132,6 +132,15 @@ EOP ordering, scanout, and lifetime reuse are therefore validated, but color
 interpretation is not. Before introducing the clear shader, emit distinct
 primary-color regions to verify A8B8G8R8 byte order, pitch, and linear VideoOut
 layout on hardware.
+
+Version 1.84 replaces the ambiguous uniform fill with four equal horizontal
+GPU-filled regions. The intended top-to-bottom order is red, green, blue, and
+white under the documented A8B8G8R8 little-endian layout. All four fills share
+one command buffer and one EOP completion label per frame. The CPU fallback and
+bounded failure behavior remain unchanged. Expected success marker:
+`GPU VideoOut RGBA bars and EOP passed`. Correct bands validate byte order,
+pitch, and linear scanout; swapped colors isolate channel order, while broken
+boundaries indicate a pitch or layout mismatch.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

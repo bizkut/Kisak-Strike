@@ -186,6 +186,57 @@ extern "C" bool KisakPs4GnmFillAndWait( void *destination, uint32_t size, uint32
     return true;
 }
 
+extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
+{
+    if ( !g_Mapped || !destination || size < 16 || ( size & 15 ) ||
+        !g_Device.BeginFrame( g_CompletedLabel ) )
+        return false;
+
+    void *commandMemory = g_Device.FrameArena().Allocate( kCommandBufferSize, 256 );
+    volatile uint64_t *eopLabel = static_cast< volatile uint64_t * >(
+        g_Device.FrameArena().Allocate( sizeof( uint64_t ), 8 ) );
+    if ( !commandMemory || !eopLabel )
+    {
+        g_Device.CancelFrame();
+        return false;
+    }
+
+    const uint32_t bandSize = size / 4;
+    const uint32_t colors[4] = {
+        0xff0000ff, // red in little-endian A8B8G8R8 memory
+        0xff00ff00, // green
+        0xffff0000, // blue
+        0xffffffff  // white
+    };
+    GnmCommandBuffer command = sceGnmCmdInit( commandMemory, kCommandBufferSize, 0, 0 );
+    for ( unsigned int band = 0; band < 4; ++band )
+    {
+        const uintptr_t address = reinterpret_cast< uintptr_t >( destination ) + band * bandSize;
+        if ( !sceGnmDrawCmdFillMemory( &command, address, bandSize, colors[band] ) )
+        {
+            g_Device.CancelFrame();
+            return false;
+        }
+    }
+
+    const uint64_t submittedLabel = g_Device.SubmittedLabel() + 1;
+    *eopLabel = 0;
+    sceGnmDrawCmdEventWriteEop( &command, GNM_CACHE_FLUSH_AND_INV_TS_EVENT,
+        (uint64_t)(uintptr_t)eopLabel, GNM_DATA_SEL_SEND_DATA64, submittedLabel );
+    void *dcbAddresses[1] = { command.beginptr };
+    uint32_t dcbSizes[1] = {
+        static_cast< uint32_t >( reinterpret_cast< uintptr_t >( command.cmdptr ) -
+            reinterpret_cast< uintptr_t >( command.beginptr ) )
+    };
+    if ( sceGnmSubmitCommandBuffers( 1, dcbAddresses, dcbSizes, 0, 0 ) < 0 ||
+        sceGnmSubmitDone() < 0 )
+        return false;
+    if ( g_Device.EndFrame() != submittedLabel || !WaitForLabel( eopLabel, submittedLabel ) )
+        return false;
+    g_CompletedLabel = submittedLabel;
+    return true;
+}
+
 extern "C" void KisakPs4GnmSubmissionShutdown()
 {
     if ( !g_Mapped )
