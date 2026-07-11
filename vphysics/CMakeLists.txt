@@ -29,6 +29,9 @@ add_definitions(-DVPHYSICS_EXPORTS -DHAVANA_CONSTRAINTS -DHAVOK_MOPP)
 if( LINUXALL )
     target_compile_options(${OUTBINNAME} PRIVATE -fpic -fno-semantic-interposition)
 endif()
+if( ORBIS )
+    target_compile_options(${OUTBINNAME} PRIVATE -Wno-c++11-narrowing)
+endif()
 
 #Source files
 target_sources(${OUTBINNAME} PRIVATE "convert.cpp")

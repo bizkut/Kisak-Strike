@@ -27,7 +27,7 @@ inline hk_real hk_Math::floor( hk_real r ) { return hk_real(::floor(r)); }
 inline hk_real hk_Math::ceil( hk_real r) { return hk_real(::ceil(r)); }
 inline hk_real hk_Math::pow( hk_real r, hk_real p) { return hk_real(::pow(r,p)); }
 
-#elif _LINUX
+#elif defined(_LINUX) || defined(PLATFORM_PS4)
 
 //lwss - haha, these were infinitely recursing for some reason. Adding f postfix to the function names.
 inline hk_double hk_Math::fabsd( hk_double r ) { return hk_double(fabs(r)); }

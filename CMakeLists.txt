@@ -43,6 +43,12 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_subdirectory(vpklib)
     add_subdirectory(filesystem)
     add_subdirectory(inputsystem)
+    add_subdirectory(ivp/havana/havok/hk_base)
+    add_subdirectory(ivp/havana/havok/hk_math)
+    add_subdirectory(ivp/havana/havok/hk_physics/constraint)
+    add_subdirectory(ivp/ivp_compact_builder)
+    add_subdirectory(ivp/ivp_physics)
+    add_subdirectory(vphysics)
     add_subdirectory(appframework)
     add_subdirectory(launcher)
 
@@ -88,6 +94,12 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         tier2_client
         tier1_client
         inputsystem_client
+        kisakvphysics_client
+        havana_constraints
+        ivp_compactbuilder
+        ivp_physics
+        hk_math
+        hk_base
         mathlib_client
         filesystem_stdio_client
         vpklib_client

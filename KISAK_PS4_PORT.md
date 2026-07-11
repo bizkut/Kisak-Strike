@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.39
-SHA-256: 59e3af0bed7bd51b433dd1aa45405c43215cf0c6ec4e3e8745375130a75c692a
+Version: 1.40
+SHA-256: 5998582086112be8aa2a57f180b57bfa0ec4db072a4c803bc964d5c8812030be
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -344,6 +344,18 @@ monolith, anchors `InputSystemVersion001` in the static registry, and excludes
 the desktop Steam Controller implementation and proprietary Steam API link.
 DualShock 4 device sampling remains a later `libScePad` backend unit.
 
+The v1.39 hardware run remained stable and completed the entire launcher,
+filesystem worker-pool shutdown, application cleanup, and `LauncherMain`
+return path without a crash. This validates the input-system checkpoint and
+isolates the next application-group dependency to the physics/material-system
+sequence.
+
+Version 1.40 links Kisak's open IVP/Havana physics implementation and registers
+the `kisakvphysics` factory in the static module table. The PS4 build carries
+the existing IVP SDK/Havana feature configuration, adds the x86-64
+little-endian IEEE helper path, exposes `alloca`, and enables the portable
+Havok math wrappers without defining the whole target as Linux.
+
 Reproduce the current cross-build with:
 
 ```sh
@@ -369,9 +381,9 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
    The executable links, enables `KISAK_PS4_MONOLITHIC`, registers factories,
    and calls `LauncherMain(argc, argv)` without `dlopen`. Hardware validation
    of the first launcher boundary is next.
-5. **Engine initialization — pending.**
-   Expand static registration to filesystem, input, material system, engine,
-   client, server, physics, and UI modules.
+5. **Engine initialization — in progress.**
+   Filesystem, input, and Kisak physics are linked and statically registered.
+   Material system, full engine, client, server, and UI modules remain.
 6. **Content filesystem — pending.**
    Layer `/app0` and `/data/kisak-strike` VPK/search paths using little-endian
    Kisak/PC content.

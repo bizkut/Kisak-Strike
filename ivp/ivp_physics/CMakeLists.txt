@@ -22,6 +22,9 @@ if( LINUXALL )
     #TODO: pretty sure the valve guy made a typo here, it's supposed to be MAVOK_MOPP
     add_definitions(-D_LIB -DIVP_VERSION_SDK -DHAVANA_CONSTRAINTS -DHAVOK_MOOP -DLINUX)
 endif()
+if( ORBIS )
+    target_compile_definitions(${OUTLIBNAME} PRIVATE _LIB IVP_VERSION_SDK HAVANA_CONSTRAINTS HAVOK_MOOP)
+endif()
 
 #IVP_PHYSICS_SRC_DIR
 target_sources(${OUTLIBNAME} PRIVATE ../ivp_collision/ivp_3d_solver.cxx)

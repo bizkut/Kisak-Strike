@@ -9,6 +9,7 @@ CreateInterfaceFn KisakLauncherFactory();
 CreateInterfaceFn KisakFilesystemFactory();
 CreateInterfaceFn KisakEngineBootstrapFactory();
 CreateInterfaceFn KisakInputSystemFactory();
+CreateInterfaceFn KisakVPhysicsFactory();
 
 extern "C" int KisakRegisterStaticModules();
 

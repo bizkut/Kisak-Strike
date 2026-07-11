@@ -20,6 +20,9 @@ if( LINUXALL )
     #TODO: pretty sure the valve guy made a typo here, it's supposed to be HAVOK_MOPP
     add_definitions(-D_LIB -DIVP_VERSION_SDK -DHAVOK_MOOP -DLINUX)
 endif()
+if( ORBIS )
+    target_compile_definitions(${OUTLIBNAME} PRIVATE _LIB IVP_VERSION_SDK HAVOK_MOOP)
+endif()
 
 #target_sources(${OUTLIBNAME} PRIVATE 3dsimport_co.cxx)
 #target_sources(${OUTLIBNAME} PRIVATE 3dsimport_load.cxx)

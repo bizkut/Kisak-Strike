@@ -5,6 +5,10 @@
 #ifndef _IVP_U_TYPES_INCLUDED
 #define _IVP_U_TYPES_INCLUDED
 
+#if defined(PLATFORM_PS4)
+#include <alloca.h>
+#endif
+
 
 #ifdef WIN32
 //#define IVP_PIII			/* set for P3 specific code */
