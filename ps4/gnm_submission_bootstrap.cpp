@@ -2,6 +2,7 @@
 #include "materialsystem/ps4gnm/ps4_gnm_draw_state.h"
 #include "materialsystem/ps4gnm/ps4_gnm_texture.h"
 #include "materialsystem/ps4gnm/ps4_gnm_shader.h"
+#include "materialsystem/ps4gnm/ps4_gnm_shader_handles.h"
 #include "materialsystem/ps4gnm/ps4_shader_manifest.h"
 #include "materialsystem/ps4gnm/shaderapips4.h"
 
@@ -59,6 +60,10 @@ GnmPsShader *g_TexturePixelShader = 0;
 CPs4GnmShader g_VertexShaderResource;
 CPs4GnmShader g_SolidPixelShaderResource;
 CPs4GnmShader g_TexturePixelShaderResource;
+CPs4GnmShaderHandleTable g_ShaderHandles;
+Ps4GnmShaderHandle g_VertexShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
+Ps4GnmShaderHandle g_SolidPixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
+Ps4GnmShaderHandle g_TexturePixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 void *g_FetchShader = 0;
 GnmBuffer *g_VertexBuffers = 0;
 GnmDepthRenderTarget g_DepthTarget = {};
@@ -256,18 +261,38 @@ bool LoadDiagnosticShaders()
             free( fileData );
             return false;
         }
+        const Ps4GnmShaderHandleStage handleStage = shader == 0
+            ? PS4_GNM_SHADER_HANDLE_VERTEX : PS4_GNM_SHADER_HANDLE_PIXEL;
+        const Ps4GnmShaderHandle handle = g_ShaderHandles.Register( &resource, handleStage );
+        CPs4GnmShader *resolved = g_ShaderHandles.Resolve( handle, handleStage );
+        if ( !handle || !resolved )
+        {
+            snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+                "shader handle failed stage=%u", shader );
+            free( fileData );
+            return false;
+        }
         if ( shader == 0 )
-            g_VertexShader = resource.VertexShader();
+        {
+            g_VertexShaderHandle = handle;
+            g_VertexShader = resolved->VertexShader();
+        }
         else if ( shader == 1 )
-            g_PixelShader = resource.PixelShader();
+        {
+            g_SolidPixelShaderHandle = handle;
+            g_PixelShader = resolved->PixelShader();
+        }
         else
-            g_TexturePixelShader = resource.PixelShader();
+        {
+            g_TexturePixelShaderHandle = handle;
+            g_TexturePixelShader = resolved->PixelShader();
+        }
         const char *role = shader == 0 ? "vertex"
             : ( shader == 1 ? "solid_pixel" : "texture_pixel" );
         char message[112];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: native GNM shader resource role=%s codebytes=%u",
-            role, resource.CodeSize() );
+            "kisak-ps4: native GNM shader resource role=%s handle=0x%x codebytes=%u",
+            role, handle, resource.CodeSize() );
         KisakPs4StartupBreadcrumb( message );
         gpuCursor += resource.CodeSize();
         free( fileData );

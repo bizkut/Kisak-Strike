@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.45
-SHA-256: 1fa7add24c0c8b446034b9504588173c29c6c4d51e9b9ef92d596870c515ab2b
+Version: 2.46
+SHA-256: 51284bca97a1967c91430e3a0c6510335265d3e404d5545d6df5f18e9e660894
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -765,6 +765,14 @@ register idempotently, reject capacity exhaustion, and invalidate stale handles
 after destruction and slot reuse. Host tests cover stage mismatch, idempotence,
 destruction, generation advancement, and stale-handle rejection. Runtime
 resource registration follows after this table-only no-regression gate.
+
+The v2.45 hardware run validated the handle-table foundation with all three
+shader resources and the opaque orange triangle stable at 60 FPS. Version 2.46
+registers those live resources in the table, stores their generation-checked
+handles, resolves each resource with the required vertex/pixel stage, and takes
+the stage pointer used by fetch construction and draw-state binding only from
+that resolved resource. Runtime resource breadcrumbs now include each handle;
+registration or typed resolution failure retains the visible fallback.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
