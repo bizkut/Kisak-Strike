@@ -18,5 +18,6 @@ target_sources(${OUTBINNAME} PRIVATE
     ps4_gnm_device.cpp
     ps4_gnm_draw_state.cpp
     ps4_gnm_memory.cpp
+    ps4_gnm_texture.cpp
     shaderapips4.cpp
 )

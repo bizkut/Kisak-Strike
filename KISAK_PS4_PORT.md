@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.07
-SHA-256: 2898908ff29ccc496e32830fd765fc162aa05eb54a3dfec83cd8e68808d267cf
+Version: 2.08
+SHA-256: c8ab6faabca192fb979ca7c8d93a2bbb5b4ddf3836e93f7764980ac8254c4ff1
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -395,6 +395,16 @@ triangle at viewport depth 0.25, then submits the same triangle at depth 0.75.
 `LESS_EQUAL` must reject the second draw against the first draw's Z writes. The
 center pixel should remain the single-blend value `0x80bc89bc`; a changed value
 means the farther draw leaked through and isolates depth comparison/write state.
+
+The v2.07 center pixel remained `0x80bc89bc`, proving the farther half-alpha
+draw was rejected and completing the initial depth occlusion gate. Version 2.08
+adds `CPs4GnmTexture`, which owns a GNM texture descriptor plus aligned backing
+range, size, and alignment bookkeeping without owning the surrounding pool. It
+validates dimensions and mip count, queries layout before allocation, aligns
+within the supplied persistent range, and resets atomically on failure. Startup
+uses it to create a persistent 4x4 linear RGBA checker resource after the depth
+allocation and reports its byte size. Sampling is the next hardware gate;
+v2.08 should preserve the existing image.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

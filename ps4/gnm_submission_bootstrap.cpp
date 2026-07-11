@@ -1,5 +1,6 @@
 #include "materialsystem/ps4gnm/ps4_gnm_device.h"
 #include "materialsystem/ps4gnm/ps4_gnm_draw_state.h"
+#include "materialsystem/ps4gnm/ps4_gnm_texture.h"
 
 #include <gnm_commandbuffer.h>
 #include <gnm_controls.h>
@@ -59,6 +60,7 @@ GnmDepthRenderTarget g_DepthTarget = {};
 bool g_DepthTargetReady = false;
 void *g_DepthMemory = 0;
 uint32_t g_DepthMemorySize = 0;
+CPs4GnmTexture g_DiagnosticTexture;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 char g_ShaderDiagnostic[160] = "not attempted";
@@ -276,11 +278,27 @@ bool LoadDiagnosticShaders()
     g_DepthTargetReady = true;
     g_DepthMemory = gpuCursor;
     g_DepthMemorySize = static_cast< uint32_t >( depthSize );
+    gpuCursor += depthSize;
+    if ( !g_DiagnosticTexture.Initialize2D( gpuCursor,
+        static_cast< size_t >( gpuEnd - gpuCursor ), GNM_FMT_R8G8B8A8_UNORM,
+        4, 4, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "diagnostic texture allocation failed" );
+        return false;
+    }
+    const uint32_t textureColors[4] = {
+        0xff0000ff, 0xff00ff00, 0xffff0000, 0xffffffff
+    };
+    uint32_t *textureData = static_cast< uint32_t * >( g_DiagnosticTexture.Data() );
+    for ( unsigned int pixel = 0; pixel < 16; ++pixel )
+        textureData[pixel] = textureColors[( pixel / 4 + pixel ) & 3];
     snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
-        "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u depthbytes=%llu",
+        "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u depthbytes=%llu texturebytes=%llu",
         g_VertexShader->common.shadersize, g_PixelShader->common.shadersize,
         fetchSize, g_VertexShader->numinputsemantics,
-        static_cast< unsigned long long >( depthSize ) );
+        static_cast< unsigned long long >( depthSize ),
+        static_cast< unsigned long long >( g_DiagnosticTexture.Size() ) );
     return true;
 }
 
