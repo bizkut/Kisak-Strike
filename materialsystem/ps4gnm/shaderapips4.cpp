@@ -1,6 +1,8 @@
 #include "interface.h"
 #include "shaderapi/IShaderDevice.h"
 #include "shaderapi/ishadershadow.h"
+#include "ps4_gnm_draw_state.h"
+#include "ps4_shadow_state_translate.h"
 
 #include <string.h>
 
@@ -223,32 +225,33 @@ class CShaderShadowPs4 : public IShaderShadow
 public:
     typedef CPs4SourceShadowState CPs4GnmDrawState;
 
-    CShaderShadowPs4() : m_delegate( 0 ) {}
+    CShaderShadowPs4() : m_delegate( 0 ) { SyncNativeState(); }
     void SetDelegate( IShaderShadow *delegate ) { m_delegate = delegate; }
+    ::CPs4GnmDrawState &NativeDrawState() { return m_nativeState; }
 
-    void SetDefaultState() { m_state.Reset(); if ( m_delegate ) m_delegate->SetDefaultState(); }
+    void SetDefaultState() { m_state.Reset(); SyncNativeState(); if ( m_delegate ) m_delegate->SetDefaultState(); }
     void DepthFunc( ShaderDepthFunc_t function )
-    { m_state.depthFunction = function; m_state.dirty |= CPs4GnmDrawState::DIRTY_DEPTH; if ( m_delegate ) m_delegate->DepthFunc( function ); }
+    { m_state.depthFunction = function; m_state.dirty |= CPs4GnmDrawState::DIRTY_DEPTH; SyncDepthState(); if ( m_delegate ) m_delegate->DepthFunc( function ); }
     void EnableDepthWrites( bool enable )
-    { m_state.depthWrites = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_DEPTH; if ( m_delegate ) m_delegate->EnableDepthWrites( enable ); }
+    { m_state.depthWrites = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_DEPTH; SyncDepthState(); if ( m_delegate ) m_delegate->EnableDepthWrites( enable ); }
     void EnableDepthTest( bool enable )
-    { m_state.depthTest = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_DEPTH; if ( m_delegate ) m_delegate->EnableDepthTest( enable ); }
+    { m_state.depthTest = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_DEPTH; SyncDepthState(); if ( m_delegate ) m_delegate->EnableDepthTest( enable ); }
     void EnablePolyOffset( PolygonOffsetMode_t mode )
-    { m_state.polygonOffset = mode; m_state.dirty |= CPs4GnmDrawState::DIRTY_RASTER; if ( m_delegate ) m_delegate->EnablePolyOffset( mode ); }
+    { m_state.polygonOffset = mode; m_state.dirty |= CPs4GnmDrawState::DIRTY_RASTER; SyncRasterState(); if ( m_delegate ) m_delegate->EnablePolyOffset( mode ); }
     void EnableColorWrites( bool enable )
-    { m_state.colorWrites = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_COLOR; if ( m_delegate ) m_delegate->EnableColorWrites( enable ); }
+    { m_state.colorWrites = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_COLOR; SyncColorState(); if ( m_delegate ) m_delegate->EnableColorWrites( enable ); }
     void EnableAlphaWrites( bool enable )
-    { m_state.alphaWrites = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_COLOR; if ( m_delegate ) m_delegate->EnableAlphaWrites( enable ); }
+    { m_state.alphaWrites = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_COLOR; SyncColorState(); if ( m_delegate ) m_delegate->EnableAlphaWrites( enable ); }
     void EnableBlending( bool enable )
-    { m_state.blending = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->EnableBlending( enable ); }
+    { m_state.blending = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; SyncBlendState(); if ( m_delegate ) m_delegate->EnableBlending( enable ); }
     void EnableBlendingForceOpaque( bool enable )
-    { m_state.forceOpaque = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->EnableBlendingForceOpaque( enable ); }
+    { m_state.forceOpaque = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; SyncBlendState(); if ( m_delegate ) m_delegate->EnableBlendingForceOpaque( enable ); }
     void BlendFunc( ShaderBlendFactor_t source, ShaderBlendFactor_t destination )
-    { m_state.sourceBlend = source; m_state.destinationBlend = destination; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->BlendFunc( source, destination ); }
+    { m_state.sourceBlend = source; m_state.destinationBlend = destination; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; SyncBlendState(); if ( m_delegate ) m_delegate->BlendFunc( source, destination ); }
     void EnableBlendingSeparateAlpha( bool enable )
-    { m_state.separateAlphaBlend = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->EnableBlendingSeparateAlpha( enable ); }
+    { m_state.separateAlphaBlend = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; SyncBlendState(); if ( m_delegate ) m_delegate->EnableBlendingSeparateAlpha( enable ); }
     void BlendFuncSeparateAlpha( ShaderBlendFactor_t source, ShaderBlendFactor_t destination )
-    { m_state.sourceAlphaBlend = source; m_state.destinationAlphaBlend = destination; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->BlendFuncSeparateAlpha( source, destination ); }
+    { m_state.sourceAlphaBlend = source; m_state.destinationAlphaBlend = destination; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; SyncBlendState(); if ( m_delegate ) m_delegate->BlendFuncSeparateAlpha( source, destination ); }
     void EnableAlphaTest( bool enable )
     { m_state.alphaTest = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->EnableAlphaTest( enable ); }
     void AlphaFunc( ShaderAlphaFunc_t function, float reference )
@@ -256,7 +259,7 @@ public:
     void PolyMode( ShaderPolyModeFace_t face, ShaderPolyMode_t mode )
     { if ( m_delegate ) m_delegate->PolyMode( face, mode ); }
     void EnableCulling( bool enable )
-    { m_state.culling = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_RASTER; if ( m_delegate ) m_delegate->EnableCulling( enable ); }
+    { m_state.culling = enable; m_state.dirty |= CPs4GnmDrawState::DIRTY_RASTER; SyncRasterState(); if ( m_delegate ) m_delegate->EnableCulling( enable ); }
     void VertexShaderVertexFormat( unsigned int flags, int texCoordCount, int *texCoordDimensions,
                                    int userDataSize )
     { m_state.vertexFormatFlags = flags; m_state.textureCoordinateCount = texCoordCount; m_state.vertexUserDataSize = userDataSize; m_state.dirty |= CPs4GnmDrawState::DIRTY_SHADER; if ( m_delegate ) m_delegate->VertexShaderVertexFormat( flags, texCoordCount, texCoordDimensions, userDataSize ); }
@@ -279,13 +282,44 @@ public:
     void EnableVertexTexture( VertexTextureSampler_t sampler, bool enable )
     { SetMaskBit( m_state.vertexTextureEnableMask, static_cast< int >( sampler ), enable ); m_state.dirty |= CPs4GnmDrawState::DIRTY_TEXTURE; if ( m_delegate ) m_delegate->EnableVertexTexture( sampler, enable ); }
     void BlendOp( ShaderBlendOp_t operation )
-    { m_state.blendOperation = operation; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->BlendOp( operation ); }
+    { m_state.blendOperation = operation; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; SyncBlendState(); if ( m_delegate ) m_delegate->BlendOp( operation ); }
     void BlendOpSeparateAlpha( ShaderBlendOp_t operation )
-    { m_state.alphaBlendOperation = operation; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; if ( m_delegate ) m_delegate->BlendOpSeparateAlpha( operation ); }
+    { m_state.alphaBlendOperation = operation; m_state.dirty |= CPs4GnmDrawState::DIRTY_BLEND; SyncBlendState(); if ( m_delegate ) m_delegate->BlendOpSeparateAlpha( operation ); }
     float GetLightMapScaleFactor() const
     { return m_delegate ? m_delegate->GetLightMapScaleFactor() : 1.0f; }
 
 private:
+    void SyncDepthState()
+    {
+        m_nativeState.SetDepthStencilControl( Ps4BuildDepthStencilControl(
+            m_state.depthTest, m_state.depthWrites, m_state.depthFunction ) );
+    }
+    void SyncBlendState()
+    {
+        m_nativeState.SetBlendControl( 0, Ps4BuildBlendControl(
+            m_state.blending,
+            m_state.sourceBlend, m_state.destinationBlend, m_state.blendOperation,
+            m_state.separateAlphaBlend, m_state.sourceAlphaBlend,
+            m_state.destinationAlphaBlend, m_state.alphaBlendOperation ) );
+    }
+    void SyncColorState()
+    {
+        m_nativeState.SetRenderTargetMask( Ps4BuildRenderTargetMask(
+            m_state.colorWrites, m_state.alphaWrites ) );
+    }
+    void SyncRasterState()
+    {
+        m_nativeState.SetPrimitiveSetup( Ps4BuildPrimitiveSetup(
+            m_state.culling, m_state.polygonOffset ) );
+    }
+    void SyncNativeState()
+    {
+        SyncDepthState();
+        SyncBlendState();
+        SyncColorState();
+        SyncRasterState();
+    }
+
     static void SetMaskBit( uint32 &mask, int index, bool enable )
     {
         if ( index < 0 || index >= 32 )
@@ -296,6 +330,7 @@ private:
 
     IShaderShadow *m_delegate;
     CPs4SourceShadowState m_state;
+    ::CPs4GnmDrawState m_nativeState;
 };
 
 CShaderShadowPs4 g_ShaderShadowPs4;

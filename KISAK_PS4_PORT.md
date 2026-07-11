@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.23
-SHA-256: 9c1fab69f0ea8a6286dbcfa368987755b1a6ae5649ff79cb980c083c3a6bbe37
+Version: 2.24
+SHA-256: 368873d3e40e093a791fbe786f6baca5d60d15bbbe4e1e7159f323840e3476b9
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -582,6 +582,13 @@ operations, color write masks, culling, and polygon offset into OpenGNM control
 structures. Runtime emission is intentionally unchanged for this gate; the
 tested translators are the next input to the existing `CPs4GnmDrawState` PM4
 cache.
+
+The v2.23 hardware run passed at 60 FPS with the opaque orange triangle and
+shader/EOP gate intact. Version 2.24 connects the Source-facing shadow cache to
+the existing native `CPs4GnmDrawState`: depth, blend, render-target write mask,
+culling, and polygon-offset changes now populate the matching OpenGNM controls
+and dirty categories. Submission remains delegated for this gate; the native
+cache is populated but not yet applied by the material-system draw path.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
