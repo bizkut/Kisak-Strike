@@ -105,7 +105,7 @@ public:
     int Run() override
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-		KisakPs4StartupBreadcrumb( "kisak-ps4: build marker deferred_sampler_validation_v239" );
+		KisakPs4StartupBreadcrumb( "kisak-ps4: build marker package_shader_manifest_v240" );
 		IRocketUI *rocketUI = RocketUI();
 		const bool videoOutReady = KisakPs4VideoOutInitialize();
 		KisakPs4GnmSubmissionSelfTest();

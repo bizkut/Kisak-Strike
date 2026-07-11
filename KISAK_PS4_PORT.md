@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.39
-SHA-256: 9836c32ff43e436f7ede8a673dd5da4c556269d46449b155f62fc6b57e33238e
+Version: 2.40
+SHA-256: 77807c9440ac531e0a3bb121d623cb6c875409b36028a0279c73bf6efeb5ccd1
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -717,6 +717,14 @@ samplers remain strict; unresolved bits are accumulated and must fit the actual
 combined table's one-slot mask before the table is accepted. Startup logs
 `native shader sampler binding mask=0x1 source=combined_table` when that concrete
 binding satisfies the manifest. Constants and fragment outputs remain exact.
+
+The v2.39 hardware run logged the concrete combined-table sampler mask `0x1`,
+loaded all three shaders, and restored the opaque orange triangle at 60 FPS.
+Version 2.40 enforces the manifest before PKG creation as well as at runtime.
+Packaging rejects unsupported stages, non-numeric combo/binding fields,
+duplicate full keys, empty manifests, paths outside `/app0`, and any referenced
+shader binary missing from the package tree. The manifest path is overridable
+for packaging tests while the validated diagnostic manifest remains default.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

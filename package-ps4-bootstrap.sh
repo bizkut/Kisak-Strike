@@ -8,7 +8,7 @@ DIAGNOSTIC_SHADER_DIR="${KISAK_PS4_DIAGNOSTIC_SHADER_DIR:-$ROOT_DIR/../freegnm-e
 if [[ "$VARIANT" == "monolithic" ]]; then
     BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
     TITLE="Kisak-Strike PS4 Monolithic"
-    VERSION="2.39"
+    VERSION="2.40"
     TITLE_ID="KISK00002"
     CONTENT_ID="IV0000-KISK00002_00-KISAKMONOLITHIC0"
     EBOOT_INPUT="$BUILD_DIR/kisak_ps4_monolithic.bin"
@@ -46,7 +46,7 @@ PKGTOOL="${PKGTOOL:-$OO_PS4_TOOLCHAIN/bin/macos/PkgTool.Core}"
 RUNTIME_MODULE_DIR="${RUNTIME_MODULE_DIR:-$OO_PS4_TOOLCHAIN/src/modules}"
 ASSET_DIR="${KISAK_PS4_ASSET_DIR:-$ROOT_DIR/../freegnm-examples/videoout-linear/sce_sys}"
 ICON_PATH="${KISAK_PS4_ICON_PATH:-$ROOT_DIR/ps4/sce_sys/icon0.png}"
-SHADER_MANIFEST="$ROOT_DIR/ps4/shaders/kisak_diagnostic.manifest"
+SHADER_MANIFEST="${KISAK_PS4_SHADER_MANIFEST:-$ROOT_DIR/ps4/shaders/kisak_diagnostic.manifest}"
 
 for required in "$CREATE_GP4" "$PKGTOOL" "$RUNTIME_MODULE_DIR/libc.prx" \
     "$RUNTIME_MODULE_DIR/libSceFios2.prx" "$ICON_PATH" \
@@ -82,6 +82,37 @@ if [[ "$VARIANT" == "monolithic" ]]; then
     cp "$DIAGNOSTIC_SHADER_DIR/tri.frag.sb" "$PACKAGE_DIR/kisak_diagnostic.frag.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/texture_sample.frag.sb" "$PACKAGE_DIR/kisak_texture_sample.frag.sb"
     cp "$SHADER_MANIFEST" "$PACKAGE_DIR/kisak_diagnostic.manifest"
+
+    manifest_entries=0
+    manifest_keys=""
+    while IFS='|' read -r shader_name shader_stage static_combo dynamic_combo vertex_format shader_path vertex_inputs constant_bytes sampler_mask fragment_outputs; do
+        [[ -z "$shader_name" || "$shader_name" == \#* ]] && continue
+        if [[ "$shader_stage" != "vertex" && "$shader_stage" != "pixel" ]]; then
+            echo "Unsupported shader stage in manifest: $shader_stage" >&2
+            exit 1
+        fi
+        for numeric in "$static_combo" "$dynamic_combo" "$vertex_format" "$vertex_inputs" "$constant_bytes" "$sampler_mask" "$fragment_outputs"; do
+            if [[ ! "$numeric" =~ ^[0-9]+$ ]]; then
+                echo "Non-numeric shader manifest field for $shader_name: $numeric" >&2
+                exit 1
+            fi
+        done
+        if [[ "$shader_path" != /app0/* || ! -f "$PACKAGE_DIR/${shader_path#/app0/}" ]]; then
+            echo "Missing manifest-referenced shader binary: $shader_path" >&2
+            exit 1
+        fi
+        manifest_key="$shader_name:$shader_stage:$static_combo:$dynamic_combo:$vertex_format"
+        if [[ "|$manifest_keys|" == *"|$manifest_key|"* ]]; then
+            echo "Duplicate shader manifest key: $manifest_key" >&2
+            exit 1
+        fi
+        manifest_keys="${manifest_keys:+$manifest_keys|}$manifest_key"
+        manifest_entries=$((manifest_entries + 1))
+    done < "$SHADER_MANIFEST"
+    if [[ "$manifest_entries" -eq 0 ]]; then
+        echo "Shader manifest contains no entries: $SHADER_MANIFEST" >&2
+        exit 1
+    fi
 fi
 
 pushd "$PACKAGE_DIR" >/dev/null
