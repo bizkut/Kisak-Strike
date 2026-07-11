@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.82
-SHA-256: 26062ebe8095dae4d2cdc5e9646fda185db36e082658ba65607cd223c2d5cd72
+Version: 1.83
+SHA-256: a0c522dac381dda8c4c0c6ab1e159d66dd378c7e2a037c47af42e840c6d4d1aa
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -109,6 +109,19 @@ the reported 60 FPS through at least frame 1200 without a crash. Real OpenGNM
 command submission and GPU-completion visibility are therefore validated. The
 next boundary is to retain these arenas for the presentation lifetime and emit
 a GPU render-target clear into a VideoOut-compatible buffer.
+
+Version 1.83 retains the two-frame command pool for the entire presentation
+loop and replaces the per-frame CPU `memset` with an OpenGNM `DMA_DATA` fill of
+the active linear VideoOut buffer. Every fill is followed by the existing
+64-bit EOP write and bounded wait before flip; allocation, emission,
+submission, or completion failure falls back to the CPU clear and logs once.
+OpenGNM now exposes the generic bounded `sceGnmDrawCmdFillMemory` operation,
+including packet-layout, invalid-argument, capacity, and multi-packet behavior
+tests. The OpenGNM build wrapper was also corrected to run from its own source
+root and select the native LLVM toolchain on macOS, preventing host objects
+from contaminating PS4 archives. This is a GPU memory-clear checkpoint, not yet
+a shader/render-target draw. Expected hardware success marker:
+`GPU VideoOut clear and EOP passed`.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

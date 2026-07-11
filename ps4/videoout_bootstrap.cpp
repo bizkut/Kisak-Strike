@@ -5,11 +5,13 @@
 #include <string.h>
 
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+extern "C" bool KisakPs4GnmFillAndWait( void *destination, uint32_t size, uint32_t value );
 
 namespace
 {
 GnmVideoOut g_VideoOut = {};
 bool g_VideoOutReady = false;
+bool g_GpuClearLogged = false;
 }
 
 extern "C" bool KisakPs4VideoOutInitialize()
@@ -71,7 +73,17 @@ extern "C" bool KisakPs4VideoOutSubmitClear()
     if ( !buffer )
         return false;
 
-    memset( buffer, 0, (size_t)g_VideoOut.buffersize );
+    if ( !KisakPs4GnmFillAndWait( buffer, (uint32_t)g_VideoOut.buffersize, 0xff201008 ) )
+    {
+        memset( buffer, 0, (size_t)g_VideoOut.buffersize );
+        if ( !g_GpuClearLogged )
+            KisakPs4StartupBreadcrumb( "kisak-ps4: GPU VideoOut clear failed; CPU fallback active" );
+    }
+    else if ( !g_GpuClearLogged )
+    {
+        KisakPs4StartupBreadcrumb( "kisak-ps4: GPU VideoOut clear and EOP passed" );
+    }
+    g_GpuClearLogged = true;
     KisakPs4StartupBreadcrumb( "kisak-ps4: videoout before flip" );
     if ( sceGnmVideoOutSubmitFlipAndWait( &g_VideoOut, g_VideoOut.currentbuffer, 0, GNM_VIDEO_OUT_FLIP_VSYNC ) != GNM_ERROR_OK )
     {

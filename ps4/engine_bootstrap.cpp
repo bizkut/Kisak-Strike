@@ -14,6 +14,7 @@ extern "C" bool KisakPs4VideoOutInitialize();
 extern "C" bool KisakPs4VideoOutSubmitClear();
 extern "C" void KisakPs4VideoOutShutdown();
 extern "C" bool KisakPs4GnmSubmissionSelfTest();
+extern "C" void KisakPs4GnmSubmissionShutdown();
 
 namespace
 {
@@ -135,6 +136,7 @@ public:
 			if ( !videoOutReady )
 				std::this_thread::sleep_for( std::chrono::milliseconds( 16 ) );
 		}
+		KisakPs4GnmSubmissionShutdown();
 		KisakPs4VideoOutShutdown();
         return RUN_OK;
     }

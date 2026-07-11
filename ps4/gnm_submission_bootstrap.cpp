@@ -35,6 +35,10 @@ namespace
 const size_t kDirectMemorySize = 2 * 1024 * 1024;
 const size_t kDirectMemoryAlignment = 2 * 1024 * 1024;
 const size_t kCommandBufferSize = 64 * 1024;
+off_t g_DirectMemory = 0;
+void *g_Mapped = 0;
+CPs4GnmDevice g_Device;
+uint64_t g_CompletedLabel = 0;
 
 void LogResult( const char *stage, int result )
 {
@@ -57,10 +61,10 @@ bool WaitForLabel( volatile uint64_t *label, uint64_t expected )
 
 extern "C" bool KisakPs4GnmSubmissionSelfTest()
 {
-    off_t directMemory = 0;
-    void *mapped = 0;
+    if ( g_Mapped )
+        return true;
     int result = sceKernelAllocateDirectMemory( 0, (off_t)sceKernelGetDirectMemorySize(),
-        kDirectMemorySize, kDirectMemoryAlignment, ORBIS_KERNEL_WC_GARLIC, &directMemory );
+        kDirectMemorySize, kDirectMemoryAlignment, ORBIS_KERNEL_WC_GARLIC, &g_DirectMemory );
     if ( result < 0 )
     {
         LogResult( "allocate failed", result );
@@ -69,31 +73,30 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
 
     const int protection = ORBIS_KERNEL_PROT_CPU_READ | ORBIS_KERNEL_PROT_CPU_RW |
         ORBIS_KERNEL_PROT_GPU_READ | ORBIS_KERNEL_PROT_GPU_WRITE;
-    result = sceKernelMapDirectMemory( &mapped, kDirectMemorySize, protection, 0,
-        directMemory, kDirectMemoryAlignment );
+    result = sceKernelMapDirectMemory( &g_Mapped, kDirectMemorySize, protection, 0,
+        g_DirectMemory, kDirectMemoryAlignment );
     if ( result < 0 )
     {
         LogResult( "map failed", result );
-        sceKernelReleaseDirectMemory( directMemory, kDirectMemorySize );
+        sceKernelReleaseDirectMemory( g_DirectMemory, kDirectMemorySize );
+        g_DirectMemory = 0;
         return false;
     }
 
-    CPs4GnmDevice device;
-    bool passed = device.Initialize( mapped, kDirectMemorySize );
-    uint64_t completedLabel = 0;
+    bool passed = g_Device.Initialize( g_Mapped, kDirectMemorySize );
     for ( unsigned int submit = 0; passed && submit < 3; ++submit )
     {
-        passed = device.BeginFrame( completedLabel );
-        void *commandMemory = passed ? device.FrameArena().Allocate( kCommandBufferSize, 256 ) : 0;
+        passed = g_Device.BeginFrame( g_CompletedLabel );
+        void *commandMemory = passed ? g_Device.FrameArena().Allocate( kCommandBufferSize, 256 ) : 0;
         volatile uint64_t *eopLabel = passed ? static_cast< volatile uint64_t * >(
-            device.FrameArena().Allocate( sizeof( uint64_t ), 8 ) ) : 0;
+            g_Device.FrameArena().Allocate( sizeof( uint64_t ), 8 ) ) : 0;
         if ( !commandMemory || !eopLabel )
         {
             passed = false;
             break;
         }
 
-        const uint64_t submittedLabel = device.SubmittedLabel() + 1;
+        const uint64_t submittedLabel = g_Device.SubmittedLabel() + 1;
         *eopLabel = 0;
         GnmCommandBuffer command = sceGnmCmdInit( commandMemory, kCommandBufferSize, 0, 0 );
         sceGnmDrawCmdInitDefaultHardwareState( &command );
@@ -121,20 +124,75 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
             break;
         }
 
-        const uint64_t recordedLabel = device.EndFrame();
+        const uint64_t recordedLabel = g_Device.EndFrame();
         passed = recordedLabel == submittedLabel && WaitForLabel( eopLabel, submittedLabel );
         if ( !passed )
         {
             KisakPs4StartupBreadcrumb( "kisak-ps4: gnm submission EOP timeout" );
             break;
         }
-        completedLabel = submittedLabel;
+        g_CompletedLabel = submittedLabel;
     }
 
-    sceKernelMunmap( mapped, kDirectMemorySize );
-    sceKernelReleaseDirectMemory( directMemory, kDirectMemorySize );
     KisakPs4StartupBreadcrumb( passed
         ? "kisak-ps4: gnm submission two-frame EOP passed"
         : "kisak-ps4: gnm submission self-test failed; CPU clear retained" );
+    if ( !passed )
+    {
+        sceKernelMunmap( g_Mapped, kDirectMemorySize );
+        sceKernelReleaseDirectMemory( g_DirectMemory, kDirectMemorySize );
+        g_Mapped = 0;
+        g_DirectMemory = 0;
+    }
     return passed;
+}
+
+extern "C" bool KisakPs4GnmFillAndWait( void *destination, uint32_t size, uint32_t value )
+{
+    if ( !g_Mapped || !destination || !size || !g_Device.BeginFrame( g_CompletedLabel ) )
+        return false;
+
+    void *commandMemory = g_Device.FrameArena().Allocate( kCommandBufferSize, 256 );
+    volatile uint64_t *eopLabel = static_cast< volatile uint64_t * >(
+        g_Device.FrameArena().Allocate( sizeof( uint64_t ), 8 ) );
+    if ( !commandMemory || !eopLabel )
+    {
+        g_Device.CancelFrame();
+        return false;
+    }
+
+    const uint64_t submittedLabel = g_Device.SubmittedLabel() + 1;
+    *eopLabel = 0;
+    GnmCommandBuffer command = sceGnmCmdInit( commandMemory, kCommandBufferSize, 0, 0 );
+    if ( !sceGnmDrawCmdFillMemory( &command, (uint64_t)(uintptr_t)destination, size, value ) )
+    {
+        g_Device.CancelFrame();
+        return false;
+    }
+    sceGnmDrawCmdEventWriteEop( &command, GNM_CACHE_FLUSH_AND_INV_TS_EVENT,
+        (uint64_t)(uintptr_t)eopLabel, GNM_DATA_SEL_SEND_DATA64, submittedLabel );
+
+    void *dcbAddresses[1] = { command.beginptr };
+    uint32_t dcbSizes[1] = {
+        static_cast< uint32_t >( reinterpret_cast< uintptr_t >( command.cmdptr ) -
+            reinterpret_cast< uintptr_t >( command.beginptr ) )
+    };
+    const int submitResult = sceGnmSubmitCommandBuffers( 1, dcbAddresses, dcbSizes, 0, 0 );
+    if ( submitResult < 0 || sceGnmSubmitDone() < 0 )
+        return false;
+    if ( g_Device.EndFrame() != submittedLabel || !WaitForLabel( eopLabel, submittedLabel ) )
+        return false;
+    g_CompletedLabel = submittedLabel;
+    return true;
+}
+
+extern "C" void KisakPs4GnmSubmissionShutdown()
+{
+    if ( !g_Mapped )
+        return;
+    sceKernelMunmap( g_Mapped, kDirectMemorySize );
+    sceKernelReleaseDirectMemory( g_DirectMemory, kDirectMemorySize );
+    g_Mapped = 0;
+    g_DirectMemory = 0;
+    KisakPs4StartupBreadcrumb( "kisak-ps4: gnm submission pool released" );
 }

@@ -15,6 +15,7 @@ public:
 
     bool Initialize( void *frameMemory, size_t frameMemorySize );
     bool BeginFrame( uint64_t completedLabel );
+    void CancelFrame();
     uint64_t EndFrame();
 
     bool IsInitialized() const { return m_initialized; }

@@ -53,3 +53,8 @@ uint64_t CPs4GnmDevice::EndFrame()
     m_frameOpen = false;
     return label;
 }
+
+void CPs4GnmDevice::CancelFrame()
+{
+    m_frameOpen = false;
+}

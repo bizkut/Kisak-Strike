@@ -22,6 +22,8 @@ int main()
     assert( !device.BeginFrame( 0 ) );
     assert( device.BeginFrame( 1 ) );
     assert( device.FrameArena().Used() == 0 );
+    device.CancelFrame();
+    assert( device.BeginFrame( 1 ) );
     assert( device.EndFrame() == 3 );
     return 0;
 }
