@@ -94,6 +94,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     target_include_directories(kisak_ps4_monolithic PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/public"
         "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/inputsystem"
+        "${CMAKE_CURRENT_SOURCE_DIR}/common"
     )
     target_link_options(kisak_ps4_monolithic PRIVATE
         -m elf_x86_64

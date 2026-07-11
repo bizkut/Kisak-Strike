@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.67
-SHA-256: b19313ec9aa8a1cd1f7c5c66c9958440ff0590a3b8ebf009184e8bb2dbfd803a
+Version: 1.68
+SHA-256: a3c6ca5e6d3a6ca858a18716189535158cca2e850fba4d060b28df07f6e992d4
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -649,6 +649,15 @@ the RocketUI `RunFrame(0)` and menu-render hooks once when the interface is
 available, with bounded begin/complete breadcrumbs. RocketUI remains inert and
 OpenGNM rendering is still pending; this checkpoint validates the runtime call
 boundary before introducing a continuous frame loop.
+
+The v1.67 hardware run reached both first-frame breadcrumbs and then returned
+normally because the launcher was single-shot.
+
+Version 1.68 adds a bounded 120-frame PS4 loop. Each frame polls the Source
+input system, advances RocketUI at a 60 Hz timestep, invokes the menu-render
+hook, and yields for approximately 16 ms. First-frame and frame-60 markers
+bound the loop. This is a timing/input validation loop only; production
+shutdown signaling and OpenGNM presentation remain follow-up work.
 
 Reproduce the current cross-build with:
 

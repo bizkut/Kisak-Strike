@@ -1,9 +1,12 @@
 #include "icvar.h"
 #include "common/engine_launcher_api.h"
+#include "inputsystem/iinputsystem.h"
 #include "rocketui/rocketui.h"
 #include "tier1/convar.h"
 
+#include <chrono>
 #include <string.h>
+#include <thread>
 
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 
@@ -94,12 +97,22 @@ public:
     {
         KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
 		IRocketUI *rocketUI = RocketUI();
-		if ( rocketUI )
+		for ( int frame = 0; frame < 120; ++frame )
 		{
-			KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame begin" );
-			rocketUI->RunFrame( 0.0f );
-			rocketUI->RenderMenuFrame();
-			KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame complete" );
+			if ( g_pInputSystem )
+				g_pInputSystem->PollInputState( false );
+			if ( rocketUI )
+			{
+				if ( frame == 0 )
+					KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame begin" );
+				rocketUI->RunFrame( frame * ( 1.0f / 60.0f ) );
+				rocketUI->RenderMenuFrame();
+				if ( frame == 0 )
+					KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame complete" );
+			}
+			if ( frame == 59 )
+				KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher frame 60" );
+			std::this_thread::sleep_for( std::chrono::milliseconds( 16 ) );
 		}
         return RUN_OK;
     }
