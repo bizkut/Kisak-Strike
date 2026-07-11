@@ -84,6 +84,30 @@ static void Ps4LauncherBreadcrumb( const char *message )
 	fflush( log );
 	fclose( log );
 }
+
+static bool Ps4ProbeContentFile( IFileSystem *fileSystem, const char *path,
+	const char *readableMessage, const char *missingMessage )
+{
+	if ( !fileSystem->FileExists( path, "GAME" ) )
+	{
+		Ps4LauncherBreadcrumb( missingMessage );
+		return false;
+	}
+
+	FileHandle_t file = fileSystem->Open( path, "rb", "GAME" );
+	if ( file == FILESYSTEM_INVALID_HANDLE )
+	{
+		Ps4LauncherBreadcrumb( missingMessage );
+		return false;
+	}
+
+	const unsigned int size = fileSystem->Size( file );
+	unsigned char firstByte = 0;
+	const bool readable = size == 0 || fileSystem->Read( &firstByte, 1, file ) == 1;
+	fileSystem->Close( file );
+	Ps4LauncherBreadcrumb( readable ? readableMessage : missingMessage );
+	return readable;
+}
 #else
 #define Ps4LauncherBreadcrumb( message ) ( (void)0 )
 #endif
@@ -949,10 +973,24 @@ bool CSourceAppSystemGroup::PreInit()
 	g_pFullFileSystem->AddSearchPath( contentLayout.writeRoot, "LOGDIR", PATH_ADD_TO_HEAD );
 	Ps4LauncherBreadcrumb( "kisak-ps4: content search paths mounted" );
 
-	if ( g_pFullFileSystem->FileExists( "gameinfo.txt", "GAME" ) )
-		Ps4LauncherBreadcrumb( "kisak-ps4: content gameinfo found" );
-	else
-		Ps4LauncherBreadcrumb( "kisak-ps4: content gameinfo missing" );
+	Ps4ProbeContentFile( g_pFullFileSystem, "kisak_ps4_content_probe.txt",
+		"kisak-ps4: content packaged probe readable",
+		"kisak-ps4: content packaged probe missing" );
+	Ps4ProbeContentFile( g_pFullFileSystem, "gameinfo.txt",
+		"kisak-ps4: content gameinfo readable",
+		"kisak-ps4: content gameinfo missing" );
+	Ps4ProbeContentFile( g_pFullFileSystem, "scripts/game_sounds_manifest.txt",
+		"kisak-ps4: content sound manifest readable",
+		"kisak-ps4: content sound manifest missing" );
+	Ps4ProbeContentFile( g_pFullFileSystem, "materials/vgui/white.vmt",
+		"kisak-ps4: content vmt readable",
+		"kisak-ps4: content vmt missing" );
+	Ps4ProbeContentFile( g_pFullFileSystem, "materials/vgui/white.vtf",
+		"kisak-ps4: content vtf readable",
+		"kisak-ps4: content vtf missing" );
+	Ps4ProbeContentFile( g_pFullFileSystem, "maps/de_dust2.bsp",
+		"kisak-ps4: content bsp readable",
+		"kisak-ps4: content bsp missing" );
 #else // _PS3
 	CFSSteamSetupInfo steamInfo;
 	steamInfo.m_bToolsMode = false;

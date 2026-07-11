@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.79
-SHA-256: cda596f8fdae9ee0efd1f3b7c8905676df47a22240748d341776997af7d9cd3a
+Version: 1.80
+SHA-256: 2256e14b1965245d4c5ba9545dda38845ed5058fae7c681791de9bb7173b1e1b
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -50,6 +50,13 @@ platform roots, and keeps writes under `/data/kisak-strike`. The next hardware
 log will report either
 `content gameinfo found` or `content gameinfo missing` through the normal
 `GAME` search path.
+
+Version 1.80 packages a non-proprietary sentinel at `/app0` and reads it
+through the layered `GAME` search path. It also opens and reads, when supplied,
+`gameinfo.txt`, the sound manifest, `materials/vgui/white.vmt`,
+`materials/vgui/white.vtf`, and `maps/de_dust2.bsp`, with a distinct bounded
+breadcrumb for every readable or missing asset. This validates package-root
+mounting independently from user-content availability.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, or VideoOut. It is content mounting
