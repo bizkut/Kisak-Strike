@@ -13,6 +13,7 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 extern "C" bool KisakPs4VideoOutInitialize();
 extern "C" bool KisakPs4VideoOutSubmitClear();
 extern "C" void KisakPs4VideoOutShutdown();
+extern "C" bool KisakPs4GnmSubmissionSelfTest();
 
 namespace
 {
@@ -102,6 +103,7 @@ public:
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
 		IRocketUI *rocketUI = RocketUI();
 		const bool videoOutReady = KisakPs4VideoOutInitialize();
+		KisakPs4GnmSubmissionSelfTest();
 		for ( int frame = 0; frame < 1800; ++frame )
 		{
 			if ( g_pInputSystem )

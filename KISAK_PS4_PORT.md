@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.81
-SHA-256: 259556710b06242930dc919a72af71b65599ea6c62db60f4758ae90bf993577b
+Version: 1.82
+SHA-256: 26062ebe8095dae4d2cdc5e9646fda185db36e082658ba65607cd223c2d5cd72
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -90,6 +90,17 @@ without a crash. This validates PS4 module selection and preserves the stable
 presentation/content baseline. The next checkpoint is to bind the two frame
 arenas and their completion labels to real OpenGNM command submission; the
 fallback remains active until a hardware clear and triangle pass.
+
+Version 1.82 binds the frame-arena model to a bounded real OpenGNM submission
+self-test before the presentation loop. It allocates and maps a separate 2 MiB
+garlic direct-memory pool, emits default graphics state, a zero-count draw, and
+a 64-bit EOP label write, then calls `sceGnmSubmitCommandBuffers` and
+`sceGnmSubmitDone`. Three synchronous submissions exercise frame 0, frame 1,
+and the first EOP-authorized reuse of frame 0. Allocation, mapping, submission,
+and EOP timeout failures are logged and contained; the existing CPU-clear
+VideoOut loop remains active. The mapped pool is released after the test. The
+expected success marker is
+`gnm submission two-frame EOP passed`.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
@@ -851,8 +862,10 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
    device object, and diagnostic `shaderapiempty` delegation are hardware
    validated at 60 FPS. Next replace delegated device/resource interfaces
    through clear and triangle.
-5. **In progress:** two command/constant frame arenas model EOP-gated reuse;
-   next bind their labels to real OpenGNM submission completion.
+5. **Hardware validation:** two command/constant frame arenas now submit real
+   OpenGNM command buffers and gate reuse on GPU-written EOP labels. Next prove
+   the three-submit self-test on hardware, then retain the arenas for the
+   runtime clear path instead of releasing the test pool.
 
 Each slice must update this document with the package version, hash, hardware
 evidence, and the next unresolved boundary. Avoid broad renderer or gameplay

@@ -81,6 +81,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_executable(kisak_ps4_monolithic
         ps4/bootstrap_main.c
         ps4/engine_bootstrap.cpp
+        ps4/gnm_submission_bootstrap.cpp
         ps4/videoout_bootstrap.cpp
         ps4/rocketui_bootstrap.cpp
     )
