@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.36
-SHA-256: 5c6b9ae60885d105ce1d4af3a06a8dc2155944851ddada4228a7e69034d7792b
+Version: 2.37
+SHA-256: b5d76e48525f26006463fc9d719d00fb5c395072f0727afbbeb304f8ba54b152
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -691,6 +691,14 @@ sampler mask, and fragment-output mask. The diagnostic manifest declares these
 bindings explicitly, the parser requires all fields, and runtime validates the
 vertex shader's declared input count against OpenGNM `.sb` metadata before
 copying code. Host tests verify binding metadata survives parsing and lookup.
+
+The v2.36 hardware run validated the extended manifest and preserved the
+opaque orange triangle at 60 FPS. Version 2.37 validates every remaining
+binding declaration before copying shader code: embedded constant bytes must
+match exactly, declared sampler bits must be available through immediate
+samplers or a sampler-table pointer, and the fragment-output mask must match
+the active nibbles in `SPI_SHADER_COL_FORMAT`. Any mismatch retains the visible
+fallback and logs actual versus declared binding values.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

@@ -121,6 +121,31 @@ bool ReadShaderFile( const char *path, uint8_t **data, size_t *size )
     return true;
 }
 
+uint32_t ShaderSamplerAvailability( const GnmPsShader *shader )
+{
+    uint32_t mask = 0;
+    const GnmInputUsageSlot *usages = sceGnmPsShaderInputUsageSlotTable( shader );
+    for ( uint32_t i = 0; i < shader->common.numinputusageslots; ++i )
+    {
+        if ( usages[i].usagetype == GNM_SHINPUTUSAGE_PTR_SAMPLERTABLE )
+            return 0xffffffffu;
+        if ( usages[i].usagetype == GNM_SHINPUTUSAGE_IMM_SAMPLER && usages[i].apislot < 32 )
+            mask |= 1u << usages[i].apislot;
+    }
+    return mask;
+}
+
+uint32_t ShaderFragmentOutputMask( const GnmPsShader *shader )
+{
+    uint32_t mask = 0;
+    for ( uint32_t output = 0; output < 8; ++output )
+    {
+        if ( ( shader->registers.spishadercolformat >> ( output * 4 ) ) & 0xf )
+            mask |= 1u << output;
+    }
+    return mask;
+}
+
 bool LoadDiagnosticShaders()
 {
     const Ps4ShaderManifestKey keys[3] = {
@@ -172,6 +197,14 @@ bool LoadDiagnosticShaders()
         const bool expectedStage = shader == 0 ? metadata.type == GNM_SHADER_VERTEX : metadata.type == GNM_SHADER_PIXEL;
         const uint32_t actualVertexInputs = shader == 0 && metadataResult == GNM_ERROR_OK && metadata.stage
             ? reinterpret_cast< const GnmVsShader * >( metadata.stage )->numinputsemantics : 0;
+        const GnmShaderCommonData *common = metadataResult == GNM_ERROR_OK && metadata.stage
+            ? reinterpret_cast< const GnmShaderCommonData * >( metadata.stage ) : 0;
+        const uint32_t actualConstantBytes = common
+            ? common->embeddedconstantbufferdqwords * 16u : 0;
+        const GnmPsShader *pixelStage = shader != 0 && metadataResult == GNM_ERROR_OK && metadata.stage
+            ? reinterpret_cast< const GnmPsShader * >( metadata.stage ) : 0;
+        const uint32_t availableSamplers = pixelStage ? ShaderSamplerAvailability( pixelStage ) : 0;
+        const uint32_t actualFragmentOutputs = pixelStage ? ShaderFragmentOutputMask( pixelStage ) : 0;
         uint8_t *storage = shader == 0 ? g_VsStorage : ( shader == 1 ? g_PsStorage : g_TexturePsStorage );
         if ( metadataResult != GNM_ERROR_OK || !expectedStage || metadata.stagesize > 1024 ||
             ( entry->vertexInputCount && entry->vertexInputCount != actualVertexInputs ) )
@@ -181,6 +214,18 @@ bool LoadDiagnosticShaders()
                 shader, metadataResult, metadata.type, metadata.stagesize,
                 actualVertexInputs, entry->vertexInputCount,
                 static_cast< unsigned long long >( fileSize ) );
+            free( fileData );
+            return false;
+        }
+        if ( entry->constantBytes != actualConstantBytes ||
+            ( entry->samplerMask & ~availableSamplers ) != 0 ||
+            entry->fragmentOutputMask != actualFragmentOutputs )
+        {
+            snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+                "bindings failed stage=%u constants=%u/%u samplers=0x%x/0x%x outputs=0x%x/0x%x",
+                shader, actualConstantBytes, entry->constantBytes,
+                availableSamplers, entry->samplerMask,
+                actualFragmentOutputs, entry->fragmentOutputMask );
             free( fileData );
             return false;
         }
