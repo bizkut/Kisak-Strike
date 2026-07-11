@@ -890,6 +890,18 @@ package is staged at `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`,
 SHA-256 `1361de321b3c44918a7f5ccc1f03029ee563f3f54dba6545b0534bbe7d523acc`,
 with marker `kisak-ps4: build marker scaleform_vpk_fileopener_v251`.
 
+The v2.51 hardware run passed VPK-capable `IFileSystem` movie loading and
+continued beyond frame 600 at 60 FPS. Its appended capture is
+`hardware-captures/logs/2026-07-12/kisak_v251_scaleform_vpk_fileopener_live.txt`.
+Version 2.52 adds the next player-lifecycle gate: recreate the VPK-backed
+`fontlib.gfx`, construct a live GFx movie with its first frame initialized, and
+advance the AS2 timeline once. Rendering remains deliberately disconnected
+until this VM/display-list boundary is hardware-stable.
+The v2.52 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`805a78c55a1364846e2868ec7ad5e06ee45366e96bb06642d9956a00fa4af630`,
+with marker `kisak-ps4: build marker scaleform_as2_instance_v252`.
+
 ## Completed work
 
 ### Orbis platform and build foundation

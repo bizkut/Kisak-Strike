@@ -97,3 +97,25 @@ extern "C" bool KisakPs4ScaleformMovieProbe()
         Scaleform::GFx::Loader::LoadAll );
     return movie.GetPtr() != NULL;
 }
+
+extern "C" bool KisakPs4ScaleformMovieInstanceProbe()
+{
+    Scaleform::System system;
+    Scaleform::Ptr< KisakScaleformFileOpener > fileOpener =
+        *new KisakScaleformFileOpener();
+    Scaleform::GFx::Loader loader( fileOpener );
+    loader.SetAS2Support( Scaleform::Ptr< Scaleform::GFx::AS2Support >(
+        *new Scaleform::GFx::AS2Support() ) );
+    Scaleform::Ptr< Scaleform::GFx::MovieDef > movieDef = *loader.CreateMovie(
+        "resource/flash/fontlib.gfx", Scaleform::GFx::Loader::LoadAll );
+    if ( movieDef.GetPtr() == NULL )
+        return false;
+
+    Scaleform::Ptr< Scaleform::GFx::Movie > movie =
+        *movieDef->CreateInstance( true );
+    if ( movie.GetPtr() == NULL )
+        return false;
+
+    movie->Advance( 0.0f );
+    return true;
+}
