@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.17
-SHA-256: 538bf79458219586ca088b03d0d44f09d55230e641aface6da0ad92c165fdde2
+Version: 1.18
+SHA-256: 2b62d129a10c11269b58d4f9fe3bf8bb4c7c7300f35f116223f8577a6285f77a
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -229,6 +229,11 @@ The v1.16 trace entered the outer app-system lifecycle and stopped inside
 `CSteamApplication::Create()`. Version 1.17 splits filesystem-name selection,
 static cvar factory loading/registration, and filesystem module
 loading/registration.
+
+The v1.17 trace stops in `FileSystem_GetFileSystemDLLName()` before it returns
+a module name. That helper attempted POSIX executable-directory discovery even
+though PS4 loads modules from the static registry. Version 1.18 returns the
+normalized `filesystem_stdio` registry identifier directly on PS4.
 
 Reproduce the current cross-build with:
 

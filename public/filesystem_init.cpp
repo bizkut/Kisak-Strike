@@ -1418,6 +1418,13 @@ FSReturnCode_t FileSystem_GetFileSystemDLLName( char *pFileSystemDLL, int nMaxLe
 {
 	bSteam = false;
 
+#if defined( PLATFORM_PS4 )
+	// PS4 uses the monolithic static-module registry, so there is no executable
+	// directory or shared-library suffix to discover at runtime.
+	Q_strncpy( pFileSystemDLL, "filesystem_stdio", nMaxLen );
+	return FS_OK;
+#endif
+
 	// Inside of here, we don't have a filesystem yet, so we have to assume that the filesystem_stdio or filesystem_steam
 	// is in this same directory with us.
 	char executablePath[MAX_PATH];
