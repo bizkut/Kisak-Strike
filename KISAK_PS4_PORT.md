@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.96
-SHA-256: 542eedbca2de5710b090b9a186f80fd5cffa46ff76d29a992a57d89e726fb3e6
+Version: 1.97
+SHA-256: 1bf27605da47338b843568f2d9c0d3401f56987ec6164f07090873db77a35528
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -305,6 +305,13 @@ through the cache; generated PS input semantic linkage remains explicit because
 it is metadata-derived rather than a fixed state register group. The complete
 OpenOrbis build passes. Hardware must preserve the visible triangle and center
 readback before adding blend state and indexed geometry.
+
+The v1.96 hardware run stayed stable at 60 FPS, retained the visible orange
+triangle, passed EOP synchronization, and read back `0xff00bcff`, validating
+cached target and VS/PS register binding. Version 1.97 adds render-target-indexed
+blend control to `CPs4GnmDrawState` and routes the diagnostic's explicit
+disabled-blend state through the cache. This is the no-regression baseline for
+the subsequent alpha-blend and indexed-geometry diagnostics.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

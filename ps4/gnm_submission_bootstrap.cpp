@@ -239,6 +239,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination )
     g_DrawState.SetDepthStencilControl( depthControl );
     GnmDbRenderControl dbControl = {};
     g_DrawState.SetDbRenderControl( dbControl );
+    GnmBlendControl blendControl = {};
+    blendControl.blendenabled = false;
+    g_DrawState.SetBlendControl( 0, blendControl );
     g_DrawState.SetRenderTarget( 0, renderTarget );
     g_DrawState.SetRenderTargetMask( 0xf );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );

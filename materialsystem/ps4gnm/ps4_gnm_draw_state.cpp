@@ -26,6 +26,8 @@ CPs4GnmDrawState::CPs4GnmDrawState()
     memset( &m_renderTarget, 0, sizeof( m_renderTarget ) );
     memset( &m_vertexShader, 0, sizeof( m_vertexShader ) );
     memset( &m_pixelShader, 0, sizeof( m_pixelShader ) );
+    memset( &m_blendControl, 0, sizeof( m_blendControl ) );
+    m_blendIndex = 0;
     memset( m_scissor, 0, sizeof( m_scissor ) );
 }
 
@@ -113,6 +115,16 @@ void CPs4GnmDrawState::SetPixelShader( const GnmPsStageRegisters &registers )
         m_dirtyMask |= kDirtyPixelShader;
 }
 
+void CPs4GnmDrawState::SetBlendControl( uint32_t index, const GnmBlendControl &control )
+{
+    const bool controlChanged = AssignIfChanged( m_blendControl, control );
+    if ( m_blendIndex != index || controlChanged )
+    {
+        m_blendIndex = index;
+        m_dirtyMask |= kDirtyBlend;
+    }
+}
+
 uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
 {
     if ( !command )
@@ -138,6 +150,8 @@ uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
         sceGnmDrawCmdSetVsShader( command, &m_vertexShader, m_vertexShaderModifier );
     if ( emitted & kDirtyPixelShader )
         sceGnmDrawCmdSetPsShader( command, &m_pixelShader );
+    if ( emitted & kDirtyBlend )
+        sceGnmDrawCmdSetBlendControl( command, m_blendIndex, &m_blendControl );
     m_dirtyMask = 0;
     return emitted;
 }

@@ -20,7 +20,8 @@ public:
         kDirtyRenderTarget = 1u << 7,
         kDirtyVertexShader = 1u << 8,
         kDirtyPixelShader = 1u << 9,
-        kDirtyAll = ( 1u << 10 ) - 1
+        kDirtyBlend = 1u << 10,
+        kDirtyAll = ( 1u << 11 ) - 1
     };
 
     CPs4GnmDrawState();
@@ -36,6 +37,7 @@ public:
     void SetRenderTarget( uint32_t index, const GnmRenderTarget &target );
     void SetVertexShader( const GnmVsStageRegisters &registers, uint32_t modifier );
     void SetPixelShader( const GnmPsStageRegisters &registers );
+    void SetBlendControl( uint32_t index, const GnmBlendControl &control );
     uint32_t Apply( GnmCommandBuffer *command );
 
     uint32_t DirtyMask() const { return m_dirtyMask; }
@@ -49,11 +51,13 @@ private:
     GnmRenderTarget m_renderTarget;
     GnmVsStageRegisters m_vertexShader;
     GnmPsStageRegisters m_pixelShader;
+    GnmBlendControl m_blendControl;
     uint32_t m_viewportIndex;
     uint32_t m_scissor[4];
     uint32_t m_renderTargetMask;
     uint32_t m_renderTargetIndex;
     uint32_t m_vertexShaderModifier;
+    uint32_t m_blendIndex;
     uint32_t m_dirtyMask;
 };
 
