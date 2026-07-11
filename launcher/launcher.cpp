@@ -1906,17 +1906,21 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 #endif
 
 		// If game is not run from Steam then add -insecure in order to avoid client timeout message
+		Ps4LauncherBreadcrumb( "kisak-ps4: before insecure parm" );
 		if ( NULL == CommandLine()->CheckParm( "-steam" ) )
 		{
 			CommandLine()->AppendParm( "-insecure", NULL );
 		}
+		Ps4LauncherBreadcrumb( "kisak-ps4: after insecure parm" );
 	}
 
 #ifndef _PS3
 	// Figure out the directory the executable is running from
 	// and make that be the current working directory
 	// on the PS3, however, there is no concept of current directories
+	Ps4LauncherBreadcrumb( "kisak-ps4: before chdir" );
 	_chdir( GetBaseDirectory() );
+	Ps4LauncherBreadcrumb( "kisak-ps4: after chdir" );
 #endif
 
 	// When building cubemaps, we don't need sound and can't afford to have async I/O - cubemap writes to the BSP can collide with async bsp reads
@@ -1927,19 +1931,25 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 	}
 
 	g_LeakDump.m_bCheckLeaks = CommandLine()->CheckParm( "-leakcheck" ) ? true : false;
+	Ps4LauncherBreadcrumb( "kisak-ps4: launch flags complete" );
 
 	bool bRestart = true;
 	while ( bRestart )
 	{
 		bRestart = false;
 
+		Ps4LauncherBreadcrumb( "kisak-ps4: before source systems" );
 		CSourceAppSystemGroup sourceSystems;
+		Ps4LauncherBreadcrumb( "kisak-ps4: after source systems" );
 		CSteamApplication steamApplication( &sourceSystems );
+		Ps4LauncherBreadcrumb( "kisak-ps4: after steam application" );
 #if defined( OSX ) && !defined( USE_SDL )
 		extern int ValveCocoaMain( CAppSystemGroup *pApp );
 		int nRetval = ValveCocoaMain( &steamApplication ); 
 #else
+		Ps4LauncherBreadcrumb( "kisak-ps4: before application run" );
 		int nRetval = steamApplication.Run();
+		Ps4LauncherBreadcrumb( "kisak-ps4: after application run" );
 #endif		
 #if ENABLE_HARDWARE_PROFILER 
 		// Hack fix, causes memory leak, but prevents crash due to bad coding not doing proper teardown

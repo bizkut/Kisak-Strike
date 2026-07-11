@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.14
-SHA-256: b31a1f5a75cedc8a41571fe89ba3240c004baa45d7c2dab4de8faa41132cb59e
+Version: 1.15
+SHA-256: 28529d93227287a71dd62ea4e07d184d15e28b550763b445285fd650ae0cdf74
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -214,6 +214,11 @@ queries.
 The v1.13 trace completed the default game append and all console-option
 queries. Version 1.14 brackets the following executable-name handling, Steam
 overlay probe, spurious-parameter cleanup, and POSIX single-instance mutex.
+
+The v1.14 trace completed every platform probe and acquired the single-instance
+mutex. Version 1.15 splits the remaining launch flags and current-directory
+setup, construction of the Source/Steam application groups, and the first
+`CAppSystemGroup::Run()` handoff.
 
 Reproduce the current cross-build with:
 
