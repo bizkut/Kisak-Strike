@@ -24,7 +24,7 @@ Latest staged monolithic package:
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 1.73
-SHA-256: 22d3debc0abc2768868f661b77ed918205e3c5240cb60129d7898b79afc0d6d9
+SHA-256: e8218444fd1ab4fce85875382b0dfe88d1f985bef07188ccb9db602ed58ed15d
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
