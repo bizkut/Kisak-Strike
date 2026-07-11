@@ -778,6 +778,45 @@ The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
 
+## PS4 console UI policy
+
+The console audit found that `IsGameConsole()` is not a safe PS4 selector.
+That legacy predicate enables a mixture of Xbox 360 and PS3 filesystem,
+byte-order, packed-asset, memory, shader, and renderer assumptions. PS4 must
+continue to report `IsPC() == 1` and `IsGameConsole() == 0` so it can consume
+Kisak's little-endian PC VPK/VTF/BSP content. PS4-specific code uses `IsPS4()`;
+controller-first UI behavior uses the new `IsConsoleUI()` predicate.
+
+Scaleform is not the PS4 UI backend. The checked-in `scaleformui` integration
+depends on the unavailable proprietary GFx runtime and its `.gfx`/`.swf`
+movie pipeline. Forcing PS4 through `IsPS3()` or `m_bForcePS3` would select
+Sony-style prompts inside Scaleform but would neither provide that runtime nor
+make the rest of the PS3 paths valid. PS4 builds therefore keep
+`INCLUDE_SCALEFORM` disabled and select `INCLUDE_ROCKETUI`.
+
+RocketUI/RmlUi is the open-source console UI target, but the current PS4
+`CPs4RocketUIBootstrap` is deliberately only an interface/lifecycle stub: it
+returns no contexts or documents and performs no input or rendering. Replace
+it in these bounded steps:
+
+1. Link the real `RocketUIImpl`, RmlUi core, filesystem, system interface, and
+   existing CS:GO RocketUI menu/HUD classes into the monolithic registry.
+2. Add a `RocketRenderGnm` implementation of `Rml::RenderInterface` backed by
+   `CPs4GnmDevice`; do not compile `rocketrenderGL.cpp` or link ToGL/OpenGL.
+3. Load `.rml`, `.rcss`, fonts, and textures through the normal `GAME` search
+   path layered over `/app0` and `/data/kisak-strike`, with 1080p safe-area and
+   UI-scale handling.
+4. Feed `libScePad` events into Source `InputEvent_t`, then into RocketUI.
+   Implement D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
+   disconnect/reconnect, and last-input-device prompt switching.
+5. Migrate only required menu/loading/HUD surfaces. Missing documents or
+   renderer resources must show a diagnostic screen and log the resource,
+   never silently fall back to the no-op bootstrap.
+
+The console UI exit gate is a real RocketUI main menu rendered through
+OpenGNM and navigable using only a DualShock 4. It does not require changing
+the global engine meaning of `IsGameConsole()`.
+
 ## Completed work
 
 ### Orbis platform and build foundation

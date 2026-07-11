@@ -473,6 +473,16 @@
 	#define IsGameConsole() 0
 #endif
 
+// UI policy is intentionally separate from the legacy engine console policy.
+// PS4 needs controller-first navigation, safe-area layout, and console prompts,
+// but must not enter the Xbox/PS3 asset, filesystem, endian, or renderer paths
+// selected by IsGameConsole().
+#if defined( PLATFORM_X360 ) || defined( _PS3 ) || defined( PLATFORM_PS4 )
+	#define IsConsoleUI() 1
+#else
+	#define IsConsoleUI() 0
+#endif
+
 
 
 //-----------------------------------------------------------------------------

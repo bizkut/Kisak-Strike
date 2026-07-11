@@ -102,16 +102,7 @@ void ScaleformUIImpl::ClearMembers( void )
 	m_pShaderAPI = NULL;
 
 	m_bPumpScaleformStats = false;
-#if defined( PLATFORM_PS4 )
-	// PS4 uses the PS3 Scaleform .gfx assets and Sony controller glyph set.
-	// m_bForcePS3 routes the Scaleform UI through the console/Sony code paths
-	// (PlatformCode=2, Sony button glyphs, controller navigation) without
-	// affecting any engine-level IsPS3() checks (byte-swapping, VTF format,
-	// EDGE packing, PS3 SDK module loading, etc.).
-	m_bForcePS3 = true;
-#else
 	m_bForcePS3 = false;
-#endif
 	m_bDenyAllInputToGame = false;
 
 	m_pRenderHAL.Clear();
@@ -209,13 +200,8 @@ void ScaleformUIImpl::InitFonts( void )
 	SF::Ptr<MovieDef> pFontMovie = *m_pLoader->CreateMovie( fontLib );
 	pFontLib->AddFontsFrom( pFontMovie, true );
 
-	// fontlib_extra is optional — the PS3 console build ships fontlib.gfx
-	// but not fontlib_extra.gfx. Guard the load so missing-file doesn't crash.
-	if ( g_pFullFileSystem->FileExists( "resource/flash/fontlib_extra.swf", "GAME" ) )
-	{
-		pFontMovie = *m_pLoader->CreateMovie( "resource/flash/fontlib_extra.swf" );
-		pFontLib->AddFontsFrom( pFontMovie, true );
-	}
+	pFontMovie = *m_pLoader->CreateMovie( "resource/flash/fontlib_extra.swf" );
+	pFontLib->AddFontsFrom( pFontMovie, true );
 
 	SF::Ptr<FontMap> pFontMap = *new FontMap();
 
