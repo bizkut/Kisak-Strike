@@ -1090,7 +1090,7 @@ inline void CUtlBuffer::PutTypeBin< float >( float src )
 		//
 		// Write the data
 		//
-		unsigned pData = (unsigned)PeekPut();
+		uintptr_t pData = (uintptr_t)PeekPut();
 		if ( pData & 0x03 )
 		{
 			// handle unaligned write
@@ -1124,7 +1124,7 @@ inline void CUtlBuffer::PutTypeBin< double >( double src )
 		//
 		// Write the data
 		//
-		unsigned pData = (unsigned)PeekPut();
+		uintptr_t pData = (uintptr_t)PeekPut();
 		if ( pData & 0x07 )
 		{
 			// handle unaligned write

@@ -123,3 +123,7 @@ target_sources(${OUTBINNAME} PRIVATE "./languages/squirrel/sqplus/SquirrelVM.cpp
 #	$Folder "Lua" [ !$X360 && !$PS3  && !$LINUX]
 
 target_link_libraries(${OUTBINNAME} libvstdlib_client mathlib_client)
+
+if( ORBIS )
+    target_compile_definitions(${OUTBINNAME} PRIVATE _GAMECONSOLE)
+endif()

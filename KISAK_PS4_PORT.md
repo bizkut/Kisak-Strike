@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.44
-SHA-256: a82794f6c1c1450c224aedf7c51fa836ed2b49228190dc1a14119ac66a6179e1
+Version: 1.45
+SHA-256: 5e5f305b10973955afb28a2e2922060f983a6efd7845157e1944c94e173c8be4
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -400,6 +400,16 @@ Version 1.44 links the Source sound-emitter base system and registers its
 parameter parsing into the monolith; actual playback remains deferred until the
 PS4 `libSceAudioOut` device is connected at Source's existing mixing boundary.
 
+The v1.44 hardware run remained stable through the complete launcher and
+filesystem shutdown lifecycle. This validates the sound-emitter singleton and
+`VSoundEmitter003` factory while audio-device initialization remains deferred.
+
+Version 1.45 links the Source VScript manager, Squirrel VM, standard library,
+and bindings, and registers the `VScriptManager009` factory. The Orbis target
+uses Source's generic console contract to exclude desktop remote-debug sockets
+and unbuilt Lua support. Its console buffer fast path now retains full 64-bit
+addresses when checking float and double write alignment.
+
 Reproduce the current cross-build with:
 
 ```sh
@@ -427,9 +437,10 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
    and filesystem shutdown lifecycle is hardware validated at each checkpoint.
 5. **Engine initialization — in progress.**
    Filesystem, input, Kisak physics, material-system core, all datacache
-   interfaces, studio-render core, and sound-emitter base are linked and
-   statically registered. Script, VGUI/RocketUI, and full engine/client/server
-   modules remain; renderer and AudioOut device backends are still pending.
+   interfaces, studio-render core, sound-emitter base, and Squirrel VScript are
+   linked and statically registered. VGUI/RocketUI and full
+   engine/client/server modules remain; renderer and AudioOut device backends
+   are still pending.
 6. **Content filesystem — pending.**
    Layer `/app0` and `/data/kisak-strike` VPK/search paths using little-endian
    Kisak/PC content.

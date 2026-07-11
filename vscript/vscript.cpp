@@ -107,4 +107,10 @@ CScriptManager g_ScriptManager;
 
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CScriptManager, IScriptManager, VSCRIPT_INTERFACE_VERSION, g_ScriptManager );
 
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakVScriptFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
 
