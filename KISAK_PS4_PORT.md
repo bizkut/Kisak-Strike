@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.98
-SHA-256: a43aa4f565524fa1144f44ac2da63769adcb7a76821a7dd838cb0c92db261d22
+Version: 1.99
+SHA-256: c8d75803ff3e5a363b63d85467b701ba6cf9c9c5f2432fe8ed0f0f3a03ebfa6a
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -321,6 +321,15 @@ policy, and the command emits `DrawIndex` for indices `{0,1,2}`. Because the
 procedural VS consumes `gl_VertexIndex`, this isolates index allocation,
 binding, and indexed packet execution without yet introducing vertex-fetch
 shader or descriptor variables. The next gate adds fetched vertex attributes.
+
+The v1.98 indexed draw passed on hardware at 60 FPS with the same visible
+triangle and `0xff00bcff` readback. Version 1.99 packages the already generated
+`eden-renderer-draw` position/color shaders, whose triangle data exactly matches
+the existing visual oracle. Runtime setup now allocates persistent interleaved
+position/color vertices, builds two `GnmBuffer` descriptors, generates a fetch
+shader for the reflected input semantics, patches VS resource registers, and
+binds fetch and vertex-buffer tables at VS user-data slots 0 and 2. The indexed
+draw remains unchanged, isolating fetched attributes and descriptor binding.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

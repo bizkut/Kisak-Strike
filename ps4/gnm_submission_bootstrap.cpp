@@ -53,6 +53,7 @@ uint8_t g_PsStorage[1024];
 GnmVsShader *g_VertexShader = 0;
 GnmPsShader *g_PixelShader = 0;
 void *g_FetchShader = 0;
+GnmBuffer *g_VertexBuffers = 0;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 char g_ShaderDiagnostic[160] = "not attempted";
@@ -200,10 +201,46 @@ bool LoadDiagnosticShaders()
     }
     g_FetchShader = gpuCursor;
     sceGnmVsRegsSetFetchShaderModifier( &g_VertexShader->registers, &fetchResults );
+    gpuCursor += fetchSize;
+
+    struct DiagnosticVertex
+    {
+        float position[4];
+        float color[4];
+    };
+    static const DiagnosticVertex vertices[3] = {
+        { { -0.5f, -0.4f, 0.0f, 1.0f }, { 1.0f, 0.1f, 0.0f, 1.0f } },
+        { {  0.0f,  0.6f, 0.0f, 1.0f }, { 1.0f, 0.5f, 0.0f, 1.0f } },
+        { {  0.5f, -0.4f, 0.0f, 1.0f }, { 1.0f, 0.9f, 0.0f, 1.0f } }
+    };
+    gpuCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( gpuCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
+    if ( sizeof( vertices ) + 2 * sizeof( GnmBuffer ) > static_cast< size_t >( gpuEnd - gpuCursor ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "vertex allocation failed bytes=%u", static_cast< unsigned int >( sizeof( vertices ) ) );
+        return false;
+    }
+    DiagnosticVertex *vertexData = reinterpret_cast< DiagnosticVertex * >( gpuCursor );
+    memcpy( vertexData, vertices, sizeof( vertices ) );
+    gpuCursor += sizeof( vertices );
+    gpuCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( gpuCursor ) + 15 ) & ~static_cast< uintptr_t >( 15 ) );
+    if ( 2 * sizeof( GnmBuffer ) > static_cast< size_t >( gpuEnd - gpuCursor ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "vertex descriptor allocation failed" );
+        return false;
+    }
+    g_VertexBuffers = reinterpret_cast< GnmBuffer * >( gpuCursor );
+    g_VertexBuffers[0] = sceGnmCreateVertexBuffer( vertexData[0].position,
+        GNM_FMT_R32G32B32A32_FLOAT, sizeof( DiagnosticVertex ), 3 );
+    g_VertexBuffers[1] = sceGnmCreateVertexBuffer( vertexData[0].color,
+        GNM_FMT_R32G32B32A32_FLOAT, sizeof( DiagnosticVertex ), 3 );
     snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
-        "ready vsbytes=%u psbytes=%u fetchbytes=%u",
+        "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u",
         g_VertexShader->common.shadersize, g_PixelShader->common.shadersize,
-        fetchSize );
+        fetchSize, g_VertexShader->numinputsemantics );
     return true;
 }
 
@@ -249,7 +286,10 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.SetIndexSize( GNM_INDEX_16, GNM_POLICY_LRU );
     g_DrawState.Apply( command );
     if ( g_FetchShader )
+    {
         sceGnmDrawCmdSetPointerUserData( command, GNM_STAGE_VS, 0, g_FetchShader );
+        sceGnmDrawCmdSetPointerUserData( command, GNM_STAGE_VS, 2, g_VertexBuffers );
+    }
     sceGnmDrawCmdSetPsInputUsage( command,
         sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
         sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
