@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.06
-SHA-256: 8eb6315fbe57507d00614b88b6d8f4895089fab522a26757370d4cf9bc92f335
+Version: 1.07
+SHA-256: 13144cf4e77388c690f7569ba298fdac79a4e27549e122a2756fa2fb554736aa
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -167,6 +167,14 @@ isolates the production `CGlobalThreadPool`. Version 1.06 gives the PS4 pool
 aligned static storage and constructs it explicitly after the other constructor
 entries, with independent before/after markers. The public `g_pThreadPool`
 continues to reference the same singleton object once initialization completes.
+
+The v1.06 trace completed all 42 retained constructor entries and reached
+`before global thread pool`, then crashed inside explicit pool construction.
+`CThreadPool` begins with a `CJobQueue` containing 16-byte-aligned lock-free
+queue heads, but Source's legacy `DECL_ALIGN` macro expands to nothing for this
+OpenOrbis Clang configuration. Version 1.07 explicitly aligns the singleton's
+backing storage to 16 bytes so the queue-head invariant is satisfied before the
+pool constructor runs.
 
 Reproduce the current cross-build with:
 

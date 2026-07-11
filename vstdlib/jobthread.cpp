@@ -487,7 +487,11 @@ private:
 //-----------------------------------------------------------------------------
 
 #if defined( PLATFORM_PS4 )
-alignas( CGlobalThreadPool ) static unsigned char g_ThreadPoolStorage[sizeof( CGlobalThreadPool )];
+// CThreadPool begins with CJobQueue, whose CTSQueue heads require 16-byte
+// alignment.  Source's legacy DECL_ALIGN macro is empty in the OpenOrbis
+// Clang configuration, so alignas(CGlobalThreadPool) does not preserve that
+// requirement here.
+alignas( 16 ) static unsigned char g_ThreadPoolStorage[sizeof( CGlobalThreadPool )];
 IThreadPool *g_pThreadPool;
 
 extern "C" int KisakInitializeGlobalThreadPool()
