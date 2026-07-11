@@ -667,7 +667,9 @@ InitReturnVal_t CAppSystemGroup::InitSystems()
 {
 	for (int nSystemsInitialized = 0; nSystemsInitialized < m_Systems.Count(); ++nSystemsInitialized )
 	{
+		PS4_APP_BREADCRUMB( "kisak-ps4: app before system init" );
 		InitReturnVal_t nRetVal = m_Systems[nSystemsInitialized]->Init();
+		PS4_APP_BREADCRUMB( "kisak-ps4: app after system init" );
 		if ( nRetVal != INIT_OK )
 		{
 			for( int nSystemsRewind = nSystemsInitialized; nSystemsRewind-->0; )

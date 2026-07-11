@@ -667,6 +667,9 @@ JobStatus_t CFileAsyncDirectoryScanJob::DoExecute()
 //-----------------------------------------------------------------------------
 void CBaseFileSystem::InitAsync()
 {
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem async entered" );
+	#endif
 	Assert( !m_pThreadPool );
 	if ( m_pThreadPool )
 		return;
@@ -710,6 +713,9 @@ void CBaseFileSystem::InitAsync()
 
 	// create the i/o thread pool
 	m_pThreadPool = CreateNewThreadPool();
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem async pool created" );
+	#endif
 
 	ThreadPoolStartParams_t params;
 	params.iThreadPriority = 0;
@@ -717,7 +723,13 @@ void CBaseFileSystem::InitAsync()
 
 	if ( !IsX360() && !IsPS3() )
 	{
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem async before cpu info" );
+		#endif
 		params.nThreads = MIN( GetCPUInformation().m_nLogicalProcessors, 3 ); // > 3 threads doing IO on one drive, are you crazy?
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem async after cpu info" );
+		#endif
 		params.nThreads = MAX( params.nThreads, 1 );
 		params.nStackSize = 256 * 1024;
 	}
@@ -740,10 +752,16 @@ void CBaseFileSystem::InitAsync()
 		params.bUseAffinityTable = false;
 	}
 
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem async before pool start" );
+	#endif
 	if ( !m_pThreadPool->Start( params, "FsAsyncIO" ) )
 	{
 		SafeRelease( m_pThreadPool );
 	}
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem async after pool start" );
+	#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1478,4 +1496,3 @@ void CBaseFileSystem::DoAsyncCallback( const FileAsyncRequest_t &request, void *
 #endif
 	}
 }
-

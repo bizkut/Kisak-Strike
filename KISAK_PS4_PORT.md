@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.20
-SHA-256: 290cc25f05a109ed77de9e56e841cb0e7ad95cf0ffb2974b5d824a53ba2d6978
+Version: 1.21
+SHA-256: 1b67fc1ec622f79cd0a8a3cddccfee78aee855532feca90af8ad0b1263462670
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -245,6 +245,11 @@ The v1.19 trace still receives no filesystem interface. Although the archive is
 linked, no referenced symbol forced its interface-exposure object into the
 executable. Version 1.20 adds a filesystem-specific factory anchor beside the
 `EXPOSE_SINGLE_INTERFACE_GLOBALVAR` declarations and registers that anchor.
+
+The v1.20 trace validates the anchor and advances through creation, dependency
+loading, connection, and pre-init. It stops during system initialization after
+constructing the filesystem async pool. Version 1.21 splits file-tracker thread
+startup, async-pool construction, CPU topology selection, and pool startup.
 
 Reproduce the current cross-build with:
 

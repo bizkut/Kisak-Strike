@@ -732,7 +732,13 @@ static int s_PS3_libfs_ref_count = 0;
 #endif
 InitReturnVal_t CBaseFileSystem::Init()
 {
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem init entered" );
+	#endif
 	m_FileTracker2.InitAsyncThread();
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem after tracker thread" );
+	#endif
 
 	InitReturnVal_t nRetVal = BaseClass::Init();
 	if ( nRetVal != INIT_OK )
@@ -777,7 +783,13 @@ InitReturnVal_t CBaseFileSystem::Init()
 		fprintf( m_pLogFile, "@echo on\n" );
 	}
 
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem before async init" );
+	#endif
 	InitAsync();
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem after async init" );
+	#endif
 
 	if ( IsGameConsole() )
 	{
@@ -9475,6 +9487,5 @@ CON_COMMAND( fs_fios_cancel_prefetches, "Cancels all the prefetches in progress.
 }
 
 #endif
-
 
 
