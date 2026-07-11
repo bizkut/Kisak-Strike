@@ -117,5 +117,8 @@ extern "C" bool KisakPs4ScaleformMovieInstanceProbe()
         return false;
 
     movie->Advance( 0.0f );
-    return true;
+    movie->Capture( false );
+    const Scaleform::GFx::MovieDisplayHandle &displayHandle =
+        movie->GetDisplayHandle();
+    return displayHandle.GetContext_Unsafe() != NULL;
 }

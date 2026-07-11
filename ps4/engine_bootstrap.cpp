@@ -109,7 +109,7 @@ public:
     int Run() override
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-		KisakPs4StartupBreadcrumb( "kisak-ps4: build marker scaleform_as2_instance_v252" );
+		KisakPs4StartupBreadcrumb( "kisak-ps4: build marker scaleform_render_tree_v253" );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformSdkVersion() );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformKernelSelfTest()
 			? "kisak-ps4: scaleform kernel self-test passed"
@@ -118,8 +118,8 @@ public:
 			? "kisak-ps4: scaleform fontlib movie probe passed"
 			: "kisak-ps4: scaleform fontlib movie probe unavailable" );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformMovieInstanceProbe()
-			? "kisak-ps4: scaleform AS2 movie instance probe passed"
-			: "kisak-ps4: scaleform AS2 movie instance probe failed" );
+			? "kisak-ps4: scaleform render-tree handle probe passed"
+			: "kisak-ps4: scaleform render-tree handle probe failed" );
 		IRocketUI *rocketUI = RocketUI();
 		const bool videoOutReady = KisakPs4VideoOutInitialize();
 		KisakPs4GnmSubmissionSelfTest();

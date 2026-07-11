@@ -902,6 +902,18 @@ The v2.52 package is staged at
 `805a78c55a1364846e2868ec7ad5e06ee45366e96bb06642d9956a00fa4af630`,
 with marker `kisak-ps4: build marker scaleform_as2_instance_v252`.
 
+The v2.52 hardware run passed movie creation, first-frame initialization, AS2
+advance, and remained stable through at least frame 1200 at 60 FPS. Its capture
+is `hardware-captures/logs/2026-07-12/kisak_v252_scaleform_as2_instance_live.txt`.
+Version 2.53 forces a GFx render-tree capture and verifies that the movie's
+`MovieDisplayHandle` owns a live render context. It does not call
+`Renderer2D::Display` yet; this isolates the cross-thread render-tree handoff
+from the forthcoming OpenGNM HAL and draw submission.
+The v2.53 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`d6be0e8fb9d44020132cd646a2a8a552a8b7e0218c7c022328123640cb81b15d`,
+with marker `kisak-ps4: build marker scaleform_render_tree_v253`.
+
 ## Completed work
 
 ### Orbis platform and build foundation
