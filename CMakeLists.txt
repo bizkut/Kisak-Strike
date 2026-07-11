@@ -71,6 +71,22 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
             CXX_STANDARD_REQUIRED ON
             CXX_EXTENSIONS ON)
 
+        set(KISAK_SCALEFORM_ZLIB_ROOT "${KISAK_SCALEFORM_SDK_ROOT}/3rdParty/zlib-1.2.7")
+        add_library(kisak_scaleform_zlib STATIC
+            "${KISAK_SCALEFORM_ZLIB_ROOT}/adler32.c"
+            "${KISAK_SCALEFORM_ZLIB_ROOT}/compress.c"
+            "${KISAK_SCALEFORM_ZLIB_ROOT}/crc32.c"
+            "${KISAK_SCALEFORM_ZLIB_ROOT}/deflate.c"
+            "${KISAK_SCALEFORM_ZLIB_ROOT}/infback.c"
+            "${KISAK_SCALEFORM_ZLIB_ROOT}/inffast.c"
+            "${KISAK_SCALEFORM_ZLIB_ROOT}/inflate.c"
+            "${KISAK_SCALEFORM_ZLIB_ROOT}/inftrees.c"
+            "${KISAK_SCALEFORM_ZLIB_ROOT}/trees.c"
+            "${KISAK_SCALEFORM_ZLIB_ROOT}/uncompr.c"
+            "${KISAK_SCALEFORM_ZLIB_ROOT}/zutil.c")
+        target_include_directories(kisak_scaleform_zlib PUBLIC
+            "${KISAK_SCALEFORM_ZLIB_ROOT}")
+
         set(KISAK_SCALEFORM_RENDER_SOURCES)
         set(KISAK_SCALEFORM_GFX_SOURCES)
         foreach(KISAK_SCALEFORM_PROJECT_LINE IN LISTS KISAK_SCALEFORM_PROJECT_LINES)
@@ -121,7 +137,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
             target_include_directories(${KISAK_SCALEFORM_TARGET} PUBLIC
                 "${CMAKE_CURRENT_SOURCE_DIR}"
                 "${KISAK_SCALEFORM_SDK_ROOT}/Include"
-                "${KISAK_SCALEFORM_SDK_ROOT}/Src")
+                "${KISAK_SCALEFORM_SDK_ROOT}/Src"
+                "${KISAK_SCALEFORM_ZLIB_ROOT}")
             target_compile_definitions(${KISAK_SCALEFORM_TARGET} PUBLIC
                 SF_BUILD_STATICLIB
                 SF_CONFIG_H="ps4/scaleform_orbis_config.h")
@@ -132,7 +149,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
                 CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS ON)
         endforeach()
         target_link_libraries(kisak_scaleform_render PUBLIC kisak_scaleform_kernel)
-        target_link_libraries(kisak_scaleform_gfx PUBLIC kisak_scaleform_render)
+        target_link_libraries(kisak_scaleform_gfx PUBLIC
+            kisak_scaleform_render kisak_scaleform_zlib)
         target_link_libraries(kisak_scaleform_as2 PUBLIC kisak_scaleform_gfx)
     endif()
     set(USE_SCALEFORM OFF CACHE BOOL "" FORCE)

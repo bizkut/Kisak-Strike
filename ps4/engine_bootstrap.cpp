@@ -19,6 +19,7 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest();
 extern "C" void KisakPs4GnmSubmissionShutdown();
 extern "C" const char *KisakPs4ScaleformSdkVersion();
 extern "C" bool KisakPs4ScaleformKernelSelfTest();
+extern "C" bool KisakPs4ScaleformMovieProbe();
 
 namespace
 {
@@ -107,11 +108,14 @@ public:
     int Run() override
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-		KisakPs4StartupBreadcrumb( "kisak-ps4: build marker scaleform_as2_v248" );
+		KisakPs4StartupBreadcrumb( "kisak-ps4: build marker scaleform_fontlib_probe_v249" );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformSdkVersion() );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformKernelSelfTest()
 			? "kisak-ps4: scaleform kernel self-test passed"
 			: "kisak-ps4: scaleform kernel self-test failed" );
+		KisakPs4StartupBreadcrumb( KisakPs4ScaleformMovieProbe()
+			? "kisak-ps4: scaleform fontlib movie probe passed"
+			: "kisak-ps4: scaleform fontlib movie probe unavailable" );
 		IRocketUI *rocketUI = RocketUI();
 		const bool videoOutReady = KisakPs4VideoOutInitialize();
 		KisakPs4GnmSubmissionSelfTest();

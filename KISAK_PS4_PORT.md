@@ -851,9 +851,19 @@ AS3, networked AMP, and external JPEG/PNG/zlib codecs remain excluded. The
 startup self-test now constructs a GFx loader and installs `AS2Support`, proving
 the player/VM graph links and initializes. The remaining UI boundary is the
 OpenGNM/D3D9 render HAL plus Source filesystem-backed movie loading.
-The staged package is `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`,
-SHA-256 `40e385088b2377caf826866ff72e539d2df73ea1e5886eb8de457425510d5f16`,
-with marker `kisak-ps4: build marker scaleform_as2_v248`.
+Version 2.49 enables Scaleform's bundled zlib decompressor without the unused
+POSIX gzip-file API and adds the first real GFx asset gate. Startup now asks the
+AS2 loader to parse
+`/data/kisak-strike/csgo/resource/flash/fontlib.gfx` with `LoadAll` and logs
+whether movie creation passed. This is intentionally an absolute-path probe;
+the next slice is a Source-filesystem `FileOpener`, followed by the OpenGNM
+render HAL. Hardware validation of the movie probe is pending.
+
+The staged package is
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`c40a44bbbc2708ede089be07c161d527454f8870b6f906081aea80c511392cc3`.
+The marker is
+`kisak-ps4: build marker scaleform_fontlib_probe_v249`.
 
 ## Completed work
 

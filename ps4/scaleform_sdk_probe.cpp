@@ -27,3 +27,15 @@ extern "C" bool KisakPs4ScaleformKernelSelfTest()
     loader.SetAS2Support( as2 );
     return loader.GetAS2Support() != NULL;
 }
+
+extern "C" bool KisakPs4ScaleformMovieProbe()
+{
+    Scaleform::System system;
+    Scaleform::GFx::Loader loader;
+    loader.SetAS2Support( Scaleform::Ptr< Scaleform::GFx::AS2Support >(
+        *new Scaleform::GFx::AS2Support() ) );
+    Scaleform::Ptr< Scaleform::GFx::MovieDef > movie = *loader.CreateMovie(
+        "/data/kisak-strike/csgo/resource/flash/fontlib.gfx",
+        Scaleform::GFx::Loader::LoadAll );
+    return movie.GetPtr() != NULL;
+}

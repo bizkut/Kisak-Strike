@@ -14,4 +14,3 @@
 // External codec libraries enter after the core player can construct and link.
 #undef SF_ENABLE_LIBJPEG
 #undef SF_ENABLE_LIBPNG
-#undef SF_ENABLE_ZLIB
