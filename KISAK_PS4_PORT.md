@@ -273,6 +273,13 @@ oversized allocation rollback, and frame-open state; the complete OpenOrbis
 build also passes. Hardware v1.94 is a regression gate for the same visible
 triangle before device-owned draw state is added.
 
+The v1.94 hardware run passed that gate: it remained stable at 60 FPS, retained
+the four bars and orange gradient triangle, completed the two-frame EOP test,
+and read back center pixel `0xff00bcff`. Device-owned submission reservation,
+commit, and recycling are therefore hardware validated. The next renderer unit
+is `CPs4GnmDrawState`, initially covering viewport/scissor, rasterizer,
+depth/stencil, render-target mask, shader bindings, and dirty-state emission.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
