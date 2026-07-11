@@ -71,6 +71,21 @@
 #include "vjobs_interface.h"
 #include "vstdlib/jobthread.h"
 
+#if defined( PLATFORM_PS4 )
+static void Ps4LauncherBreadcrumb( const char *message )
+{
+	FILE *log = fopen( "/data/kisak-strike/startup.log", "a" );
+	if ( !log )
+		return;
+	fputs( message, log );
+	fputc( '\n', log );
+	fflush( log );
+	fclose( log );
+}
+#else
+#define Ps4LauncherBreadcrumb( message ) ( (void)0 )
+#endif
+
 #if defined( _PS3 )
 #include "sys/ppu_thread.h"
 #include "ps3/ps3_win32stubs.h"
@@ -251,6 +266,7 @@ void SetGameDirectory( const char *game )
 //-----------------------------------------------------------------------------
 bool GetExecutableName( char *out, int outSize )
 {
+	Ps4LauncherBreadcrumb( "kisak-ps4: LauncherMain entered" );
 #ifdef WIN32
 	if ( !::GetModuleFileName( ( HINSTANCE )GetModuleHandle( NULL ), out, outSize ) )
 	{
@@ -1527,20 +1543,26 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 #endif // LINUX
 
 	// Hook the debug output stuff.
+	Ps4LauncherBreadcrumb( "kisak-ps4: before logging listener" );
 	LoggingSystem_RegisterLoggingListener( &g_LauncherLoggingListener );
+	Ps4LauncherBreadcrumb( "kisak-ps4: after logging listener" );
 
 #ifndef _PS3
 	// Quickly check the hardware key, essentially a warning shot.  
+	Ps4LauncherBreadcrumb( "kisak-ps4: before hardware key" );
 	if ( !Plat_VerifyHardwareKeyPrompt() )
 	{
 		return -1;
 	}
+	Ps4LauncherBreadcrumb( "kisak-ps4: after hardware key" );
 #endif // !_PS3
 
 #ifdef WIN32
 	CommandLine()->CreateCmdLine( IsPC() ? GetCommandLine() : lpCmdLine );
 #else
+	Ps4LauncherBreadcrumb( "kisak-ps4: before command line" );
 	CommandLine()->CreateCmdLine( argc, argv );
+	Ps4LauncherBreadcrumb( "kisak-ps4: after command line" );
 #endif
 
 #if defined (PLATFORM_OSX) || defined (WIN32)
@@ -1552,7 +1574,9 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 
 #ifndef _PS3
 	// Figure out the directory the executable is running from
+	Ps4LauncherBreadcrumb( "kisak-ps4: before base dir" );
 	UTIL_ComputeBaseDir();
+	Ps4LauncherBreadcrumb( "kisak-ps4: after base dir" );
 #endif // _PS3
 
 #if defined (CSTRIKE15)

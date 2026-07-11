@@ -124,13 +124,16 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.00
-SHA-256: 65f7600e7c87eaa74bcd33988547d0a692d7317c2720da1959c29897d309eb5c
+Version: 1.01
+SHA-256: a3141e43b5b86f2140cd441aa2ce58c4d9d51e46ff93087d47dd453e37f1b70f
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
-This package has not yet been hardware launched. Its first diagnostic split is
-static module registration versus entry into `LauncherMain`.
+The v1.00 hardware run reached bootstrap entry, static module registration, and
+the call into `LauncherMain`, then crashed before any launcher-local marker.
+Version 1.01 adds raw file breadcrumbs around launcher entry, logging-listener
+registration, hardware-key verification, command-line creation, and base-dir
+setup.
 
 Reproduce the current cross-build with:
 
