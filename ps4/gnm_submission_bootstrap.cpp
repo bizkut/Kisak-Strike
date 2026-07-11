@@ -94,6 +94,8 @@ void *g_ReferenceCubeFetchShader = 0;
 GnmBuffer *g_ReferenceCubeVertexBuffers = 0;
 GnmBuffer *g_ReferenceCubeVsDescriptor = 0;
 float *g_ReferenceCubeMvp = 0;
+CPs4GnmBuffer g_ReferenceCubeVertexBuffer;
+CPs4GnmVertexDeclaration g_ReferenceCubeVertexDeclaration;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 bool g_ShadowStateApplyLogged = false;
@@ -689,10 +691,22 @@ bool LoadDiagnosticShaders()
     referenceCursor = reinterpret_cast< uint8_t * >(
         ( reinterpret_cast< uintptr_t >( referenceCursor ) + 15 ) & ~static_cast< uintptr_t >( 15 ) );
     g_ReferenceCubeVertexBuffers = reinterpret_cast< GnmBuffer * >( referenceCursor );
-    g_ReferenceCubeVertexBuffers[0] = sceGnmCreateVertexBuffer( referenceVertices,
-        GNM_FMT_R32G32B32_FLOAT, 8 * sizeof( float ), 36 );
-    g_ReferenceCubeVertexBuffers[1] = sceGnmCreateVertexBuffer( referenceVertices + 6,
-        GNM_FMT_R32G32_FLOAT, 8 * sizeof( float ), 36 );
+    const CPs4GnmVertexDeclaration::Element referenceElements[2] = {
+        { 0, 0, GNM_FMT_R32G32B32_FLOAT },
+        { 0, static_cast< uint16_t >( 6 * sizeof( float ) ), GNM_FMT_R32G32_FLOAT }
+    };
+    if ( !g_ReferenceCubeVertexBuffer.Initialize( referenceVertices,
+            referenceVertexBytes, CPs4GnmBuffer::kVertexBuffer, false ) ||
+        !g_ReferenceCubeVertexDeclaration.Initialize( referenceElements, 2 ) ||
+        !g_Device.SetStreamSource( 0, &g_ReferenceCubeVertexBuffer, 0,
+            8 * sizeof( float ) ) ||
+        !g_Device.BuildVertexDescriptorTable( g_ReferenceCubeVertexDeclaration,
+            0, 36, g_ReferenceCubeVertexBuffers, 2 ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "reference cube facade descriptor table failed" );
+        return false;
+    }
     referenceCursor += 2 * sizeof( GnmBuffer );
     referenceCursor = reinterpret_cast< uint8_t * >(
         ( reinterpret_cast< uintptr_t >( referenceCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
@@ -1104,6 +1118,10 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         CPs4GnmDevice::PrimitiveDrawPacket cubePacket = {};
         if ( !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
                 0, kDiagnosticIndexCount, 0, kDiagnosticVertexCount, &packet ) ||
+            !g_Device.SetStreamSource( 0, &g_ReferenceCubeVertexBuffer, 0,
+                8 * sizeof( float ) ) ||
+            !g_Device.BuildVertexDescriptorTable( g_ReferenceCubeVertexDeclaration,
+                0, 36, g_ReferenceCubeVertexBuffers, 2 ) ||
             !g_Device.BuildPrimitiveDrawPacket( 0, 12, &cubePacket ) )
         {
             g_Device.EndScene();

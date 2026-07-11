@@ -1113,6 +1113,19 @@ failure boundaries. Marker:
 The v2.69 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `0c66bc18bcb854a6ba5198eb63504af88bed5adeeeeca5dabf74b35adf5efc21`.
+
+The v2.69 hardware run retained the four bars and continuously spinning cube,
+passing the first `CPs4GnmDevice` primitive-draw regression gate. Version 2.70
+migrates the cube's remaining raw vertex setup into the façade. Its interleaved
+position/UV allocation is now a `CPs4GnmBuffer`; a persistent
+`CPs4GnmVertexDeclaration` describes position at byte 0 and UV at byte 24; and
+the live draw binds stream 0 and regenerates both OpenGNM descriptors through
+`SetStreamSource` plus `BuildVertexDescriptorTable`. The bootstrap no longer
+constructs the cube's `GnmBuffer` descriptors directly. Marker:
+`kisak-ps4: build marker facade_cube_stream_v270`.
+The v2.70 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`69860dc88d871f9fa837c95c6dc3c36f5c556c0d38cf355650873d98a03600a7`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
