@@ -689,6 +689,15 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetPsInputUsage(
         sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
         sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
+    GnmDbRenderControl referenceDbControl = {};
+    GnmDepthStencilControl referenceDepthControl = {};
+    referenceDepthControl.zwrite = true;
+    referenceDepthControl.zfunc = GNM_DEPTH_COMPARE_LESSEQUAL;
+    referenceDepthControl.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
+    referenceDepthControl.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
+    referenceDepthControl.depthenable = true;
+    sceGnmDrawCmdSetDbRenderControl( command, &referenceDbControl );
+    sceGnmDrawCmdSetDepthStencilControl( command, &referenceDepthControl );
     Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
     if ( !sceGnmDrawCmdCopyMemory( command,

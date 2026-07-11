@@ -1031,6 +1031,17 @@ The v2.64 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `0c29243497ea8935848c0b435c1c2835718e50e62cdf5fcf804336c3b3d3c7c7`,
 with marker `kisak-ps4: build marker reference_depth_layout_v264`.
+
+The v2.64 screenshot remained identical, ruling out depth tile selection as the
+visible blocker. Version 2.65 bypasses the ShaderShadow translation/cache for
+the diagnostic cube and emits the reference example's exact zeroed
+`GnmDbRenderControl` plus depth-enabled, Z-write,
+`GNM_DEPTH_COMPARE_LESSEQUAL` `GnmDepthStencilControl` immediately before the
+indexed draw. Clear, target layout, projection, and geometry are unchanged.
+The v2.65 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`19f0b4c89880607233761eaacb5a128f2a588884722d439d14024bc1f117ce4a`,
+with marker `kisak-ps4: build marker direct_depth_control_v265`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
