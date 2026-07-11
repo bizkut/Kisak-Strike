@@ -59,6 +59,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_subdirectory(vscript)
     add_subdirectory(vgui2/vgui_surfacelib)
     add_subdirectory(vgui2/src)
+    add_subdirectory(vgui2/vgui_controls)
     add_subdirectory(appframework)
     add_subdirectory(launcher)
 
@@ -112,6 +113,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         vscript_client
         vgui2_client
         vgui_surfacelib_client
+        vgui_controls_client
         shaderlib_client
         vtf_client
         bitmap_client

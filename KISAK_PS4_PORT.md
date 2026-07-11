@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.47
-SHA-256: 9cb798339fc7a9f0ed9fc09cd46bcbf0334e8b1830fbd07b5d935cfd9165a435
+Version: 1.48
+SHA-256: ad36d1f245418123fe758f7f0694d9e458b45b85d5fb43bb90e598952733e567
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -430,6 +430,16 @@ Version 1.47 defers that registry allocation until the first registry call and
 adds bounded constructor breadcrumbs around path setup and deferral. The VGUI
 interface set is unchanged; only its pre-runtime initialization order changes.
 
+The v1.47 hardware run remained stable through the complete constructor walk,
+launcher lifecycle, and filesystem shutdown. This validates the deferred VGUI
+registry allocation and restores the v1.45 stability baseline.
+
+Version 1.48 compiles and links the renderer-neutral VGUI controls archive. It
+includes the standard panel, menu, dialog, list, text, and navigation controls
+with the established Orbis compatibility for legacy DMX metadata. This archive
+has no standalone `CreateInterface` factory and remains dormant until a later
+client/UI module calls `VGui_InitInterfacesList`.
+
 Reproduce the current cross-build with:
 
 ```sh
@@ -458,9 +468,9 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
 5. **Engine initialization — in progress.**
    Filesystem, input, Kisak physics, material-system core, all datacache
    interfaces, studio-render core, sound-emitter base, Squirrel VScript, and the
-   VGUI core are linked and statically registered. RocketUI controls and full
-   engine/client/server modules remain; renderer and AudioOut device backends
-   are still pending.
+   VGUI core are linked and statically registered, and the VGUI controls archive
+   compiles for Orbis. RocketUI integration and full engine/client/server
+   modules remain; renderer and AudioOut device backends are still pending.
 6. **Content filesystem — pending.**
    Layer `/app0` and `/data/kisak-strike` VPK/search paths using little-endian
    Kisak/PC content.
