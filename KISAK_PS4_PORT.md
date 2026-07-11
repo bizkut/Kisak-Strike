@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.13
-SHA-256: 40c45b6694c5f56d5da6e6a89d5c4f870d57730718d790c44b6b7f545bfd096d
+Version: 1.14
+SHA-256: b31a1f5a75cedc8a41571fe89ba3240c004baa45d7c2dab4de8faa41132cb59e
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -210,6 +210,10 @@ registered, and `LauncherMain` passed logging, hardware-key, command-line, and
 base-directory setup. It then stopped after `after base dir`. Version 1.13
 splits the immediately following default `-game csgo` append and console-option
 queries.
+
+The v1.13 trace completed the default game append and all console-option
+queries. Version 1.14 brackets the following executable-name handling, Steam
+overlay probe, spurious-parameter cleanup, and POSIX single-instance mutex.
 
 Reproduce the current cross-build with:
 

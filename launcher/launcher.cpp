@@ -1719,12 +1719,14 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 #endif
 
 	// check for a named executable
+	Ps4LauncherBreadcrumb( "kisak-ps4: before executable name" );
 	const char *exeFilename = GetExecutableFilename();
 	if ( !IsGameConsole() && exeFilename[0] && Q_strcmp( exeFilename, "hl2" ) && !CommandLine()->FindParm( "-game" ) )
 	{
 		CommandLine()->RemoveParm( "-game" );
 		CommandLine()->AppendParm( "-game", exeFilename );
 	}
+	Ps4LauncherBreadcrumb( "kisak-ps4: after executable name" );
 
 	// Uncomment the following code to allow multiplayer on the Xbox 360 for trade shows.
 #if 0
@@ -1784,10 +1786,14 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 	// This call is to emulate steam's injection of the GameOverlay DLL into our process if we
 	// are running from the command line directly, this allows the same experience the user gets
 	// to be present when running from perforce, the call has no effect on X360
+	Ps4LauncherBreadcrumb( "kisak-ps4: before steam overlay" );
 	TryToLoadSteamOverlayDLL();
+	Ps4LauncherBreadcrumb( "kisak-ps4: after steam overlay" );
 
 	// See the function for why we do this.
+	Ps4LauncherBreadcrumb( "kisak-ps4: before spurious parms" );
 	RemoveSpuriousGameParameters();
+	Ps4LauncherBreadcrumb( "kisak-ps4: after spurious parms" );
 
 #ifdef WIN32
 	if ( IsPC() )
@@ -1871,6 +1877,7 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 #elif defined( POSIX )
 	else
 	{
+		Ps4LauncherBreadcrumb( "kisak-ps4: before source mutex" );
 		if ( !GrabSourceMutex() )
 		{
 			#if defined( PLATFORM_PS4 )
@@ -1880,6 +1887,7 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 			#endif
 			return -1;
 		}
+		Ps4LauncherBreadcrumb( "kisak-ps4: after source mutex" );
 	}
 #endif
 
