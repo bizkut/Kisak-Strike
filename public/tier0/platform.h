@@ -277,6 +277,7 @@
 	#define IsPlatformPS3()		0
 	#define IsPlatformPS3_PPU()	0
 	#define IsPlatformPS3_SPU()	0
+	#define IsPlatformPS4()		0
 	#define PLATFORM_WINDOWS	1
     #define PLATFORM_OPENGL 0
 
@@ -326,6 +327,7 @@
 #define IsPlatformWindowsPC64()	0
 #define IsPlatformWindowsPC32()	0
 #define IsPlatformPosix()		1
+#define IsPlatformPS4()			0
 #define PLATFORM_POSIX 1
 #define PLATFORM_OPENGL 0
 
@@ -344,6 +346,11 @@
 	#define IsPlatformWindowsPC32()	0
 	#define IsPlatformPosix()		1
 	#define PLATFORM_POSIX 1
+#if defined( PLATFORM_PS4 )
+	#define IsPlatformPS4()			1
+#else
+	#define IsPlatformPS4()			0
+#endif
 
 	#if defined( LINUX ) && !defined( OSX ) // for havok we define both symbols, so don't let the osx build wander down here
 		#define IsPlatformLinux() 1
@@ -412,6 +419,11 @@
 #define IsPosix()	IsPlatformPosix()
 #define IsX360()	IsPlatformX360()
 #define IsPS3()		IsPlatformPS3()
+#if defined( PLATFORM_PS4 )
+	#define IsPS4()		1
+#else
+	#define IsPS4()		0
+#endif
 
 // Setup platform defines.
 #ifdef COMPILER_MSVC
@@ -443,6 +455,13 @@
 //-----------------------------------------------------------------------------
 // Set up platform type defines.
 //-----------------------------------------------------------------------------
+// NOTE: PS4 intentionally stays on the IsPC()=1 / IsGameConsole()=0 path.
+// The original PS4 port commit (8c523337) explicitly avoided identifying PS4
+// as a console because IsGameConsole()=1 triggers Xbox-specific filesystem
+// behavior (DVD mode, XZIP format, sector alignment asserts), material system
+// asserts, and engine paths that are incompatible with PC-format VPKs and
+// the PS4's little-endian x86 architecture. Use IsPS4() for PS4-specific
+// branching instead.
 #if defined( PLATFORM_X360 ) || defined( _PS3 )
 	#ifndef _GAMECONSOLE
 		#define _GAMECONSOLE
