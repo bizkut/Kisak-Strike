@@ -69,7 +69,7 @@ void *g_TextureSamplerTable = 0;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 bool g_ShadowStateApplyLogged = false;
-bool g_ShadowDepthApplyLogged = false;
+bool g_ShadowDisplayApplyLogged = false;
 char g_ShaderDiagnostic[160] = "not attempted";
 
 void LogResult( const char *stage, int result )
@@ -383,6 +383,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     sceGnmDrawCmdInitDefaultHardwareState( command );
     KisakPs4SetShaderShadowCulling( false );
     KisakPs4SetShaderShadowDepth( false, false, 3 );
+    KisakPs4SetShaderShadowBlend( false, 1, 0, 0, false, 1, 0, 0 );
     const uint32_t shadowStateMask = KisakPs4ApplyShaderShadowState( command );
     if ( !g_ShadowStateApplyLogged )
     {
@@ -406,7 +407,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.RetainDirtyMask( ~static_cast< uint32_t >(
         CPs4GnmDrawState::kDirtyRenderTargetMask |
         CPs4GnmDrawState::kDirtyPrimitive |
-        CPs4GnmDrawState::kDirtyDepthStencil ) );
+        CPs4GnmDrawState::kDirtyDepthStencil |
+        CPs4GnmDrawState::kDirtyBlend ) );
     g_DrawState.SetViewport( 0, offscreenViewport );
     g_DrawState.SetScissor( 0, 0, 4, 4 );
     sceGnmDrawCmdSetHwScreenOffset( command, 0, 0 );
@@ -425,8 +427,6 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.ClearDepthRenderTarget();
     GnmDbRenderControl dbControl = {};
     g_DrawState.SetDbRenderControl( dbControl );
-    GnmBlendControl offscreenBlend = {};
-    g_DrawState.SetBlendControl( 0, offscreenBlend );
     g_DrawState.SetRenderTarget( 0, g_DiagnosticTexture.ColorTarget() );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
     g_DrawState.SetPixelShader( g_PixelShader->registers );
@@ -455,30 +455,21 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     sceGnmDrawCmdSetHwScreenOffset( command, 60, 32 );
     sceGnmDrawCmdSetGuardBands( command, 33.0f, 59.0f, 1.0f, 1.0f );
     KisakPs4SetShaderShadowDepth( g_DepthTargetReady, g_DepthTargetReady, 3 );
-    const uint32_t depthStateMask = KisakPs4ApplyShaderShadowState( command );
-    if ( !g_ShadowDepthApplyLogged )
+    KisakPs4SetShaderShadowBlend( true, 4, 5, 0, true, 1, 0, 0 );
+    const uint32_t displayStateMask = KisakPs4ApplyShaderShadowState( command );
+    if ( !g_ShadowDisplayApplyLogged )
     {
         char message[112];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: native shader shadow display depth mask=0x%08x", depthStateMask );
+            "kisak-ps4: native shader shadow display state mask=0x%08x", displayStateMask );
         KisakPs4StartupBreadcrumb( message );
-        g_ShadowDepthApplyLogged = true;
+        g_ShadowDisplayApplyLogged = true;
     }
     if ( g_DepthTargetReady )
         g_DrawState.SetDepthRenderTarget( g_DepthTarget );
     else
         g_DrawState.ClearDepthRenderTarget();
     g_DrawState.SetDbRenderControl( dbControl );
-    GnmBlendControl blendControl = {};
-    blendControl.blendenabled = true;
-    blendControl.colorfunc = GNM_COMB_DST_PLUS_SRC;
-    blendControl.colorsrcmult = GNM_BLEND_SRC_ALPHA;
-    blendControl.colordstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
-    blendControl.alphafunc = GNM_COMB_DST_PLUS_SRC;
-    blendControl.alphasrcmult = GNM_BLEND_ONE;
-    blendControl.alphadstmult = GNM_BLEND_ZERO;
-    blendControl.separatealphaenable = true;
-    g_DrawState.SetBlendControl( 0, blendControl );
     g_DrawState.SetRenderTarget( 0, renderTarget );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
     g_DrawState.SetPixelShader( g_TexturePixelShader->registers );

@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.28
-SHA-256: 4fb148abd11da08b4f6a5d88564cf02486a1af85f6255f25840235ab1bc1591c
+Version: 2.29
+SHA-256: bd58ca8df264be3a659eb0a10de3a55b5be4d35cff004f498172cb2d4ae54b59
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -625,6 +625,14 @@ only when its depth target exists and reapplies the translated control. Both
 bootstrap `GnmDepthStencilControl` emissions are removed, and the second native
 apply logs an expected depth-only dirty mask. Depth-target binding itself stays
 in the diagnostic cache because it is a resource binding, not shadow state.
+
+The v2.28 hardware run logged the expected display depth-only mask `0x10` and
+preserved the opaque orange triangle at 60 FPS, validating exclusive shadow
+depth ownership. Version 2.29 moves blend control as the fourth owned category.
+The offscreen pass disables blending through the shadow bridge; the display
+pass selects source-alpha/inverse-source-alpha color blending with separate
+one/zero alpha blending. Both bootstrap `GnmBlendControl` emissions are removed.
+The second native apply should now report depth plus blend (`0x410`).
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

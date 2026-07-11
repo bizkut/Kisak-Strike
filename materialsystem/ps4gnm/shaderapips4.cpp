@@ -416,3 +416,17 @@ extern "C" void KisakPs4SetShaderShadowDepth( bool testEnabled,
     g_ShaderShadowPs4.EnableDepthWrites( writesEnabled );
     g_ShaderShadowPs4.DepthFunc( static_cast< ShaderDepthFunc_t >( depthFunction ) );
 }
+
+extern "C" void KisakPs4SetShaderShadowBlend( bool enabled,
+    int colorSource, int colorDestination, int colorOperation,
+    bool separateAlpha, int alphaSource, int alphaDestination, int alphaOperation )
+{
+    g_ShaderShadowPs4.EnableBlending( enabled );
+    g_ShaderShadowPs4.BlendFunc( static_cast< ShaderBlendFactor_t >( colorSource ),
+        static_cast< ShaderBlendFactor_t >( colorDestination ) );
+    g_ShaderShadowPs4.BlendOp( static_cast< ShaderBlendOp_t >( colorOperation ) );
+    g_ShaderShadowPs4.EnableBlendingSeparateAlpha( separateAlpha );
+    g_ShaderShadowPs4.BlendFuncSeparateAlpha( static_cast< ShaderBlendFactor_t >( alphaSource ),
+        static_cast< ShaderBlendFactor_t >( alphaDestination ) );
+    g_ShaderShadowPs4.BlendOpSeparateAlpha( static_cast< ShaderBlendOp_t >( alphaOperation ) );
+}
