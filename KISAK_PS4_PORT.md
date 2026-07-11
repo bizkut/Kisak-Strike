@@ -486,6 +486,15 @@ shader and combined table, and samples the offscreen center onto the displayed
 triangle. The prior static red checker should be replaced by opaque orange from
 the offscreen gradient. The farther display draw remains depth rejected.
 
+The v2.15 hardware run displayed the expected opaque orange offscreen sample,
+read center pixel `0xff00daff`, and stayed stable at 60 FPS. This validates
+render-target binding over shared backing, the 4x4 viewport/scissor transition,
+offscreen color writes, CB-write-to-texture-read synchronization, restoration
+of the 1080p color/depth state, and subsequent sampling. The minimum
+render-to-texture gate is complete. Next, copy the offscreen backing into a
+separate texture allocation and sample the copy to validate copy/resolve and
+resource-transition behavior without aliasing.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
