@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.22
-SHA-256: c73e9b1279b3522e957d846c3b710a10f06668e7e01d31b2029ab49919b3c291
+Version: 1.23
+SHA-256: 6998e2e4746548a7340fb21077ec3f74656e3c345efa015ae569bb281082af01
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -255,6 +255,12 @@ The v1.21 trace passes CPU topology selection and stops inside the filesystem
 pool's `Start()`. Version 1.22 traces capacity allocation, each `CJobThread`
 construction, the underlying worker start, its idle-event handshake, and final
 distribution.
+
+The v1.22 trace constructs the first `CJobThread` and stops inside its native
+`CThread::Start()`. That POSIX path uses a stack-local `pthread_attr_t`, the
+same OpenOrbis ABI mismatch that corrupted event initialization. Version 1.23
+uses default pthread attributes on PS4 while preserving Source's thread-init
+handshake.
 
 Reproduce the current cross-build with:
 
