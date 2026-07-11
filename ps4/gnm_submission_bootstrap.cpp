@@ -15,6 +15,7 @@
 #include <gnm_rendertarget.h>
 #include <gnm_shaderbinary.h>
 #include <gnmdriver.h>
+#include <gpuaddr.h>
 #include <orbis/libkernel.h>
 
 #include <stdint.h>
@@ -438,9 +439,19 @@ bool LoadDiagnosticShaders()
     }
     gpuCursor += 2 * sizeof( GnmBuffer );
 
+    GpaSurfaceProperties depthSurface = {};
+    const GnmDataFormat depthFormat = sceGnmDfInitFromZ( GNM_Z_32_FLOAT );
+    if ( sceGpaFindOptimalSurface( &depthSurface, GPA_SURFACE_DEPTH,
+        sceGnmDfGetBitsPerElement( depthFormat ), 1, false,
+        GNM_GPU_BASE ) != GPA_ERR_OK )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "depth tile mode selection failed" );
+        return false;
+    }
     const GnmDepthRenderTargetCreateInfo depthInfo = {
         1920, 1080, 1920, 1, GNM_Z_32_FLOAT, GNM_STENCIL_INVALID,
-        GNM_TM_DEPTH_1D_THIN, GNM_GPU_BASE, 1, {}
+        depthSurface.tilemode, GNM_GPU_BASE, 1, {}
     };
     if ( sceGnmCreateDepthRenderTarget( &g_DepthTarget, &depthInfo ) != GNM_ERROR_OK )
     {

@@ -1020,6 +1020,17 @@ The v2.63 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3e6e5e1282fe2fa36d89a5c854cafacd79ed9121614bc96a2769e12362e8317`,
 with marker `kisak-ps4: build marker reference_depth_clear_v263`.
+
+The v2.63 screenshot remained unchanged. A deeper descriptor comparison found
+the second reference mismatch: Kisak hardcoded `GNM_TM_DEPTH_1D_THIN`, whereas
+`freegnm-examples/cube` derives the tile mode from
+`sceGpaFindOptimalSurface(GPA_SURFACE_DEPTH, 32bpp, 1 fragment)`. Version 2.64
+uses that GPUAddr-selected tile mode before calculating allocation size and
+setting Z read/write addresses, while retaining the reference shader clear.
+The v2.64 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`0c29243497ea8935848c0b435c1c2835718e50e62cdf5fcf804336c3b3d3c7c7`,
+with marker `kisak-ps4: build marker reference_depth_layout_v264`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

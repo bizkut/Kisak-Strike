@@ -9,7 +9,7 @@ CLEAR_SHADER="${KISAK_PS4_CLEAR_SHADER:-$ROOT_DIR/../freegnm-examples/cube/asset
 if [[ "$VARIANT" == "monolithic" ]]; then
     BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
     TITLE="Kisak-Strike PS4 Monolithic"
-    VERSION="2.63"
+    VERSION="2.64"
     TITLE_ID="KISK00002"
     CONTENT_ID="IV0000-KISK00002_00-KISAKMONOLITHIC0"
     EBOOT_INPUT="$BUILD_DIR/kisak_ps4_monolithic.bin"
