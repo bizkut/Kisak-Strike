@@ -151,6 +151,13 @@ static CStudioRenderContext s_StudioRenderContext;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CStudioRenderContext, IStudioRender, 
 						STUDIO_RENDER_INTERFACE_VERSION, s_StudioRenderContext );
 
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakStudioRenderFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
+
 
 //-----------------------------------------------------------------------------
 // Constructor, destructor
@@ -2823,4 +2830,3 @@ void CStudioRenderContext::AddDecal( StudioDecalHandle_t handle, studiohdr_t *pS
 		handle, m_RC, pBoneToWorld, pStudioHdr, ray, decalUp, pDecalMaterial, radius, 
 		body, noPokethru, maxLODToDecal, pvProxyUserData, nAdditionalDecalFlags );
 }
-

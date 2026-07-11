@@ -30,3 +30,7 @@ target_sources(${OUTBINNAME} PRIVATE "r_studiogettriangles.cpp")
 target_sources(${OUTBINNAME} PRIVATE "r_studiolight.cpp")
 
 target_link_libraries(${OUTBINNAME} libvstdlib_client bitmap_client mathlib_client tier2_client tier3_client)
+
+if( ORBIS )
+	target_compile_options(${OUTBINNAME} PRIVATE -Wno-c++11-narrowing)
+endif()
