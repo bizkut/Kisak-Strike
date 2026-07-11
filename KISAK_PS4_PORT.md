@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.22
-SHA-256: c19cbc183aae807f54c2ffebd7b73af02fc1ee2e02762c66c2e6b989fc287827
+Version: 2.23
+SHA-256: 9c1fab69f0ea8a6286dbcfa368987755b1a6ae5649ff79cb980c083c3a6bbe37
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -574,6 +574,14 @@ the Source-facing values now live in `CPs4SourceShadowState`, while the existing
 `CPs4GnmDrawState` remains the sole OpenGNM/PM4 cache and emitter. The intended
 pipeline is explicit: Source shadow state is translated into native GNM state,
 then only dirty PM4 categories are emitted.
+
+The v2.22 hardware run validated the corrected two-layer model at 60 FPS with
+the opaque orange triangle and shader/EOP gate intact. Version 2.23 adds pure,
+host-tested translation from Source depth functions, blend factors and
+operations, color write masks, culling, and polygon offset into OpenGNM control
+structures. Runtime emission is intentionally unchanged for this gate; the
+tested translators are the next input to the existing `CPs4GnmDrawState` PM4
+cache.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

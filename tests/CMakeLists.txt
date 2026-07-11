@@ -43,3 +43,16 @@ add_executable(ps4_gnm_device_test
 target_include_directories(ps4_gnm_device_test PRIVATE ../materialsystem/ps4gnm)
 set_target_properties(ps4_gnm_device_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_gnm_device COMMAND ps4_gnm_device_test)
+
+add_executable(ps4_shadow_state_translate_test
+    ps4_shadow_state_translate_test.cpp
+    ../materialsystem/ps4gnm/ps4_shadow_state_translate.cpp
+)
+target_include_directories(ps4_shadow_state_translate_test PRIVATE
+    ../public
+    ../materialsystem/ps4gnm
+    ../../opengnm/include
+)
+target_compile_definitions(ps4_shadow_state_translate_test PRIVATE POSIX _POSIX GNUC COMPILER_GCC)
+set_target_properties(ps4_shadow_state_translate_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
+add_test(NAME ps4_shadow_state_translate COMMAND ps4_shadow_state_translate_test)
