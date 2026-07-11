@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.40
-SHA-256: 77807c9440ac531e0a3bb121d623cb6c875409b36028a0279c73bf6efeb5ccd1
+Version: 2.41
+SHA-256: 5549cbaec3040c1ff353a4f81c6a8ed894b5f2260c208c304d261fbfe7a0beb2
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -725,6 +725,15 @@ Packaging rejects unsupported stages, non-numeric combo/binding fields,
 duplicate full keys, empty manifests, paths outside `/app0`, and any referenced
 shader binary missing from the package tree. The manifest path is overridable
 for packaging tests while the validated diagnostic manifest remains default.
+
+The v2.40 hardware run passed package/runtime manifest enforcement, concrete
+sampler binding, and the opaque orange 60 FPS draw. Version 2.41 adds the
+reusable `CPs4GnmShader` resource. It validates binary metadata and stage,
+bounds the copied stage header to 1 KiB, requires 256-byte-aligned external GPU
+code memory, bounds code size to the supplied allocation, patches VS/PS program
+addresses, and exposes typed stage accessors. It owns no GPU allocation yet;
+the next gate replaces one diagnostic shader's ad-hoc storage with this object
+before moving all three and then native shader handles.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
