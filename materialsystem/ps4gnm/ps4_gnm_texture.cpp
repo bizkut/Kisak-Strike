@@ -90,7 +90,8 @@ bool CPs4GnmTexture::CreateColorTargetView( GnmDataFormat format,
     uint32_t requiredAlignment = 0;
     if ( sceGnmRtCreateColorTarget( &m_colorTarget, m_data, format, width, height,
         1, 1, 1, tileMode, gpuMode, &requiredSize, &requiredAlignment ) != GNM_ERROR_OK ||
-        requiredSize > m_size || requiredAlignment > m_alignment )
+        requiredSize > m_size ||
+        ( reinterpret_cast< uintptr_t >( m_data ) & ( requiredAlignment - 1 ) ) != 0 )
     {
         memset( &m_colorTarget, 0, sizeof( m_colorTarget ) );
         return false;

@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.12
-SHA-256: 6bb6031a3454779bb5ce09ceeefc4e55e08939b642128e704e405d9adce40909
+Version: 2.13
+SHA-256: c56c1d0ad0ea7b6e8fc9c87b45d7521436d7e334444d8d64f83cf448ad4c8e24
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -448,6 +448,16 @@ exceeds the texture allocation. Startup creates a 4x4 RGBA target view over the
 sampled checker resource. No offscreen draw is submitted yet, so the expected
 image and red `0xff6363ff` readback remain unchanged; this is the descriptor
 compatibility gate before render-to-texture writes and sampling barriers.
+
+The v2.12 hardware run retained the bars but lost the triangle. Its bounded
+diagnostic reported `texture color target view failed`, so shader readiness was
+correctly disabled before drawing. The view validator compared the texture and
+render-target *required alignment values* rather than testing whether the
+actual shared backing address satisfies the render-target alignment. A pool can
+over-align an allocation beyond the texture descriptor's minimum, making that
+comparison invalid. Version 2.13 checks the real address against the requested
+alignment while retaining the size bound. The red sampled triangle must return
+before any offscreen write is attempted.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
