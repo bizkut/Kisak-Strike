@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.66
-SHA-256: 70190fb3ea7bd81908843a3e1540d0461ef76545e2d4638e61a6e37f3bbf95a9
+Version: 1.67
+SHA-256: b19313ec9aa8a1cd1f7c5c66c9958440ff0590a3b8ebf009184e8bb2dbfd803a
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -639,6 +639,16 @@ Version 1.66 keeps the existing sound-emitter loader for mounted content and
 adds a PS4-only existence guard: when `scripts/game_sounds_manifest.txt` is not
 available under the `GAME` search path, the service reports an empty emitter
 table and returns `INIT_OK` instead of entering the unavailable asset path.
+
+The v1.66 hardware run remained stable. The sound emitter reported an empty
+table for the missing manifest, all systems initialized successfully, and the
+engine launcher reached `Run()` before clean shutdown.
+
+Version 1.67 establishes the first PS4 engine-frame handoff: the launcher calls
+the RocketUI `RunFrame(0)` and menu-render hooks once when the interface is
+available, with bounded begin/complete breadcrumbs. RocketUI remains inert and
+OpenGNM rendering is still pending; this checkpoint validates the runtime call
+boundary before introducing a continuous frame loop.
 
 Reproduce the current cross-build with:
 

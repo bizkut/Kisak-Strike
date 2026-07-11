@@ -1,5 +1,6 @@
 #include "icvar.h"
 #include "common/engine_launcher_api.h"
+#include "rocketui/rocketui.h"
 #include "tier1/convar.h"
 
 #include <string.h>
@@ -92,6 +93,14 @@ public:
     int Run() override
     {
         KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
+		IRocketUI *rocketUI = RocketUI();
+		if ( rocketUI )
+		{
+			KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame begin" );
+			rocketUI->RunFrame( 0.0f );
+			rocketUI->RenderMenuFrame();
+			KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame complete" );
+		}
         return RUN_OK;
     }
     void SetEngineWindow( void * ) override {}
