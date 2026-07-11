@@ -297,10 +297,17 @@ bool LoadDiagnosticShaders()
             "diagnostic texture allocation failed" );
         return false;
     }
-    const uint32_t textureColors[4] = { 0xff2020ff, 0xff20ff20, 0xffff2020, 0xffffffff };
-    uint32_t *textureData = static_cast< uint32_t * >( g_DiagnosticTexture.Data() );
-    for ( unsigned int pixel = 0; pixel < g_DiagnosticTexture.Size() / sizeof( uint32_t ); ++pixel )
-        textureData[pixel] = textureColors[( pixel / 4 + pixel ) & 3];
+    const uint32_t texturePixels[16] = {
+        0xff2020ff, 0xff20ff20, 0xffff2020, 0xffffffff,
+        0xff20ff20, 0xffff2020, 0xffffffff, 0xff2020ff,
+        0xffff2020, 0xffffffff, 0xff2020ff, 0xff20ff20,
+        0xffffffff, 0xff2020ff, 0xff20ff20, 0xffff2020
+    };
+    if ( !g_DiagnosticTexture.UploadLinear( texturePixels, 4 * sizeof( uint32_t ), 4 ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ), "texture upload failed" );
+        return false;
+    }
     uint8_t *tableCursor = static_cast< uint8_t * >( g_DiagnosticTexture.Data() ) +
         g_DiagnosticTexture.Size();
     tableCursor = reinterpret_cast< uint8_t * >(

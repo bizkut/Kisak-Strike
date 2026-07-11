@@ -15,6 +15,8 @@ public:
         uint32_t width, uint32_t height, uint32_t mipCount, GnmTileMode tileMode,
         GnmGpuMode gpuMode );
     void Reset();
+    bool UploadLinear( const void *source, size_t sourceRowBytes,
+        uint32_t rowCount );
 
     bool IsValid() const { return m_valid; }
     const GnmTexture &Descriptor() const { return m_texture; }
@@ -27,6 +29,9 @@ private:
     void *m_data;
     uint64_t m_size;
     uint32_t m_alignment;
+    uint32_t m_width;
+    uint32_t m_height;
+    uint32_t m_bytesPerElement;
     bool m_valid;
 };
 

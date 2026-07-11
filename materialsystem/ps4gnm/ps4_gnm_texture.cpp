@@ -3,7 +3,8 @@
 #include <string.h>
 
 CPs4GnmTexture::CPs4GnmTexture()
-    : m_data( 0 ), m_size( 0 ), m_alignment( 0 ), m_valid( false )
+    : m_data( 0 ), m_size( 0 ), m_alignment( 0 ), m_width( 0 ), m_height( 0 ),
+      m_bytesPerElement( 0 ), m_valid( false )
 {
     memset( &m_texture, 0, sizeof( m_texture ) );
 }
@@ -41,7 +42,38 @@ bool CPs4GnmTexture::Initialize2D( void *memory, size_t memorySize,
     m_data = reinterpret_cast< void * >( aligned );
     m_size = requiredSize;
     m_alignment = requiredAlignment;
+    m_width = width;
+    m_height = height;
+    m_bytesPerElement = sceGnmDfGetBytesPerElement( format );
+    if ( !m_bytesPerElement )
+    {
+        Reset();
+        return false;
+    }
     m_valid = true;
+    return true;
+}
+
+bool CPs4GnmTexture::UploadLinear( const void *source, size_t sourceRowBytes,
+    uint32_t rowCount )
+{
+    if ( !m_valid || !source || !sourceRowBytes || !rowCount ||
+        rowCount > m_height )
+        return false;
+    const size_t pitchBytes = static_cast< size_t >( sceGnmTexGetPitch( &m_texture ) ) *
+        m_bytesPerElement;
+    if ( sourceRowBytes > pitchBytes || pitchBytes > m_size / rowCount )
+        return false;
+    const uint8_t *sourceBytes = static_cast< const uint8_t * >( source );
+    uint8_t *destination = static_cast< uint8_t * >( m_data );
+    for ( uint32_t row = 0; row < rowCount; ++row )
+    {
+        memcpy( destination + row * pitchBytes, sourceBytes + row * sourceRowBytes,
+            sourceRowBytes );
+        if ( sourceRowBytes < pitchBytes )
+            memset( destination + row * pitchBytes + sourceRowBytes, 0,
+                pitchBytes - sourceRowBytes );
+    }
     return true;
 }
 
@@ -51,5 +83,8 @@ void CPs4GnmTexture::Reset()
     m_data = 0;
     m_size = 0;
     m_alignment = 0;
+    m_width = 0;
+    m_height = 0;
+    m_bytesPerElement = 0;
     m_valid = false;
 }

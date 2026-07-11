@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.10
-SHA-256: 6231377076d0f74325a0892d536f65f57af4d1b5ffad0bf659ec1952004a6c83
+Version: 2.11
+SHA-256: 334a2b52fd198de47d2025fbf2229b3616d7986e47f9f98b555fbf87baffbcb3
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -423,6 +423,15 @@ range with a four-color pattern. Cached PS shader, semantic, and pointer state
 select the sampled path. The triangle should become an opaque sampled checker
 color rather than the prior orange blend, while depth still rejects the farther
 second draw.
+
+The v2.10 hardware run displayed an opaque purple sampled triangle and read
+center pixel `0xffff6363`, validating texture descriptor, combined table,
+sampler, shader binding, and sampling. Version 2.11 adds pitch-aware linear
+uploads to `CPs4GnmTexture`. It validates source rows against descriptor pitch
+and allocation size, copies each row to the padded destination stride, and
+zeros row padding deterministically. The checker upload now uses this API rather
+than writing raw allocation bytes. The sampled purple result should remain
+unchanged and becomes the upload-layout regression oracle.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
