@@ -1139,6 +1139,15 @@ removed. Marker:
 The v2.71 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `987eaa69211486fe7a01eb14edc4ae86e55355904ec7716aab5b43cc2bb83055`.
+
+Version 2.72 changes only the 4x4 render-to-texture diagnostic clear from
+opaque black to opaque CS-style orange (`A8B8G8R8` value `0xff00a5ff`). This
+turns the cube's black texture-frame regions orange while preserving the
+cyan/magenta regions, animated constants, depth, stream descriptors, and draw
+path. Marker: `kisak-ps4: build marker orange_cube_frame_v272`.
+The v2.72 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`bed9081b85992529dec95b9b319fa8838d9a64d6ee044bc541b80536dc1f510a`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

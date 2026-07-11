@@ -833,7 +833,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetViewportTransform( viewportControl );
     if ( !sceGnmDrawCmdFillMemory( command,
         static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticTexture.Data() ) ),
-        static_cast< uint32_t >( g_DiagnosticTexture.Size() ), 0xff000000 ) )
+        static_cast< uint32_t >( g_DiagnosticTexture.Size() ), 0xff00a5ff ) )
         return;
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
     g_DrawState.ClearDepthRenderTarget();
