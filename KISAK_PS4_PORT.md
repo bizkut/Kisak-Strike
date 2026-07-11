@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.74
-SHA-256: f3e23e12aaf6a95570c1e2047014573d65951763b1b97e1f7f8ce788d0e78540
+Version: 1.75
+SHA-256: 66c8f69f88eda2fdb7792f981000fe353fa5ca46e51b56c87591f2711b7eacda
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -41,7 +41,11 @@ The latest pulled hardware log still contains the v1.72 generic layout-failure
 sequence, so it cannot yet distinguish an unlaunched v1.73 package from a new
 OpenGNM return code. Kisak v1.74 adds a bounded helper-diagnostics marker and
 raw `stage=<n> code=<n>` breadcrumb immediately after `sceGnmVideoOutOpen`
-fails. The package is staged for the next hardware run.
+fails. The v1.74 run reached that marker and reported `stage=1 code=0`, proving
+the OpenGNM Orbis branch was compiled out and returned `GNM_ERROR_UNSUPPORTED`
+without recording it. OpenGNM commit `8f9def5` defines `OPENGNM_ORBIS` in its
+Makefile and records the fallback code; Kisak v1.75 packages the native helper
+path for the next hardware run.
 
 Expected hardware log:
 
@@ -708,6 +712,14 @@ was stale, so the concurrent OpenGNM track rebuilt `libopengnm.a` and committed
 path. Kisak v1.73 packages that rebuilt archive for the next PS4 run.
 OpenGNM commit `ed3df0e` adds a host regression test for both invalid
 create-info forms and their stage/code breadcrumbs.
+
+The v1.74 hardware run confirmed the new marker and reported
+`videoout open stage=1 code=0`, while still completing the frame loop cleanly.
+That code was the helper's unrecorded `GNM_ERROR_UNSUPPORTED` fallback: the
+Orbis Makefile selected `driver_orbis.c` but did not define `OPENGNM_ORBIS`, so
+the native VideoOut SDK branch in `helpers.c` was compiled out. OpenGNM commit
+`8f9def5` enables that definition from the tracked Makefile and records the
+fallback error; Kisak v1.75 stages the resulting native helper path.
 
 Version 1.70 extends `GnmVideoOut` with a diagnostic open-stage field and makes
 the helper classify those six boundaries. Kisak logs the stage-specific result
