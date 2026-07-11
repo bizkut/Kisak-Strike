@@ -244,6 +244,15 @@ A minimal directory service needs only:
 The directory must not proxy gameplay. It returns an endpoint and the client
 then uses the existing Source connection protocol.
 
+The PS4 client can join only servers that deliberately support the Kisak
+Steam-free protocol/authentication mode. Stock secure or VAC-enabled servers
+that require a native Steam session ticket will reject the client. Optional
+browser OpenID account linking may attach a verified Steam ID to a Kisak
+profile, but it does not create a Steamworks session ticket and therefore does
+not make an otherwise stock Steam-authenticated server compatible. Native Steam
+authentication would require an official Valve/publisher integration and is not
+implemented or emulated by this port.
+
 ### 4. Internet player-hosted listen servers
 
 Add this only after LAN and dedicated servers are stable. Use ICE candidate
