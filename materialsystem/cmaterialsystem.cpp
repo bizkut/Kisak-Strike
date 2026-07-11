@@ -32,6 +32,13 @@
 #include "shaderapidx9/imeshdx8.h"
 #include "tier0/perfstats.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_MATSYS_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_MATSYS_BREADCRUMB( line ) ( (void)0 )
+#endif
+
 #if defined( _X360 )
 #include "xbox/xbox_console.h"
 #include "xbox/xbox_win32stubs.h"
@@ -640,6 +647,7 @@ CMaterialSystem::CMaterialSystem()
 {
 	m_nRenderThreadID = 0xFFFFFFFF;
 	m_ShaderHInst = 0;
+	m_ShaderAPIFactory = NULL;
 	m_pMaterialProxyFactory = NULL;
 	m_pClientMaterialSystemInterface = NULL;
 	m_nAdapter = 0;
@@ -792,19 +800,30 @@ void CMaterialSystem::SetShaderAPI( char const *pShaderAPIDLL )
 //-----------------------------------------------------------------------------
 bool CMaterialSystem::Connect( CreateInterfaceFn factory )
 {
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem connect entered" );
 	if ( !factory )
 		return false;
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem before base connect" );
 	if ( !BaseClass::Connect( factory ) )
 		return false;
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem after base connect" );
 
 	if ( !g_pFullFileSystem )
 	{
 		Warning( "The material system requires the filesystem to run!\n" );
 		return false;
 	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem filesystem ready" );
 	
 	g_pVJobs = ( IVJobs* )factory( VJOBS_INTERFACE_VERSION, NULL );
+
+	if ( !m_ShaderAPIFactory )
+	{
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem shader factory missing" );
+		return false;
+	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem shader factory ready" );
 
 	// Get at the interfaces exported by the shader DLL
 

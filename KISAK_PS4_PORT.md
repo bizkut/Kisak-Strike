@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.57
-SHA-256: afe38194edcb32d1aa6342360a2386d037b06393b30c3823cdbcc13b75beefbe
+Version: 1.58
+SHA-256: 834b5a4d05d1b4e322a3cd058745a79fd6ff95aaccae26f0285e8d7b7c8391fb
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -538,6 +538,21 @@ Version 1.57 adds the interface name plus before-call, false-return, and
 successful-return breadcrumbs around every `ConnectSystems` invocation. This
 diagnostic build leaves connection order and subsystem behavior unchanged and
 will identify the exact system whose connection path crashes.
+
+The v1.57 hardware run crashed again and isolated the connection failure to
+`VMaterialSystem080`. Cvar query, queued loader, input system, and physics all
+connected successfully; the log stopped after `VMaterialSystem080` entered its
+`Connect` call.
+
+The material-system constructor initialized the shader module handle but left
+`m_ShaderAPIFactory` indeterminate. Normal desktop sequencing calls
+`SetShaderAPI` before connection, while the transitional monolithic child group
+currently connects the material system directly. Version 1.58 initializes the
+factory to null, checks it before any ShaderAPI interface lookup, and logs base
+connection, filesystem, and shader-factory boundaries. A missing OpenGNM
+ShaderAPI now produces a controlled startup failure and clean shutdown instead
+of calling an undefined function pointer; renderer connection remains blocked
+until the PS4 ShaderAPI factory is installed.
 
 Reproduce the current cross-build with:
 
