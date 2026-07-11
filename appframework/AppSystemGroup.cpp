@@ -25,6 +25,13 @@
 #endif
 #include <algorithm>
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_APP_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_APP_BREADCRUMB( line ) ( (void)0 )
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -778,11 +785,14 @@ CreateInterfaceFn CAppSystemGroup::GetFactory()
 //-----------------------------------------------------------------------------
 int CAppSystemGroup::Run()
 {	
+	PS4_APP_BREADCRUMB( "kisak-ps4: app run entered" );
 	// The factory now uses this app system group
 	s_pCurrentAppSystem	= this;
 	
 	// Load, connect, init
+	PS4_APP_BREADCRUMB( "kisak-ps4: app before startup" );
 	int nRetVal = OnStartup();
+	PS4_APP_BREADCRUMB( "kisak-ps4: app after startup" );
 
 	// NOTE: In case of OnStartup Failure
 	// On PS/3, not unloading the PRXes in order will cause crashes on quit, which is a TRC failure
@@ -792,11 +802,15 @@ int CAppSystemGroup::Run()
 	{
 		// Main loop implemented by the application
 		// FIXME: HACK workaround to avoid vgui porting
+		PS4_APP_BREADCRUMB( "kisak-ps4: app before main" );
 		nRetVal = Main();
+		PS4_APP_BREADCRUMB( "kisak-ps4: app after main" );
 	}
 
 	// Shutdown, disconnect, unload
+	PS4_APP_BREADCRUMB( "kisak-ps4: app before shutdown" );
 	OnShutdown();
+	PS4_APP_BREADCRUMB( "kisak-ps4: app after shutdown" );
 
 	// The factory now uses the parent's app system group
 	s_pCurrentAppSystem	= GetParent();
@@ -825,38 +839,51 @@ void CAppSystemGroup::Shutdown()
 //-----------------------------------------------------------------------------
 int CAppSystemGroup::OnStartup()
 {
+	PS4_APP_BREADCRUMB( "kisak-ps4: app startup entered" );
 	// The factory now uses this app system group
 	s_pCurrentAppSystem	= this;
 
 	// Call an installed application creation function
 	m_nCurrentStage = CREATION;
+	PS4_APP_BREADCRUMB( "kisak-ps4: app before create" );
 	if ( !Create() )
 		return -1;
+	PS4_APP_BREADCRUMB( "kisak-ps4: app after create" );
 
 	// Load dependent libraries
 	m_nCurrentStage = DEPENDENCIES;
+	PS4_APP_BREADCRUMB( "kisak-ps4: app before dependencies" );
 	if ( !LoadDependentSystems() )
 		return -1;
+	PS4_APP_BREADCRUMB( "kisak-ps4: app after dependencies" );
 
 	// Let all systems know about each other
 	m_nCurrentStage = CONNECTION;
+	PS4_APP_BREADCRUMB( "kisak-ps4: app before connect" );
 	if ( !ConnectSystems() )
 		return -1;
+	PS4_APP_BREADCRUMB( "kisak-ps4: app after connect" );
 
 	// Allow the application to do some work before init
 	m_nCurrentStage = PREINITIALIZATION;
+	PS4_APP_BREADCRUMB( "kisak-ps4: app before preinit" );
 	if ( !PreInit() )
 		return -1;
+	PS4_APP_BREADCRUMB( "kisak-ps4: app after preinit" );
 
 	// Call Init on all App Systems
 	m_nCurrentStage = INITIALIZATION;
+	PS4_APP_BREADCRUMB( "kisak-ps4: app before init systems" );
 	int nRetVal = InitSystems();
 	if ( nRetVal != INIT_OK )
 		return -1;
+	PS4_APP_BREADCRUMB( "kisak-ps4: app after init systems" );
 
 	m_nCurrentStage = POSTINITIALIZATION;
+	PS4_APP_BREADCRUMB( "kisak-ps4: app before postinit" );
 	if ( !PostInit() )
 		return -1;
+	PS4_APP_BREADCRUMB( "kisak-ps4: app after postinit" );
 
 	m_nCurrentStage = RUNNING;
 	return nRetVal;

@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.15
-SHA-256: 28529d93227287a71dd62ea4e07d184d15e28b550763b445285fd650ae0cdf74
+Version: 1.16
+SHA-256: 33c9f39d2afe988d0e2b680693732bbf7e9e5cd6e4f0b807755fb43ec326b1c7
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -219,6 +219,11 @@ The v1.14 trace completed every platform probe and acquired the single-instance
 mutex. Version 1.15 splits the remaining launch flags and current-directory
 setup, construction of the Source/Steam application groups, and the first
 `CAppSystemGroup::Run()` handoff.
+
+The v1.15 trace reached `before application run` after both application-group
+objects constructed. Version 1.16 traces the shared app-system lifecycle across
+creation, dependency loading, connection, pre-initialization, main, and
+shutdown.
 
 Reproduce the current cross-build with:
 
