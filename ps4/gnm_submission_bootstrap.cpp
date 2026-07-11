@@ -51,6 +51,8 @@ const size_t kDirectMemorySize = 16 * 1024 * 1024;
 const size_t kDirectMemoryAlignment = 2 * 1024 * 1024;
 const size_t kCommandBufferSize = 64 * 1024;
 const size_t kPersistentMemorySize = 10 * 1024 * 1024;
+const uint32_t kDiagnosticVertexCount = 24;
+const uint32_t kDiagnosticIndexCount = 36;
 off_t g_DirectMemory = 0;
 void *g_Mapped = 0;
 CPs4GnmDevice g_Device;
@@ -348,11 +350,37 @@ bool LoadDiagnosticShaders()
         float position[4];
         float color[4];
     };
-    static const DiagnosticVertex vertices[3] = {
-        { { -0.42f, -0.35f, 0.14f, 0.70f }, { 1.0f, 0.1f, 0.0f, 1.0f } },
-        { {  0.00f,  0.91f, 0.84f, 1.40f }, { 1.0f, 0.5f, 0.0f, 1.0f } },
-        { {  0.60f, -0.50f, 0.30f, 1.00f }, { 1.0f, 0.9f, 0.0f, 1.0f } }
+    const float corners[8][3] = {
+        { -1, -1, -1 }, { 1, -1, -1 }, { 1, 1, -1 }, { -1, 1, -1 },
+        { -1, -1,  1 }, { 1, -1,  1 }, { 1, 1,  1 }, { -1, 1,  1 }
     };
+    const uint8_t faces[6][4] = {
+        { 4, 5, 6, 7 }, { 1, 0, 3, 2 }, { 0, 4, 7, 3 },
+        { 5, 1, 2, 6 }, { 3, 7, 6, 2 }, { 0, 1, 5, 4 }
+    };
+    const float faceColors[6][4] = {
+        { 1.0f, 0.15f, 0.05f, 1.0f }, { 0.15f, 0.45f, 1.0f, 1.0f },
+        { 0.15f, 1.0f, 0.35f, 1.0f }, { 1.0f, 0.8f, 0.05f, 1.0f },
+        { 0.8f, 0.15f, 1.0f, 1.0f }, { 0.05f, 0.9f, 1.0f, 1.0f }
+    };
+    DiagnosticVertex vertices[kDiagnosticVertexCount] = {};
+    for ( uint32_t face = 0; face < 6; ++face )
+    {
+        for ( uint32_t corner = 0; corner < 4; ++corner )
+        {
+            const float *source = corners[faces[face][corner]];
+            const float rotatedX = 0.8660254f * source[0] + 0.5f * source[2];
+            const float rotatedZ = -0.5f * source[0] + 0.8660254f * source[2];
+            const float rotatedY = 0.8660254f * source[1] - 0.5f * rotatedZ;
+            const float cameraZ = 3.5f + 0.5f * source[1] + 0.8660254f * rotatedZ;
+            DiagnosticVertex &vertex = vertices[face * 4 + corner];
+            vertex.position[0] = rotatedX * 1.25f;
+            vertex.position[1] = rotatedY * 1.25f;
+            vertex.position[2] = ( cameraZ - 1.5f ) * 0.45f;
+            vertex.position[3] = cameraZ;
+            memcpy( vertex.color, faceColors[face], sizeof( vertex.color ) );
+        }
+    }
     gpuCursor = reinterpret_cast< uint8_t * >(
         ( reinterpret_cast< uintptr_t >( gpuCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
     if ( sizeof( vertices ) + 2 * sizeof( GnmBuffer ) > static_cast< size_t >( gpuEnd - gpuCursor ) )
@@ -390,7 +418,7 @@ bool LoadDiagnosticShaders()
     if ( !declaration.Initialize( declarationElements, 2 ) ||
         !g_Device.SetStreamSource( 0, &g_DiagnosticVertexBuffer, 0,
             sizeof( DiagnosticVertex ) ) ||
-        !g_Device.BuildVertexDescriptorTable( declaration, 0, 3,
+        !g_Device.BuildVertexDescriptorTable( declaration, 0, kDiagnosticVertexCount,
             g_VertexBuffers, 2 ) )
     {
         snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
@@ -633,21 +661,15 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetDbRenderControl( dbControl );
     g_DrawState.SetRenderTarget( 0, renderTarget );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
-    g_DrawState.SetPixelShader( g_TexturePixelShader->registers );
+    g_DrawState.SetPixelShader( g_PixelShader->registers );
     if ( g_FetchShader )
     {
         g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
         g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_VertexBuffers );
     }
-    g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_TextureSamplerTable );
     g_DrawState.SetPsInputUsage(
         sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
-        sceGnmPsShaderInputSemanticTable( g_TexturePixelShader ), g_TexturePixelShader->numinputsemantics );
-    Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
-    GnmSetViewportInfo farViewport = viewport;
-    farViewport.offset[0] += 180.0f;
-    farViewport.offset[2] = 0.75f;
-    g_DrawState.SetViewport( 0, farViewport );
+        sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
     Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
 }
 }
@@ -827,17 +849,26 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
     if ( g_ShadersReady )
     {
         uint16_t *indices = static_cast< uint16_t * >(
-            g_Device.FrameArena().Allocate( 3 * sizeof( uint16_t ), 8 ) );
+            g_Device.FrameArena().Allocate( kDiagnosticIndexCount * sizeof( uint16_t ), 8 ) );
         if ( !indices )
         {
             g_Device.CancelFrame();
             return false;
         }
-        indices[0] = 0;
-        indices[1] = 1;
-        indices[2] = 2;
+        for ( uint32_t face = 0; face < 6; ++face )
+        {
+            const uint16_t base = static_cast< uint16_t >( face * 4 );
+            const uint32_t first = face * 6;
+            indices[first + 0] = base + 0;
+            indices[first + 1] = base + 1;
+            indices[first + 2] = base + 2;
+            indices[first + 3] = base + 0;
+            indices[first + 4] = base + 2;
+            indices[first + 5] = base + 3;
+        }
         CPs4GnmBuffer indexBuffer;
-        if ( !indexBuffer.Initialize( indices, 3 * sizeof( uint16_t ),
+        if ( !indexBuffer.Initialize( indices,
+            kDiagnosticIndexCount * sizeof( uint16_t ),
             CPs4GnmBuffer::kIndexBuffer, true ) || !g_Device.BeginScene() )
         {
             g_Device.CancelFrame();
@@ -853,7 +884,7 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
         CPs4GnmDevice::IndexedDrawPacket packet = {};
         if ( !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
-            0, 3, 0, 3, &packet ) )
+            0, kDiagnosticIndexCount, 0, kDiagnosticVertexCount, &packet ) )
         {
             g_Device.EndScene();
             g_Device.CancelFrame();
@@ -876,7 +907,7 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         if ( !threeDimensionalDrawLogged )
         {
             KisakPs4StartupBreadcrumb(
-                "kisak-ps4: perspective depth-overlap diagnostic emitted" );
+                "kisak-ps4: indexed color cube diagnostic emitted" );
             threeDimensionalDrawLogged = true;
         }
     }

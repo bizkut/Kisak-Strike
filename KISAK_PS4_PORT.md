@@ -969,6 +969,19 @@ The v2.59 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `f7ab1a3e5d524129a1f0055d4c38fe4336a97c362f495642c288ccc8743c50c5`,
 with marker `kisak-ps4: build marker perspective_depth_draw_v259`.
+
+The v2.59 hardware run passed, but its two overlapping yellow triangles were a
+poor visual proof of 3D despite exercising perspective and depth. Version 2.60
+replaces that geometry with a six-face cube: 24 per-face-color vertices, 36
+16-bit indices, CPU-generated rotated perspective clip coordinates, and the
+solid interpolated-color pixel shader. The depth target resolves face ordering;
+incorrect winding, projection, indexing, or depth should now be immediately
+visible. The v2.59 capture is
+`hardware-captures/logs/2026-07-12/kisak_v259_perspective_depth_live.txt`.
+The v2.60 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`c4bc798b9784ce50ec3c0ddb18bf0b80d73cf80f7032eb91702143f8075305a8`,
+with marker `kisak-ps4: build marker indexed_color_cube_v260`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
