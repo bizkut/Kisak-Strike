@@ -70,6 +70,70 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
             CXX_STANDARD 11
             CXX_STANDARD_REQUIRED ON
             CXX_EXTENSIONS ON)
+
+        set(KISAK_SCALEFORM_RENDER_SOURCES)
+        set(KISAK_SCALEFORM_GFX_SOURCES)
+        foreach(KISAK_SCALEFORM_PROJECT_LINE IN LISTS KISAK_SCALEFORM_PROJECT_LINES)
+            if(KISAK_SCALEFORM_PROJECT_LINE MATCHES "^Src/Render/.*\\.cpp$" AND
+               NOT KISAK_SCALEFORM_PROJECT_LINE MATCHES "(PS3|PSVita|WinAPI|FT2|GXT|KTX|PVR).*\\.cpp$" AND
+               EXISTS "${KISAK_SCALEFORM_SDK_ROOT}/${KISAK_SCALEFORM_PROJECT_LINE}")
+                list(APPEND KISAK_SCALEFORM_RENDER_SOURCES
+                    "${KISAK_SCALEFORM_SDK_ROOT}/${KISAK_SCALEFORM_PROJECT_LINE}")
+            elseif(KISAK_SCALEFORM_PROJECT_LINE MATCHES "^Src/GFx/.*\\.cpp$" AND
+                   NOT KISAK_SCALEFORM_PROJECT_LINE MATCHES "^Src/GFx/(AMP|IME)/" AND
+                   NOT KISAK_SCALEFORM_PROJECT_LINE MATCHES "(PS3|PSVita|X360|Win32|Wii|3DS).*\\.cpp$" AND
+                   EXISTS "${KISAK_SCALEFORM_SDK_ROOT}/${KISAK_SCALEFORM_PROJECT_LINE}")
+                list(APPEND KISAK_SCALEFORM_GFX_SOURCES
+                    "${KISAK_SCALEFORM_SDK_ROOT}/${KISAK_SCALEFORM_PROJECT_LINE}")
+            endif()
+        endforeach()
+
+        file(STRINGS "${KISAK_SCALEFORM_SDK_ROOT}/Projects/libgfx_as2.txt"
+            KISAK_SCALEFORM_AS2_PROJECT_LINES)
+        set(KISAK_SCALEFORM_AS2_SOURCES)
+        foreach(KISAK_SCALEFORM_PROJECT_LINE IN LISTS KISAK_SCALEFORM_AS2_PROJECT_LINES)
+            if(KISAK_SCALEFORM_PROJECT_LINE MATCHES "^Src/GFx/(AS2/.*|GFx_AS2Support)\\.cpp$" AND
+               EXISTS "${KISAK_SCALEFORM_SDK_ROOT}/${KISAK_SCALEFORM_PROJECT_LINE}")
+                list(APPEND KISAK_SCALEFORM_AS2_SOURCES
+                    "${KISAK_SCALEFORM_SDK_ROOT}/${KISAK_SCALEFORM_PROJECT_LINE}")
+            endif()
+        endforeach()
+        list(APPEND KISAK_SCALEFORM_GFX_SOURCES
+            "${KISAK_SCALEFORM_SDK_ROOT}/Src/GFx/AMP/Amp_ProfileFrame.cpp"
+            "${KISAK_SCALEFORM_SDK_ROOT}/Src/GFx/AMP/Amp_ViewStats.cpp"
+            "${KISAK_SCALEFORM_SDK_ROOT}/Src/GFx/IME/GFx_IMEManager.cpp")
+        if(NOT KISAK_SCALEFORM_RENDER_SOURCES OR
+           NOT KISAK_SCALEFORM_GFX_SOURCES OR
+           NOT KISAK_SCALEFORM_AS2_SOURCES)
+            message(FATAL_ERROR "Scaleform Render/GFx/AS2 source inventory is incomplete")
+        endif()
+
+        foreach(KISAK_SCALEFORM_TARGET IN ITEMS
+            kisak_scaleform_render kisak_scaleform_gfx kisak_scaleform_as2)
+            if(KISAK_SCALEFORM_TARGET STREQUAL "kisak_scaleform_render")
+                set(KISAK_SCALEFORM_TARGET_SOURCES ${KISAK_SCALEFORM_RENDER_SOURCES})
+            elseif(KISAK_SCALEFORM_TARGET STREQUAL "kisak_scaleform_gfx")
+                set(KISAK_SCALEFORM_TARGET_SOURCES ${KISAK_SCALEFORM_GFX_SOURCES})
+            else()
+                set(KISAK_SCALEFORM_TARGET_SOURCES ${KISAK_SCALEFORM_AS2_SOURCES})
+            endif()
+            add_library(${KISAK_SCALEFORM_TARGET} STATIC ${KISAK_SCALEFORM_TARGET_SOURCES})
+            target_include_directories(${KISAK_SCALEFORM_TARGET} PUBLIC
+                "${CMAKE_CURRENT_SOURCE_DIR}"
+                "${KISAK_SCALEFORM_SDK_ROOT}/Include"
+                "${KISAK_SCALEFORM_SDK_ROOT}/Src")
+            target_compile_definitions(${KISAK_SCALEFORM_TARGET} PUBLIC
+                SF_BUILD_STATICLIB
+                SF_CONFIG_H="ps4/scaleform_orbis_config.h")
+            target_compile_options(${KISAK_SCALEFORM_TARGET} PRIVATE
+                -Wno-c++11-narrowing
+                -Wno-deprecated-register)
+            set_target_properties(${KISAK_SCALEFORM_TARGET} PROPERTIES
+                CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS ON)
+        endforeach()
+        target_link_libraries(kisak_scaleform_render PUBLIC kisak_scaleform_kernel)
+        target_link_libraries(kisak_scaleform_gfx PUBLIC kisak_scaleform_render)
+        target_link_libraries(kisak_scaleform_as2 PUBLIC kisak_scaleform_gfx)
     endif()
     set(USE_SCALEFORM OFF CACHE BOOL "" FORCE)
     set(USE_ROCKETUI ON CACHE BOOL "" FORCE)
@@ -135,7 +199,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         target_compile_definitions(kisak_ps4_monolithic PRIVATE
             SF_BUILD_STATICLIB
             SF_CONFIG_H="ps4/scaleform_orbis_config.h")
-        target_link_libraries(kisak_ps4_monolithic PRIVATE kisak_scaleform_kernel)
+        target_link_libraries(kisak_ps4_monolithic PRIVATE kisak_scaleform_as2)
     endif()
     set_target_properties(kisak_ps4_monolithic PROPERTIES
         LINKER_LANGUAGE CXX

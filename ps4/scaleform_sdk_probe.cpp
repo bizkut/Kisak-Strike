@@ -1,5 +1,5 @@
+#include "GFx.h"
 #include "GFxVersion.h"
-#include "Kernel/SF_System.h"
 
 #if !defined( SF_OS_ORBIS )
 #error "Scaleform did not recognize the OpenOrbis target"
@@ -18,5 +18,12 @@ extern "C" const char *KisakPs4ScaleformSdkVersion()
 extern "C" bool KisakPs4ScaleformKernelSelfTest()
 {
     Scaleform::System system;
-    return Scaleform::Memory::GetGlobalHeap() != NULL;
+    if ( Scaleform::Memory::GetGlobalHeap() == NULL )
+        return false;
+
+    Scaleform::Ptr< Scaleform::GFx::AS2Support > as2 =
+        *new Scaleform::GFx::AS2Support();
+    Scaleform::GFx::Loader loader;
+    loader.SetAS2Support( as2 );
+    return loader.GetAS2Support() != NULL;
 }

@@ -10,3 +10,8 @@
 // AMP profiling pulls the renderer graph into the Kernel through SF_System.
 // Keep it disabled for the console runtime and for the isolated Kernel gate.
 #undef SF_AMP_SERVER
+
+// External codec libraries enter after the core player can construct and link.
+#undef SF_ENABLE_LIBJPEG
+#undef SF_ENABLE_LIBPNG
+#undef SF_ENABLE_ZLIB

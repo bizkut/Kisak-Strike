@@ -845,6 +845,16 @@ marker `kisak-ps4: build marker scaleform_kernel_v247`. Hardware must confirm
 The next Scaleform slice is the Render core static library, followed by GFx/AS2
 source groups and the renderer adapter.
 
+Version 2.48 links separate Scaleform Render, GFx player, and AS2 static
+libraries using the SDK inventories. Platform GL/KTX/PVR/font-provider sources,
+AS3, networked AMP, and external JPEG/PNG/zlib codecs remain excluded. The
+startup self-test now constructs a GFx loader and installs `AS2Support`, proving
+the player/VM graph links and initializes. The remaining UI boundary is the
+OpenGNM/D3D9 render HAL plus Source filesystem-backed movie loading.
+The staged package is `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`,
+SHA-256 `40e385088b2377caf826866ff72e539d2df73ea1e5886eb8de457425510d5f16`,
+with marker `kisak-ps4: build marker scaleform_as2_v248`.
+
 ## Completed work
 
 ### Orbis platform and build foundation
