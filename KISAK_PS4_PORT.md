@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.18
-SHA-256: 10b77df06854a1afcda6f1e0b2148be784540fcbd0b0a14ab5fdbaa0044d4660
+Version: 2.19
+SHA-256: fb888daa9c40d75434bdc8df9ea7a91bbced7b6355d7b46cfba05d89dce8a737
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -540,6 +540,15 @@ and dependent-object registration. Crucially, successful `SetMode` returns the
 PS4 factory rather than the empty factory, keeping subsequent device/API
 lookups inside the interception boundary. Other interfaces still forward
 unchanged. The copied-texture renderer remains the no-regression hardware gate.
+
+The v2.18 hardware run validated that boundary: shader binaries loaded, the
+triangle-over-bars EOP gate passed, and the copied offscreen texture remained
+opaque orange at 60 FPS without a crash. Version 2.19 adds a PS4-owned
+`IShaderDevice` object covering presentation, resource lifetime, view, shader,
+mesh, and buffer entry points. Every operation still delegates to the empty
+device in this transition build, so behavior is unchanged while device calls
+now have a PS4 interception point. The manager, ShaderAPI, shadow, and hardware
+configuration lookups retain their existing behavior.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
