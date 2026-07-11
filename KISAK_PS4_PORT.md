@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.01
-SHA-256: a3141e43b5b86f2140cd441aa2ce58c4d9d51e46ff93087d47dd453e37f1b70f
+Version: 1.02
+SHA-256: 5482d83bcaf9ff7c85c51e60e9d5fdf0a92adb16c5e9f268561de0001d9cc1c4
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -134,6 +134,13 @@ the call into `LauncherMain`, then crashed before any launcher-local marker.
 Version 1.01 adds raw file breadcrumbs around launcher entry, logging-listener
 registration, hardware-key verification, command-line creation, and base-dir
 setup.
+
+The v1.01 run stopped inside command-line creation. ELF inspection then proved
+the legacy Clang PS4 target emitted constructors into `.ctors`, while the
+OpenOrbis linker script only populated `.init_array`; the failing executable
+had `DT_INIT_ARRAYSZ = 0`. Version 1.02 uses a generated derivative of the SDK
+link script that retains `.ctors` inside `.init_array`. The rebuilt executable
+has a 352-byte initialization array covering 44 constructor entries.
 
 Reproduce the current cross-build with:
 

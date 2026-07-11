@@ -42,6 +42,12 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_subdirectory(appframework)
     add_subdirectory(launcher)
 
+    file(READ "${OPENORBIS_ROOT}/link.x" KISAK_OPENORBIS_LINK_SCRIPT)
+    string(REPLACE "*(.init_array);" "*(.init_array); KEEP(*(.ctors .ctors.*));"
+        KISAK_OPENORBIS_LINK_SCRIPT "${KISAK_OPENORBIS_LINK_SCRIPT}")
+    set(KISAK_PS4_LINK_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/kisak-link.x")
+    file(WRITE "${KISAK_PS4_LINK_SCRIPT}" "${KISAK_OPENORBIS_LINK_SCRIPT}")
+
     set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
     add_executable(kisak_ps4_monolithic ps4/bootstrap_main.c)
     set_target_properties(kisak_ps4_monolithic PROPERTIES
@@ -53,7 +59,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     target_link_options(kisak_ps4_monolithic PRIVATE
         -m elf_x86_64
         -pie
-        "--script=${OPENORBIS_ROOT}/link.x"
+        "--script=${KISAK_PS4_LINK_SCRIPT}"
         --eh-frame-hdr
     )
     target_link_directories(kisak_ps4_monolithic PRIVATE "${OPENORBIS_ROOT}/lib")
