@@ -8,7 +8,7 @@ DIAGNOSTIC_SHADER_DIR="${KISAK_PS4_DIAGNOSTIC_SHADER_DIR:-$ROOT_DIR/../freegnm-e
 if [[ "$VARIANT" == "monolithic" ]]; then
     BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
     TITLE="Kisak-Strike PS4 Monolithic"
-    VERSION="2.09"
+    VERSION="2.10"
     TITLE_ID="KISK00002"
     CONTENT_ID="IV0000-KISK00002_00-KISAKMONOLITHIC0"
     EBOOT_INPUT="$BUILD_DIR/kisak_ps4_monolithic.bin"
@@ -60,7 +60,7 @@ if [[ "$VARIANT" == "monolithic" && ! -f "$CONTENT_PROBE" ]]; then
     exit 1
 fi
 if [[ "$VARIANT" == "monolithic" ]]; then
-    for shader in tri.vert.sb tri.frag.sb; do
+    for shader in tri.vert.sb tri.frag.sb texture_sample.frag.sb; do
         if [[ ! -f "$DIAGNOSTIC_SHADER_DIR/$shader" ]]; then
             echo "Missing generated PS4 diagnostic shader: $DIAGNOSTIC_SHADER_DIR/$shader" >&2
             exit 1
@@ -79,6 +79,7 @@ if [[ "$VARIANT" == "monolithic" ]]; then
     cp "$CONTENT_PROBE" "$PACKAGE_DIR/kisak_ps4_content_probe.txt"
     cp "$DIAGNOSTIC_SHADER_DIR/tri.vert.sb" "$PACKAGE_DIR/kisak_diagnostic.vert.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/tri.frag.sb" "$PACKAGE_DIR/kisak_diagnostic.frag.sb"
+    cp "$DIAGNOSTIC_SHADER_DIR/texture_sample.frag.sb" "$PACKAGE_DIR/kisak_texture_sample.frag.sb"
 fi
 
 pushd "$PACKAGE_DIR" >/dev/null
@@ -96,7 +97,7 @@ pushd "$PACKAGE_DIR" >/dev/null
 
 PACKAGE_FILES="eboot.bin sce_sys/about/right.sprx sce_sys/param.sfo sce_sys/icon0.png sce_module/libc.prx sce_module/libSceFios2.prx"
 if [[ "$VARIANT" == "monolithic" ]]; then
-    PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt kisak_diagnostic.vert.sb kisak_diagnostic.frag.sb"
+    PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt kisak_diagnostic.vert.sb kisak_diagnostic.frag.sb kisak_texture_sample.frag.sb"
 fi
 "$CREATE_GP4" -out=pkg.gp4 -content-id="$CONTENT_ID" -files "$PACKAGE_FILES"
 "$PKGTOOL" pkg_build pkg.gp4 .

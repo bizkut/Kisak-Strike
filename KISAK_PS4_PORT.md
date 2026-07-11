@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.09
-SHA-256: a458dd0e5ba30147a958887e6c52215068dc0863060bbdf739b8d5979c97a6d8
+Version: 2.10
+SHA-256: 6231377076d0f74325a0892d536f65f57af4d1b5ffad0bf659ec1952004a6c83
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -413,6 +413,16 @@ dirty tracking and command-boundary re-emission. `DrawIndex` is now the only
 direct draw operation after cached fixed pipeline, shaders, semantics, resource
 pointers, topology, and index format. Texture sampling remains next; its
 resource/sampler table layout will be derived from shader input-usage metadata.
+
+Version 2.10 packages and loads the generated texture-sampling pixel shader.
+`psb-dis` confirms one `PTR_INDIRECTRESOURCETABLE` at PS SGPR slot 0; its ISA
+loads the 8-DWORD texture descriptor at offset 0 and the 4-DWORD sampler at
+offset `0x20`. Startup builds that exact combined table from
+`CPs4GnmTexture` plus a point/clamp sampler and fills the full padded texture
+range with a four-color pattern. Cached PS shader, semantic, and pointer state
+select the sampled path. The triangle should become an opaque sampled checker
+color rather than the prior orange blend, while depth still rejects the farther
+second draw.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

@@ -52,8 +52,10 @@ CPs4GnmDrawState g_DrawState;
 uint64_t g_CompletedLabel = 0;
 uint8_t g_VsStorage[1024];
 uint8_t g_PsStorage[1024];
+uint8_t g_TexturePsStorage[1024];
 GnmVsShader *g_VertexShader = 0;
 GnmPsShader *g_PixelShader = 0;
+GnmPsShader *g_TexturePixelShader = 0;
 void *g_FetchShader = 0;
 GnmBuffer *g_VertexBuffers = 0;
 GnmDepthRenderTarget g_DepthTarget = {};
@@ -61,6 +63,7 @@ bool g_DepthTargetReady = false;
 void *g_DepthMemory = 0;
 uint32_t g_DepthMemorySize = 0;
 CPs4GnmTexture g_DiagnosticTexture;
+void *g_TextureSamplerTable = 0;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 char g_ShaderDiagnostic[160] = "not attempted";
@@ -112,13 +115,14 @@ bool ReadShaderFile( const char *path, uint8_t **data, size_t *size )
 
 bool LoadDiagnosticShaders()
 {
-    const char *paths[2] = {
+    const char *paths[3] = {
         "/app0/kisak_diagnostic.vert.sb",
-        "/app0/kisak_diagnostic.frag.sb"
+        "/app0/kisak_diagnostic.frag.sb",
+        "/app0/kisak_texture_sample.frag.sb"
     };
     uint8_t *gpuCursor = static_cast< uint8_t * >( g_Mapped );
     uint8_t *gpuEnd = gpuCursor + kPersistentMemorySize;
-    for ( unsigned int shader = 0; shader < 2; ++shader )
+    for ( unsigned int shader = 0; shader < 3; ++shader )
     {
         uint8_t *fileData = 0;
         size_t fileSize = 0;
@@ -131,7 +135,7 @@ bool LoadDiagnosticShaders()
         GnmShaderMetadata metadata = {};
         const GnmError metadataResult = sceGnmShaderBinaryGetMetadata( fileData, fileSize, &metadata );
         const bool expectedStage = shader == 0 ? metadata.type == GNM_SHADER_VERTEX : metadata.type == GNM_SHADER_PIXEL;
-        uint8_t *storage = shader == 0 ? g_VsStorage : g_PsStorage;
+        uint8_t *storage = shader == 0 ? g_VsStorage : ( shader == 1 ? g_PsStorage : g_TexturePsStorage );
         if ( metadataResult != GNM_ERROR_OK || !expectedStage || metadata.stagesize > 1024 )
         {
             snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
@@ -159,11 +163,17 @@ bool LoadDiagnosticShaders()
             g_VertexShader = reinterpret_cast< GnmVsShader * >( storage );
             sceGnmVsRegsSetAddress( &g_VertexShader->registers, gpuCursor );
         }
-        else
+        else if ( shader == 1 )
         {
             g_PixelShader = reinterpret_cast< GnmPsShader * >( storage );
             sceGnmPsRegsSetAddress( &g_PixelShader->registers, gpuCursor );
             g_PixelShader->registers.spibaryccntl = 0;
+        }
+        else
+        {
+            g_TexturePixelShader = reinterpret_cast< GnmPsShader * >( storage );
+            sceGnmPsRegsSetAddress( &g_TexturePixelShader->registers, gpuCursor );
+            g_TexturePixelShader->registers.spibaryccntl = 0;
         }
         gpuCursor += metadata.shadercodesize;
         free( fileData );
@@ -287,12 +297,31 @@ bool LoadDiagnosticShaders()
             "diagnostic texture allocation failed" );
         return false;
     }
-    const uint32_t textureColors[4] = {
-        0xff0000ff, 0xff00ff00, 0xffff0000, 0xffffffff
-    };
+    const uint32_t textureColors[4] = { 0xff2020ff, 0xff20ff20, 0xffff2020, 0xffffffff };
     uint32_t *textureData = static_cast< uint32_t * >( g_DiagnosticTexture.Data() );
-    for ( unsigned int pixel = 0; pixel < 16; ++pixel )
+    for ( unsigned int pixel = 0; pixel < g_DiagnosticTexture.Size() / sizeof( uint32_t ); ++pixel )
         textureData[pixel] = textureColors[( pixel / 4 + pixel ) & 3];
+    uint8_t *tableCursor = static_cast< uint8_t * >( g_DiagnosticTexture.Data() ) +
+        g_DiagnosticTexture.Size();
+    tableCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( tableCursor ) + 15 ) & ~static_cast< uintptr_t >( 15 ) );
+    if ( sizeof( GnmTexture ) + sizeof( GnmSampler ) > static_cast< size_t >( gpuEnd - tableCursor ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ), "texture table allocation failed" );
+        return false;
+    }
+    GnmTexture *textureTable = reinterpret_cast< GnmTexture * >( tableCursor );
+    *textureTable = g_DiagnosticTexture.Descriptor();
+    GnmSampler *sampler = reinterpret_cast< GnmSampler * >( tableCursor + sizeof( GnmTexture ) );
+    memset( sampler, 0, sizeof( *sampler ) );
+    sampler->clampx = sampler->clampy = sampler->clampz = GNM_TEX_CLAMP_CLAMP_LAST_TEXEL;
+    sampler->depthcomparefunc = GNM_DEPTH_COMPARE_ALWAYS;
+    sampler->filtermode = GNM_FILTER_MODE_BLEND;
+    sampler->xymagfilter = sampler->xyminfilter = GNM_FILTER_POINT;
+    sampler->zfilter = GNM_ZFILTER_NONE;
+    sampler->mipfilter = GNM_MIPFILTER_NONE;
+    sampler->bordercolortype = GNM_BORDER_COLOR_OPAQUE_BLACK;
+    g_TextureSamplerTable = tableCursor;
     snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
         "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u depthbytes=%llu texturebytes=%llu",
         g_VertexShader->common.shadersize, g_PixelShader->common.shadersize,
@@ -354,16 +383,17 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.SetRenderTarget( 0, renderTarget );
     g_DrawState.SetRenderTargetMask( 0xf );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
-    g_DrawState.SetPixelShader( g_PixelShader->registers );
+    g_DrawState.SetPixelShader( g_TexturePixelShader->registers );
     g_DrawState.SetIndexSize( GNM_INDEX_16, GNM_POLICY_LRU );
     if ( g_FetchShader )
     {
         g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
         g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_VertexBuffers );
     }
+    g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_TextureSamplerTable );
     g_DrawState.SetPsInputUsage(
         sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
-        sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
+        sceGnmPsShaderInputSemanticTable( g_TexturePixelShader ), g_TexturePixelShader->numinputsemantics );
     g_DrawState.SetPrimitiveType( GNM_PT_TRILIST );
     g_DrawState.Apply( command );
     sceGnmDrawCmdDrawIndex( command, 3, indices );
