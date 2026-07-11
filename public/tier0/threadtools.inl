@@ -623,8 +623,22 @@ INLINE_ON_PS3 void* CThread::ThreadProc(LPVOID pv)
 #endif // _PS3
 
 	if ( pInit->pfInitSuccess )
+	{
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child before success write" );
+		#endif
 		*(pInit->pfInitSuccess) = bInitSuccess;
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child after success write" );
+		#endif
+	}
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child before create signal" );
+	#endif
 	pInit->pInitCompleteEvent->Set();
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child after create signal" );
+	#endif
 	if (!bInitSuccess)
 		return 0;
 

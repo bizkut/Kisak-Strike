@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.26
-SHA-256: b2ce919cab2733b82132e938cd88bebf4af45d21802120e09fd23ec3953ebe01
+Version: 1.27
+SHA-256: 7f99645e5a8458176bb08ebfeea6b8c31949a2f9b1c0b8f625f9d49dce043c06
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -276,6 +276,10 @@ virtual `Init()` all succeed. It stops when the child signals the
 create-complete `CThreadEvent`. Version 1.26 replaces PS4 pthread-cond events
 with atomic polling events, avoiding the OpenOrbis condition-object ABI mismatch
 for creation and idle handshakes.
+
+The v1.26 trace still stops immediately after child `Init()`. Version 1.27
+splits the only remaining handshake operations: writing the parent's init
+success flag and atomically signaling the create-complete event.
 
 Reproduce the current cross-build with:
 
