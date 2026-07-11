@@ -294,7 +294,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     const GnmSetViewportInfo viewport = {
         0.0f, 1.0f,
         { 960.0f, -540.0f, 0.5f },
-        { 960.0f, 540.0f, 0.5f }
+        { 960.0f, 540.0f, 0.25f }
     };
     g_DrawState.BeginCommand();
     g_DrawState.SetViewport( 0, viewport );
@@ -348,6 +348,11 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
         sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
     g_DrawState.Apply( command );
     sceGnmDrawCmdSetPrimitiveType( command, GNM_PT_TRILIST );
+    sceGnmDrawCmdDrawIndex( command, 3, indices );
+    GnmSetViewportInfo farViewport = viewport;
+    farViewport.offset[2] = 0.75f;
+    g_DrawState.SetViewport( 0, farViewport );
+    g_DrawState.Apply( command );
     sceGnmDrawCmdDrawIndex( command, 3, indices );
 }
 }

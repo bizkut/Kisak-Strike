@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.06
-SHA-256: 5cc32f20b6a7cc3e20211bf26281527b67936b48aff722aa35afc664164c489b
+Version: 2.07
+SHA-256: 2898908ff29ccc496e32830fd765fc162aa05eb54a3dfec83cd8e68808d267cf
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -387,6 +387,14 @@ fills, waits for DB visibility, and enables Z writes with `LESS_EQUAL` testing.
 The existing triangle emits Z=0.5 and must remain visible. This validates depth
 clear, target binding, comparison, and writes before overlapping geometry is
 introduced.
+
+The v2.06 hardware run kept the depth-enabled triangle visible at 60 FPS,
+validating the clear/write baseline. Version 2.07 turns that into an occlusion
+test without changing shaders or resources: it draws the half-alpha indexed
+triangle at viewport depth 0.25, then submits the same triangle at depth 0.75.
+`LESS_EQUAL` must reject the second draw against the first draw's Z writes. The
+center pixel should remain the single-blend value `0x80bc89bc`; a changed value
+means the farther draw leaked through and isolates depth comparison/write state.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
