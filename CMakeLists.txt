@@ -55,6 +55,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_subdirectory(vtf)
     add_subdirectory(materialsystem/shaderlib)
     add_subdirectory(materialsystem/shaderapiempty)
+    add_subdirectory(materialsystem/ps4gnm)
     add_subdirectory(materialsystem)
     add_subdirectory(datacache)
     add_subdirectory(studiorender)
@@ -122,6 +123,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         inputsystem_client
         kisakvphysics_client
         materialsystem_client
+        shaderapips4_client
         shaderapiempty_client
         datacache_client
         studiorender_client

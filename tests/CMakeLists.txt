@@ -34,3 +34,12 @@ add_executable(ps4_content_paths_test
 target_include_directories(ps4_content_paths_test PRIVATE ../launcher)
 set_target_properties(ps4_content_paths_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_content_paths COMMAND ps4_content_paths_test)
+
+add_executable(ps4_gnm_device_test
+    ps4_gnm_device_test.cpp
+    ../materialsystem/ps4gnm/ps4_gnm_device.cpp
+    ../materialsystem/ps4gnm/ps4_gnm_memory.cpp
+)
+target_include_directories(ps4_gnm_device_test PRIVATE ../materialsystem/ps4gnm)
+set_target_properties(ps4_gnm_device_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
+add_test(NAME ps4_gnm_device COMMAND ps4_gnm_device_test)

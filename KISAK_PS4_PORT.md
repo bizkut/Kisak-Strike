@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.80
-SHA-256: 2256e14b1965245d4c5ba9545dda38845ed5058fae7c681791de9bb7173b1e1b
+Version: 1.81
+SHA-256: 259556710b06242930dc919a72af71b65599ea6c62db60f4758ae90bf993577b
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -70,6 +70,18 @@ numbered archives. All five representative loose-asset probes reported
 launcher completed its bounded run without a crash. Content-path bring-up is
 therefore complete; the next unresolved boundary is the minimum
 OpenGNM-backed PS4 ShaderAPI/D3D9 draw path.
+
+Version 1.81 introduces a distinct statically registered `shaderapips4`
+module and makes it the PS4 launcher's default selection. Its interface factory
+deliberately delegates to `shaderapiempty` while the first backend objects are
+brought up, and the runtime log identifies that fallback explicitly. The new
+`CPs4GnmDevice` and `CPs4GnmMemory` foundation provides aligned linear frame
+allocation, two frames in flight, monotonically increasing submission labels,
+and refusal to recycle an arena until its EOP label is complete. Host tests
+cover invalid initialization, alignment, frame rotation, and premature reuse.
+The monolithic OpenOrbis build links the new module successfully. Hardware
+validation of module selection is the next checkpoint; no real draw is claimed
+yet.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
@@ -827,11 +839,11 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
    sound-manifest fallback with a successful normal asset load.
 3. **Complete:** validated representative VMT, VTF, and BSP reads through the
    normal `GAME` search path.
-4. **Next:** add the PS4 ShaderAPI target and minimal D3D object/resource
-   skeleton; keep `shaderapiempty` as an explicit diagnostic fallback until
-   clear and triangle tests pass.
-5. Add command/constant arenas and EOP completion before permitting resource
-   reuse across frames.
+4. **In progress:** the PS4 ShaderAPI target, static module selection, minimal
+   device object, and diagnostic `shaderapiempty` delegation are present. Next
+   replace delegated device/resource interfaces through clear and triangle.
+5. **In progress:** two command/constant frame arenas model EOP-gated reuse;
+   next bind their labels to real OpenGNM submission completion.
 
 Each slice must update this document with the package version, hash, hardware
 evidence, and the next unresolved boundary. Avoid broad renderer or gameplay

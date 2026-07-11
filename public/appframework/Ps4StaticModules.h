@@ -12,6 +12,7 @@ CreateInterfaceFn KisakRocketUIBootstrapFactory();
 CreateInterfaceFn KisakInputSystemFactory();
 CreateInterfaceFn KisakVPhysicsFactory();
 CreateInterfaceFn KisakShaderApiEmptyFactory();
+CreateInterfaceFn KisakShaderApiPs4Factory();
 CreateInterfaceFn KisakMaterialSystemFactory();
 CreateInterfaceFn KisakDataCacheFactory();
 CreateInterfaceFn KisakStudioRenderFactory();

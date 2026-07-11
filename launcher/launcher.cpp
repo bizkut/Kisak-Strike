@@ -918,6 +918,9 @@ bool CSourceAppSystemGroup::Create()
 	// Load up the appropriate shader DLL
 	// This has to be done before connection.
 	char const *pDLLName = "shaderapidx9" DLL_EXT_STRING;
+#if defined( PLATFORM_PS4 )
+	pDLLName = "shaderapips4" DLL_EXT_STRING;
+#endif
 	const char* pArg = NULL;
 	if ( CommandLine()->FindParm( "-noshaderapi" ) )
 	{
@@ -928,6 +931,9 @@ bool CSourceAppSystemGroup::Create()
 		pDLLName = pArg;
 	}
 	pMaterialSystem->SetShaderAPI( pDLLName );
+#if defined( PLATFORM_PS4 )
+	Ps4LauncherBreadcrumb( "kisak-ps4: shaderapips4 selected with empty fallback" );
+#endif
 
 	elapsed = Plat_FloatTime() - start;
 	COM_TimestampedLog( "CSourceAppSystemGroup::Create() - Took %.4f secs to load libraries and get factories.", (float)elapsed );
