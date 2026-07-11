@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.37
-SHA-256: b5d76e48525f26006463fc9d719d00fb5c395072f0727afbbeb304f8ba54b152
+Version: 2.38
+SHA-256: f4fb3cc474ea86f75077b6c4ceea196a3d4480b75f432fc7317abd87e409ab47
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -699,6 +699,15 @@ match exactly, declared sampler bits must be available through immediate
 samplers or a sampler-table pointer, and the fragment-output mask must match
 the active nibbles in `SPI_SHADER_COL_FORMAT`. Any mismatch retains the visible
 fallback and logs actual versus declared binding values.
+
+The v2.37 hardware run correctly retained the four bars but rejected the
+texture-sampling pixel shader, so the triangle was missing. Its exact diagnostic
+was `stage=2 constants=0/0 samplers=0x0/0x1 outputs=0x1/0x1`. The shader does
+not expose an immediate sampler or separate sampler-table pointer: it uses the
+already validated combined texture/sampler descriptor table through an
+OpenGNM `PTR_RESOURCETABLE` usage slot. Version 2.38 recognizes either resource-
+table or sampler-table pointers as satisfying declared sampler slots while
+retaining strict immediate-sampler, constant, and fragment-output validation.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

@@ -127,7 +127,8 @@ uint32_t ShaderSamplerAvailability( const GnmPsShader *shader )
     const GnmInputUsageSlot *usages = sceGnmPsShaderInputUsageSlotTable( shader );
     for ( uint32_t i = 0; i < shader->common.numinputusageslots; ++i )
     {
-        if ( usages[i].usagetype == GNM_SHINPUTUSAGE_PTR_SAMPLERTABLE )
+        if ( usages[i].usagetype == GNM_SHINPUTUSAGE_PTR_SAMPLERTABLE ||
+            usages[i].usagetype == GNM_SHINPUTUSAGE_PTR_RESOURCETABLE )
             return 0xffffffffu;
         if ( usages[i].usagetype == GNM_SHINPUTUSAGE_IMM_SAMPLER && usages[i].apislot < 32 )
             mask |= 1u << usages[i].apislot;
