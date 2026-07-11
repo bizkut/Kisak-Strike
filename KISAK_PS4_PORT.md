@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.76
-SHA-256: e071ffcb71cd9ac21bb3c4dc876316d20237a75ee1eac4f599c4288dafd9611d
+Version: 1.77
+SHA-256: e24f8144f091ad1edf5a7cdf3d651477fc4de45fe9fab5d8f1701adea75915fb
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -53,6 +53,13 @@ expected: the bootstrap only submitted the first frame and ran the remaining
 119 UI iterations without presentation. Kisak v1.76 submits and checks a
 VideoOut flip on every frame, so a second-flip wait or error will be visible
 instead of leaving the display on the first buffer.
+
+The v1.76 hardware run completed 120 `before flip`/`flip complete` pairs and
+then shut down normally, explaining the apparent stall after roughly two to
+four seconds: the bounded loop had ended, not hung. Kisak v1.77 extends the
+same presentation stress loop to 1,800 frames and emits a heartbeat every 60
+frames, giving the next run about a minute of continuous evidence before
+shutdown.
 
 Expected hardware log:
 

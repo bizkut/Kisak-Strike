@@ -5,6 +5,7 @@
 #include "tier1/convar.h"
 
 #include <chrono>
+#include <stdio.h>
 #include <string.h>
 #include <thread>
 
@@ -98,10 +99,10 @@ public:
 
     int Run() override
     {
-        KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-        IRocketUI *rocketUI = RocketUI();
+		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
+		IRocketUI *rocketUI = RocketUI();
 		const bool videoOutReady = KisakPs4VideoOutInitialize();
-		for ( int frame = 0; frame < 120; ++frame )
+		for ( int frame = 0; frame < 1800; ++frame )
 		{
 			if ( g_pInputSystem )
 				g_pInputSystem->PollInputState( false );
@@ -114,8 +115,13 @@ public:
 				if ( frame == 0 )
 					KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame complete" );
 			}
-			if ( frame == 59 )
-				KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher frame 60" );
+			if ( ( frame + 1 ) % 60 == 0 )
+			{
+				char marker[80];
+				snprintf( marker, sizeof( marker ),
+					"kisak-ps4: engine launcher frame %d", frame + 1 );
+				KisakPs4StartupBreadcrumb( marker );
+			}
 			if ( videoOutReady )
 			{
 				if ( !KisakPs4VideoOutSubmitClear() )
