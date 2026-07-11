@@ -433,6 +433,14 @@ zeros row padding deterministically. The checker upload now uses this API rather
 than writing raw allocation bytes. The sampled purple result should remain
 unchanged and becomes the upload-layout regression oracle.
 
+The v2.11 hardware run stayed stable at 60 FPS and sampled opaque red with
+center pixel `0xff6363ff`. This is the intended checker texel at normalized
+coordinate `(0.5, 0.5)` after rows are placed at the descriptor's padded pitch;
+the earlier purple value came from tightly writing allocation bytes as though
+the texture had no row padding. Pitch-aware upload is therefore validated. The
+next texture milestone is a color target and texture view sharing one backing
+allocation for render-to-texture and resolve/copy testing.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
