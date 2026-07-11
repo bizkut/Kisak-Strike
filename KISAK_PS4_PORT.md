@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.55
-SHA-256: 32adb4a422a3c56289858d2a078b9f225c562e887848551374977adad5759d8b
+Version: 1.56
+SHA-256: 19aa49700a2631a323c144ccd14665f1081c6f7bbf7fceffc3197242bc04ee88
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -515,6 +515,17 @@ Orbis build, retains its factory in the monolithic link, and registers the
 `localize` module. This supplies the current `ILocalize` ABI and real Source
 token lookup, conversion, formatting, callback, and localization-file behavior;
 the obsolete VGUI2 localized-string-table implementation remains excluded.
+
+The v1.55 hardware run remained stable. `Localize_001` was already satisfied,
+and dependency scanning advanced to `InputStackSystemVersion001` from the
+existing `inputsystem` module. Its implementation was compiled into the static
+archive but its unreferenced translation unit was not retained in the
+monolithic executable.
+
+Version 1.56 anchors the existing `CInputStackSystem` translation unit through
+the PS4 input-system factory. This exposes the real input-context stack under
+the existing module identity without duplicating registration or introducing
+a placeholder implementation.
 
 Reproduce the current cross-build with:
 

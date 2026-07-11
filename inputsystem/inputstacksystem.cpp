@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2010, Valve Corporation, All rights reserved. ======//
+//===== Copyright Â© 1996-2010, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -61,6 +61,13 @@ private:
 static CInputStackSystem s_InputStackSystem;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CInputStackSystem, IInputStackSystem, 
 						INPUTSTACKSYSTEM_INTERFACE_VERSION, s_InputStackSystem );
+
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakInputStackSystemFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
 
 
 //-----------------------------------------------------------------------------

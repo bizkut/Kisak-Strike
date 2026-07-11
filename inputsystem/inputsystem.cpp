@@ -52,8 +52,11 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CInputSystem, IInputSystem,
 
 #if defined( PLATFORM_PS4 )
 extern CreateInterfaceFn Sys_GetFactoryThis();
+extern CreateInterfaceFn KisakInputStackSystemFactory();
 CreateInterfaceFn KisakInputSystemFactory()
 {
+	// Retain the input-stack translation unit in the monolithic static link.
+	(void)KisakInputStackSystemFactory();
 	return Sys_GetFactoryThis();
 }
 #endif
