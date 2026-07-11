@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.50
-SHA-256: 556777e7b5c9a7a5a56e9542b793eb8d7a63af485408595d2076e84ce3bf8113
+Version: 1.51
+SHA-256: c667030c790840e171ce70c1b370ab22abb515d451926f94a46a76482d2593e9
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -461,6 +461,15 @@ launcher contract and adds bounded connect, init, startup-info, run, shutdown,
 and disconnect breadcrumbs. It does not replace the real engine: the existing
 engine archive still requires staged removal of Steam, desktop renderer/audio,
 and monolithic dependency assumptions before promotion.
+
+The v1.50 hardware run remained stable, but none of the new engine-launcher
+breadcrumbs ran. The child group still returned from `Create()` before system
+connection, proving an earlier ordered `AddSystems` lookup remains unresolved.
+
+Version 1.51 logs each requested static module and interface plus load, success,
+and failure boundaries inside `CAppSystemGroup::AddSystems`. This diagnostic
+checkpoint leaves subsystem behavior unchanged and will identify the exact
+contract blocking child creation on the next hardware run.
 
 Reproduce the current cross-build with:
 

@@ -334,13 +334,22 @@ bool CAppSystemGroup::AddSystems( AppSystemInfo_t *pSystemList )
 {
 	while ( pSystemList->m_pModuleName[0] )
 	{
+		PS4_APP_BREADCRUMB( "kisak-ps4: add system module" );
+#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( pSystemList->m_pModuleName );
+		PS4_APP_BREADCRUMB( "kisak-ps4: add system interface" );
+		KisakPs4StartupBreadcrumb( pSystemList->m_pInterfaceName );
+#endif
 		AppModule_t module = LoadModule( pSystemList->m_pModuleName );
+		PS4_APP_BREADCRUMB( "kisak-ps4: add system module loaded" );
 		IAppSystem *pSystem = AddSystem( module, pSystemList->m_pInterfaceName );
 		if ( !pSystem )
 		{
+			PS4_APP_BREADCRUMB( "kisak-ps4: add system failed" );
 			Warning( "Unable to load interface %s from %s, requested from EXE.\n", pSystemList->m_pInterfaceName, pSystemList->m_pModuleName );
 			return false;
 		}
+		PS4_APP_BREADCRUMB( "kisak-ps4: add system complete" );
 		++pSystemList;
 	}
 
