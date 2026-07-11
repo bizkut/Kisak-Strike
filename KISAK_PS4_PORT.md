@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.51
-SHA-256: c667030c790840e171ce70c1b370ab22abb515d451926f94a46a76482d2593e9
+Version: 1.52
+SHA-256: 45c7dc7f5e32596d7c3f25fbf7bb818fa4c1b63607cb8408fcc2ed9dd343fffc
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -470,6 +470,16 @@ Version 1.51 logs each requested static module and interface plus load, success,
 and failure boundaries inside `CAppSystemGroup::AddSystems`. This diagnostic
 checkpoint leaves subsystem behavior unchanged and will identify the exact
 contract blocking child creation on the next hardware run.
+
+The v1.51 hardware run remained stable and identified the blocker precisely.
+`engine / VCvarQuery001` succeeded, then
+`filesystem_stdio / QueuedLoaderVersion001` loaded the module but failed its
+interface lookup.
+
+Version 1.52 anchors the existing queued-loader translation unit through the
+filesystem factory. This retains `CQueuedLoader` and its
+`QueuedLoaderVersion001` exposure in the monolithic executable while preserving
+the existing `filesystem_stdio` registry identifier and implementation.
 
 Reproduce the current cross-build with:
 

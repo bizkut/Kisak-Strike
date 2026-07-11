@@ -261,6 +261,15 @@ public:
 static CQueuedLoader g_QueuedLoader;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CQueuedLoader, IQueuedLoader, QUEUEDLOADER_INTERFACE_VERSION, g_QueuedLoader );
 
+#if defined( PLATFORM_PS4 )
+extern CreateInterfaceFn Sys_GetFactoryThis();
+
+CreateInterfaceFn KisakQueuedLoaderFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
+
 class CResourcePreloadAnonymous : public IResourcePreload
 {
 	virtual void PrepareForCreate( bool bSameMap ) {}
