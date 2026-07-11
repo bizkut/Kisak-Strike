@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.35
-SHA-256: 78dc6a7dc58b3579370a585529675b17369d2a59530ea6e24bb3d447e7b452d0
+Version: 2.36
+SHA-256: 5c6b9ae60885d105ce1d4af3a06a8dc2155944851ddada4228a7e69034d7792b
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -683,6 +683,14 @@ it rejects malformed stages, duplicates, oversized lines, invalid entries, and
 empty files atomically. Package construction now requires and includes the
 manifest, and runtime parses it before exact lookup. Host tests cover successful
 multi-entry parsing plus duplicate and invalid-stage rejection.
+
+The v2.35 hardware run parsed the packaged manifest, logged three entries,
+loaded all shaders, and preserved the opaque orange triangle at 60 FPS. Version
+2.36 extends each entry with vertex-input count, constant-layout byte count,
+sampler mask, and fragment-output mask. The diagnostic manifest declares these
+bindings explicitly, the parser requires all fields, and runtime validates the
+vertex shader's declared input count against OpenGNM `.sb` metadata before
+copying code. Host tests verify binding metadata survives parsing and lookup.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

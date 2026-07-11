@@ -1,4 +1,4 @@
-# name|stage|static_combo|dynamic_combo|vertex_format|path
-kisak_diagnostic|vertex|0|0|1|/app0/kisak_diagnostic.vert.sb
-kisak_diagnostic|pixel|0|0|0|/app0/kisak_diagnostic.frag.sb
-kisak_texture_sample|pixel|0|0|0|/app0/kisak_texture_sample.frag.sb
+# name|stage|static_combo|dynamic_combo|vertex_format|path|vertex_inputs|constant_bytes|sampler_mask|fragment_outputs
+kisak_diagnostic|vertex|0|0|1|/app0/kisak_diagnostic.vert.sb|2|0|0|0
+kisak_diagnostic|pixel|0|0|0|/app0/kisak_diagnostic.frag.sb|0|0|0|1
+kisak_texture_sample|pixel|0|0|0|/app0/kisak_texture_sample.frag.sb|0|0|1|1

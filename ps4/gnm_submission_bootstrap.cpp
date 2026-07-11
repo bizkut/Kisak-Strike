@@ -170,12 +170,16 @@ bool LoadDiagnosticShaders()
         GnmShaderMetadata metadata = {};
         const GnmError metadataResult = sceGnmShaderBinaryGetMetadata( fileData, fileSize, &metadata );
         const bool expectedStage = shader == 0 ? metadata.type == GNM_SHADER_VERTEX : metadata.type == GNM_SHADER_PIXEL;
+        const uint32_t actualVertexInputs = shader == 0 && metadataResult == GNM_ERROR_OK && metadata.stage
+            ? reinterpret_cast< const GnmVsShader * >( metadata.stage )->numinputsemantics : 0;
         uint8_t *storage = shader == 0 ? g_VsStorage : ( shader == 1 ? g_PsStorage : g_TexturePsStorage );
-        if ( metadataResult != GNM_ERROR_OK || !expectedStage || metadata.stagesize > 1024 )
+        if ( metadataResult != GNM_ERROR_OK || !expectedStage || metadata.stagesize > 1024 ||
+            ( entry->vertexInputCount && entry->vertexInputCount != actualVertexInputs ) )
         {
             snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
-                "metadata failed stage=%u result=%d type=%u stagebytes=%u filebytes=%llu",
+                "metadata failed stage=%u result=%d type=%u stagebytes=%u inputs=%u expected=%u filebytes=%llu",
                 shader, metadataResult, metadata.type, metadata.stagesize,
+                actualVertexInputs, entry->vertexInputCount,
                 static_cast< unsigned long long >( fileSize ) );
             free( fileData );
             return false;

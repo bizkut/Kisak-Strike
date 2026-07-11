@@ -27,6 +27,18 @@ struct Ps4ShaderManifestEntry
     uint32_t staticCombo;
     uint32_t dynamicCombo;
     uint64_t vertexFormat;
+    uint32_t vertexInputCount;
+    uint32_t constantBytes;
+    uint32_t samplerMask;
+    uint32_t fragmentOutputMask;
+};
+
+struct Ps4ShaderBindingInfo
+{
+    uint32_t vertexInputCount;
+    uint32_t constantBytes;
+    uint32_t samplerMask;
+    uint32_t fragmentOutputMask;
 };
 
 class CPs4ShaderManifest
@@ -36,7 +48,8 @@ public:
 
     CPs4ShaderManifest();
     void Clear();
-    bool Register( const Ps4ShaderManifestKey &key, const char *path );
+    bool Register( const Ps4ShaderManifestKey &key, const char *path,
+        const Ps4ShaderBindingInfo *bindings = 0 );
     bool LoadText( const char *text, size_t length );
     const Ps4ShaderManifestEntry *Find( const Ps4ShaderManifestKey &key ) const;
     size_t Count() const { return m_count; }

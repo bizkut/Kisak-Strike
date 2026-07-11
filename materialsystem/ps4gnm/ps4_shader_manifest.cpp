@@ -24,7 +24,8 @@ void CPs4ShaderManifest::Clear()
     m_count = 0;
 }
 
-bool CPs4ShaderManifest::Register( const Ps4ShaderManifestKey &key, const char *path )
+bool CPs4ShaderManifest::Register( const Ps4ShaderManifestKey &key, const char *path,
+    const Ps4ShaderBindingInfo *bindings )
 {
     if ( !key.name || !key.name[0] || !path || !path[0] ||
         strlen( key.name ) >= sizeof( m_entries[0].name ) ||
@@ -40,6 +41,10 @@ bool CPs4ShaderManifest::Register( const Ps4ShaderManifestKey &key, const char *
     entry.staticCombo = key.staticCombo;
     entry.dynamicCombo = key.dynamicCombo;
     entry.vertexFormat = key.vertexFormat;
+    entry.vertexInputCount = bindings ? bindings->vertexInputCount : 0;
+    entry.constantBytes = bindings ? bindings->constantBytes : 0;
+    entry.samplerMask = bindings ? bindings->samplerMask : 0;
+    entry.fragmentOutputMask = bindings ? bindings->fragmentOutputMask : 0;
     return true;
 }
 
@@ -77,6 +82,7 @@ bool CPs4ShaderManifest::LoadText( const char *text, size_t length )
             unsigned int staticCombo = 0;
             unsigned int dynamicCombo = 0;
             unsigned long long vertexFormat = 0;
+            Ps4ShaderBindingInfo bindings = {};
             if ( lineLength >= sizeof( line ) )
             {
                 Clear();
@@ -84,8 +90,10 @@ bool CPs4ShaderManifest::LoadText( const char *text, size_t length )
             }
             memcpy( line, text + offset, lineLength );
             line[lineLength] = 0;
-            if ( sscanf( line, "%63[^|]|%15[^|]|%u|%u|%llu|%127[^\r\n]",
-                    name, stageName, &staticCombo, &dynamicCombo, &vertexFormat, path ) != 6 )
+            if ( sscanf( line, "%63[^|]|%15[^|]|%u|%u|%llu|%127[^|]|%u|%u|%u|%u",
+                    name, stageName, &staticCombo, &dynamicCombo, &vertexFormat, path,
+                    &bindings.vertexInputCount, &bindings.constantBytes,
+                    &bindings.samplerMask, &bindings.fragmentOutputMask ) != 10 )
             {
                 Clear();
                 return false;
@@ -104,7 +112,7 @@ bool CPs4ShaderManifest::LoadText( const char *text, size_t length )
                 name, stage, staticCombo, dynamicCombo,
                 static_cast< uint64_t >( vertexFormat )
             };
-            if ( !Register( key, path ) )
+            if ( !Register( key, path, &bindings ) )
             {
                 Clear();
                 return false;
