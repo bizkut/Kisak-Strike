@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.41
-SHA-256: 6845bb7619baf9aa7215c83a947af0f5aa069eb040c4b7f8c2823d8f3c2870b1
+Version: 1.42
+SHA-256: bf9db3e97501e9b4ff02202e92b0a4a6adbb92b79946bee035c4dd8b2f13f705
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -368,6 +368,18 @@ boundary and supplies the missing GNU atomic pointer exchange used by material
 containers. This checkpoint deliberately does not link ToGL or initialize a
 desktop ShaderAPI; OpenGNM device integration remains the renderer milestone.
 
+The v1.41 hardware run remained stable and completed the full launcher and
+filesystem teardown sequence through `LauncherMain` return. This validates the
+material-core constructors and static factory while renderer initialization is
+still correctly deferred.
+
+Version 1.42 links the real Source datacache module and registers its shared
+factory. The PS4 anchor retains both interface translation units so
+`VDataCache003`, `MDLCache004`, and `VStudioDataCache005` are all visible from
+the monolithic module registry. Legacy studio byte-swap metadata is compiled
+with the same 64-bit narrowing compatibility used by the other Source data
+tables; PS4 continues to prefer little-endian Kisak/PC content.
+
 Reproduce the current cross-build with:
 
 ```sh
@@ -394,9 +406,10 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
    and calls `LauncherMain(argc, argv)` without `dlopen`. Hardware validation
    of the first launcher boundary is next.
 5. **Engine initialization — in progress.**
-   Filesystem, input, Kisak physics, and the material-system core are linked
-   and statically registered. Full engine, client, server, and UI modules
-   remain; the material system still awaits its OpenGNM ShaderAPI backend.
+   Filesystem, input, Kisak physics, material-system core, and all datacache
+   interfaces are linked and statically registered. Studio render, sound
+   emitter, script, VGUI/RocketUI, and full engine/client/server modules remain;
+   the material system still awaits its OpenGNM ShaderAPI backend.
 6. **Content filesystem — pending.**
    Layer `/app0` and `/data/kisak-strike` VPK/search paths using little-endian
    Kisak/PC content.

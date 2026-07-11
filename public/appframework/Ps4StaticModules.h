@@ -11,6 +11,7 @@ CreateInterfaceFn KisakEngineBootstrapFactory();
 CreateInterfaceFn KisakInputSystemFactory();
 CreateInterfaceFn KisakVPhysicsFactory();
 CreateInterfaceFn KisakMaterialSystemFactory();
+CreateInterfaceFn KisakDataCacheFactory();
 
 extern "C" int KisakRegisterStaticModules();
 

@@ -24,6 +24,7 @@
 #include "materialsystem/imaterialsystemhardwareconfig.h"
 #include "materialsystem/imesh.h"
 #include "datacache/idatacache.h"
+#include "datacache.h"
 #include "studio.h"
 #include "vcollide.h"
 #include "utldict.h"
@@ -833,6 +834,17 @@ private:
 static CMDLCache g_MDLCache;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CMDLCache, IMDLCache, MDLCACHE_INTERFACE_VERSION, g_MDLCache );
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CMDLCache, IStudioDataCache, STUDIO_DATA_CACHE_INTERFACE_VERSION, g_MDLCache );
+
+#if defined( PLATFORM_PS4 )
+extern CDataCache g_DataCache;
+static CDataCache *volatile s_pPs4DataCacheLink = &g_DataCache;
+CreateInterfaceFn KisakDataCacheFactory()
+{
+	if ( !s_pPs4DataCacheLink )
+		return NULL;
+	return Sys_GetFactoryThis();
+}
+#endif
 
 
 //-----------------------------------------------------------------------------
