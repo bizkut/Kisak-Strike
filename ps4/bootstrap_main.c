@@ -7,6 +7,7 @@ extern int sceKernelUsleep( unsigned int microseconds );
 #if defined( KISAK_PS4_MONOLITHIC )
 extern int KisakRegisterStaticModules( void );
 extern int LauncherMain( int argc, char **argv );
+extern int KisakInitializeGlobalThreadPool( void );
 typedef void (*KisakConstructor)( void );
 extern KisakConstructor __kisak_ctors_start[];
 extern KisakConstructor __kisak_ctors_end[];
@@ -47,6 +48,14 @@ int main( int argc, char **argv )
         LogLine( log, marker );
     }
     LogLine( log, "kisak-ps4: constructors complete" );
+
+    LogLine( log, "kisak-ps4: before global thread pool" );
+    if ( KisakInitializeGlobalThreadPool() != 0 )
+    {
+        LogLine( log, "kisak-ps4: global thread pool failed" );
+        return 1;
+    }
+    LogLine( log, "kisak-ps4: after global thread pool" );
 
     if ( KisakRegisterStaticModules() != 0 )
     {

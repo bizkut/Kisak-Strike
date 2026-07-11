@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.05
-SHA-256: 8b66ad5b5c1c8d04c82968e8ea1cfc312a6b6aa1888bf61191222af1ededb5b6
+Version: 1.06
+SHA-256: 8eb6315fbe57507d00614b88b6d8f4895089fab522a26757370d4cf9bc92f335
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -161,6 +161,12 @@ initializer combines the required global thread pool with developer-only
 `ThreadPoolTest` events and counters. Version 1.05 excludes the test namespace
 and retains an inert `RunThreadPoolTests()` probe, leaving the production global
 thread pool constructor in place for direct validation.
+
+The v1.05 trace still failed in the reduced `jobthread.cpp` constructor, which
+isolates the production `CGlobalThreadPool`. Version 1.06 gives the PS4 pool
+aligned static storage and constructs it explicitly after the other constructor
+entries, with independent before/after markers. The public `g_pThreadPool`
+continues to reference the same singleton object once initialization completes.
 
 Reproduce the current cross-build with:
 

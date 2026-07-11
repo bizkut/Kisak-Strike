@@ -486,8 +486,20 @@ private:
 
 //-----------------------------------------------------------------------------
 
+#if defined( PLATFORM_PS4 )
+alignas( CGlobalThreadPool ) static unsigned char g_ThreadPoolStorage[sizeof( CGlobalThreadPool )];
+IThreadPool *g_pThreadPool;
+
+extern "C" int KisakInitializeGlobalThreadPool()
+{
+	CGlobalThreadPool *threadPool = new ( g_ThreadPoolStorage ) CGlobalThreadPool;
+	g_pThreadPool = threadPool;
+	return 0;
+}
+#else
 CGlobalThreadPool g_ThreadPool;
 IThreadPool *g_pThreadPool = &g_ThreadPool;
+#endif
 IThreadPool *g_pAlternateThreadPool;
 
 //-----------------------------------------------------------------------------
