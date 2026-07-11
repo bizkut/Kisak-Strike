@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.64
-SHA-256: 5f7c000082d4a9b9ddc1351d8685f885df83ecdd3c2e209d3819f4dcb625c2f8
+Version: 1.65
+SHA-256: 03eee42f99bce8b1b20dd456a4fabc5c81fed9b02f66ef042a6118eebed1f250
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -621,6 +621,15 @@ though PS4 has no Steam runtime.
 Version 1.64 adds a PS4-specific pre-init branch that skips Steam setup and
 authentication, retains the Source tier-library registration, and applies the
 platform filesystem search-path setup for the `/app0` and `/data` roots.
+
+The v1.64 hardware run crashed after the PS4 pre-init branch succeeded:
+`engine launcher bootstrap startup info` and `app after preinit` appeared. The
+generic init markers showed many successful system initializations but did not
+identify the final system before the crash.
+
+Version 1.65 adds the interface name and completion/failure boundaries around
+each `InitSystems()` call. Initialization order and rollback behavior are
+unchanged; the next run will isolate the failing subsystem init.
 
 Reproduce the current cross-build with:
 

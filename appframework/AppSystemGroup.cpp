@@ -704,11 +704,15 @@ InitReturnVal_t CAppSystemGroup::InitSystems()
 {
 	for (int nSystemsInitialized = 0; nSystemsInitialized < m_Systems.Count(); ++nSystemsInitialized )
 	{
+		const char *pInterfaceName = FindSystemName( nSystemsInitialized );
+		PS4_APP_BREADCRUMB( "kisak-ps4: init system" );
+		PS4_APP_BREADCRUMB( pInterfaceName ? pInterfaceName : "<unnamed>" );
 		PS4_APP_BREADCRUMB( "kisak-ps4: app before system init" );
 		InitReturnVal_t nRetVal = m_Systems[nSystemsInitialized]->Init();
 		PS4_APP_BREADCRUMB( "kisak-ps4: app after system init" );
 		if ( nRetVal != INIT_OK )
 		{
+			PS4_APP_BREADCRUMB( "kisak-ps4: init returned failure" );
 			for( int nSystemsRewind = nSystemsInitialized; nSystemsRewind-->0; )
 			{
 				m_Systems[nSystemsRewind]->Shutdown();
@@ -717,6 +721,7 @@ InitReturnVal_t CAppSystemGroup::InitSystems()
 			ReportStartupFailure( INITIALIZATION, nSystemsInitialized );
 			return nRetVal;
 		}
+		PS4_APP_BREADCRUMB( "kisak-ps4: init complete" );
 	}
 	return INIT_OK;
 }
