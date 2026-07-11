@@ -1294,7 +1294,11 @@ bool CThreadPool::Stop( int timeout )
 		#if defined( PLATFORM_PS4 )
 		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool before exit call" );
 		#endif
+		#if defined( PLATFORM_PS4 )
+		m_Threads[i]->CallWorker( TPM_EXIT, TT_INFINITE, false );
+		#else
 		m_Threads[i]->CallWorker( TPM_EXIT );
+		#endif
 		#if defined( PLATFORM_PS4 )
 		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool after exit call" );
 		#endif

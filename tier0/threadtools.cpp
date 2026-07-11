@@ -2931,7 +2931,11 @@ int CWorkerThread::WaitForReply( unsigned timeout, WaitFunc_t pfnWait )
 	};
 
 	unsigned result;
+	#if defined( PLATFORM_PS4 )
+	bool bInDebugger = false;
+	#else
 	bool bInDebugger = Plat_IsInDebugSession();
+	#endif
 
 	uint32 dwActualTimeout = ( (timeout==TT_INFINITE) ? 30000 : timeout );
 

@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.32
-SHA-256: 9588047e430ea56e8850cdac8faeeb5a5a7667ab2918ee7a8b41994003d58c10
+Version: 1.33
+SHA-256: ff37c65820ed240b57b2b373fd43eec2dec5bc061e04368976c3eaf29e3146ad
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -304,6 +304,11 @@ empty PS4 async queue, preserving `AbortAll()` when jobs actually exist.
 The v1.31 trace skips the empty flush and stops inside `CThreadPool::Stop()`.
 Version 1.32 traces each worker exit call, native join, deletion, and final pool
 cleanup.
+
+The v1.32 trace stops inside the first worker exit call. `CallWorker()` attempts
+desktop priority boosting and its reply wait calls `Plat_IsInDebugSession()`,
+the probe already proven unsafe during startup. Version 1.33 disables priority
+boosting for PS4 exit calls and treats reply waits as non-debug sessions.
 
 Reproduce the current cross-build with:
 
