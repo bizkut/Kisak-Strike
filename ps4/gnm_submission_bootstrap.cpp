@@ -357,11 +357,16 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
         { 960.0f, -540.0f, 0.5f },
         { 960.0f, 540.0f, 0.25f }
     };
+    const GnmSetViewportInfo offscreenViewport = {
+        0.0f, 1.0f,
+        { 2.0f, -2.0f, 0.5f },
+        { 2.0f, 2.0f, 0.5f }
+    };
     g_DrawState.BeginCommand();
-    g_DrawState.SetViewport( 0, viewport );
-    g_DrawState.SetScissor( 0, 0, 1920, 1080 );
-    sceGnmDrawCmdSetHwScreenOffset( command, 60, 32 );
-    sceGnmDrawCmdSetGuardBands( command, 33.0f, 59.0f, 1.0f, 1.0f );
+    g_DrawState.SetViewport( 0, offscreenViewport );
+    g_DrawState.SetScissor( 0, 0, 4, 4 );
+    sceGnmDrawCmdSetHwScreenOffset( command, 0, 0 );
+    sceGnmDrawCmdSetGuardBands( command, 100.0f, 100.0f, 1.0f, 1.0f );
     GnmViewportTransformControl viewportControl = {};
     viewportControl.scalex = viewportControl.offsetx = 1;
     viewportControl.scaley = viewportControl.offsety = 1;
@@ -373,6 +378,40 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     primitiveSetup.frontface = GNM_FACE_CCW;
     primitiveSetup.frontmode = primitiveSetup.backmode = GNM_FILL_SOLID;
     g_DrawState.SetPrimitiveSetup( primitiveSetup );
+    if ( !sceGnmDrawCmdFillMemory( command,
+        static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticTexture.Data() ) ),
+        static_cast< uint32_t >( g_DiagnosticTexture.Size() ), 0xff000000 ) )
+        return;
+    sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
+    GnmDepthStencilControl offscreenDepth = {};
+    g_DrawState.SetDepthStencilControl( offscreenDepth );
+    g_DrawState.ClearDepthRenderTarget();
+    GnmDbRenderControl dbControl = {};
+    g_DrawState.SetDbRenderControl( dbControl );
+    GnmBlendControl offscreenBlend = {};
+    g_DrawState.SetBlendControl( 0, offscreenBlend );
+    g_DrawState.SetRenderTarget( 0, g_DiagnosticTexture.ColorTarget() );
+    g_DrawState.SetRenderTargetMask( 0xf );
+    g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
+    g_DrawState.SetPixelShader( g_PixelShader->registers );
+    g_DrawState.SetIndexSize( GNM_INDEX_16, GNM_POLICY_LRU );
+    if ( g_FetchShader )
+    {
+        g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
+        g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_VertexBuffers );
+    }
+    g_DrawState.SetPsInputUsage(
+        sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
+        sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
+    g_DrawState.SetPrimitiveType( GNM_PT_TRILIST );
+    g_DrawState.Apply( command );
+    sceGnmDrawCmdDrawIndex( command, 3, indices );
+    sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
+
+    g_DrawState.SetViewport( 0, viewport );
+    g_DrawState.SetScissor( 0, 0, 1920, 1080 );
+    sceGnmDrawCmdSetHwScreenOffset( command, 60, 32 );
+    sceGnmDrawCmdSetGuardBands( command, 33.0f, 59.0f, 1.0f, 1.0f );
     GnmDepthStencilControl depthControl = {};
     depthControl.zwrite = g_DepthTargetReady;
     depthControl.zfunc = GNM_DEPTH_COMPARE_LESSEQUAL;
@@ -382,7 +421,6 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
         g_DrawState.SetDepthRenderTarget( g_DepthTarget );
     else
         g_DrawState.ClearDepthRenderTarget();
-    GnmDbRenderControl dbControl = {};
     g_DrawState.SetDbRenderControl( dbControl );
     GnmBlendControl blendControl = {};
     blendControl.blendenabled = true;

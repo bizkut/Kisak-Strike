@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.14
-SHA-256: 9b254c40e8ac04749e11146a65a63f08dffbee47cc63de23cf8aa4de5b8139ff
+Version: 2.15
+SHA-256: 5b214ead4fe93e50e43b7ad290ae5283970d2c0fae49829e8b97d9bec75594c2
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -476,6 +476,15 @@ texture footprint safely without overlapping the following combined descriptor
 table. Shared descriptor compatibility is complete; the next gate writes a
 known color through the 4x4 render target, inserts CB-write-to-texture-read
 synchronization, and samples that result on the display triangle.
+
+Version 2.15 performs the first render-to-texture pass. Each frame clears the
+shared 4x4 backing to black, binds its color-target view, switches to a 4x4
+viewport/scissor with depth and blending disabled, and draws the indexed
+gradient using the non-sampling pixel shader. A CB visibility barrier follows;
+the command then restores the 1080p color/depth state, binds the sampling pixel
+shader and combined table, and samples the offscreen center onto the displayed
+triangle. The prior static red checker should be replaced by opaque orange from
+the offscreen gradient. The farther display draw remains depth rejected.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
