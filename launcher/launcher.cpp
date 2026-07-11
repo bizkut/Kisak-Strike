@@ -923,6 +923,10 @@ bool CSourceAppSystemGroup::PreInit()
 #ifdef _PS3
 	g_pVJobs = ( IVJobs* )factory( VJOBS_INTERFACE_VERSION, NULL );  // this is done only once; g_pVJobs doesn't change even after multiple reloads of VJobs.prx
 	FileSystem_AddSearchPath_Platform( g_pFullFileSystem, GetGameDirectory() );
+#elif defined( PLATFORM_PS4 )
+	// PS4 uses /app0 and /data search roots; Steam environment setup is not
+	// available or required for the monolithic OpenOrbis client.
+	FileSystem_AddSearchPath_Platform( g_pFullFileSystem, GetGameDirectory() );
 #else // _PS3
 	CFSSteamSetupInfo steamInfo;
 	steamInfo.m_bToolsMode = false;

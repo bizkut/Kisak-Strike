@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.63
-SHA-256: 185ee964bd258701675ac737a40360c667a81e7bfff083ed070a5949e59e1759
+Version: 1.64
+SHA-256: 5f7c000082d4a9b9ddc1351d8685f885df83ecdd3c2e209d3819f4dcb625c2f8
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -611,6 +611,16 @@ panel, internal-input, and POSIX-system interface registrations lived in
 otherwise unreferenced translation units. Version 1.63 anchors those existing
 real implementations through `KisakVGuiFactory`, preserving normal VGUI
 dependency acquisition without adding interface stubs.
+
+The v1.63 hardware run remained stable and advanced through every app-system
+connection, including `VGUI_Surface031`, engine launcher, and RocketUI. Startup
+then stopped in `CSourceAppSystemGroup::PreInit` after the `app before preinit`
+marker. The desktop Steam environment/mount path was still being used even
+though PS4 has no Steam runtime.
+
+Version 1.64 adds a PS4-specific pre-init branch that skips Steam setup and
+authentication, retains the Source tier-library registration, and applies the
+platform filesystem search-path setup for the `/app0` and `/data` roots.
 
 Reproduce the current cross-build with:
 
