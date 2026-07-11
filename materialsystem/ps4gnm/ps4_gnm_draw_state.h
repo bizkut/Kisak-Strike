@@ -23,7 +23,8 @@ public:
         kDirtyBlend = 1u << 10,
         kDirtyIndexSize = 1u << 11,
         kDirtyDepthTarget = 1u << 12,
-        kDirtyAll = ( 1u << 13 ) - 1
+        kDirtyPointerUserData = 1u << 13,
+        kDirtyAll = ( 1u << 14 ) - 1
     };
 
     CPs4GnmDrawState();
@@ -43,11 +44,19 @@ public:
     void SetIndexSize( GnmIndexSize size, GnmCachePolicy policy );
     void SetDepthRenderTarget( const GnmDepthRenderTarget &target );
     void ClearDepthRenderTarget();
+    bool SetPointerUserData( GnmShaderStage stage, uint32_t startSlot, void *pointer );
     uint32_t Apply( GnmCommandBuffer *command );
 
     uint32_t DirtyMask() const { return m_dirtyMask; }
 
 private:
+    struct PointerBinding
+    {
+        GnmShaderStage stage;
+        uint32_t startSlot;
+        void *pointer;
+    };
+    enum { kMaxPointerBindings = 8 };
     GnmSetViewportInfo m_viewport;
     GnmViewportTransformControl m_viewportTransform;
     GnmPrimitiveSetup m_primitiveSetup;
@@ -67,6 +76,8 @@ private:
     GnmIndexSize m_indexSize;
     GnmCachePolicy m_indexCachePolicy;
     bool m_depthTargetBound;
+    PointerBinding m_pointerBindings[kMaxPointerBindings];
+    uint32_t m_pointerBindingCount;
     uint32_t m_dirtyMask;
 };
 

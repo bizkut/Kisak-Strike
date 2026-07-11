@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.01
-SHA-256: fb1e04257c488eabae8e302a7ba512751e6f354dc202d1ca34112a55a02e49ec
+Version: 2.02
+SHA-256: 8efc88dbf3a5552787e80ce1a502a9f2e191b059dc44c9d5ed1e9d831eb9786c
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -345,6 +345,15 @@ bind and unbind state to `CPs4GnmDrawState` and routes the diagnostic through an
 explicit unbound-depth baseline. This keeps the image unchanged while proving
 the new PM4 state group before a tiled depth allocation and shader-based clear
 are introduced for overlapping depth-tested geometry.
+
+The v2.01 explicit depth-unbound baseline passed hardware validation at 60 FPS
+with blended center pixel `0x80bc89bc`. Version 2.02 moves pointer user-data
+bindings into `CPs4GnmDrawState`. The cache keys each pointer by shader stage
+and starting SGPR slot, supports eight active bindings, re-emits all active
+bindings at command-buffer boundaries, and rejects capacity overflow. The
+current fetch shader and vertex-descriptor table at VS slots 0 and 2 no longer
+bypass the state cache. PS semantic linkage is now the only direct shader-state
+call remaining in the diagnostic path.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

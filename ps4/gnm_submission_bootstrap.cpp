@@ -292,12 +292,12 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
     g_DrawState.SetPixelShader( g_PixelShader->registers );
     g_DrawState.SetIndexSize( GNM_INDEX_16, GNM_POLICY_LRU );
-    g_DrawState.Apply( command );
     if ( g_FetchShader )
     {
-        sceGnmDrawCmdSetPointerUserData( command, GNM_STAGE_VS, 0, g_FetchShader );
-        sceGnmDrawCmdSetPointerUserData( command, GNM_STAGE_VS, 2, g_VertexBuffers );
+        g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
+        g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_VertexBuffers );
     }
+    g_DrawState.Apply( command );
     sceGnmDrawCmdSetPsInputUsage( command,
         sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
         sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );

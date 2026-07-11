@@ -32,6 +32,8 @@ CPs4GnmDrawState::CPs4GnmDrawState()
     m_indexSize = GNM_INDEX_16;
     m_indexCachePolicy = GNM_POLICY_LRU;
     m_depthTargetBound = false;
+    memset( m_pointerBindings, 0, sizeof( m_pointerBindings ) );
+    m_pointerBindingCount = 0;
     memset( m_scissor, 0, sizeof( m_scissor ) );
 }
 
@@ -158,6 +160,31 @@ void CPs4GnmDrawState::ClearDepthRenderTarget()
     }
 }
 
+bool CPs4GnmDrawState::SetPointerUserData( GnmShaderStage stage, uint32_t startSlot, void *pointer )
+{
+    for ( uint32_t i = 0; i < m_pointerBindingCount; ++i )
+    {
+        PointerBinding &binding = m_pointerBindings[i];
+        if ( binding.stage == stage && binding.startSlot == startSlot )
+        {
+            if ( binding.pointer != pointer )
+            {
+                binding.pointer = pointer;
+                m_dirtyMask |= kDirtyPointerUserData;
+            }
+            return true;
+        }
+    }
+    if ( m_pointerBindingCount >= kMaxPointerBindings )
+        return false;
+    PointerBinding &binding = m_pointerBindings[m_pointerBindingCount++];
+    binding.stage = stage;
+    binding.startSlot = startSlot;
+    binding.pointer = pointer;
+    m_dirtyMask |= kDirtyPointerUserData;
+    return true;
+}
+
 uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
 {
     if ( !command )
@@ -190,6 +217,15 @@ uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
     if ( emitted & kDirtyDepthTarget )
         sceGnmDrawCmdSetDepthRenderTarget( command,
             m_depthTargetBound ? &m_depthTarget : 0 );
+    if ( emitted & kDirtyPointerUserData )
+    {
+        for ( uint32_t i = 0; i < m_pointerBindingCount; ++i )
+        {
+            const PointerBinding &binding = m_pointerBindings[i];
+            sceGnmDrawCmdSetPointerUserData( command, binding.stage,
+                binding.startSlot, binding.pointer );
+        }
+    }
     m_dirtyMask = 0;
     return emitted;
 }
