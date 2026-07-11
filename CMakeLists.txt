@@ -73,7 +73,11 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     file(WRITE "${KISAK_PS4_LINK_SCRIPT}" "${KISAK_OPENORBIS_LINK_SCRIPT}")
 
     set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
-    add_executable(kisak_ps4_monolithic ps4/bootstrap_main.c ps4/engine_bootstrap.cpp)
+    add_executable(kisak_ps4_monolithic
+        ps4/bootstrap_main.c
+        ps4/engine_bootstrap.cpp
+        ps4/rocketui_bootstrap.cpp
+    )
     set_target_properties(kisak_ps4_monolithic PROPERTIES
         LINKER_LANGUAGE CXX
         OUTPUT_NAME kisak_ps4_monolithic
