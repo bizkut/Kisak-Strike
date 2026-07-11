@@ -573,7 +573,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
         1920, 1080, 1, 1, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE, 0, 0 ) != GNM_ERROR_OK )
         return;
     sceGnmDrawCmdInitDefaultHardwareState( command );
-    KisakPs4SetShaderShadowCulling( false );
+    KisakPs4SetShaderShadowCulling( true );
     KisakPs4SetShaderShadowDepth( false, false, 3 );
     KisakPs4SetShaderShadowBlend( false, 1, 0, 0, false, 1, 0, 0 );
     const uint32_t shadowStateMask = KisakPs4ApplyShaderShadowState( command );

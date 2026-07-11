@@ -995,6 +995,18 @@ The v2.61 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e6916a9c8fdfee0c15bff5e5edbcdc6564e5728ca65bf6327fa9bfbd681e9c55`,
 with marker `kisak-ps4: build marker compact_opaque_cube_v261`.
+
+The v2.61 screenshot showed a compact opaque cube but exposed its rear/interior
+faces because raster culling remained deliberately disabled. The six face
+index lists are outward-wound, and the PS4 translator declares CCW front faces.
+Version 2.62 enables `GNM_CULL_BACK` while leaving projection, indices, depth,
+and blending unchanged. A correct result shows only the three exterior faces
+visible from the diagnostic camera. The capture is
+`hardware-captures/logs/2026-07-12/kisak_v261_compact_opaque_cube_live.txt`.
+The v2.62 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`9bd8ea5ccc736dfcae168b43f768805b4d246c878c18583caba674ac74dc74a0`,
+with marker `kisak-ps4: build marker cube_backface_cull_v262`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
