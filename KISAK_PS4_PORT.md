@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.33
-SHA-256: 8957115665f71eed455bd3ef1b94821e8f7dd5079e647dc51356e3e4ce72617d
+Version: 2.34
+SHA-256: 7ee1f0c9d2c14503715fcdba2eede7a3ac81b8cc696b04a4e50e5299c791af50
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -666,6 +666,14 @@ rejects invalid, oversized, duplicate, or over-capacity entries; lookup is exact
 and deterministic. Host tests cover stage/combo/vertex-format separation,
 duplicate rejection, missing combinations, and reset. Runtime still loads the
 three established diagnostic shaders directly for this no-regression gate.
+
+The v2.33 hardware run retained the 1,024-byte texture total, both native
+shadow masks, the opaque orange triangle, and 60 FPS. Version 2.34 exercises
+the manifest at runtime. The diagnostic vertex shader and both pixel shaders
+are registered with explicit stage/combo/vertex-format identities, then every
+packaged `.sb` path is obtained by exact lookup before file loading. Startup
+logs `native shader manifest entries=3`; registration or lookup failure keeps
+the established visible fallback and reports the failing stage.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

@@ -1,6 +1,7 @@
 #include "materialsystem/ps4gnm/ps4_gnm_device.h"
 #include "materialsystem/ps4gnm/ps4_gnm_draw_state.h"
 #include "materialsystem/ps4gnm/ps4_gnm_texture.h"
+#include "materialsystem/ps4gnm/ps4_shader_manifest.h"
 #include "materialsystem/ps4gnm/shaderapips4.h"
 
 #include <gnm_commandbuffer.h>
@@ -65,12 +66,14 @@ void *g_DepthMemory = 0;
 uint32_t g_DepthMemorySize = 0;
 CPs4GnmTexture g_DiagnosticTexture;
 CPs4GnmTexture g_DiagnosticCopyTexture;
+CPs4ShaderManifest g_ShaderManifest;
 void *g_TextureSamplerTable = 0;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 bool g_ShadowStateApplyLogged = false;
 bool g_ShadowDisplayApplyLogged = false;
 bool g_TextureMemoryLogged = false;
+bool g_ShaderManifestLogged = false;
 char g_ShaderDiagnostic[160] = "not attempted";
 
 void LogResult( const char *stage, int result )
@@ -120,21 +123,52 @@ bool ReadShaderFile( const char *path, uint8_t **data, size_t *size )
 
 bool LoadDiagnosticShaders()
 {
+    const Ps4ShaderManifestKey keys[3] = {
+        { "kisak_diagnostic", PS4_SHADER_STAGE_VERTEX, 0, 0, 1 },
+        { "kisak_diagnostic", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
+        { "kisak_texture_sample", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 }
+    };
     const char *paths[3] = {
         "/app0/kisak_diagnostic.vert.sb",
         "/app0/kisak_diagnostic.frag.sb",
         "/app0/kisak_texture_sample.frag.sb"
     };
+    g_ShaderManifest.Clear();
+    for ( unsigned int shader = 0; shader < 3; ++shader )
+    {
+        if ( !g_ShaderManifest.Register( keys[shader], paths[shader] ) )
+        {
+            snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+                "manifest register failed stage=%u", shader );
+            return false;
+        }
+    }
+    if ( !g_ShaderManifestLogged )
+    {
+        char message[112];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: native shader manifest entries=%u",
+            static_cast< unsigned int >( g_ShaderManifest.Count() ) );
+        KisakPs4StartupBreadcrumb( message );
+        g_ShaderManifestLogged = true;
+    }
     uint8_t *gpuCursor = static_cast< uint8_t * >( g_Mapped );
     uint8_t *gpuEnd = gpuCursor + kPersistentMemorySize;
     for ( unsigned int shader = 0; shader < 3; ++shader )
     {
-        uint8_t *fileData = 0;
-        size_t fileSize = 0;
-        if ( !ReadShaderFile( paths[shader], &fileData, &fileSize ) )
+        const Ps4ShaderManifestEntry *entry = g_ShaderManifest.Find( keys[shader] );
+        if ( !entry )
         {
             snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
-                "file read failed stage=%u path=%s", shader, paths[shader] );
+                "manifest lookup failed stage=%u", shader );
+            return false;
+        }
+        uint8_t *fileData = 0;
+        size_t fileSize = 0;
+        if ( !ReadShaderFile( entry->path, &fileData, &fileSize ) )
+        {
+            snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+                "file read failed stage=%u path=%s", shader, entry->path );
             return false;
         }
         GnmShaderMetadata metadata = {};
