@@ -1210,6 +1210,19 @@ undersized-pitch, and invalid-granularity failures. Marker:
 The v2.77 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `02c4af59006b3855e28a8217e56a8d4531c4ae54129defab87b7eee00150e954`.
+
+The v2.77 hardware run retained the spinning cube, navy contrast regions, and
+60 FPS, validating device-owned display-target construction. Inspection then
+identified the next Source-facing blocker: `CShaderDevicePs4` still exposed
+shaderapiempty's zero-capability answers. Version 2.78 reports one PS4 adapter,
+a 1920x1080 `IMAGE_FORMAT_BGRA8888` backbuffer/window, and graphics enabled.
+It deliberately reports zero stencil bits because the current validated target
+is Z32 depth-only; stencil remains a later renderer feature. Material-system
+paths guarded by `IsUsingGraphics()` can now execute against the PS4 façade.
+Marker: `kisak-ps4: build marker native_device_caps_v278`.
+The v2.78 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`d2928e3a8cb73f23fd0c6605552aff965246af7bb5356486a90398c7678aee37`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

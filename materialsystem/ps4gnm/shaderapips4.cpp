@@ -35,7 +35,7 @@ public:
     InitReturnVal_t Init() { return m_delegate ? m_delegate->Init() : INIT_FAILED; }
     void Shutdown() { if ( m_delegate ) m_delegate->Shutdown(); }
 
-    int GetAdapterCount() const { return m_delegate ? m_delegate->GetAdapterCount() : 0; }
+    int GetAdapterCount() const { return 1; }
     void GetAdapterInfo( int adapter, MaterialAdapterInfo_t &info ) const
     { if ( m_delegate ) m_delegate->GetAdapterInfo( adapter, info ); }
     bool GetRecommendedConfigurationInfo( int adapter, int dxLevel, KeyValues *configuration )
@@ -78,23 +78,22 @@ public:
     void ReleaseResources( bool releaseManagedResources = true )
     { if ( m_delegate ) m_delegate->ReleaseResources( releaseManagedResources ); }
     void ReacquireResources() { if ( m_delegate ) m_delegate->ReacquireResources(); }
-    ImageFormat GetBackBufferFormat() const
-    { return m_delegate ? m_delegate->GetBackBufferFormat() : IMAGE_FORMAT_UNKNOWN; }
+    ImageFormat GetBackBufferFormat() const { return IMAGE_FORMAT_BGRA8888; }
     void GetBackBufferDimensions( int &width, int &height ) const
-    { if ( m_delegate ) m_delegate->GetBackBufferDimensions( width, height ); }
+    { width = 1920; height = 1080; }
     const AspectRatioInfo_t &GetAspectRatioInfo() const
     {
         static AspectRatioInfo_t empty;
         return m_delegate ? m_delegate->GetAspectRatioInfo() : empty;
     }
     int GetCurrentAdapter() const { return m_delegate ? m_delegate->GetCurrentAdapter() : 0; }
-    bool IsUsingGraphics() const { return m_delegate && m_delegate->IsUsingGraphics(); }
+    bool IsUsingGraphics() const { return true; }
     void SpewDriverInfo() const { if ( m_delegate ) m_delegate->SpewDriverInfo(); }
-    int StencilBufferBits() const { return m_delegate ? m_delegate->StencilBufferBits() : 0; }
+    int StencilBufferBits() const { return 0; }
     bool IsAAEnabled() const { return m_delegate && m_delegate->IsAAEnabled(); }
     void Present() { if ( m_delegate ) m_delegate->Present(); }
     void GetWindowSize( int &width, int &height ) const
-    { if ( m_delegate ) m_delegate->GetWindowSize( width, height ); }
+    { width = 1920; height = 1080; }
     void SetHardwareGammaRamp( float gamma, float tvMin, float tvMax, float tvExponent, bool tvEnabled )
     { if ( m_delegate ) m_delegate->SetHardwareGammaRamp( gamma, tvMin, tvMax, tvExponent, tvEnabled ); }
     bool AddView( void *window ) { return m_delegate && m_delegate->AddView( window ); }
