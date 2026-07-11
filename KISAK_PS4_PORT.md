@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.86
-SHA-256: eff97028bee36289b8a6fd342826b1eb58a052b02c5b505251fcc79615c54f71
+Version: 1.87
+SHA-256: f356e63384bcbd8ce5944c2cd49395a6567c6e4510bd951ae4cce1a09c8f4e06
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -191,6 +191,16 @@ so v1.86 consumes the already generated diagnostic binaries from the FreeGNM
 example build. Replacing this temporary package input with a reproducible
 Kisak-owned `glslc` plus `opengnm-psbc -4` build is still required before the
 Source shader manifest milestone can be considered complete.
+
+The v1.86 hardware run stayed stable at 60 FPS with the four DMA bars but no
+triangle. Its log reported `diagnostic shader load failed; DMA bars retained`,
+proving the draw path was never entered. The generated diagnostic binaries use
+the legacy PS4 container form: a 0x24-byte PSSL wrapper precedes the `Shdr`
+header. OpenGNM's strict metadata helper accepted only bare `Shdr` binaries at
+offset zero. OpenGNM now detects and bounds-checks both bare and wrapped forms,
+with a regression fixture in the seven-test helper suite. Version 1.87 rebuilds
+against that parser fix; expected hardware behavior returns to the v1.86
+triangle markers and visual target.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
