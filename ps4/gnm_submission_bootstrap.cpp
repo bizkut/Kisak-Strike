@@ -380,6 +380,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
         1920, 1080, 1, 1, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE, 0, 0 ) != GNM_ERROR_OK )
         return;
     sceGnmDrawCmdInitDefaultHardwareState( command );
+    KisakPs4SetShaderShadowCulling( false );
     const uint32_t shadowStateMask = KisakPs4ApplyShaderShadowState( command );
     if ( !g_ShadowStateApplyLogged )
     {
@@ -401,7 +402,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     };
     g_DrawState.BeginCommand();
     g_DrawState.RetainDirtyMask( ~static_cast< uint32_t >(
-        CPs4GnmDrawState::kDirtyRenderTargetMask ) );
+        CPs4GnmDrawState::kDirtyRenderTargetMask |
+        CPs4GnmDrawState::kDirtyPrimitive ) );
     g_DrawState.SetViewport( 0, offscreenViewport );
     g_DrawState.SetScissor( 0, 0, 4, 4 );
     sceGnmDrawCmdSetHwScreenOffset( command, 0, 0 );
@@ -412,11 +414,6 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     viewportControl.scalez = viewportControl.offsetz = 1;
     viewportControl.invertw = 1;
     g_DrawState.SetViewportTransform( viewportControl );
-    GnmPrimitiveSetup primitiveSetup = {};
-    primitiveSetup.cullmode = GNM_CULL_NONE;
-    primitiveSetup.frontface = GNM_FACE_CCW;
-    primitiveSetup.frontmode = primitiveSetup.backmode = GNM_FILL_SOLID;
-    g_DrawState.SetPrimitiveSetup( primitiveSetup );
     if ( !sceGnmDrawCmdFillMemory( command,
         static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticTexture.Data() ) ),
         static_cast< uint32_t >( g_DiagnosticTexture.Size() ), 0xff000000 ) )

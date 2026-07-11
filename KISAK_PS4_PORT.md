@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.26
-SHA-256: f210ca470a7cf4fb00d3b23b20dcda69ec215ecb2f959184d3298d72f752b3be
+Version: 2.27
+SHA-256: 59f381c968eabb0225932e04b4498812b08dd9f225ebee5835a95b341959b33a
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -607,6 +607,15 @@ write mask. The bootstrap cache excludes that dirty category and no longer
 emits either duplicate `0xf` mask; all other diagnostic controls remain on the
 existing path. A preserved triangle therefore validates the first state
 category sourced exclusively through `IShaderShadow` and OpenGNM PM4.
+
+The v2.26 hardware run preserved the opaque orange triangle at 60 FPS, proving
+the render-target write mask is now sourced exclusively through the native
+shadow path. Version 2.27 moves primitive setup as the second owned category.
+The diagnostic requests disabled culling through the actual `IShaderShadow`
+interface, the Source-to-GNM translator produces the solid-fill CCW primitive
+control, and the bootstrap draw cache excludes its duplicate primitive command.
+Depth and blend remain deliberately duplicated until their per-pass state
+changes are routed through the shadow interface.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

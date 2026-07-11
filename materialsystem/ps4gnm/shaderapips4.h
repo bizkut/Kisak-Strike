@@ -5,5 +5,6 @@
 #include <stdint.h>
 
 extern "C" uint32_t KisakPs4ApplyShaderShadowState( GnmCommandBuffer *command );
+extern "C" void KisakPs4SetShaderShadowCulling( bool enabled );
 
 #endif

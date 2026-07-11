@@ -403,3 +403,8 @@ extern "C" uint32_t KisakPs4ApplyShaderShadowState( GnmCommandBuffer *command )
 {
     return g_ShaderShadowPs4.NativeDrawState().Apply( command );
 }
+
+extern "C" void KisakPs4SetShaderShadowCulling( bool enabled )
+{
+    g_ShaderShadowPs4.EnableCulling( enabled );
+}
