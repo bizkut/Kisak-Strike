@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.38
-SHA-256: f4fb3cc474ea86f75077b6c4ceea196a3d4480b75f432fc7317abd87e409ab47
+Version: 2.39
+SHA-256: 9836c32ff43e436f7ede8a673dd5da4c556269d46449b155f62fc6b57e33238e
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -708,6 +708,15 @@ already validated combined texture/sampler descriptor table through an
 OpenGNM `PTR_RESOURCETABLE` usage slot. Version 2.38 recognizes either resource-
 table or sampler-table pointers as satisfying declared sampler slots while
 retaining strict immediate-sampler, constant, and fragment-output validation.
+
+The v2.38 hardware run produced the same stage-2 rejection: this compiled `.sb`
+contains no immediate sampler, sampler-table pointer, or resource-table usage
+record even though the working draw explicitly binds a combined descriptor
+table. Version 2.39 defers only metadata-invisible sampler bits. Metadata-visible
+samplers remain strict; unresolved bits are accumulated and must fit the actual
+combined table's one-slot mask before the table is accepted. Startup logs
+`native shader sampler binding mask=0x1 source=combined_table` when that concrete
+binding satisfies the manifest. Constants and fragment outputs remain exact.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

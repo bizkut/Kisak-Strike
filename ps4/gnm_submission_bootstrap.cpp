@@ -74,6 +74,7 @@ bool g_ShadowStateApplyLogged = false;
 bool g_ShadowDisplayApplyLogged = false;
 bool g_TextureMemoryLogged = false;
 bool g_ShaderManifestLogged = false;
+uint32_t g_PendingSamplerMask = 0;
 char g_ShaderDiagnostic[160] = "not attempted";
 
 void LogResult( const char *stage, int result )
@@ -149,6 +150,7 @@ uint32_t ShaderFragmentOutputMask( const GnmPsShader *shader )
 
 bool LoadDiagnosticShaders()
 {
+    g_PendingSamplerMask = 0;
     const Ps4ShaderManifestKey keys[3] = {
         { "kisak_diagnostic", PS4_SHADER_STAGE_VERTEX, 0, 0, 1 },
         { "kisak_diagnostic", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
@@ -219,7 +221,7 @@ bool LoadDiagnosticShaders()
             return false;
         }
         if ( entry->constantBytes != actualConstantBytes ||
-            ( entry->samplerMask & ~availableSamplers ) != 0 ||
+            ( availableSamplers && ( entry->samplerMask & ~availableSamplers ) != 0 ) ||
             entry->fragmentOutputMask != actualFragmentOutputs )
         {
             snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
@@ -230,6 +232,8 @@ bool LoadDiagnosticShaders()
             free( fileData );
             return false;
         }
+        if ( pixelStage && entry->samplerMask && !availableSamplers )
+            g_PendingSamplerMask |= entry->samplerMask;
         gpuCursor = reinterpret_cast< uint8_t * >(
             ( reinterpret_cast< uintptr_t >( gpuCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
         if ( metadata.shadercodesize > static_cast< uint32_t >( gpuEnd - gpuCursor ) )
@@ -446,6 +450,22 @@ bool LoadDiagnosticShaders()
     *reinterpret_cast< GnmTexture * >( copyTableCursor ) = g_DiagnosticCopyTexture.Descriptor();
     *reinterpret_cast< GnmSampler * >( copyTableCursor + sizeof( GnmTexture ) ) = *sampler;
     g_TextureSamplerTable = copyTableCursor;
+    const uint32_t combinedTableSamplerMask = 1u;
+    if ( ( g_PendingSamplerMask & ~combinedTableSamplerMask ) != 0 )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "combined sampler table missing declared=0x%x available=0x%x",
+            g_PendingSamplerMask, combinedTableSamplerMask );
+        return false;
+    }
+    if ( g_PendingSamplerMask )
+    {
+        char message[112];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: native shader sampler binding mask=0x%x source=combined_table",
+            g_PendingSamplerMask );
+        KisakPs4StartupBreadcrumb( message );
+    }
     snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
         "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u depthbytes=%llu texturebytes=%llu",
         g_VertexShader->common.shadersize, g_PixelShader->common.shadersize,
