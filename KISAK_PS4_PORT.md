@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.16
-SHA-256: a6091733cfb25b71527124da330b45465d6da7b736cfce327a944c1df5515bcf
+Version: 2.17
+SHA-256: 037d12be6dc46add5bd0f5193bc0412276882fb6bbf49a8824d6c3b6c9b17c7a
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -513,6 +513,16 @@ depth, texture upload/sample, render-to-texture, and copy/resolve hardware gates
 are now complete. The next architectural step is exposing these validated
 operations through the PS4 D3D9-compatible resource/device façade rather than
 adding more standalone bootstrap draws.
+
+Version 2.17 begins that façade migration at the module boundary. Previously
+`KisakShaderApiPs4Factory()` returned the `shaderapiempty` factory pointer
+verbatim, so the PS4 module had no interface-level interception point. It now
+returns a stable PS4 factory trampoline with distinct identity. Unknown or not
+yet ported interface versions forward transparently to the empty backend,
+preserving `CAppSystemGroup` lifecycle and version checks, while native PS4
+device, ShaderAPI, shadow, and hardware-config objects can replace individual
+lookups without another module-loading change. Runtime graphics remain on the
+validated bootstrap path for this no-regression gate.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
