@@ -1051,6 +1051,12 @@ preprojected cube is the faulty layer. Kisak packaging now includes the
 reference `cube.vert.sb`/`cube.frag.sb` as dedicated manifest entries. The next
 slice binds their exact position/UV layout, MVP descriptor set, texture/sampler
 descriptor set, and 36-vertex draw through the façade.
+
+The native loader now validates and allocates both reference shaders through
+`CPs4GnmShader` and registers typed handles for the cube VS/PS alongside the
+existing diagnostic shaders. Package construction and all ten host tests pass;
+the intermediate package remains unstaged until the reference descriptor sets
+and draw are connected.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
