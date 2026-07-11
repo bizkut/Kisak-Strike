@@ -5,7 +5,7 @@
 extern int sceKernelUsleep( unsigned int microseconds );
 
 #if defined( KISAK_PS4_MONOLITHIC )
-extern void KisakRegisterStaticModules( void );
+extern int KisakRegisterStaticModules( void );
 extern int LauncherMain( int argc, char **argv );
 #endif
 
@@ -30,7 +30,13 @@ int main( int argc, char **argv )
     LogLine( log, "kisak-ps4: bootstrap entered" );
 
 #if defined( KISAK_PS4_MONOLITHIC )
-    KisakRegisterStaticModules();
+    if ( KisakRegisterStaticModules() != 0 )
+    {
+        LogLine( log, "kisak-ps4: static module registration failed" );
+        if ( log )
+            fclose( log );
+        return 1;
+    }
     LogLine( log, "kisak-ps4: static modules registered" );
     LogLine( log, "kisak-ps4: entering LauncherMain" );
     if ( log )

@@ -16,3 +16,13 @@ target_include_directories(static_module_registry_test PRIVATE ../public)
 target_compile_definitions(static_module_registry_test PRIVATE POSIX _POSIX GNUC COMPILER_GCC)
 set_target_properties(static_module_registry_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME static_module_registry COMMAND static_module_registry_test)
+
+add_executable(ps4_static_modules_test
+    ps4_static_modules_test.cpp
+    ../appframework/Ps4StaticModules.cpp
+    ../appframework/StaticModuleRegistry.cpp
+)
+target_include_directories(ps4_static_modules_test PRIVATE ../public)
+target_compile_definitions(ps4_static_modules_test PRIVATE POSIX _POSIX GNUC COMPILER_GCC)
+set_target_properties(ps4_static_modules_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
+add_test(NAME ps4_static_modules COMMAND ps4_static_modules_test)
