@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.31
-SHA-256: ed193a95f01d3b339ba0ac84f34b50d97b8fa6e07a84b0ab0c7d3b942ff65837
+Version: 2.32
+SHA-256: abed41c712eabc4b93dc7cfc1a947d3559b30275ef3c6e3d3da9f2f3c50faff0
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -649,6 +649,13 @@ bytes across initialization, render-target-view footprint growth, reset, and
 destruction. `IDebugTextureInfo::MEMORY_TOTAL_LOADED` reports that bounded total
 instead of the empty backend's zero, and startup logs the value after both
 diagnostic textures are ready. Other debug-memory categories still delegate.
+
+The v2.31 hardware run reported exactly 1,024 native texture bytes—two 512-byte
+diagnostic footprints—before both shadow masks and the opaque orange 60 FPS
+draw passed. Version 2.32 hardens this accounting for Source's threaded loading
+model. Backing-byte add, remove, and read operations now use relaxed atomic
+updates, and `CPs4GnmTexture` is non-copyable so ownership cannot be duplicated
+and subtracted twice. The reported value and rendering should remain unchanged.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

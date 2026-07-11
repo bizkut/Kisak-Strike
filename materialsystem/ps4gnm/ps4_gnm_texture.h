@@ -28,9 +28,14 @@ public:
     void *Data() const { return m_data; }
     uint64_t Size() const { return m_size; }
     uint32_t Alignment() const { return m_alignment; }
-    static uint64_t TotalBackingBytes() { return s_totalBackingBytes; }
+    static uint64_t TotalBackingBytes();
 
 private:
+    CPs4GnmTexture( const CPs4GnmTexture & ) = delete;
+    CPs4GnmTexture &operator=( const CPs4GnmTexture & ) = delete;
+    static void AddBackingBytes( uint64_t bytes );
+    static void RemoveBackingBytes( uint64_t bytes );
+
     GnmTexture m_texture;
     GnmRenderTarget m_colorTarget;
     void *m_data;

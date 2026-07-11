@@ -4,6 +4,21 @@
 
 uint64_t CPs4GnmTexture::s_totalBackingBytes = 0;
 
+uint64_t CPs4GnmTexture::TotalBackingBytes()
+{
+    return __atomic_load_n( &s_totalBackingBytes, __ATOMIC_RELAXED );
+}
+
+void CPs4GnmTexture::AddBackingBytes( uint64_t bytes )
+{
+    __atomic_fetch_add( &s_totalBackingBytes, bytes, __ATOMIC_RELAXED );
+}
+
+void CPs4GnmTexture::RemoveBackingBytes( uint64_t bytes )
+{
+    __atomic_fetch_sub( &s_totalBackingBytes, bytes, __ATOMIC_RELAXED );
+}
+
 CPs4GnmTexture::CPs4GnmTexture()
     : m_data( 0 ), m_size( 0 ), m_capacity( 0 ), m_alignment( 0 ), m_width( 0 ), m_height( 0 ),
       m_bytesPerElement( 0 ), m_valid( false )
@@ -61,7 +76,7 @@ bool CPs4GnmTexture::Initialize2D( void *memory, size_t memorySize,
         return false;
     }
     m_valid = true;
-    s_totalBackingBytes += m_size;
+    AddBackingBytes( m_size );
     return true;
 }
 
@@ -107,7 +122,7 @@ bool CPs4GnmTexture::CreateColorTargetView( GnmDataFormat format,
     }
     if ( requiredSize > m_size )
     {
-        s_totalBackingBytes += requiredSize - m_size;
+        AddBackingBytes( requiredSize - m_size );
         m_size = requiredSize;
     }
     m_colorTargetValid = true;
@@ -117,7 +132,7 @@ bool CPs4GnmTexture::CreateColorTargetView( GnmDataFormat format,
 void CPs4GnmTexture::Reset()
 {
     if ( m_valid )
-        s_totalBackingBytes -= m_size;
+        RemoveBackingBytes( m_size );
     memset( &m_texture, 0, sizeof( m_texture ) );
     memset( &m_colorTarget, 0, sizeof( m_colorTarget ) );
     m_data = 0;
