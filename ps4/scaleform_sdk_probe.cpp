@@ -1,7 +1,9 @@
 #include "GFx.h"
 #include "GFxVersion.h"
-#include "Kernel/SF_SysFile.h"
 #include "filesystem.h"
+#include "tier1/utlbuffer.h"
+
+#include <string.h>
 
 #if !defined( SF_OS_ORBIS )
 #error "Scaleform did not recognize the OpenOrbis target"
@@ -14,20 +16,52 @@ static_assert( sizeof( Scaleform::UPInt ) == sizeof( void * ),
 
 namespace
 {
+class KisakScaleformMemoryFile final : public Scaleform::MemoryFile
+{
+public:
+    KisakScaleformMemoryFile( const char *url, Scaleform::UByte *data, int size )
+        : Scaleform::MemoryFile( url, data, size ), m_data( data )
+    {
+    }
+
+    ~KisakScaleformMemoryFile() override
+    {
+        Scaleform::Memory::Free( m_data );
+    }
+
+private:
+    Scaleform::UByte *m_data;
+};
+
 class KisakScaleformFileOpener final : public Scaleform::GFx::FileOpener
 {
 public:
     Scaleform::File *OpenFile( const char *url, int flags, int mode ) override
     {
-        char fullPath[1024];
-        if ( g_pFullFileSystem != NULL &&
-             g_pFullFileSystem->RelativePathToFullPath(
-                 url, "GAME", fullPath, sizeof( fullPath ) ) != NULL )
+        if ( g_pFullFileSystem != NULL )
         {
-            return new Scaleform::SysFile( fullPath, flags, mode );
+            CUtlBuffer sourceData;
+            if ( g_pFullFileSystem->ReadFile( url, "GAME", sourceData ) )
+            {
+                const int size = sourceData.TellPut();
+                Scaleform::UByte *data = static_cast< Scaleform::UByte * >(
+                    Scaleform::Memory::Alloc( size ) );
+                if ( data != NULL )
+                {
+                    memcpy( data, sourceData.Base(), size );
+                    return new KisakScaleformMemoryFile( url, data, size );
+                }
+            }
         }
 
         return Scaleform::GFx::FileOpener::OpenFile( url, flags, mode );
+    }
+
+    Scaleform::SInt64 GetFileModifyTime( const char *url ) override
+    {
+        if ( g_pFullFileSystem != NULL )
+            return g_pFullFileSystem->GetFileTime( url, "GAME" );
+        return Scaleform::GFx::FileOpener::GetFileModifyTime( url );
     }
 };
 }

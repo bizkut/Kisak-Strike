@@ -879,6 +879,17 @@ The v2.50 package is staged at
 `489d63a433cc266c0f64779743d59887b1373e30e3f2acd27307aa2eba675145`,
 with marker `kisak-ps4: build marker scaleform_source_fileopener_v250`.
 
+The v2.50 hardware run passed the Source-search-path `fontlib.gfx` probe and
+continued beyond frame 480 at 60 FPS. Its appended runtime capture is
+`hardware-captures/logs/2026-07-12/kisak_v250_scaleform_source_fileopener_live.txt`.
+Version 2.51 upgrades the bridge to read the complete GFx resource through
+`IFileSystem::ReadFile("GAME")` and returns an owning Scaleform memory file.
+This avoids reopening the resolved loose path and therefore supports GFx files
+served by mounted VPK archives. Hardware validation is pending. The v2.51
+package is staged at `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`,
+SHA-256 `1361de321b3c44918a7f5ccc1f03029ee563f3f54dba6545b0534bbe7d523acc`,
+with marker `kisak-ps4: build marker scaleform_vpk_fileopener_v251`.
+
 ## Completed work
 
 ### Orbis platform and build foundation
