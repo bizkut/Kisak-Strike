@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.08
-SHA-256: fb8a15ed53664fe4d6907ad7c910ba214da490818251318bc398e83c4fcb256b
+Version: 1.09
+SHA-256: 50b2cc570fbdfc0de6a745f8b7605d2f1e829e874137897b86a978492dc89005
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -182,6 +182,11 @@ version 1.08 adds bounded breadcrumbs around each lock-free queue's dummy-node
 allocation and after all `CThreadPool` members finish construction. This splits
 Source allocator readiness from mutex/event construction without changing the
 runtime path.
+
+The v1.08 trace completed the dummy-node allocation for all four priority
+queues and stopped immediately afterward, before the `CJobQueue` member set
+finished. Version 1.09 traces the following `CThreadMutex` construction around
+pthread attribute initialization, recursive-type selection, and mutex creation.
 
 Reproduce the current cross-build with:
 

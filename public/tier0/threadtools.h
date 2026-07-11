@@ -14,6 +14,11 @@
 #include "tier0/platform.h"
 #include "tier0/dbg.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" int g_KisakPs4TraceThreadPool;
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#endif
+
 #if defined( POSIX ) && !defined( _PS3 ) && !defined( _X360 )
 #include <pthread.h>
 #include <errno.h>
@@ -2295,9 +2300,25 @@ inline void CThreadMutex::SetTrace( bool bTrace )
 inline CThreadMutex::CThreadMutex()
 {
 	// enable recursive locks as we need them
+	#if defined( PLATFORM_PS4 )
+	if ( g_KisakPs4TraceThreadPool )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool mutex before attr init" );
+	#endif
 	pthread_mutexattr_init( &m_Attr );
+	#if defined( PLATFORM_PS4 )
+	if ( g_KisakPs4TraceThreadPool )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool mutex after attr init" );
+	#endif
 	pthread_mutexattr_settype( &m_Attr, PTHREAD_MUTEX_RECURSIVE );
+	#if defined( PLATFORM_PS4 )
+	if ( g_KisakPs4TraceThreadPool )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool mutex after attr type" );
+	#endif
 	pthread_mutex_init( &m_Mutex, &m_Attr );
+	#if defined( PLATFORM_PS4 )
+	if ( g_KisakPs4TraceThreadPool )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool mutex complete" );
+	#endif
 }
 
 //---------------------------------------------------------
