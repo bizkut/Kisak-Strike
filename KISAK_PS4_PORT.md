@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.65
-SHA-256: 03eee42f99bce8b1b20dd456a4fabc5c81fed9b02f66ef042a6118eebed1f250
+Version: 1.66
+SHA-256: 70190fb3ea7bd81908843a3e1540d0461ef76545e2d4638e61a6e37f3bbf95a9
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -630,6 +630,15 @@ identify the final system before the crash.
 Version 1.65 adds the interface name and completion/failure boundaries around
 each `InitSystems()` call. Initialization order and rollback behavior are
 unchanged; the next run will isolate the failing subsystem init.
+
+The v1.65 hardware run initialized through `VStudioDataCache005` and stopped
+inside `VSoundEmitter003::Init()`. The sound emitter immediately loads the
+desktop game-sounds manifest, but PS4 content mounting is not yet complete.
+
+Version 1.66 keeps the existing sound-emitter loader for mounted content and
+adds a PS4-only existence guard: when `scripts/game_sounds_manifest.txt` is not
+available under the `GAME` search path, the service reports an empty emitter
+table and returns `INIT_OK` instead of entering the unavailable asset path.
 
 Reproduce the current cross-build with:
 

@@ -25,6 +25,13 @@
 #include "filesystem/IXboxInstaller.h"
 #endif
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_SOUND_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_SOUND_BREADCRUMB( line ) ( (void)0 )
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -181,6 +188,7 @@ static void AccumulateFileNameAndTimestampIntoChecksum( CRC32_t *crc, char const
 //-----------------------------------------------------------------------------
 InitReturnVal_t CSoundEmitterSystemBase::Init()
 {
+	PS4_SOUND_BREADCRUMB( "kisak-ps4: sound emitter init entered" );
 	++m_nInitCount;
 	if ( m_nInitCount > 1 )
 		return INIT_OK;
@@ -188,8 +196,18 @@ InitReturnVal_t CSoundEmitterSystemBase::Init()
 	InitReturnVal_t nRetVal = BaseClass::Init();
 	if ( nRetVal != INIT_OK )
 		return nRetVal;
+	PS4_SOUND_BREADCRUMB( "kisak-ps4: sound emitter base init complete" );
+
+#if defined( PLATFORM_PS4 )
+	if ( !g_pFullFileSystem->FileExists( MANIFEST_FILE, "GAME" ) )
+	{
+		PS4_SOUND_BREADCRUMB( "kisak-ps4: sound manifest missing; using empty emitter table" );
+		return INIT_OK;
+	}
+#endif
 
 	bool bLoaded = LoadGameSoundManifest();
+	PS4_SOUND_BREADCRUMB( bLoaded ? "kisak-ps4: sound manifest loaded" : "kisak-ps4: sound manifest failed" );
 	return bLoaded ? INIT_OK : INIT_FAILED;
 }
 
