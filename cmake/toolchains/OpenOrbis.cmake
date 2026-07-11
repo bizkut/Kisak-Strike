@@ -29,4 +29,4 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 set(ORBIS ON CACHE BOOL "Build for PS4" FORCE)
 set(CMAKE_C_FLAGS_INIT "-fPIC -isystem ${OPENORBIS_ROOT}/include")
-set(CMAKE_CXX_FLAGS_INIT "-fPIC -isystem ${OPENORBIS_ROOT}/include")
+set(CMAKE_CXX_FLAGS_INIT "-fPIC -isystem ${OPENORBIS_ROOT}/include -isystem ${OPENORBIS_ROOT}/include/c++/v1")

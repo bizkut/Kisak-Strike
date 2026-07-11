@@ -77,3 +77,4 @@ vphysics_bullet/*
 thirdparty/bullet3/*
 /hammer_launcher_qt/
 build-ps4-bootstrap/
+build-ps4-engine/

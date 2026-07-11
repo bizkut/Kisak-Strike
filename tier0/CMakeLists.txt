@@ -91,4 +91,6 @@ endif()
 #$LibExternal	 "$SRCDIR/thirdparty/telemetry/lib/libtelemetryx86.link" [$LINUX32 && !$RAD_TELEMETRY_DISABLED]
 #$LibExternal	 "$SRCDIR/thirdparty/telemetry/lib/libtelemetryx64.link" [$LINUX64 && !$RAD_TELEMETRY_DISABLED]
 
-target_link_libraries(${OUTBINNAME} dl pthread)
+if( LINUXALL )
+    target_link_libraries(${OUTBINNAME} dl pthread)
+endif()

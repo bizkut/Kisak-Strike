@@ -11,13 +11,19 @@ endif()
 #set(ConfigurationType "Dynamic Library (.dll)") #not used
 
 #Target
-add_library(${OUTBINNAME} SHARED)
+if(ORBIS)
+    add_library(${OUTBINNAME} STATIC)
+else()
+    add_library(${OUTBINNAME} SHARED)
+endif()
 
 #		$GameOutputFile					"$OUTBINDIR/$OUTBINNAME$OUTDLLEXT"
 #		$OutputFile					"$(OBJ_DIR)/$OUTBINNAME$OUTDLLEXT"
 set_target_properties(${OUTBINNAME} PROPERTIES OUTPUT_NAME "${OUTBINNAME}")
-set_target_properties(${OUTBINNAME} PROPERTIES SUFFIX "${OUTDLLEXT}")
-set_target_properties(${OUTBINNAME} PROPERTIES PREFIX "")
+if(NOT ORBIS)
+    set_target_properties(${OUTBINNAME} PROPERTIES SUFFIX "${OUTDLLEXT}")
+    set_target_properties(${OUTBINNAME} PROPERTIES PREFIX "")
+endif()
 
 target_compile_definitions(${OUTBINNAME} PRIVATE -DDLLNAME=${OUTBINNAME})
 
