@@ -254,8 +254,15 @@ CVGui g_VGui;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CVGui, IVGui, VGUI_IVGUI_INTERFACE_VERSION, g_VGui);
 
 #if defined( PLATFORM_PS4 )
+extern CreateInterfaceFn KisakVGuiPanelFactory();
+extern CreateInterfaceFn KisakVGuiInputFactory();
+extern CreateInterfaceFn KisakVGuiSystemFactory();
 CreateInterfaceFn KisakVGuiFactory()
 {
+	// Retain the VGUI2 core interfaces that live in separate static objects.
+	(void)KisakVGuiPanelFactory();
+	(void)KisakVGuiInputFactory();
+	(void)KisakVGuiSystemFactory();
 	return Sys_GetFactoryThis();
 }
 #endif

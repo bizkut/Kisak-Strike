@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -454,3 +454,9 @@ public:
 
 EXPOSE_SINGLE_INTERFACE(VPanelWrapper, IPanel, VGUI_PANEL_INTERFACE_VERSION);
 
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakVGuiPanelFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif

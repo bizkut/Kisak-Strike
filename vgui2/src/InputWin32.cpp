@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
+//===== Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -335,6 +335,13 @@ private:
 CInputWin32 g_Input;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CInputWin32, IInput, VGUI_INPUT_INTERFACE_VERSION, g_Input); // export IInput to everyone else, not IInputInternal!
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CInputWin32, IInputInternal, VGUI_INPUTINTERNAL_INTERFACE_VERSION, g_Input); // for use in external surfaces only! (like the engine surface)
+
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakVGuiInputFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
 
 namespace vgui
 {

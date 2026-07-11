@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.62
-SHA-256: 6e20bd04dead1bd6ab10dfde2e440e7405cb130095049dc1f32372dcc52fdfee
+Version: 1.63
+SHA-256: 185ee964bd258701675ac737a40360c667a81e7bfff083ed070a5949e59e1759
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -600,6 +600,17 @@ Version 1.62 gives the temporary ShaderAPI module a local factory that maps its
 device manager, hardware config, ShaderAPI, shader device, and shader shadow
 objects explicitly. This avoids monolithic global-factory ambiguity and
 establishes the factory shape the OpenGNM backend will implement.
+
+The v1.62 hardware run remained stable and completed all temporary ShaderAPI
+lookups plus device-manager connection. Data cache, model cache, studio data
+cache, studio renderer, sound emitter, and VScript also connected. Startup then
+stopped when `VGUI_Surface031::Connect` returned false.
+
+The VGUI2 static archive retained `vgui.cpp` for `VGUI_ivgui008`, while its
+panel, internal-input, and POSIX-system interface registrations lived in
+otherwise unreferenced translation units. Version 1.63 anchors those existing
+real implementations through `KisakVGuiFactory`, preserving normal VGUI
+dependency acquisition without adding interface stubs.
 
 Reproduce the current cross-build with:
 

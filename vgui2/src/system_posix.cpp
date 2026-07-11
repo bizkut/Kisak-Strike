@@ -147,6 +147,13 @@ private:
 CSystem g_System;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CSystem, ISystem, VGUI_SYSTEM_INTERFACE_VERSION, g_System);
 
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakVGuiSystemFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
+
 namespace vgui
 {
 vgui::ISystem *g_pSystem = &g_System;
