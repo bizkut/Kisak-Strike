@@ -52,6 +52,7 @@ GnmVsShader *g_VertexShader = 0;
 GnmPsShader *g_PixelShader = 0;
 void *g_FetchShader = 0;
 bool g_ShadersReady = false;
+bool g_TriangleReadbackLogged = false;
 char g_ShaderDiagnostic[160] = "not attempted";
 
 void LogResult( const char *stage, int result )
@@ -210,6 +211,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination )
     };
     sceGnmDrawCmdSetViewport( command, 0, &viewport );
     sceGnmDrawCmdSetScreenScissor( command, 0, 0, 1920, 1080 );
+    sceGnmDrawCmdSetHwScreenOffset( command, 60, 32 );
+    sceGnmDrawCmdSetGuardBands( command, 33.0f, 59.0f, 1.0f, 1.0f );
     GnmViewportTransformControl viewportControl = {};
     viewportControl.scalex = viewportControl.offsetx = 1;
     viewportControl.scaley = viewportControl.offsety = 1;
@@ -409,7 +412,10 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         }
     }
     if ( g_ShadersReady )
+    {
+        sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_CB0 );
         EmitDiagnosticTriangle( &command, destination );
+    }
 
     const uint64_t submittedLabel = g_Device.SubmittedLabel() + 1;
     *eopLabel = 0;
@@ -426,6 +432,15 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
     if ( g_Device.EndFrame() != submittedLabel || !WaitForLabel( eopLabel, submittedLabel ) )
         return false;
     g_CompletedLabel = submittedLabel;
+    if ( g_ShadersReady && !g_TriangleReadbackLogged )
+    {
+        const uint32_t centerPixel = static_cast< const volatile uint32_t * >( destination )[540 * 1920 + 960];
+        char message[96];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: diagnostic center pixel 0x%08x", centerPixel );
+        KisakPs4StartupBreadcrumb( message );
+        g_TriangleReadbackLogged = true;
+    }
     return true;
 }
 

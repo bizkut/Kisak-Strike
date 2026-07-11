@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.91
-SHA-256: f96385db5ee2ce492b5b467d1b39286878d898b492a23694361d0840edd5d018
+Version: 1.92
+SHA-256: 9d39f832f755fb14de1d6f024335578d118be0ec26ff2e78abfd1b9e240fa8a8
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -232,6 +232,16 @@ correctly reserved three DWORDs, but fetch creation entered its attribute-load
 `6275f67` changes this to a guarded loop and adds an exact-size zero-input
 regression test. Version 1.91 stages the fix; it should reach the first PM4
 triangle submission rather than retaining the bars during shader setup.
+
+The v1.91 hardware run reached `diagnostic shader detail ready`, loaded both
+programs, completed the fetch shader, submitted the triangle command, and
+observed its EOP label, while the display still showed only four bars. Version
+1.92 aligns the diagnostic state with the proven FreeGNM triangle example: it
+adds a CB0 acquire barrier after the DMA fills, hardware screen offset, and
+full-screen guard bands. It also logs the center framebuffer pixel after EOP.
+That readback will distinguish missing raster output from a VideoOut visibility
+or cache-coherency problem instead of treating command completion as proof that
+the triangle changed the render target.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
