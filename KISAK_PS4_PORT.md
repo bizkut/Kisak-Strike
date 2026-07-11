@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.87
-SHA-256: f356e63384bcbd8ce5944c2cd49395a6567c6e4510bd951ae4cce1a09c8f4e06
+Version: 1.88
+SHA-256: c9e967e3c35acb493817756ea3acd561bfc95d59df46a4a45317842e48bbace6
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -955,6 +955,37 @@ host-tested correctness patches now; item 4 lands before model rendering; item
 each subsystem enters the monolithic link; item 7 informs the engine/client/
 server registration milestone. Every imported change must remain an isolated
 commit with its originating Tupoy commit recorded in the commit message body.
+
+Implementation status (2026-07-11):
+
+- **Complete:** `CPackFile` now closes through `Trace_FClose` (Tupoy
+  `4dff8b6e`), preserving VPK handle accounting.
+- **Complete:** zero-length external `CUtlBuffer` construction is accepted
+  while negative sizes remain invalid (Tupoy `2c1eb858`).
+- **Complete:** `TextEntry::_dataChanged` is initialized in the constructor
+  (Tupoy `5a583902`).
+- **Complete:** all `CStudioRender::InitDebugMaterials` names use normal
+  `debug/...` lookup through mounted platform search paths (Tupoy `e293e29f`).
+- **Implemented, runtime validation pending:** CS bot part targeting selects
+  the correct old/new animation-state hitbox indexes (Tupoy `1cd07256`). The
+  real server target is not yet in the PS4 monolithic graph, so the offline bot
+  slice must validate these indexes against loaded player models.
+- **First x86-64 audit pass complete:** VPhysics collision-set indexes use
+  `intptr_t`, VGUI draw-tree panel payloads use `KeyValues` pointer accessors,
+  `HPanel` is pointer-width, and filesystem KV keys are zero-extended through
+  `uintptr_t` before handle conversion (Tupoy `b886cb25` and `8ff28d8c`). The
+  cross-build no longer reports the filesystem integer-to-pointer warning at
+  that conversion. Continue this audit as engine/client/server files enter the
+  PS4 target.
+- **Inventory complete:** the maintained Kisak client/server CMake lists are
+  the CS:GO baseline. Tupoy's lists add a large HL2/episodic graph plus
+  Steam/UGC dependencies and provide no safe target-level import. Use them only
+  to investigate a specific missing CS:GO translation unit during link closure.
+
+Commits `c535b0b6` and `5110b51c` contain the isolated imports. All four host
+tests and the complete current OpenOrbis monolithic cross-build pass after the
+changes. Version 1.88 stages those linked fixes for hardware regression
+coverage while preserving the shader-triangle diagnostic introduced in v1.87.
 
 ## Revised delivery plan and progress
 
