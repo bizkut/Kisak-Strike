@@ -89,6 +89,9 @@ CPs4GnmTexture g_DiagnosticTexture;
 CPs4GnmTexture g_DiagnosticCopyTexture;
 CPs4ShaderManifest g_ShaderManifest;
 void *g_TextureSamplerTable = 0;
+void *g_ReferenceCubeFetchShader = 0;
+GnmBuffer *g_ReferenceCubeVertexBuffers = 0;
+GnmBuffer *g_ReferenceCubeVsDescriptor = 0;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 bool g_ShadowStateApplyLogged = false;
@@ -598,6 +601,70 @@ bool LoadDiagnosticShaders()
             g_PendingSamplerMask );
         KisakPs4StartupBreadcrumb( message );
     }
+    uint8_t *referenceCursor = copyTableCursor + sizeof( GnmTexture ) + sizeof( GnmSampler );
+    referenceCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( referenceCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
+    const size_t referenceVertexBytes = 36 * 8 * sizeof( float );
+    if ( referenceVertexBytes + 2 * sizeof( GnmBuffer ) + 64 + sizeof( GnmBuffer ) >
+        static_cast< size_t >( gpuEnd - referenceCursor ) )
+        return false;
+    float *referenceVertices = reinterpret_cast< float * >( referenceCursor );
+    const float cubeCorners[8][3] = {
+        {-.5f,-.5f,-.5f},{.5f,-.5f,-.5f},{.5f,.5f,-.5f},{-.5f,.5f,-.5f},
+        {-.5f,-.5f,.5f},{.5f,-.5f,.5f},{.5f,.5f,.5f},{-.5f,.5f,.5f}
+    };
+    const uint8_t cubeFaces[6][6] = {
+        {0,1,2,2,3,0},{4,5,6,6,7,4},{7,3,0,0,4,7},
+        {6,2,1,1,5,6},{0,1,5,5,4,0},{3,2,6,6,7,3}
+    };
+    const float cubeUvs[6][2] = {{0,1},{1,1},{1,0},{1,0},{0,0},{0,1}};
+    for ( uint32_t face = 0; face < 6; ++face )
+        for ( uint32_t vertex = 0; vertex < 6; ++vertex )
+        {
+            float *destination = referenceVertices + ( face * 6 + vertex ) * 8;
+            memcpy( destination, cubeCorners[cubeFaces[face][vertex]], 3 * sizeof( float ) );
+            memset( destination + 3, 0, 3 * sizeof( float ) );
+            memcpy( destination + 6, cubeUvs[vertex], 2 * sizeof( float ) );
+        }
+    referenceCursor += referenceVertexBytes;
+    referenceCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( referenceCursor ) + 15 ) & ~static_cast< uintptr_t >( 15 ) );
+    g_ReferenceCubeVertexBuffers = reinterpret_cast< GnmBuffer * >( referenceCursor );
+    g_ReferenceCubeVertexBuffers[0] = sceGnmCreateVertexBuffer( referenceVertices,
+        GNM_FMT_R32G32B32_FLOAT, 8 * sizeof( float ), 36 );
+    g_ReferenceCubeVertexBuffers[1] = sceGnmCreateVertexBuffer( referenceVertices + 6,
+        GNM_FMT_R32G32_FLOAT, 8 * sizeof( float ), 36 );
+    referenceCursor += 2 * sizeof( GnmBuffer );
+    referenceCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( referenceCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
+    float *mvp = reinterpret_cast< float * >( referenceCursor );
+    const float fixedMvp[16] = {
+        0.219f, 0.059f, 0.094f, 0.0f, 0.0f, 0.423f, -0.068f, 0.0f,
+        0.126f, -0.102f, -0.163f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f
+    };
+    memcpy( mvp, fixedMvp, sizeof( fixedMvp ) );
+    referenceCursor += sizeof( fixedMvp );
+    g_ReferenceCubeVsDescriptor = reinterpret_cast< GnmBuffer * >( referenceCursor );
+    *g_ReferenceCubeVsDescriptor = sceGnmCreateConstBuffer( mvp, sizeof( fixedMvp ) );
+    referenceCursor += sizeof( GnmBuffer );
+    GnmFetchShaderCreateInfo referenceFetchInfo = {};
+    referenceFetchInfo.regs = &g_ReferenceCubeVertexShader->registers;
+    referenceFetchInfo.inputusages = sceGnmVsShaderInputUsageSlotTable( g_ReferenceCubeVertexShader );
+    referenceFetchInfo.numinputusages = g_ReferenceCubeVertexShader->common.numinputusageslots;
+    referenceFetchInfo.vtxinputs = sceGnmVsShaderInputSemanticTable( g_ReferenceCubeVertexShader );
+    referenceFetchInfo.numvtxinputs = g_ReferenceCubeVertexShader->numinputsemantics;
+    uint32_t referenceFetchSize = 0;
+    if ( sceGnmFetchShaderCalcSize( &referenceFetchSize, &referenceFetchInfo ) != GNM_ERROR_OK )
+        return false;
+    referenceCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( referenceCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
+    GnmFetchShaderResults referenceFetchResults = {};
+    if ( sceGnmCreateFetchShader( referenceCursor, referenceFetchSize,
+        &referenceFetchInfo, &referenceFetchResults ) != GNM_ERROR_OK )
+        return false;
+    g_ReferenceCubeFetchShader = referenceCursor;
+    sceGnmVsRegsSetFetchShaderModifier( &g_ReferenceCubeVertexShader->registers,
+        &referenceFetchResults );
     snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
         "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u depthbytes=%llu texturebytes=%llu",
         g_VertexShader->common.shadersize, g_PixelShader->common.shadersize,
@@ -675,7 +742,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     const GnmSetViewportInfo viewport = {
         0.0f, 1.0f,
         { 960.0f, -540.0f, 0.5f },
-        { 960.0f, 540.0f, 0.25f }
+        { 960.0f, 540.0f, 0.5f }
     };
     const GnmSetViewportInfo offscreenViewport = {
         0.0f, 1.0f,
@@ -717,15 +784,6 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetPsInputUsage(
         sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
         sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
-    GnmDbRenderControl referenceDbControl = {};
-    GnmDepthStencilControl referenceDepthControl = {};
-    referenceDepthControl.zwrite = true;
-    referenceDepthControl.zfunc = GNM_DEPTH_COMPARE_LESSEQUAL;
-    referenceDepthControl.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
-    referenceDepthControl.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
-    referenceDepthControl.depthenable = true;
-    sceGnmDrawCmdSetDbRenderControl( command, &referenceDbControl );
-    sceGnmDrawCmdSetDepthStencilControl( command, &referenceDepthControl );
     Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
     if ( !sceGnmDrawCmdCopyMemory( command,
@@ -756,17 +814,29 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
         g_DrawState.ClearDepthRenderTarget();
     g_DrawState.SetDbRenderControl( dbControl );
     g_DrawState.SetRenderTarget( 0, renderTarget );
-    g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
-    g_DrawState.SetPixelShader( g_PixelShader->registers );
-    if ( g_FetchShader )
-    {
-        g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
-        g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_VertexBuffers );
-    }
+    g_DrawState.SetVertexShader( g_ReferenceCubeVertexShader->registers, 0 );
+    g_DrawState.SetPixelShader( g_ReferenceCubePixelShader->registers );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_ReferenceCubeFetchShader );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_ReferenceCubeVertexBuffers );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 6, g_ReferenceCubeVsDescriptor );
+    g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_TextureSamplerTable );
     g_DrawState.SetPsInputUsage(
-        sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
-        sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
-    Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
+        sceGnmVsShaderExportSemanticTable( g_ReferenceCubeVertexShader ),
+        g_ReferenceCubeVertexShader->numexportsemantics,
+        sceGnmPsShaderInputSemanticTable( g_ReferenceCubePixelShader ),
+        g_ReferenceCubePixelShader->numinputsemantics );
+    GnmDbRenderControl referenceDbControl = {};
+    GnmDepthStencilControl referenceDepthControl = {};
+    referenceDepthControl.zwrite = true;
+    referenceDepthControl.zfunc = GNM_DEPTH_COMPARE_LESSEQUAL;
+    referenceDepthControl.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
+    referenceDepthControl.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
+    referenceDepthControl.depthenable = true;
+    sceGnmDrawCmdSetDbRenderControl( command, &referenceDbControl );
+    sceGnmDrawCmdSetDepthStencilControl( command, &referenceDepthControl );
+    g_DrawState.SetPrimitiveType( GNM_PT_TRILIST );
+    g_DrawState.Apply( command );
+    sceGnmDrawCmdDrawIndexAuto( command, 36 );
 }
 }
 
@@ -997,7 +1067,7 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         if ( !threeDimensionalDrawLogged )
         {
             KisakPs4StartupBreadcrumb(
-                "kisak-ps4: indexed color cube diagnostic emitted" );
+                "kisak-ps4: reference cube pipeline diagnostic emitted" );
             threeDimensionalDrawLogged = true;
         }
     }

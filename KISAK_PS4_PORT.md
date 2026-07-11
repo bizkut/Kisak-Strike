@@ -1057,6 +1057,21 @@ The native loader now validates and allocates both reference shaders through
 existing diagnostic shaders. Package construction and all ten host tests pass;
 the intermediate package remains unstaged until the reference descriptor sets
 and draw are connected.
+
+Version 2.66 connects that complete reference draw contract to Kisak's 1080p
+display pass. It supplies the example's 36 position/UV vertices, two vertex
+buffer descriptors, generated fetch shader, VS slot-6 MVP constant descriptor,
+PS slot-0 texture/sampler descriptor, shader semantic linkage, direct reference
+depth controls, and non-indexed `DrawIndexAuto(36)`. The original 4x4 offscreen
+diagnostic remains on its own shaders and supplies a Kisak-owned test texture;
+the display viewport now also uses the reference 0.5 depth offset. The complete
+OpenOrbis target and all ten host tests pass. Marker:
+`kisak-ps4: build marker reference_cube_pipeline_v266`. Hardware must now show
+the reference geometry with correct occlusion; rotation can be added only after
+this fixed-MVP parity gate passes.
+The v2.66 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`91668cdc076e1ec5dce72a87e3bcc89e358c9bb4916efda3c8979ae65d1401db`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

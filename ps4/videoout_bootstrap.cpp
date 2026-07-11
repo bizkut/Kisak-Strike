@@ -85,7 +85,7 @@ extern "C" bool KisakPs4VideoOutSubmitClear()
     else if ( !g_GpuClearLogged )
     {
         KisakPs4StartupBreadcrumb( KisakPs4GnmDiagnosticShadersReady()
-            ? "kisak-ps4: shader triangle over RGBA bars and EOP passed"
+        ? "kisak-ps4: reference cube over RGBA bars and EOP passed"
             : "kisak-ps4: GPU VideoOut RGBA bars and EOP passed" );
     }
     g_GpuClearLogged = true;
