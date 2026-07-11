@@ -16,6 +16,7 @@ target_include_directories(${OUTBINNAME} PRIVATE
 target_compile_definitions(${OUTBINNAME} PRIVATE SHADER_DLL_EXPORT PROTECTED_THINGS_ENABLE)
 target_sources(${OUTBINNAME} PRIVATE
     ps4_gnm_buffer.cpp
+    ps4_gnm_constants.cpp
     ps4_gnm_device.cpp
     ps4_gnm_draw_packet.cpp
     ps4_gnm_draw_state.cpp

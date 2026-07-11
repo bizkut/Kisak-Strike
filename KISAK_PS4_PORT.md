@@ -940,6 +940,22 @@ The v2.58 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `3b2b3fef62e97a288c74dbc3eb829aa349b60d67a2e87df030f1a6fa1651d916`,
 with marker `kisak-ps4: build marker live_vertex_declaration_v258`.
+
+The v2.58 hardware run passed the live declaration path, center-pixel check,
+EOP, flips, and remained stable through at least frame 1200 at 60 FPS. Its
+capture is
+`hardware-captures/logs/2026-07-12/kisak_v258_live_vertex_declaration.txt`.
+`CPs4GnmConstants` now preserves D3D vertex registers 0-255 and pixel registers
+0-223, validates register ranges, and snapshots the used prefix into a
+256-byte-aligned per-frame `GnmBuffer`. Host tests cover sparse register
+numbering, overflow rejection, alignment, copied values, and reset behavior.
+
+The next hardware diagnostic is a distinct 3D draw gate: perspective-transformed
+geometry with varying clip-space Z plus an overlapping farther primitive. It
+must visibly demonstrate interpolation and depth rejection, retain EOP/flip
+stability, and use the façade declaration, indexed packet, constant snapshot,
+and depth-state paths. It will be kept separate from the established 2D bars
+and triangle until validated.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

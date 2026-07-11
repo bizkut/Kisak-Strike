@@ -1,0 +1,1207 @@
+kisak-ps4: bootstrap entered
+kisak-ps4: before ctor 298
+kisak-ps4: after ctor 298
+kisak-ps4: before ctor 297
+kisak-ps4: after ctor 297
+kisak-ps4: before ctor 296
+kisak-ps4: after ctor 296
+kisak-ps4: before ctor 295
+kisak-ps4: after ctor 295
+kisak-ps4: before ctor 294
+kisak-ps4: after ctor 294
+kisak-ps4: before ctor 293
+kisak-ps4: after ctor 293
+kisak-ps4: before ctor 292
+kisak-ps4: after ctor 292
+kisak-ps4: before ctor 291
+kisak-ps4: after ctor 291
+kisak-ps4: before ctor 290
+kisak-ps4: after ctor 290
+kisak-ps4: before ctor 289
+kisak-ps4: after ctor 289
+kisak-ps4: before ctor 288
+kisak-ps4: after ctor 288
+kisak-ps4: before ctor 287
+kisak-ps4: after ctor 287
+kisak-ps4: before ctor 286
+kisak-ps4: after ctor 286
+kisak-ps4: before ctor 285
+kisak-ps4: after ctor 285
+kisak-ps4: before ctor 284
+kisak-ps4: after ctor 284
+kisak-ps4: before ctor 283
+kisak-ps4: after ctor 283
+kisak-ps4: before ctor 282
+kisak-ps4: after ctor 282
+kisak-ps4: before ctor 281
+kisak-ps4: after ctor 281
+kisak-ps4: before ctor 280
+kisak-ps4: after ctor 280
+kisak-ps4: before ctor 279
+kisak-ps4: after ctor 279
+kisak-ps4: before ctor 278
+kisak-ps4: after ctor 278
+kisak-ps4: before ctor 277
+kisak-ps4: after ctor 277
+kisak-ps4: before ctor 276
+kisak-ps4: after ctor 276
+kisak-ps4: before ctor 275
+kisak-ps4: after ctor 275
+kisak-ps4: before ctor 274
+kisak-ps4: after ctor 274
+kisak-ps4: before ctor 273
+kisak-ps4: after ctor 273
+kisak-ps4: before ctor 272
+kisak-ps4: after ctor 272
+kisak-ps4: before ctor 271
+kisak-ps4: after ctor 271
+kisak-ps4: before ctor 270
+kisak-ps4: after ctor 270
+kisak-ps4: before ctor 269
+kisak-ps4: after ctor 269
+kisak-ps4: before ctor 268
+kisak-ps4: after ctor 268
+kisak-ps4: before ctor 267
+kisak-ps4: after ctor 267
+kisak-ps4: before ctor 266
+kisak-ps4: after ctor 266
+kisak-ps4: before ctor 265
+kisak-ps4: after ctor 265
+kisak-ps4: before ctor 264
+kisak-ps4: after ctor 264
+kisak-ps4: before ctor 263
+kisak-ps4: after ctor 263
+kisak-ps4: before ctor 262
+kisak-ps4: after ctor 262
+kisak-ps4: before ctor 261
+kisak-ps4: after ctor 261
+kisak-ps4: before ctor 260
+kisak-ps4: after ctor 260
+kisak-ps4: before ctor 259
+kisak-ps4: after ctor 259
+kisak-ps4: before ctor 258
+kisak-ps4: after ctor 258
+kisak-ps4: before ctor 257
+kisak-ps4: after ctor 257
+kisak-ps4: before ctor 256
+kisak-ps4: after ctor 256
+kisak-ps4: before ctor 255
+kisak-ps4: after ctor 255
+kisak-ps4: before ctor 254
+kisak-ps4: after ctor 254
+kisak-ps4: before ctor 253
+kisak-ps4: after ctor 253
+kisak-ps4: before ctor 252
+kisak-ps4: after ctor 252
+kisak-ps4: before ctor 251
+kisak-ps4: after ctor 251
+kisak-ps4: before ctor 250
+kisak-ps4: after ctor 250
+kisak-ps4: before ctor 249
+kisak-ps4: after ctor 249
+kisak-ps4: before ctor 248
+kisak-ps4: after ctor 248
+kisak-ps4: before ctor 247
+kisak-ps4: after ctor 247
+kisak-ps4: before ctor 246
+kisak-ps4: after ctor 246
+kisak-ps4: before ctor 245
+kisak-ps4: after ctor 245
+kisak-ps4: before ctor 244
+kisak-ps4: after ctor 244
+kisak-ps4: before ctor 243
+kisak-ps4: after ctor 243
+kisak-ps4: before ctor 242
+kisak-ps4: after ctor 242
+kisak-ps4: before ctor 241
+kisak-ps4: after ctor 241
+kisak-ps4: before ctor 240
+kisak-ps4: after ctor 240
+kisak-ps4: before ctor 239
+kisak-ps4: after ctor 239
+kisak-ps4: before ctor 238
+kisak-ps4: after ctor 238
+kisak-ps4: before ctor 237
+kisak-ps4: after ctor 237
+kisak-ps4: before ctor 236
+kisak-ps4: after ctor 236
+kisak-ps4: before ctor 235
+kisak-ps4: after ctor 235
+kisak-ps4: before ctor 234
+kisak-ps4: after ctor 234
+kisak-ps4: before ctor 233
+kisak-ps4: after ctor 233
+kisak-ps4: before ctor 232
+kisak-ps4: after ctor 232
+kisak-ps4: before ctor 231
+kisak-ps4: after ctor 231
+kisak-ps4: before ctor 230
+kisak-ps4: after ctor 230
+kisak-ps4: before ctor 229
+kisak-ps4: after ctor 229
+kisak-ps4: before ctor 228
+kisak-ps4: after ctor 228
+kisak-ps4: before ctor 227
+kisak-ps4: after ctor 227
+kisak-ps4: before ctor 226
+kisak-ps4: after ctor 226
+kisak-ps4: before ctor 225
+kisak-ps4: after ctor 225
+kisak-ps4: before ctor 224
+kisak-ps4: after ctor 224
+kisak-ps4: before ctor 223
+kisak-ps4: after ctor 223
+kisak-ps4: before ctor 222
+kisak-ps4: after ctor 222
+kisak-ps4: before ctor 221
+kisak-ps4: after ctor 221
+kisak-ps4: before ctor 220
+kisak-ps4: after ctor 220
+kisak-ps4: before ctor 219
+kisak-ps4: after ctor 219
+kisak-ps4: before ctor 218
+kisak-ps4: after ctor 218
+kisak-ps4: before ctor 217
+kisak-ps4: after ctor 217
+kisak-ps4: before ctor 216
+kisak-ps4: after ctor 216
+kisak-ps4: before ctor 215
+kisak-ps4: after ctor 215
+kisak-ps4: before ctor 214
+kisak-ps4: after ctor 214
+kisak-ps4: before ctor 213
+kisak-ps4: after ctor 213
+kisak-ps4: before ctor 212
+kisak-ps4: after ctor 212
+kisak-ps4: before ctor 211
+kisak-ps4: after ctor 211
+kisak-ps4: before ctor 210
+kisak-ps4: after ctor 210
+kisak-ps4: before ctor 209
+kisak-ps4: after ctor 209
+kisak-ps4: before ctor 208
+kisak-ps4: after ctor 208
+kisak-ps4: before ctor 207
+kisak-ps4: after ctor 207
+kisak-ps4: before ctor 206
+kisak-ps4: after ctor 206
+kisak-ps4: before ctor 205
+kisak-ps4: after ctor 205
+kisak-ps4: before ctor 204
+kisak-ps4: after ctor 204
+kisak-ps4: before ctor 203
+kisak-ps4: after ctor 203
+kisak-ps4: before ctor 202
+kisak-ps4: after ctor 202
+kisak-ps4: before ctor 201
+kisak-ps4: after ctor 201
+kisak-ps4: before ctor 200
+kisak-ps4: after ctor 200
+kisak-ps4: before ctor 199
+kisak-ps4: after ctor 199
+kisak-ps4: before ctor 198
+kisak-ps4: after ctor 198
+kisak-ps4: before ctor 197
+kisak-ps4: after ctor 197
+kisak-ps4: before ctor 196
+kisak-ps4: after ctor 196
+kisak-ps4: before ctor 195
+kisak-ps4: after ctor 195
+kisak-ps4: before ctor 194
+kisak-ps4: after ctor 194
+kisak-ps4: before ctor 193
+kisak-ps4: after ctor 193
+kisak-ps4: before ctor 192
+kisak-ps4: after ctor 192
+kisak-ps4: before ctor 191
+kisak-ps4: after ctor 191
+kisak-ps4: before ctor 190
+kisak-ps4: after ctor 190
+kisak-ps4: before ctor 189
+kisak-ps4: after ctor 189
+kisak-ps4: before ctor 188
+kisak-ps4: after ctor 188
+kisak-ps4: before ctor 187
+kisak-ps4: after ctor 187
+kisak-ps4: before ctor 186
+kisak-ps4: after ctor 186
+kisak-ps4: before ctor 185
+kisak-ps4: after ctor 185
+kisak-ps4: before ctor 184
+kisak-ps4: after ctor 184
+kisak-ps4: before ctor 183
+kisak-ps4: after ctor 183
+kisak-ps4: before ctor 182
+kisak-ps4: after ctor 182
+kisak-ps4: before ctor 181
+kisak-ps4: after ctor 181
+kisak-ps4: before ctor 180
+kisak-ps4: after ctor 180
+kisak-ps4: before ctor 179
+kisak-ps4: after ctor 179
+kisak-ps4: before ctor 178
+kisak-ps4: after ctor 178
+kisak-ps4: before ctor 177
+kisak-ps4: after ctor 177
+kisak-ps4: before ctor 176
+kisak-ps4: after ctor 176
+kisak-ps4: before ctor 175
+kisak-ps4: after ctor 175
+kisak-ps4: before ctor 174
+kisak-ps4: after ctor 174
+kisak-ps4: before ctor 173
+kisak-ps4: after ctor 173
+kisak-ps4: before ctor 172
+kisak-ps4: after ctor 172
+kisak-ps4: before ctor 171
+kisak-ps4: after ctor 171
+kisak-ps4: before ctor 170
+kisak-ps4: after ctor 170
+kisak-ps4: before ctor 169
+kisak-ps4: after ctor 169
+kisak-ps4: before ctor 168
+kisak-ps4: after ctor 168
+kisak-ps4: before ctor 167
+kisak-ps4: after ctor 167
+kisak-ps4: before ctor 166
+kisak-ps4: after ctor 166
+kisak-ps4: before ctor 165
+kisak-ps4: after ctor 165
+kisak-ps4: before ctor 164
+kisak-ps4: after ctor 164
+kisak-ps4: before ctor 163
+kisak-ps4: after ctor 163
+kisak-ps4: before ctor 162
+kisak-ps4: after ctor 162
+kisak-ps4: before ctor 161
+kisak-ps4: after ctor 161
+kisak-ps4: before ctor 160
+kisak-ps4: after ctor 160
+kisak-ps4: before ctor 159
+kisak-ps4: after ctor 159
+kisak-ps4: before ctor 158
+kisak-ps4: after ctor 158
+kisak-ps4: before ctor 157
+kisak-ps4: after ctor 157
+kisak-ps4: before ctor 156
+kisak-ps4: after ctor 156
+kisak-ps4: before ctor 155
+kisak-ps4: after ctor 155
+kisak-ps4: before ctor 154
+kisak-ps4: after ctor 154
+kisak-ps4: before ctor 153
+kisak-ps4: after ctor 153
+kisak-ps4: before ctor 152
+kisak-ps4: after ctor 152
+kisak-ps4: before ctor 151
+kisak-ps4: after ctor 151
+kisak-ps4: before ctor 150
+kisak-ps4: after ctor 150
+kisak-ps4: before ctor 149
+kisak-ps4: after ctor 149
+kisak-ps4: before ctor 148
+kisak-ps4: after ctor 148
+kisak-ps4: before ctor 147
+kisak-ps4: after ctor 147
+kisak-ps4: before ctor 146
+kisak-ps4: after ctor 146
+kisak-ps4: before ctor 145
+kisak-ps4: after ctor 145
+kisak-ps4: before ctor 144
+kisak-ps4: after ctor 144
+kisak-ps4: before ctor 143
+kisak-ps4: after ctor 143
+kisak-ps4: before ctor 142
+kisak-ps4: vgui system ctor entered
+kisak-ps4: vgui system ctor path ready
+kisak-ps4: vgui system ctor registry deferred
+kisak-ps4: after ctor 142
+kisak-ps4: before ctor 141
+kisak-ps4: after ctor 141
+kisak-ps4: before ctor 140
+kisak-ps4: after ctor 140
+kisak-ps4: before ctor 139
+kisak-ps4: after ctor 139
+kisak-ps4: before ctor 138
+kisak-ps4: after ctor 138
+kisak-ps4: before ctor 137
+kisak-ps4: after ctor 137
+kisak-ps4: before ctor 136
+kisak-ps4: after ctor 136
+kisak-ps4: before ctor 135
+kisak-ps4: after ctor 135
+kisak-ps4: before ctor 134
+kisak-ps4: after ctor 134
+kisak-ps4: before ctor 133
+kisak-ps4: after ctor 133
+kisak-ps4: before ctor 132
+kisak-ps4: after ctor 132
+kisak-ps4: before ctor 131
+kisak-ps4: after ctor 131
+kisak-ps4: before ctor 130
+kisak-ps4: after ctor 130
+kisak-ps4: before ctor 129
+kisak-ps4: after ctor 129
+kisak-ps4: before ctor 128
+kisak-ps4: after ctor 128
+kisak-ps4: before ctor 127
+kisak-ps4: after ctor 127
+kisak-ps4: before ctor 126
+kisak-ps4: after ctor 126
+kisak-ps4: before ctor 125
+kisak-ps4: after ctor 125
+kisak-ps4: before ctor 124
+kisak-ps4: after ctor 124
+kisak-ps4: before ctor 123
+kisak-ps4: after ctor 123
+kisak-ps4: before ctor 122
+kisak-ps4: after ctor 122
+kisak-ps4: before ctor 121
+kisak-ps4: after ctor 121
+kisak-ps4: before ctor 120
+kisak-ps4: after ctor 120
+kisak-ps4: before ctor 119
+kisak-ps4: after ctor 119
+kisak-ps4: before ctor 118
+kisak-ps4: after ctor 118
+kisak-ps4: before ctor 117
+kisak-ps4: after ctor 117
+kisak-ps4: before ctor 116
+kisak-ps4: after ctor 116
+kisak-ps4: before ctor 115
+kisak-ps4: after ctor 115
+kisak-ps4: before ctor 114
+kisak-ps4: after ctor 114
+kisak-ps4: before ctor 113
+kisak-ps4: after ctor 113
+kisak-ps4: before ctor 112
+kisak-ps4: after ctor 112
+kisak-ps4: before ctor 111
+kisak-ps4: after ctor 111
+kisak-ps4: before ctor 110
+kisak-ps4: after ctor 110
+kisak-ps4: before ctor 109
+kisak-ps4: after ctor 109
+kisak-ps4: before ctor 108
+kisak-ps4: after ctor 108
+kisak-ps4: before ctor 107
+kisak-ps4: after ctor 107
+kisak-ps4: before ctor 106
+kisak-ps4: after ctor 106
+kisak-ps4: before ctor 105
+kisak-ps4: after ctor 105
+kisak-ps4: before ctor 104
+kisak-ps4: after ctor 104
+kisak-ps4: before ctor 103
+kisak-ps4: after ctor 103
+kisak-ps4: before ctor 102
+kisak-ps4: after ctor 102
+kisak-ps4: before ctor 101
+kisak-ps4: after ctor 101
+kisak-ps4: before ctor 100
+kisak-ps4: after ctor 100
+kisak-ps4: before ctor 99
+kisak-ps4: after ctor 99
+kisak-ps4: before ctor 98
+kisak-ps4: after ctor 98
+kisak-ps4: before ctor 97
+kisak-ps4: after ctor 97
+kisak-ps4: before ctor 96
+kisak-ps4: after ctor 96
+kisak-ps4: before ctor 95
+kisak-ps4: after ctor 95
+kisak-ps4: before ctor 94
+kisak-ps4: after ctor 94
+kisak-ps4: before ctor 93
+kisak-ps4: after ctor 93
+kisak-ps4: before ctor 92
+kisak-ps4: after ctor 92
+kisak-ps4: before ctor 91
+kisak-ps4: after ctor 91
+kisak-ps4: before ctor 90
+kisak-ps4: after ctor 90
+kisak-ps4: before ctor 89
+kisak-ps4: after ctor 89
+kisak-ps4: before ctor 88
+kisak-ps4: after ctor 88
+kisak-ps4: before ctor 87
+kisak-ps4: after ctor 87
+kisak-ps4: before ctor 86
+kisak-ps4: after ctor 86
+kisak-ps4: before ctor 85
+kisak-ps4: after ctor 85
+kisak-ps4: before ctor 84
+kisak-ps4: after ctor 84
+kisak-ps4: before ctor 83
+kisak-ps4: after ctor 83
+kisak-ps4: before ctor 82
+kisak-ps4: after ctor 82
+kisak-ps4: before ctor 81
+kisak-ps4: after ctor 81
+kisak-ps4: before ctor 80
+kisak-ps4: after ctor 80
+kisak-ps4: before ctor 79
+kisak-ps4: after ctor 79
+kisak-ps4: before ctor 78
+kisak-ps4: after ctor 78
+kisak-ps4: before ctor 77
+kisak-ps4: after ctor 77
+kisak-ps4: before ctor 76
+kisak-ps4: after ctor 76
+kisak-ps4: before ctor 75
+kisak-ps4: after ctor 75
+kisak-ps4: before ctor 74
+kisak-ps4: after ctor 74
+kisak-ps4: before ctor 73
+kisak-ps4: after ctor 73
+kisak-ps4: before ctor 72
+kisak-ps4: after ctor 72
+kisak-ps4: before ctor 71
+kisak-ps4: after ctor 71
+kisak-ps4: before ctor 70
+kisak-ps4: after ctor 70
+kisak-ps4: before ctor 69
+kisak-ps4: after ctor 69
+kisak-ps4: before ctor 68
+kisak-ps4: after ctor 68
+kisak-ps4: before ctor 67
+kisak-ps4: after ctor 67
+kisak-ps4: before ctor 66
+kisak-ps4: after ctor 66
+kisak-ps4: before ctor 65
+kisak-ps4: after ctor 65
+kisak-ps4: before ctor 64
+kisak-ps4: after ctor 64
+kisak-ps4: before ctor 63
+kisak-ps4: after ctor 63
+kisak-ps4: before ctor 62
+kisak-ps4: after ctor 62
+kisak-ps4: before ctor 61
+kisak-ps4: after ctor 61
+kisak-ps4: before ctor 60
+kisak-ps4: after ctor 60
+kisak-ps4: before ctor 59
+kisak-ps4: after ctor 59
+kisak-ps4: before ctor 58
+kisak-ps4: after ctor 58
+kisak-ps4: before ctor 57
+kisak-ps4: after ctor 57
+kisak-ps4: before ctor 56
+kisak-ps4: after ctor 56
+kisak-ps4: before ctor 55
+kisak-ps4: after ctor 55
+kisak-ps4: before ctor 54
+kisak-ps4: after ctor 54
+kisak-ps4: before ctor 53
+kisak-ps4: after ctor 53
+kisak-ps4: before ctor 52
+kisak-ps4: after ctor 52
+kisak-ps4: before ctor 51
+kisak-ps4: after ctor 51
+kisak-ps4: before ctor 50
+kisak-ps4: after ctor 50
+kisak-ps4: before ctor 49
+kisak-ps4: after ctor 49
+kisak-ps4: before ctor 48
+kisak-ps4: after ctor 48
+kisak-ps4: before ctor 47
+kisak-ps4: after ctor 47
+kisak-ps4: before ctor 46
+kisak-ps4: after ctor 46
+kisak-ps4: before ctor 45
+kisak-ps4: after ctor 45
+kisak-ps4: before ctor 44
+kisak-ps4: after ctor 44
+kisak-ps4: before ctor 43
+kisak-ps4: after ctor 43
+kisak-ps4: before ctor 42
+kisak-ps4: after ctor 42
+kisak-ps4: before ctor 41
+kisak-ps4: after ctor 41
+kisak-ps4: before ctor 40
+kisak-ps4: after ctor 40
+kisak-ps4: before ctor 39
+kisak-ps4: after ctor 39
+kisak-ps4: before ctor 38
+kisak-ps4: after ctor 38
+kisak-ps4: before ctor 37
+kisak-ps4: after ctor 37
+kisak-ps4: before ctor 36
+kisak-ps4: after ctor 36
+kisak-ps4: before ctor 35
+kisak-ps4: after ctor 35
+kisak-ps4: before ctor 34
+kisak-ps4: after ctor 34
+kisak-ps4: before ctor 33
+kisak-ps4: after ctor 33
+kisak-ps4: before ctor 32
+kisak-ps4: after ctor 32
+kisak-ps4: before ctor 31
+kisak-ps4: after ctor 31
+kisak-ps4: before ctor 30
+kisak-ps4: after ctor 30
+kisak-ps4: before ctor 29
+kisak-ps4: after ctor 29
+kisak-ps4: before ctor 28
+kisak-ps4: after ctor 28
+kisak-ps4: before ctor 27
+kisak-ps4: after ctor 27
+kisak-ps4: before ctor 26
+kisak-ps4: after ctor 26
+kisak-ps4: before ctor 25
+kisak-ps4: after ctor 25
+kisak-ps4: before ctor 24
+kisak-ps4: after ctor 24
+kisak-ps4: before ctor 23
+kisak-ps4: after ctor 23
+kisak-ps4: before ctor 22
+kisak-ps4: after ctor 22
+kisak-ps4: before ctor 21
+kisak-ps4: after ctor 21
+kisak-ps4: before ctor 20
+kisak-ps4: after ctor 20
+kisak-ps4: before ctor 19
+kisak-ps4: after ctor 19
+kisak-ps4: before ctor 18
+kisak-ps4: after ctor 18
+kisak-ps4: before ctor 17
+kisak-ps4: after ctor 17
+kisak-ps4: before ctor 16
+kisak-ps4: after ctor 16
+kisak-ps4: before ctor 15
+kisak-ps4: after ctor 15
+kisak-ps4: before ctor 14
+kisak-ps4: after ctor 14
+kisak-ps4: before ctor 13
+kisak-ps4: after ctor 13
+kisak-ps4: before ctor 12
+kisak-ps4: after ctor 12
+kisak-ps4: before ctor 11
+kisak-ps4: after ctor 11
+kisak-ps4: before ctor 10
+kisak-ps4: after ctor 10
+kisak-ps4: before ctor 9
+kisak-ps4: after ctor 9
+kisak-ps4: before ctor 8
+kisak-ps4: after ctor 8
+kisak-ps4: before ctor 7
+kisak-ps4: after ctor 7
+kisak-ps4: before ctor 6
+kisak-ps4: after ctor 6
+kisak-ps4: before ctor 5
+kisak-ps4: after ctor 5
+kisak-ps4: before ctor 4
+kisak-ps4: after ctor 4
+kisak-ps4: before ctor 3
+kisak-ps4: after ctor 3
+kisak-ps4: before ctor 2
+kisak-ps4: after ctor 2
+kisak-ps4: before ctor 1
+kisak-ps4: after ctor 1
+kisak-ps4: before ctor 0
+kisak-ps4: after ctor 0
+kisak-ps4: constructors complete
+kisak-ps4: before global thread pool
+kisak-ps4: thread pool queue enter
+kisak-ps4: thread pool queue before node
+kisak-ps4: thread pool queue after node
+kisak-ps4: thread pool queue enter
+kisak-ps4: thread pool queue before node
+kisak-ps4: thread pool queue after node
+kisak-ps4: thread pool queue enter
+kisak-ps4: thread pool queue before node
+kisak-ps4: thread pool queue after node
+kisak-ps4: thread pool queue enter
+kisak-ps4: thread pool queue before node
+kisak-ps4: thread pool queue after node
+kisak-ps4: thread pool mutex before attr init
+kisak-ps4: thread pool mutex after attr init
+kisak-ps4: thread pool mutex after attr type
+kisak-ps4: thread pool mutex complete
+kisak-ps4: thread pool event after mutex init
+kisak-ps4: thread pool event after cond init
+kisak-ps4: thread pool event complete
+kisak-ps4: thread pool job queue complete
+kisak-ps4: thread pool vector before debug info
+kisak-ps4: thread pool vector complete
+kisak-ps4: thread pool mutex before attr init
+kisak-ps4: thread pool mutex after attr init
+kisak-ps4: thread pool mutex after attr type
+kisak-ps4: thread pool mutex complete
+kisak-ps4: thread pool mutex before attr init
+kisak-ps4: thread pool mutex after attr init
+kisak-ps4: thread pool mutex after attr type
+kisak-ps4: thread pool mutex complete
+kisak-ps4: thread pool vector before debug info
+kisak-ps4: thread pool vector complete
+kisak-ps4: thread pool members complete
+kisak-ps4: after global thread pool
+kisak-ps4: static modules registered
+kisak-ps4: entering LauncherMain
+kisak-ps4: before logging listener
+kisak-ps4: after logging listener
+kisak-ps4: before hardware key
+kisak-ps4: after hardware key
+kisak-ps4: before command line
+kisak-ps4: after command line
+kisak-ps4: before base dir
+kisak-ps4: LauncherMain entered
+kisak-ps4: after base dir
+kisak-ps4: before default game check
+kisak-ps4: before default game append
+kisak-ps4: after default game append
+kisak-ps4: after default game check
+kisak-ps4: before console parm checks
+kisak-ps4: after console parm checks
+kisak-ps4: before executable name
+kisak-ps4: after executable name
+kisak-ps4: before steam overlay
+kisak-ps4: after steam overlay
+kisak-ps4: before spurious parms
+kisak-ps4: after spurious parms
+kisak-ps4: before source mutex
+kisak-ps4: after source mutex
+kisak-ps4: before insecure parm
+kisak-ps4: after insecure parm
+kisak-ps4: before chdir
+kisak-ps4: after chdir
+kisak-ps4: launch flags complete
+kisak-ps4: before source systems
+kisak-ps4: after source systems
+kisak-ps4: after steam application
+kisak-ps4: before application run
+kisak-ps4: app run entered
+kisak-ps4: app before startup
+kisak-ps4: app startup entered
+kisak-ps4: app before create
+kisak-ps4: steam create entered
+kisak-ps4: steam after filesystem error mode
+kisak-ps4: steam before filesystem name
+kisak-ps4: steam after filesystem name
+kisak-ps4: steam before cvar load
+kisak-ps4: steam after cvar load
+kisak-ps4: steam after cvar add
+kisak-ps4: steam before filesystem load
+kisak-ps4: steam after filesystem load
+kisak-ps4: steam after filesystem add
+kisak-ps4: app after create
+kisak-ps4: app before dependencies
+kisak-ps4: dependency scan entered
+kisak-ps4: dependency owner
+VEngineCvar007
+kisak-ps4: dependency owner
+VFileSystem017
+kisak-ps4: dependency before ordering
+kisak-ps4: dependency scan complete
+kisak-ps4: app after dependencies
+kisak-ps4: app before connect
+kisak-ps4: connect system
+VEngineCvar007
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VFileSystem017
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect systems complete
+kisak-ps4: app after connect
+kisak-ps4: app before preinit
+kisak-ps4: app after preinit
+kisak-ps4: app before init systems
+kisak-ps4: init system
+VEngineCvar007
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VFileSystem017
+kisak-ps4: app before system init
+kisak-ps4: filesystem init entered
+kisak-ps4: filesystem after tracker thread
+kisak-ps4: filesystem before async init
+kisak-ps4: filesystem async entered
+kisak-ps4: thread pool members complete
+kisak-ps4: filesystem async pool created
+kisak-ps4: filesystem async before cpu info
+kisak-ps4: filesystem async after cpu info
+kisak-ps4: filesystem async before pool start
+kisak-ps4: thread pool start entered
+kisak-ps4: thread pool start capacity ready
+kisak-ps4: thread pool before worker allocation
+kisak-ps4: thread pool after worker allocation
+kisak-ps4: thread pool before worker start
+kisak-ps4: cthread start entered
+kisak-ps4: cthread start lock acquired
+kisak-ps4: cthread before create event
+kisak-ps4: cthread after create event
+kisak-ps4: cthread before pthread create
+kisak-ps4: cthread after pthread create
+kisak-ps4: cthread child entered
+kisak-ps4: cthread before create wait
+kisak-ps4: cthread child after thread id
+kisak-ps4: cthread child after current thread
+kisak-ps4: cthread child before init
+kisak-ps4: cthread child after init
+kisak-ps4: cthread child before success write
+kisak-ps4: cthread child after success write
+kisak-ps4: cthread child before create signal
+kisak-ps4: cthread child after create signal
+kisak-ps4: cthread child before run dispatch
+kisak-ps4: cthread child before run
+kisak-ps4: job worker run entered
+kisak-ps4: job worker before idle signal
+kisak-ps4: job worker after idle signal
+kisak-ps4: cthread after create wait
+kisak-ps4: thread pool after worker start
+kisak-ps4: thread pool worker idle
+kisak-ps4: thread pool before worker allocation
+kisak-ps4: thread pool after worker allocation
+kisak-ps4: thread pool before worker start
+kisak-ps4: cthread start entered
+kisak-ps4: cthread start lock acquired
+kisak-ps4: cthread before create event
+kisak-ps4: cthread after create event
+kisak-ps4: cthread before pthread create
+kisak-ps4: cthread after pthread create
+kisak-ps4: cthread child entered
+kisak-ps4: cthread before create wait
+kisak-ps4: cthread child after thread id
+kisak-ps4: cthread child after current thread
+kisak-ps4: cthread child before init
+kisak-ps4: cthread child after init
+kisak-ps4: cthread child before success write
+kisak-ps4: cthread child after success write
+kisak-ps4: cthread child before create signal
+kisak-ps4: cthread child after create signal
+kisak-ps4: cthread child before run dispatch
+kisak-ps4: cthread child before run
+kisak-ps4: job worker run entered
+kisak-ps4: job worker before idle signal
+kisak-ps4: job worker after idle signal
+kisak-ps4: cthread after create wait
+kisak-ps4: thread pool after worker start
+kisak-ps4: thread pool worker idle
+kisak-ps4: thread pool before worker allocation
+kisak-ps4: thread pool after worker allocation
+kisak-ps4: thread pool before worker start
+kisak-ps4: cthread start entered
+kisak-ps4: cthread start lock acquired
+kisak-ps4: cthread before create event
+kisak-ps4: cthread after create event
+kisak-ps4: cthread before pthread create
+kisak-ps4: cthread after pthread create
+kisak-ps4: cthread child entered
+kisak-ps4: cthread before create wait
+kisak-ps4: cthread child after thread id
+kisak-ps4: cthread child after current thread
+kisak-ps4: cthread child before init
+kisak-ps4: cthread child after init
+kisak-ps4: cthread child before success write
+kisak-ps4: cthread child after success write
+kisak-ps4: cthread child before create signal
+kisak-ps4: cthread child after create signal
+kisak-ps4: cthread child before run dispatch
+kisak-ps4: cthread child before run
+kisak-ps4: job worker run entered
+kisak-ps4: job worker before idle signal
+kisak-ps4: job worker after idle signal
+kisak-ps4: cthread after create wait
+kisak-ps4: thread pool after worker start
+kisak-ps4: thread pool worker idle
+kisak-ps4: thread pool start complete
+kisak-ps4: filesystem async after pool start
+kisak-ps4: filesystem after async init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: app after init systems
+kisak-ps4: app before postinit
+kisak-ps4: app after postinit
+kisak-ps4: app after startup
+kisak-ps4: app before main
+kisak-ps4: app run entered
+kisak-ps4: app before startup
+kisak-ps4: app startup entered
+kisak-ps4: app before create
+kisak-ps4: add system module
+engine
+kisak-ps4: add system interface
+VCvarQuery001
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+filesystem_stdio
+kisak-ps4: add system interface
+QueuedLoaderVersion001
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+inputsystem
+kisak-ps4: add system interface
+InputSystemVersion001
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+kisakvphysics
+kisak-ps4: add system interface
+VPhysics031
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+materialsystem
+kisak-ps4: add system interface
+VMaterialSystem080
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+datacache
+kisak-ps4: add system interface
+VDataCache003
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+datacache
+kisak-ps4: add system interface
+MDLCache004
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+datacache
+kisak-ps4: add system interface
+VStudioDataCache005
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+studiorender
+kisak-ps4: add system interface
+VStudioRender026
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+soundemittersystem
+kisak-ps4: add system interface
+VSoundEmitter003
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+vscript
+kisak-ps4: add system interface
+VScriptManager009
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+vguimatsurface
+kisak-ps4: add system interface
+VGUI_Surface031
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+vgui2
+kisak-ps4: add system interface
+VGUI_ivgui008
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+engine
+kisak-ps4: add system interface
+VENGINE_LAUNCHER_API_VERSION004
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+rocketui
+kisak-ps4: add system interface
+RocketUI001
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: shaderapips4 selected with empty fallback
+kisak-ps4: app after create
+kisak-ps4: app before dependencies
+kisak-ps4: dependency scan entered
+kisak-ps4: dependency owner
+VCvarQuery001
+kisak-ps4: dependency owner
+QueuedLoaderVersion001
+kisak-ps4: dependency owner
+InputSystemVersion001
+kisak-ps4: dependency owner
+VPhysics031
+kisak-ps4: dependency owner
+VMaterialSystem080
+kisak-ps4: dependency owner
+VDataCache003
+kisak-ps4: dependency owner
+MDLCache004
+kisak-ps4: dependency owner
+VStudioDataCache005
+kisak-ps4: dependency owner
+VStudioRender026
+kisak-ps4: dependency owner
+VSoundEmitter003
+kisak-ps4: dependency owner
+VScriptManager009
+kisak-ps4: dependency owner
+VGUI_Surface031
+kisak-ps4: dependency interface
+Localize_001
+kisak-ps4: dependency module
+localize
+kisak-ps4: dependency already satisfied
+kisak-ps4: dependency interface
+InputStackSystemVersion001
+kisak-ps4: dependency module
+inputsystem
+kisak-ps4: dependency already satisfied
+kisak-ps4: dependency interface
+VMaterialSystem080
+kisak-ps4: dependency module
+materialsystem
+kisak-ps4: dependency already satisfied
+kisak-ps4: dependency owner
+VGUI_ivgui008
+kisak-ps4: dependency interface
+Localize_001
+kisak-ps4: dependency module
+localize
+kisak-ps4: dependency already satisfied
+kisak-ps4: dependency interface
+VGUI_Surface031
+kisak-ps4: dependency module
+vgui2
+kisak-ps4: dependency already satisfied
+kisak-ps4: dependency owner
+VENGINE_LAUNCHER_API_VERSION004
+kisak-ps4: dependency owner
+RocketUI001
+kisak-ps4: dependency before ordering
+kisak-ps4: dependency scan complete
+kisak-ps4: app after dependencies
+kisak-ps4: app before connect
+kisak-ps4: connect system
+VCvarQuery001
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+QueuedLoaderVersion001
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+InputSystemVersion001
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VPhysics031
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VMaterialSystem080
+kisak-ps4: connect before call
+kisak-ps4: materialsystem connect entered
+kisak-ps4: materialsystem before base connect
+kisak-ps4: materialsystem after base connect
+kisak-ps4: materialsystem filesystem ready
+kisak-ps4: materialsystem shader factory ready
+kisak-ps4: materialsystem before device manager query
+kisak-ps4: materialsystem device manager ready
+kisak-ps4: materialsystem before hardware config query
+kisak-ps4: materialsystem hardware config ready
+kisak-ps4: materialsystem before shader api query
+kisak-ps4: materialsystem shader api ready
+kisak-ps4: materialsystem before shader device query
+kisak-ps4: materialsystem shader device ready
+kisak-ps4: materialsystem before shader shadow query
+kisak-ps4: materialsystem shader shadow ready
+kisak-ps4: materialsystem rocketui ready
+kisak-ps4: materialsystem before device manager connect
+kisak-ps4: materialsystem device manager connected
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VDataCache003
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+MDLCache004
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VStudioDataCache005
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VStudioRender026
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VSoundEmitter003
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VScriptManager009
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VGUI_Surface031
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VGUI_ivgui008
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VENGINE_LAUNCHER_API_VERSION004
+kisak-ps4: connect before call
+kisak-ps4: engine launcher bootstrap connect
+kisak-ps4: connect complete
+kisak-ps4: connect system
+RocketUI001
+kisak-ps4: connect before call
+kisak-ps4: rocketui bootstrap connect
+kisak-ps4: connect complete
+kisak-ps4: connect systems complete
+kisak-ps4: app after connect
+kisak-ps4: app before preinit
+kisak-ps4: content search paths mounted
+kisak-ps4: content packaged probe readable
+kisak-ps4: content gameinfo readable
+kisak-ps4: content sound manifest readable
+kisak-ps4: content vmt readable
+kisak-ps4: content vtf readable
+kisak-ps4: content bsp readable
+kisak-ps4: engine launcher bootstrap startup info
+kisak-ps4: app after preinit
+kisak-ps4: app before init systems
+kisak-ps4: init system
+VCvarQuery001
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+QueuedLoaderVersion001
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+InputSystemVersion001
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VPhysics031
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VMaterialSystem080
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VDataCache003
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+MDLCache004
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VStudioDataCache005
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VStudioRender026
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VSoundEmitter003
+kisak-ps4: app before system init
+kisak-ps4: sound emitter init entered
+kisak-ps4: sound emitter base init complete
+kisak-ps4: sound manifest loaded
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VScriptManager009
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VGUI_Surface031
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VGUI_ivgui008
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VENGINE_LAUNCHER_API_VERSION004
+kisak-ps4: app before system init
+kisak-ps4: engine launcher bootstrap init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+RocketUI001
+kisak-ps4: app before system init
+kisak-ps4: rocketui bootstrap init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: app after init systems
+kisak-ps4: app before postinit
+kisak-ps4: app after postinit
+kisak-ps4: app after startup
+kisak-ps4: app before main
+kisak-ps4: engine launcher bootstrap run
+kisak-ps4: build marker live_vertex_declaration_v258
+kisak-ps4: scaleform sdk 4.2.22
+kisak-ps4: scaleform kernel self-test passed
+kisak-ps4: scaleform fontlib movie probe passed
+kisak-ps4: scaleform render-tree handle probe passed
+kisak-ps4: videoout layout valid
+kisak-ps4: videoout helper diagnostics v1.74
+kisak-ps4: videoout before open
+kisak-ps4: videoout opened
+kisak-ps4: native shader manifest entries=3
+kisak-ps4: native GNM shader resource role=vertex handle=0x10001 codebytes=40
+kisak-ps4: native GNM shader resource role=solid_pixel handle=0x10002 codebytes=52
+kisak-ps4: native GNM shader resource role=texture_pixel handle=0x10003 codebytes=84
+kisak-ps4: native shader sampler binding mask=0x1 source=combined_table
+kisak-ps4: native debug texture memory bytes=1024
+kisak-ps4: diagnostic shader detail ready vsbytes=68 psbytes=80 fetchbytes=44 vertexinputs=2 depthbytes=8294400 texturebytes=512
+kisak-ps4: diagnostic shader binaries loaded
+kisak-ps4: gnm submission two-frame EOP passed
+kisak-ps4: engine launcher first frame begin
+kisak-ps4: engine launcher first frame complete
+kisak-ps4: native shader shadow applied mask=0x00000458
+kisak-ps4: native shader shadow display state mask=0x00000410
+kisak-ps4: D3D9 facade indexed diagnostic draw emitted
+kisak-ps4: diagnostic center pixel 0xff00daff
+kisak-ps4: shader triangle over RGBA bars and EOP passed
+kisak-ps4: videoout before flip
+kisak-ps4: videoout flip complete
+kisak-ps4: videoout before flip
+kisak-ps4: videoout flip complete
+kisak-ps4: videoout before flip
+kisak-ps4: videoout flip complete
+kisak-ps4: engine launcher frame 60
+kisak-ps4: engine launcher frame 120
+kisak-ps4: engine launcher frame 180
+kisak-ps4: engine launcher frame 240
+kisak-ps4: engine launcher frame 300
+kisak-ps4: engine launcher frame 360
+kisak-ps4: engine launcher frame 420
+kisak-ps4: engine launcher frame 480
+kisak-ps4: engine launcher frame 540
+kisak-ps4: engine launcher frame 600
+kisak-ps4: engine launcher frame 660
+kisak-ps4: engine launcher frame 720
+kisak-ps4: engine launcher frame 780
+kisak-ps4: engine launcher frame 840
+kisak-ps4: engine launcher frame 900
+kisak-ps4: engine launcher frame 960
+kisak-ps4: engine launcher frame 1020
+kisak-ps4: engine launcher frame 1080
+kisak-ps4: engine launcher frame 1140
+kisak-ps4: engine launcher frame 1200
