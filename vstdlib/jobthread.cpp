@@ -1014,6 +1014,9 @@ int CThreadPool::AbortAll()
 
 bool CThreadPool::Start( const ThreadPoolStartParams_t &startParams, const char *pszName )
 {
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool start entered" );
+	#endif
 #if defined( DEDICATED ) && IsPlatformLinux()
 	if ( !startParams.bEnableOnLinuxDedicatedServer )
 		return false;
@@ -1105,6 +1108,9 @@ bool CThreadPool::Start( const ThreadPoolStartParams_t &startParams, const char 
 	//--------------------------------------------------------
 
 	m_Threads.EnsureCapacity( nThreads );
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool start capacity ready" );
+	#endif
 	
 	if ( !pszName )
 	{
@@ -1112,17 +1118,35 @@ bool CThreadPool::Start( const ThreadPoolStartParams_t &startParams, const char 
 	}
 	while ( nThreads-- )
 	{
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool before worker allocation" );
+		#endif
 		int iThread = m_Threads.AddToTail();
 		m_Threads[iThread] = new CJobThread( this, iThread );
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool after worker allocation" );
+		#endif
 		CFmtStr formattedName( "%s%d", pszName, iThread );
 		m_Threads[iThread]->SetName( formattedName );
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool before worker start" );
+		#endif
 		m_Threads[iThread]->Start( nStackSize );
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool after worker start" );
+		#endif
 		m_Threads[iThread]->GetIdleEvent().Wait();
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool worker idle" );
+		#endif
 		ThreadSetDebugName( m_Threads[iThread]->GetThreadHandle(), formattedName );
 		ThreadSetPriority( (ThreadHandle_t)m_Threads[iThread]->GetThreadHandle(), priority );
 	}
 
 	Distribute( bDistribute, startParams.bUseAffinityTable ? (int *)startParams.iAffinityTable : NULL );
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool start complete" );
+	#endif
 
 	return true;
 }
