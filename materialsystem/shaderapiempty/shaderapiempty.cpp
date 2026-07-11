@@ -329,6 +329,13 @@ static CShaderDeviceMgrEmpty s_ShaderDeviceMgrEmpty;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CShaderDeviceMgrEmpty, IShaderDeviceMgr, 
 								  SHADER_DEVICE_MGR_INTERFACE_VERSION, s_ShaderDeviceMgrEmpty )
 
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakShaderApiEmptyFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
+
 
 //-----------------------------------------------------------------------------
 // The DX8 implementation of the shader API
@@ -1298,7 +1305,11 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CShaderAPIEmpty, IDebugTextureInfo,
 //-----------------------------------------------------------------------------
 // The main GL Shader util interface
 //-----------------------------------------------------------------------------
-IShaderUtil* g_pShaderUtil;
+#if defined( PLATFORM_PS4 )
+extern IShaderUtil *g_pShaderUtil;
+#else
+IShaderUtil *g_pShaderUtil;
+#endif
 
 
 //-----------------------------------------------------------------------------

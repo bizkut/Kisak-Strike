@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.58
-SHA-256: 834b5a4d05d1b4e322a3cd058745a79fd6ff95aaccae26f0285e8d7b7c8391fb
+Version: 1.59
+SHA-256: 13939d7463ceaad01a513a664203d3dea86dbae26750fed783cc3dec660e7694
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -553,6 +553,22 @@ connection, filesystem, and shader-factory boundaries. A missing OpenGNM
 ShaderAPI now produces a controlled startup failure and clean shutdown instead
 of calling an undefined function pointer; renderer connection remains blocked
 until the PS4 ShaderAPI factory is installed.
+
+The v1.58 hardware run remained stable and followed the intended controlled
+path: material-system base connection and filesystem discovery succeeded,
+`materialsystem shader factory missing` was logged, connection returned false,
+and the complete filesystem/thread-pool shutdown finished cleanly.
+
+No PS4/OpenGNM ShaderAPI implementation exists in the Kisak tree yet. Version
+1.59 therefore adds `shaderapiempty` to the Orbis static build as an explicitly
+temporary lifecycle scaffold, registers its module/factory before the material
+system, and installs it during PS4 material-system factory setup. It supplies
+Source's ShaderAPI, device-manager, device, shadow, and hardware-config
+interfaces but performs no rendering. The monolithic build shares the single
+material-system-owned `g_pShaderUtil` global instead of retaining the original
+DLL-local duplicate. This checkpoint is only for advancing initialization and
+diagnostics; OpenGNM remains the sole intended PS4 graphics backend and must
+replace the empty factory before rendering acceptance.
 
 Reproduce the current cross-build with:
 

@@ -636,6 +636,9 @@ void CMaterialSystem::CleanUpErrorMaterial()
 #if defined( PLATFORM_PS4 )
 CreateInterfaceFn KisakMaterialSystemFactory()
 {
+	// Temporary lifecycle scaffold until the OpenGNM ShaderAPI is available.
+	// This backend exposes Source interfaces but performs no rendering.
+	g_MaterialSystem.SetShaderAPI( "shaderapiempty" );
 	return Sys_GetFactoryThis();
 }
 #endif

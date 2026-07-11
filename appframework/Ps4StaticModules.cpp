@@ -45,6 +45,7 @@ extern "C" int KisakRegisterStaticModules()
     const bool rocketui = RegisterStaticModule( "rocketui", KisakRocketUIBootstrapFactory() );
     const bool inputsystem = RegisterStaticModule( "inputsystem", KisakInputSystemFactory() );
     const bool vphysics = RegisterStaticModule( "kisakvphysics", KisakVPhysicsFactory() );
+    const bool shaderapiempty = RegisterStaticModule( "shaderapiempty", KisakShaderApiEmptyFactory() );
     const bool materialsystem = RegisterStaticModule( "materialsystem", KisakMaterialSystemFactory() );
     const bool datacache = RegisterStaticModule( "datacache", KisakDataCacheFactory() );
     const bool studiorender = RegisterStaticModule( "studiorender", KisakStudioRenderFactory() );
@@ -53,5 +54,5 @@ extern "C" int KisakRegisterStaticModules()
     const bool vgui2 = RegisterStaticModule( "vgui2", KisakVGuiFactory() );
     const bool localize = RegisterStaticModule( "localize", KisakLocalizeFactory() );
     const bool vguimatsurface = RegisterStaticModule( "vguimatsurface", KisakVGuiMatSurfaceFactory() );
-    return tier0 && vstdlib && launcher && filesystem && engine && rocketui && inputsystem && vphysics && materialsystem && datacache && studiorender && soundemittersystem && vscript && vgui2 && localize && vguimatsurface ? 0 : -1;
+    return tier0 && vstdlib && launcher && filesystem && engine && rocketui && inputsystem && vphysics && shaderapiempty && materialsystem && datacache && studiorender && soundemittersystem && vscript && vgui2 && localize && vguimatsurface ? 0 : -1;
 }
