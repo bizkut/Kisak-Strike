@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.13
-SHA-256: c56c1d0ad0ea7b6e8fc9c87b45d7521436d7e334444d8d64f83cf448ad4c8e24
+Version: 2.14
+SHA-256: 9b254c40e8ac04749e11146a65a63f08dffbee47cc63de23cf8aa4de5b8139ff
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -458,6 +458,16 @@ over-align an allocation beyond the texture descriptor's minimum, making that
 comparison invalid. Version 2.13 checks the real address against the requested
 alignment while retaining the size bound. The red sampled triangle must return
 before any offscreen write is attempted.
+
+The v2.13 run still reported `texture color target view failed`, proving actual
+address alignment was not the only rejected condition. `CPs4GnmTexture` stored
+only the texture descriptor's 256-byte used size even though initialization
+received the entire remaining persistent-pool capacity. A color-target layout
+may require a larger footprint over the same aligned base. Version 2.14 tracks
+aligned capacity separately, validates new views against that capacity, and
+expands the shared resource's used size to the maximum compatible descriptor
+footprint. Table placement follows that expanded size. The red triangle must
+return before offscreen writes proceed.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

@@ -33,6 +33,7 @@ private:
     GnmRenderTarget m_colorTarget;
     void *m_data;
     uint64_t m_size;
+    uint64_t m_capacity;
     uint32_t m_alignment;
     uint32_t m_width;
     uint32_t m_height;

@@ -3,7 +3,7 @@
 #include <string.h>
 
 CPs4GnmTexture::CPs4GnmTexture()
-    : m_data( 0 ), m_size( 0 ), m_alignment( 0 ), m_width( 0 ), m_height( 0 ),
+    : m_data( 0 ), m_size( 0 ), m_capacity( 0 ), m_alignment( 0 ), m_width( 0 ), m_height( 0 ),
       m_bytesPerElement( 0 ), m_valid( false )
 {
     memset( &m_texture, 0, sizeof( m_texture ) );
@@ -43,6 +43,7 @@ bool CPs4GnmTexture::Initialize2D( void *memory, size_t memorySize,
 
     m_data = reinterpret_cast< void * >( aligned );
     m_size = requiredSize;
+    m_capacity = memorySize - prefix;
     m_alignment = requiredAlignment;
     m_width = width;
     m_height = height;
@@ -90,12 +91,14 @@ bool CPs4GnmTexture::CreateColorTargetView( GnmDataFormat format,
     uint32_t requiredAlignment = 0;
     if ( sceGnmRtCreateColorTarget( &m_colorTarget, m_data, format, width, height,
         1, 1, 1, tileMode, gpuMode, &requiredSize, &requiredAlignment ) != GNM_ERROR_OK ||
-        requiredSize > m_size ||
+        requiredSize > m_capacity ||
         ( reinterpret_cast< uintptr_t >( m_data ) & ( requiredAlignment - 1 ) ) != 0 )
     {
         memset( &m_colorTarget, 0, sizeof( m_colorTarget ) );
         return false;
     }
+    if ( requiredSize > m_size )
+        m_size = requiredSize;
     m_colorTargetValid = true;
     return true;
 }
@@ -106,6 +109,7 @@ void CPs4GnmTexture::Reset()
     memset( &m_colorTarget, 0, sizeof( m_colorTarget ) );
     m_data = 0;
     m_size = 0;
+    m_capacity = 0;
     m_alignment = 0;
     m_width = 0;
     m_height = 0;
