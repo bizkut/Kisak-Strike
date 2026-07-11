@@ -2,14 +2,25 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_DIR="${KISAK_PS4_BUILD_DIR:-$ROOT_DIR/build-ps4-bootstrap}"
+VARIANT="${KISAK_PS4_VARIANT:-bootstrap}"
+if [[ "$VARIANT" == "monolithic" ]]; then
+    BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
+    TITLE="Kisak-Strike PS4 Monolithic"
+    VERSION="1.00"
+    TITLE_ID="KISK00002"
+    CONTENT_ID="IV0000-KISK00002_00-KISAKMONOLITHIC0"
+    EBOOT_INPUT="$BUILD_DIR/kisak_ps4_monolithic.bin"
+else
+    BUILD_DIR="${KISAK_PS4_BUILD_DIR:-$ROOT_DIR/build-ps4-bootstrap}"
+    TITLE="Kisak-Strike PS4 Bootstrap"
+    VERSION="1.01"
+    TITLE_ID="KISK00001"
+    CONTENT_ID="IV0000-KISK00001_00-KISAKBOOTSTRAP00"
+    EBOOT_INPUT="$BUILD_DIR/eboot.bin"
+fi
 PACKAGE_DIR="$BUILD_DIR/package"
 DOTNET_BUNDLE_EXTRACT_BASE_DIR="${DOTNET_BUNDLE_EXTRACT_BASE_DIR:-$BUILD_DIR/dotnet-bundle}"
 export DOTNET_BUNDLE_EXTRACT_BASE_DIR
-TITLE="Kisak-Strike PS4 Bootstrap"
-VERSION="1.01"
-TITLE_ID="KISK00001"
-CONTENT_ID="IV0000-KISK00001_00-KISAKBOOTSTRAP00"
 PACKAGE="$CONTENT_ID.pkg"
 
 if [[ -z "${OO_PS4_TOOLCHAIN:-}" ]]; then
@@ -22,7 +33,11 @@ if [[ -z "${OO_PS4_TOOLCHAIN:-}" ]]; then
     export OO_PS4_TOOLCHAIN
 fi
 
-"$ROOT_DIR/build-ps4-bootstrap.sh"
+if [[ "$VARIANT" == "monolithic" ]]; then
+    "$ROOT_DIR/build-ps4-monolithic.sh"
+else
+    "$ROOT_DIR/build-ps4-bootstrap.sh"
+fi
 
 CREATE_GP4="${CREATE_GP4:-$OO_PS4_TOOLCHAIN/bin/macos/create-gp4}"
 PKGTOOL="${PKGTOOL:-$OO_PS4_TOOLCHAIN/bin/macos/PkgTool.Core}"
@@ -31,7 +46,7 @@ ASSET_DIR="${KISAK_PS4_ASSET_DIR:-$ROOT_DIR/../freegnm-examples/videoout-linear/
 
 for required in "$CREATE_GP4" "$PKGTOOL" "$RUNTIME_MODULE_DIR/libc.prx" \
     "$RUNTIME_MODULE_DIR/libSceFios2.prx" "$ASSET_DIR/icon0.png" \
-    "$ASSET_DIR/about/right.sprx" "$BUILD_DIR/eboot.bin"; do
+    "$ASSET_DIR/about/right.sprx" "$EBOOT_INPUT"; do
     if [[ ! -e "$required" ]]; then
         echo "Missing PS4 package input: $required" >&2
         exit 1
@@ -40,7 +55,7 @@ done
 
 rm -rf "$PACKAGE_DIR"
 mkdir -p "$DOTNET_BUNDLE_EXTRACT_BASE_DIR" "$PACKAGE_DIR/sce_module" "$PACKAGE_DIR/sce_sys/about"
-cp "$BUILD_DIR/eboot.bin" "$PACKAGE_DIR/eboot.bin"
+cp "$EBOOT_INPUT" "$PACKAGE_DIR/eboot.bin"
 cp "$RUNTIME_MODULE_DIR/libc.prx" "$PACKAGE_DIR/sce_module/libc.prx"
 cp "$RUNTIME_MODULE_DIR/libSceFios2.prx" "$PACKAGE_DIR/sce_module/libSceFios2.prx"
 cp "$ASSET_DIR/icon0.png" "$PACKAGE_DIR/sce_sys/icon0.png"

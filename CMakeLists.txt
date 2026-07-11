@@ -28,6 +28,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     set(CMAKE_CXX_STANDARD 11)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CXX_EXTENSIONS ON)
+    add_compile_options(-mcx16)
     set(USE_SCALEFORM OFF CACHE BOOL "" FORCE)
     set(USE_ROCKETUI ON CACHE BOOL "" FORCE)
     set(USE_KISAK_PHYSICS ON CACHE BOOL "" FORCE)
@@ -40,6 +41,59 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_subdirectory(vstdlib)
     add_subdirectory(appframework)
     add_subdirectory(launcher)
+
+    set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+    add_executable(kisak_ps4_monolithic ps4/bootstrap_main.c)
+    set_target_properties(kisak_ps4_monolithic PROPERTIES
+        LINKER_LANGUAGE CXX
+        OUTPUT_NAME kisak_ps4_monolithic
+        SUFFIX ""
+    )
+    target_compile_definitions(kisak_ps4_monolithic PRIVATE KISAK_PS4_MONOLITHIC)
+    target_link_options(kisak_ps4_monolithic PRIVATE
+        -m elf_x86_64
+        -pie
+        "--script=${OPENORBIS_ROOT}/link.x"
+        --eh-frame-hdr
+    )
+    target_link_directories(kisak_ps4_monolithic PRIVATE "${OPENORBIS_ROOT}/lib")
+    target_link_libraries(kisak_ps4_monolithic PRIVATE
+        "${OPENORBIS_ROOT}/lib/crt1.o"
+        "${OPENORBIS_ROOT}/lib/crti.o"
+        --start-group
+        launcher_client
+        appframework_client
+        libvstdlib_client
+        tier3_client
+        tier2_client
+        tier1_client
+        interfaces_client
+        libtier0_client
+        --end-group
+        c++
+        c++abi
+        c
+        kernel
+        "${OPENORBIS_ROOT}/lib/crtn.o"
+    )
+
+    find_program(KISAK_CREATE_FSELF
+        NAMES create-fself-macos create-fself
+        HINTS "${OPENORBIS_ROOT}/bin/macos" "${OPENORBIS_ROOT}/bin"
+    )
+    if(KISAK_CREATE_FSELF)
+        add_custom_command(TARGET kisak_ps4_monolithic POST_BUILD
+            COMMAND "${KISAK_CREATE_FSELF}"
+                -in=$<TARGET_FILE:kisak_ps4_monolithic>
+                -out=${CMAKE_CURRENT_BINARY_DIR}/kisak_ps4_monolithic.oelf
+                -eboot=${CMAKE_CURRENT_BINARY_DIR}/kisak_ps4_monolithic.bin
+                --paid 0x3800000000000011
+            BYPRODUCTS
+                ${CMAKE_CURRENT_BINARY_DIR}/kisak_ps4_monolithic.oelf
+                ${CMAKE_CURRENT_BINARY_DIR}/kisak_ps4_monolithic.bin
+            VERBATIM
+        )
+    endif()
     return()
 endif()
 

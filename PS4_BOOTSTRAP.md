@@ -26,6 +26,14 @@ The defaults are `10.0.1.157:2121` and `/data/pkg`; override `PS4_HOST`,
 `PS4_FTP_PORT`, or `PS4_PKG_DIR` when required. Staging does not install or
 launch the package.
 
+Build and stage the core monolithic diagnostic under title `KISK00002`:
+
+```sh
+./build-ps4-monolithic.sh
+KISAK_PS4_VARIANT=monolithic ./package-ps4-bootstrap.sh
+KISAK_PS4_VARIANT=monolithic ./stage-ps4-bootstrap.sh
+```
+
 After installing and launching the package, success is the creation of:
 
 ```text

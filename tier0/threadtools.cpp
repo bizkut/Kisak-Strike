@@ -1665,7 +1665,7 @@ bool CThreadFullMutex::Release()
 //
 //-----------------------------------------------------------------------------
 
-#if defined( WIN32 ) || defined( _PS3 ) || defined( _OSX ) || ( defined (_LINUX) && !defined(DEDICATED) )
+#if defined( WIN32 ) || defined( _PS3 ) || defined( _OSX ) || defined( PLATFORM_PS4 ) || ( defined (_LINUX) && !defined(DEDICATED) )
 #if !defined(_PS3)
 namespace GenericThreadLocals
 {
@@ -1898,32 +1898,38 @@ bool ThreadInterlockedAssignIf128( volatile int128 *pDest, const int128 &value, 
 #endif
 
 
-long ThreadInterlockedIncrement( long volatile *pDest )
+#if defined( PLATFORM_PS4 )
+typedef int32 Ps4InterlockedInt_t;
+#else
+typedef long Ps4InterlockedInt_t;
+#endif
+
+Ps4InterlockedInt_t ThreadInterlockedIncrement( Ps4InterlockedInt_t volatile *pDest )
 {
 	return __sync_fetch_and_add( pDest, 1 ) + 1;
 }
 
-long ThreadInterlockedDecrement( long volatile *pDest )
+Ps4InterlockedInt_t ThreadInterlockedDecrement( Ps4InterlockedInt_t volatile *pDest )
 {
 	return __sync_fetch_and_sub( pDest, 1 ) - 1;
 }
 
-long ThreadInterlockedExchange( long volatile *pDest, long value )
+Ps4InterlockedInt_t ThreadInterlockedExchange( Ps4InterlockedInt_t volatile *pDest, Ps4InterlockedInt_t value )
 {
 	return __sync_lock_test_and_set( pDest, value );
 }
 
-long ThreadInterlockedExchangeAdd( long volatile *pDest, long value )
+Ps4InterlockedInt_t ThreadInterlockedExchangeAdd( Ps4InterlockedInt_t volatile *pDest, Ps4InterlockedInt_t value )
 {
 	return  __sync_fetch_and_add( pDest, value );
 }
 
-long ThreadInterlockedCompareExchange( long volatile *pDest, long value, long comperand )
+Ps4InterlockedInt_t ThreadInterlockedCompareExchange( Ps4InterlockedInt_t volatile *pDest, Ps4InterlockedInt_t value, Ps4InterlockedInt_t comperand )
 {
 	return  __sync_val_compare_and_swap( pDest, comperand, value );
 }
 
-bool ThreadInterlockedAssignIf( long volatile *pDest, long value, long comperand )
+bool ThreadInterlockedAssignIf( Ps4InterlockedInt_t volatile *pDest, Ps4InterlockedInt_t value, Ps4InterlockedInt_t comperand )
 {
 	return __sync_bool_compare_and_swap( pDest, comperand, value );
 }

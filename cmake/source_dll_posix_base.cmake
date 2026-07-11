@@ -35,7 +35,7 @@ set_target_properties( ${OUTBINNAME} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${OUTBINDIR}"
         )
 
-if( NOSKELETONBASE )
+if( NOSKELETONBASE OR ORBIS )
     message(STATUS "Not including Skeleton base.")
 else()
     # Skeleton Project - All derived projects get this as a starting base

@@ -114,6 +114,24 @@ The active boundary is now link closure: combine the archives with the
 bootstrap, libc++, libc++abi, OpenOrbis libraries, and the additional Source
 subsystems referenced by `LauncherMain`.
 
+The first link closure is now complete. `kisak_ps4_monolithic` combines the
+bootstrap, all eight core archives, libc++, libc++abi, libc, and libkernel. The
+PS4 build enables `cmpxchg16b` so Source's 128-bit lock-free list operation does
+not require a missing `libatomic` runtime. Former DLL skeleton memory overrides
+are omitted so tier0 remains the single allocator owner.
+
+Latest monolithic diagnostic package:
+
+```text
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 1.00
+SHA-256: 65f7600e7c87eaa74bcd33988547d0a692d7317c2720da1959c29897d309eb5c
+Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+```
+
+This package has not yet been hardware launched. Its first diagnostic split is
+static module registration versus entry into `LauncherMain`.
+
 Reproduce the current cross-build with:
 
 ```sh
@@ -136,8 +154,9 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
    tier0–tier3, interfaces, vstdlib, appframework, and launcher archives build
    for `x86_64-ps4-elf`.
 4. **Direct monolithic launcher startup — in progress.**
-   Link the core archives, enable `KISAK_PS4_MONOLITHIC`, register factories,
-   and enter `LauncherMain(argc, argv)` without `dlopen`.
+   The executable links, enables `KISAK_PS4_MONOLITHIC`, registers factories,
+   and calls `LauncherMain(argc, argv)` without `dlopen`. Hardware validation
+   of the first launcher boundary is next.
 5. **Engine initialization — pending.**
    Expand static registration to filesystem, input, material system, engine,
    client, server, physics, and UI modules.
