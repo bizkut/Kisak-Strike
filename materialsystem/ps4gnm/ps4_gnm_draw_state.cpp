@@ -15,13 +15,17 @@ bool AssignIfChanged( T &destination, const T &source )
 }
 
 CPs4GnmDrawState::CPs4GnmDrawState()
-    : m_viewportIndex( 0 ), m_renderTargetMask( 0 ), m_dirtyMask( kDirtyAll )
+    : m_viewportIndex( 0 ), m_renderTargetMask( 0 ), m_renderTargetIndex( 0 ),
+      m_vertexShaderModifier( 0 ), m_dirtyMask( kDirtyAll )
 {
     memset( &m_viewport, 0, sizeof( m_viewport ) );
     memset( &m_viewportTransform, 0, sizeof( m_viewportTransform ) );
     memset( &m_primitiveSetup, 0, sizeof( m_primitiveSetup ) );
     memset( &m_depthStencilControl, 0, sizeof( m_depthStencilControl ) );
     memset( &m_dbRenderControl, 0, sizeof( m_dbRenderControl ) );
+    memset( &m_renderTarget, 0, sizeof( m_renderTarget ) );
+    memset( &m_vertexShader, 0, sizeof( m_vertexShader ) );
+    memset( &m_pixelShader, 0, sizeof( m_pixelShader ) );
     memset( m_scissor, 0, sizeof( m_scissor ) );
 }
 
@@ -83,6 +87,32 @@ void CPs4GnmDrawState::SetRenderTargetMask( uint32_t mask )
     }
 }
 
+void CPs4GnmDrawState::SetRenderTarget( uint32_t index, const GnmRenderTarget &target )
+{
+    const bool targetChanged = AssignIfChanged( m_renderTarget, target );
+    if ( m_renderTargetIndex != index || targetChanged )
+    {
+        m_renderTargetIndex = index;
+        m_dirtyMask |= kDirtyRenderTarget;
+    }
+}
+
+void CPs4GnmDrawState::SetVertexShader( const GnmVsStageRegisters &registers, uint32_t modifier )
+{
+    const bool registersChanged = AssignIfChanged( m_vertexShader, registers );
+    if ( m_vertexShaderModifier != modifier || registersChanged )
+    {
+        m_vertexShaderModifier = modifier;
+        m_dirtyMask |= kDirtyVertexShader;
+    }
+}
+
+void CPs4GnmDrawState::SetPixelShader( const GnmPsStageRegisters &registers )
+{
+    if ( AssignIfChanged( m_pixelShader, registers ) )
+        m_dirtyMask |= kDirtyPixelShader;
+}
+
 uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
 {
     if ( !command )
@@ -100,8 +130,14 @@ uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
         sceGnmDrawCmdSetDepthStencilControl( command, &m_depthStencilControl );
     if ( emitted & kDirtyDbRender )
         sceGnmDrawCmdSetDbRenderControl( command, &m_dbRenderControl );
+    if ( emitted & kDirtyRenderTarget )
+        sceGnmDrawCmdSetRenderTarget( command, m_renderTargetIndex, &m_renderTarget );
     if ( emitted & kDirtyRenderTargetMask )
         sceGnmDrawCmdSetRenderTargetMask( command, m_renderTargetMask );
+    if ( emitted & kDirtyVertexShader )
+        sceGnmDrawCmdSetVsShader( command, &m_vertexShader, m_vertexShaderModifier );
+    if ( emitted & kDirtyPixelShader )
+        sceGnmDrawCmdSetPsShader( command, &m_pixelShader );
     m_dirtyMask = 0;
     return emitted;
 }

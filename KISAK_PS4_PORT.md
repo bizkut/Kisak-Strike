@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.95
-SHA-256: de80ca8ecc5026e4b5b14807f1d21ecb935b680bb41603caae5d220648b3f109
+Version: 1.96
+SHA-256: 542eedbca2de5710b090b9a186f80fd5cffa46ff76d29a992a57d89e726fb3e6
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -296,6 +296,15 @@ passed the two-frame EOP test, and retained center pixel `0xff00bcff`. Viewport,
 scissor, viewport transform, rasterizer, depth/DB, and color-mask emission can
 therefore remain behind `CPs4GnmDrawState`. Add render-target and VS/PS binding
 next, followed by blend state and the first indexed vertex-buffer diagnostic.
+
+Version 1.96 extends `CPs4GnmDrawState` with cached color-render-target,
+vertex-shader, and pixel-shader register images. Target index and VS modifier
+are part of cache identity, and every new command buffer still forces complete
+emission. The procedural triangle now binds its target and both shader stages
+through the cache; generated PS input semantic linkage remains explicit because
+it is metadata-derived rather than a fixed state register group. The complete
+OpenOrbis build passes. Hardware must preserve the visible triangle and center
+readback before adding blend state and indexed geometry.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

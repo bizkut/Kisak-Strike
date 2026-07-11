@@ -239,11 +239,11 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination )
     g_DrawState.SetDepthStencilControl( depthControl );
     GnmDbRenderControl dbControl = {};
     g_DrawState.SetDbRenderControl( dbControl );
-    sceGnmDrawCmdSetRenderTarget( command, 0, &renderTarget );
+    g_DrawState.SetRenderTarget( 0, renderTarget );
     g_DrawState.SetRenderTargetMask( 0xf );
+    g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
+    g_DrawState.SetPixelShader( g_PixelShader->registers );
     g_DrawState.Apply( command );
-    sceGnmDrawCmdSetVsShader( command, &g_VertexShader->registers, 0 );
-    sceGnmDrawCmdSetPsShader( command, &g_PixelShader->registers );
     if ( g_FetchShader )
         sceGnmDrawCmdSetPointerUserData( command, GNM_STAGE_VS, 0, g_FetchShader );
     sceGnmDrawCmdSetPsInputUsage( command,
