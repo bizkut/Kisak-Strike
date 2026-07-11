@@ -14,6 +14,7 @@ namespace
 GnmVideoOut g_VideoOut = {};
 bool g_VideoOutReady = false;
 bool g_GpuClearLogged = false;
+uint64_t g_FlipCount = 0;
 }
 
 extern "C" bool KisakPs4VideoOutInitialize()
@@ -88,14 +89,18 @@ extern "C" bool KisakPs4VideoOutSubmitClear()
             : "kisak-ps4: GPU VideoOut RGBA bars and EOP passed" );
     }
     g_GpuClearLogged = true;
-    KisakPs4StartupBreadcrumb( "kisak-ps4: videoout before flip" );
+    const bool logFlip = g_FlipCount < 3 || ( g_FlipCount + 1 ) % 3600 == 0;
+    if ( logFlip )
+        KisakPs4StartupBreadcrumb( "kisak-ps4: videoout before flip" );
     if ( sceGnmVideoOutSubmitFlipAndWait( &g_VideoOut, g_VideoOut.currentbuffer, 0, GNM_VIDEO_OUT_FLIP_VSYNC ) != GNM_ERROR_OK )
     {
         KisakPs4StartupBreadcrumb( "kisak-ps4: videoout flip failed" );
         return false;
     }
 
-    KisakPs4StartupBreadcrumb( "kisak-ps4: videoout flip complete" );
+    ++g_FlipCount;
+    if ( logFlip )
+        KisakPs4StartupBreadcrumb( "kisak-ps4: videoout flip complete" );
     return true;
 }
 

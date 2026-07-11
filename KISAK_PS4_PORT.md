@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.04
-SHA-256: 4bb1bc44e7147db2af10f4a9e2ac2c64a2b5ba4f7a7d02a653e3c54b5456b352
+Version: 2.05
+SHA-256: 5ab7e11eb2fead99ecd967d854947fbbec40f01e58bae735303fc440ff52fb70
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -368,6 +368,16 @@ the active shader pair changes, and re-emits the linkage at every command-buffer
 boundary. The fetched, indexed, blended diagnostic now has no direct shader
 state or user-data calls outside the cache. The CS:GO package icon remains the
 v2.03 tracked asset; runtime rendering should remain unchanged.
+
+Version 2.05 expands the diagnostic direct-memory pool from 2 MiB to 16 MiB,
+reserving 10 MiB for persistent resources and 6 MiB for the two frame arenas.
+It creates a 1920x1080 tiled Z32 depth target, calculates and aligns its memory,
+sets read/write addresses, and binds it through cached state with depth testing
+still disabled. This isolates depth allocation/layout/binding before clear and
+writes. The build also removes synchronous `before flip`/`flip complete` file
+logging from every frame: those markers now cover the first three flips and a
+once-per-3600-frame heartbeat. This reduces avoidable hot-path I/O behind the
+reported 58-62 FPS sampling jitter while retaining VSYNC pacing and failures.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

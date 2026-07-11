@@ -4,6 +4,7 @@
 #include <gnm_commandbuffer.h>
 #include <gnm_controls.h>
 #include <gnm_drawcommandbuffer.h>
+#include <gnm_depthrendertarget.h>
 #include <gnm_helpers.h>
 #include <gnm_rendertarget.h>
 #include <gnm_shaderbinary.h>
@@ -39,10 +40,10 @@ extern "C" int32_t sceKernelReleaseDirectMemory( int64_t start, uint64_t size );
 
 namespace
 {
-const size_t kDirectMemorySize = 2 * 1024 * 1024;
+const size_t kDirectMemorySize = 16 * 1024 * 1024;
 const size_t kDirectMemoryAlignment = 2 * 1024 * 1024;
 const size_t kCommandBufferSize = 64 * 1024;
-const size_t kShaderMemorySize = 128 * 1024;
+const size_t kPersistentMemorySize = 10 * 1024 * 1024;
 off_t g_DirectMemory = 0;
 void *g_Mapped = 0;
 CPs4GnmDevice g_Device;
@@ -54,6 +55,8 @@ GnmVsShader *g_VertexShader = 0;
 GnmPsShader *g_PixelShader = 0;
 void *g_FetchShader = 0;
 GnmBuffer *g_VertexBuffers = 0;
+GnmDepthRenderTarget g_DepthTarget = {};
+bool g_DepthTargetReady = false;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 char g_ShaderDiagnostic[160] = "not attempted";
@@ -110,7 +113,7 @@ bool LoadDiagnosticShaders()
         "/app0/kisak_diagnostic.frag.sb"
     };
     uint8_t *gpuCursor = static_cast< uint8_t * >( g_Mapped );
-    uint8_t *gpuEnd = gpuCursor + kShaderMemorySize;
+    uint8_t *gpuEnd = gpuCursor + kPersistentMemorySize;
     for ( unsigned int shader = 0; shader < 2; ++shader )
     {
         uint8_t *fileData = 0;
@@ -237,10 +240,43 @@ bool LoadDiagnosticShaders()
         GNM_FMT_R32G32B32A32_FLOAT, sizeof( DiagnosticVertex ), 3 );
     g_VertexBuffers[1] = sceGnmCreateVertexBuffer( vertexData[0].color,
         GNM_FMT_R32G32B32A32_FLOAT, sizeof( DiagnosticVertex ), 3 );
+    gpuCursor += 2 * sizeof( GnmBuffer );
+
+    const GnmDepthRenderTargetCreateInfo depthInfo = {
+        1920, 1080, 1920, 1, GNM_Z_32_FLOAT, GNM_STENCIL_INVALID,
+        GNM_TM_DEPTH_1D_THIN, GNM_GPU_BASE, 1, {}
+    };
+    if ( sceGnmCreateDepthRenderTarget( &g_DepthTarget, &depthInfo ) != GNM_ERROR_OK )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ), "depth target create failed" );
+        return false;
+    }
+    uint64_t depthSize = 0;
+    uint32_t depthAlignment = 0;
+    if ( sceGnmDrtCalcByteSize( &depthSize, &depthAlignment, &g_DepthTarget ) != GNM_ERROR_OK ||
+        !depthAlignment )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ), "depth layout failed" );
+        return false;
+    }
+    gpuCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( gpuCursor ) + depthAlignment - 1 ) &
+        ~static_cast< uintptr_t >( depthAlignment - 1 ) );
+    if ( depthSize > static_cast< uint64_t >( gpuEnd - gpuCursor ) ||
+        sceGnmDrtSetZReadAddress( &g_DepthTarget, gpuCursor ) != GNM_ERROR_OK ||
+        sceGnmDrtSetZWriteAddress( &g_DepthTarget, gpuCursor ) != GNM_ERROR_OK )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "depth allocation failed bytes=%llu align=%u",
+            static_cast< unsigned long long >( depthSize ), depthAlignment );
+        return false;
+    }
+    g_DepthTargetReady = true;
     snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
-        "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u",
+        "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u depthbytes=%llu",
         g_VertexShader->common.shadersize, g_PixelShader->common.shadersize,
-        fetchSize, g_VertexShader->numinputsemantics );
+        fetchSize, g_VertexShader->numinputsemantics,
+        static_cast< unsigned long long >( depthSize ) );
     return true;
 }
 
@@ -274,7 +310,10 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.SetPrimitiveSetup( primitiveSetup );
     GnmDepthStencilControl depthControl = {};
     g_DrawState.SetDepthStencilControl( depthControl );
-    g_DrawState.ClearDepthRenderTarget();
+    if ( g_DepthTargetReady )
+        g_DrawState.SetDepthRenderTarget( g_DepthTarget );
+    else
+        g_DrawState.ClearDepthRenderTarget();
     GnmDbRenderControl dbControl = {};
     g_DrawState.SetDbRenderControl( dbControl );
     GnmBlendControl blendControl = {};
@@ -340,8 +379,8 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
     KisakPs4StartupBreadcrumb( g_ShadersReady
         ? "kisak-ps4: diagnostic shader binaries loaded"
         : "kisak-ps4: diagnostic shader load failed; DMA bars retained" );
-    bool passed = g_Device.Initialize( static_cast< uint8_t * >( g_Mapped ) + kShaderMemorySize,
-        kDirectMemorySize - kShaderMemorySize );
+    bool passed = g_Device.Initialize( static_cast< uint8_t * >( g_Mapped ) + kPersistentMemorySize,
+        kDirectMemorySize - kPersistentMemorySize );
     for ( unsigned int submit = 0; passed && submit < 3; ++submit )
     {
         CPs4GnmDevice::SubmissionFrame submission = {};
