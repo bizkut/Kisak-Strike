@@ -1,6 +1,7 @@
 #include "materialsystem/ps4gnm/ps4_gnm_device.h"
 #include "materialsystem/ps4gnm/ps4_gnm_draw_state.h"
 #include "materialsystem/ps4gnm/ps4_gnm_texture.h"
+#include "materialsystem/ps4gnm/shaderapips4.h"
 
 #include <gnm_commandbuffer.h>
 #include <gnm_controls.h>
@@ -67,6 +68,7 @@ CPs4GnmTexture g_DiagnosticCopyTexture;
 void *g_TextureSamplerTable = 0;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
+bool g_ShadowStateApplyLogged = false;
 char g_ShaderDiagnostic[160] = "not attempted";
 
 void LogResult( const char *stage, int result )
@@ -378,6 +380,15 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
         1920, 1080, 1, 1, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE, 0, 0 ) != GNM_ERROR_OK )
         return;
     sceGnmDrawCmdInitDefaultHardwareState( command );
+    const uint32_t shadowStateMask = KisakPs4ApplyShaderShadowState( command );
+    if ( !g_ShadowStateApplyLogged )
+    {
+        char message[112];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: native shader shadow applied mask=0x%08x", shadowStateMask );
+        KisakPs4StartupBreadcrumb( message );
+        g_ShadowStateApplyLogged = true;
+    }
     const GnmSetViewportInfo viewport = {
         0.0f, 1.0f,
         { 960.0f, -540.0f, 0.5f },

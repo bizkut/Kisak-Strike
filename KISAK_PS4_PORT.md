@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.24
-SHA-256: 368873d3e40e093a791fbe786f6baca5d60d15bbbe4e1e7159f323840e3476b9
+Version: 2.25
+SHA-256: 16c4b76cec11cd4c4836188f9beda3cd441ff21a62838fc244c51ef552ca96a8
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -589,6 +589,15 @@ the existing native `CPs4GnmDrawState`: depth, blend, render-target write mask,
 culling, and polygon-offset changes now populate the matching OpenGNM controls
 and dirty categories. Submission remains delegated for this gate; the native
 cache is populated but not yet applied by the material-system draw path.
+
+The v2.24 hardware run validated live Source-to-GNM cache population at 60 FPS
+with the opaque orange triangle and shader/EOP gate intact. Version 2.25 adds
+the first bounded material-system PM4 apply bridge. It restricts the shadow
+cache's initial dirty mask to the four owned categories—depth/stencil, blend,
+render-target mask, and primitive setup—then emits those controls before the
+diagnostic draw state deliberately overwrites them. The log records the exact
+emitted mask, proving that the PS4 shader-shadow path reaches OpenGNM command
+encoding without yet changing the final diagnostic image.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

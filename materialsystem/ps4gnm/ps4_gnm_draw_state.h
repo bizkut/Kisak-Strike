@@ -52,6 +52,7 @@ public:
         uint32_t pixelInputCount );
     void SetPrimitiveType( GnmPrimitiveType primitiveType );
     uint32_t Apply( GnmCommandBuffer *command );
+    void RetainDirtyMask( uint32_t mask ) { m_dirtyMask &= mask; }
 
     uint32_t DirtyMask() const { return m_dirtyMask; }
 

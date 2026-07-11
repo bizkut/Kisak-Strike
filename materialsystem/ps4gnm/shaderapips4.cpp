@@ -3,6 +3,7 @@
 #include "shaderapi/ishadershadow.h"
 #include "ps4_gnm_draw_state.h"
 #include "ps4_shadow_state_translate.h"
+#include "shaderapips4.h"
 
 #include <string.h>
 
@@ -225,7 +226,15 @@ class CShaderShadowPs4 : public IShaderShadow
 public:
     typedef CPs4SourceShadowState CPs4GnmDrawState;
 
-    CShaderShadowPs4() : m_delegate( 0 ) { SyncNativeState(); }
+    CShaderShadowPs4() : m_delegate( 0 )
+    {
+        SyncNativeState();
+        m_nativeState.RetainDirtyMask(
+            ::CPs4GnmDrawState::kDirtyDepthStencil |
+            ::CPs4GnmDrawState::kDirtyBlend |
+            ::CPs4GnmDrawState::kDirtyRenderTargetMask |
+            ::CPs4GnmDrawState::kDirtyPrimitive );
+    }
     void SetDelegate( IShaderShadow *delegate ) { m_delegate = delegate; }
     ::CPs4GnmDrawState &NativeDrawState() { return m_nativeState; }
 
@@ -388,4 +397,9 @@ CreateInterfaceFn KisakShaderApiPs4Factory()
     // without changing the material-system module lifecycle.
     g_EmptyFactory = KisakShaderApiEmptyFactory();
     return Ps4CreateInterface;
+}
+
+extern "C" uint32_t KisakPs4ApplyShaderShadowState( GnmCommandBuffer *command )
+{
+    return g_ShaderShadowPs4.NativeDrawState().Apply( command );
 }
