@@ -713,7 +713,16 @@ Reproduce the current cross-build with:
 ```sh
 export OO_PS4_TOOLCHAIN=/path/to/OpenOrbis/PS4Toolchain
 export LLVM18_PREFIX=/opt/homebrew/opt/llvm@18
+./build-ps4-monolithic.sh
+```
 
+The monolithic build refreshes the sibling OpenGNM archive before configuring
+Kisak, keeping source and archive changes synchronized. Set
+`KISAK_OPENGNM_BUILD=0` only when intentionally supplying a prebuilt archive.
+
+For a direct CMake build after that archive refresh:
+
+```sh
 cmake -S . -B build-ps4-engine \
   -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/OpenOrbis.cmake \
   -DCMAKE_BUILD_TYPE=Debug
