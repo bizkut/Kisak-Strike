@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.94
-SHA-256: 4f6961ffa79bd037082e559085be98103dde16d8aaa2cfb927428e89156e8a18
+Version: 1.95
+SHA-256: de80ca8ecc5026e4b5b14807f1d21ecb935b680bb41603caae5d220648b3f109
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -279,6 +279,16 @@ and read back center pixel `0xff00bcff`. Device-owned submission reservation,
 commit, and recycling are therefore hardware validated. The next renderer unit
 is `CPs4GnmDrawState`, initially covering viewport/scissor, rasterizer,
 depth/stencil, render-target mask, shader bindings, and dirty-state emission.
+
+Version 1.95 adds the first `CPs4GnmDrawState` implementation. It owns cached
+viewport, scissor, viewport transform, primitive/rasterizer setup,
+depth/stencil control, DB render control, and render-target write mask. Setters
+mark only changed groups dirty, `Apply` emits those groups through OpenGNM, and
+`BeginCommand` forces a complete state image at every new command-buffer
+boundary. The validated triangle now uses this component instead of issuing
+those PM4 state calls directly. The complete OpenOrbis build passes; hardware
+must retain the v1.94 image and `0xff00bcff` readback before shader and resource
+bindings move into the same cache.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

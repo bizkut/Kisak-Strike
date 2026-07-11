@@ -1,4 +1,5 @@
 #include "materialsystem/ps4gnm/ps4_gnm_device.h"
+#include "materialsystem/ps4gnm/ps4_gnm_draw_state.h"
 
 #include <gnm_commandbuffer.h>
 #include <gnm_controls.h>
@@ -45,6 +46,7 @@ const size_t kShaderMemorySize = 128 * 1024;
 off_t g_DirectMemory = 0;
 void *g_Mapped = 0;
 CPs4GnmDevice g_Device;
+CPs4GnmDrawState g_DrawState;
 uint64_t g_CompletedLabel = 0;
 uint8_t g_VsStorage[1024];
 uint8_t g_PsStorage[1024];
@@ -217,8 +219,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination )
         { 960.0f, -540.0f, 0.5f },
         { 960.0f, 540.0f, 0.5f }
     };
-    sceGnmDrawCmdSetViewport( command, 0, &viewport );
-    sceGnmDrawCmdSetScreenScissor( command, 0, 0, 1920, 1080 );
+    g_DrawState.BeginCommand();
+    g_DrawState.SetViewport( 0, viewport );
+    g_DrawState.SetScissor( 0, 0, 1920, 1080 );
     sceGnmDrawCmdSetHwScreenOffset( command, 60, 32 );
     sceGnmDrawCmdSetGuardBands( command, 33.0f, 59.0f, 1.0f, 1.0f );
     GnmViewportTransformControl viewportControl = {};
@@ -226,18 +229,19 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination )
     viewportControl.scaley = viewportControl.offsety = 1;
     viewportControl.scalez = viewportControl.offsetz = 1;
     viewportControl.invertw = 1;
-    sceGnmDrawCmdSetViewportTransformControl( command, &viewportControl );
+    g_DrawState.SetViewportTransform( viewportControl );
     GnmPrimitiveSetup primitiveSetup = {};
     primitiveSetup.cullmode = GNM_CULL_NONE;
     primitiveSetup.frontface = GNM_FACE_CCW;
     primitiveSetup.frontmode = primitiveSetup.backmode = GNM_FILL_SOLID;
-    sceGnmDrawCmdSetPrimitiveSetup( command, &primitiveSetup );
+    g_DrawState.SetPrimitiveSetup( primitiveSetup );
     GnmDepthStencilControl depthControl = {};
-    sceGnmDrawCmdSetDepthStencilControl( command, &depthControl );
+    g_DrawState.SetDepthStencilControl( depthControl );
     GnmDbRenderControl dbControl = {};
-    sceGnmDrawCmdSetDbRenderControl( command, &dbControl );
+    g_DrawState.SetDbRenderControl( dbControl );
     sceGnmDrawCmdSetRenderTarget( command, 0, &renderTarget );
-    sceGnmDrawCmdSetRenderTargetMask( command, 0xf );
+    g_DrawState.SetRenderTargetMask( 0xf );
+    g_DrawState.Apply( command );
     sceGnmDrawCmdSetVsShader( command, &g_VertexShader->registers, 0 );
     sceGnmDrawCmdSetPsShader( command, &g_PixelShader->registers );
     if ( g_FetchShader )
