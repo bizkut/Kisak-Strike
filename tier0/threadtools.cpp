@@ -846,8 +846,10 @@ CThreadSyncObject::~CThreadSyncObject()
 #elif defined(POSIX) && !defined( PLATFORM_PS3 )
    if ( m_bInitalized )
    {
+		#if !defined( PLATFORM_PS4 )
 		pthread_cond_destroy( &m_Condition );
         pthread_mutex_destroy( &m_Mutex );
+		#endif
 		m_bInitalized = false;
    }
 #endif
@@ -892,6 +894,18 @@ bool CThreadSyncObject::Wait( uint32 dwTimeout )
 #ifdef _WIN32
    return ( WaitForSingleObject( m_hSyncObject, dwTimeout ) == WAIT_OBJECT_0 );
 #elif defined( POSIX ) && !defined( PLATFORM_PS3 )
+	#if defined( PLATFORM_PS4 )
+	const uint32 start = Plat_MSTime();
+	for ( ;; )
+	{
+		int expected = __atomic_load_n( &m_cSet, __ATOMIC_ACQUIRE );
+		if ( expected > 0 && ( m_bManualReset || __atomic_compare_exchange_n( &m_cSet, &expected, 0, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE ) ) )
+			return true;
+		if ( dwTimeout != TT_INFINITE && Plat_MSTime() - start >= dwTimeout )
+			return false;
+		ThreadSleep( 1 );
+	}
+	#else
     pthread_mutex_lock( &m_Mutex );
     bool bRet = false;
     if ( m_cSet > 0 )
@@ -942,6 +956,7 @@ bool CThreadSyncObject::Wait( uint32 dwTimeout )
 		m_cSet = 0;
     pthread_mutex_unlock( &m_Mutex );
     return bRet;
+	#endif
 #endif
 }
 #endif
@@ -1115,12 +1130,10 @@ CThreadEvent::CThreadEvent( bool bManualReset )
 	}
 #elif defined( POSIX )
 	#if defined( PLATFORM_PS4 )
-	if ( g_KisakPs4TraceThreadPool )
-		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event before mutex init" );
-	// The OpenOrbis pthread headers expose a smaller pthread_mutexattr_t than
-	// the runtime writes.  A stack-local attribute is therefore unsafe here,
-	// and an event's private mutex does not require recursive behavior.
-    pthread_mutex_init( &m_Mutex, NULL );
+	m_bInitalized = true;
+	m_cSet = 0;
+	m_bWakeForEvent = false;
+	m_bManualReset = bManualReset;
 	#else
     pthread_mutexattr_t Attr;
     pthread_mutexattr_init( &Attr );
@@ -1132,7 +1145,9 @@ CThreadEvent::CThreadEvent( bool bManualReset )
 	#else
     pthread_mutexattr_destroy( &Attr );
 	#endif
+	#if !defined( PLATFORM_PS4 )
     pthread_cond_init( &m_Condition, NULL );
+	#endif
 	#if defined( PLATFORM_PS4 )
 	if ( g_KisakPs4TraceThreadPool )
 		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event after cond init" );
@@ -1343,12 +1358,17 @@ bool CThreadEvent::Set()
 
 
 #elif defined(POSIX)
+	#if defined( PLATFORM_PS4 )
+	__atomic_store_n( &m_cSet, 1, __ATOMIC_RELEASE );
+	return true;
+	#else
    pthread_mutex_lock( &m_Mutex );
 	m_cSet = 1;
 	m_bWakeForEvent = true;
     int ret = pthread_cond_signal( &m_Condition );
    pthread_mutex_unlock( &m_Mutex );
    return ret == 0;
+	#endif
 #endif
 
 
@@ -1404,11 +1424,17 @@ bool CThreadEvent::Reset()
 
    return true;
 #elif defined(POSIX)
+	#if defined( PLATFORM_PS4 )
+	__atomic_store_n( &m_cSet, 0, __ATOMIC_RELEASE );
+	m_bWakeForEvent = false;
+	return true;
+	#else
 	pthread_mutex_lock( &m_Mutex );
 	m_cSet = 0;
 	m_bWakeForEvent = false;
 	pthread_mutex_unlock( &m_Mutex );
 	return true; 
+	#endif
 #endif
 }
 

@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.25
-SHA-256: 6b5c087ff3604936e624cc9df6c89ec5f996559927d47de072415fbaee0beeac
+Version: 1.26
+SHA-256: b2ce919cab2733b82132e938cd88bebf4af45d21802120e09fd23ec3953ebe01
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -270,6 +270,12 @@ The v1.24 trace reaches the raw `pthread_create` call but the process terminates
 before the parent returns from it. Since a simple tracker pthread already
 starts successfully, version 1.25 traces the `CThread` child trampoline through
 thread-ID allocation, current-thread TLS assignment, and virtual `Init()`.
+
+The v1.25 trace proves `pthread_create`, child entry, thread-ID/TLS setup, and
+virtual `Init()` all succeed. It stops when the child signals the
+create-complete `CThreadEvent`. Version 1.26 replaces PS4 pthread-cond events
+with atomic polling events, avoiding the OpenOrbis condition-object ABI mismatch
+for creation and idle handshakes.
 
 Reproduce the current cross-build with:
 
