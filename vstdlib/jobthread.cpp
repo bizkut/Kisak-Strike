@@ -1247,6 +1247,9 @@ void CThreadPool::Distribute( bool bDistribute, int *pAffinityTable )
 
 bool CThreadPool::Stop( int timeout )
 {
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool stop entered" );
+	#endif
 #ifdef _PS3
 	if ( GetTLSGlobals()->bNormalQuitRequested )
 	{
@@ -1288,14 +1291,26 @@ bool CThreadPool::Stop( int timeout )
 		}
 		#endif
 		
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool before exit call" );
+		#endif
 		m_Threads[i]->CallWorker( TPM_EXIT );
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool after exit call" );
+		#endif
 	}
 
 	for ( int i = 0; i < m_Threads.Count(); ++i )
 	{
 		if ( arrHandles[i] )
 		{
+			#if defined( PLATFORM_PS4 )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool before join" );
+			#endif
 			ThreadJoin( arrHandles[i] );
+			#if defined( PLATFORM_PS4 )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool after join" );
+			#endif
 
 #ifdef WIN32
 			Assert( !m_Threads[i]->GetThreadHandle() );
@@ -1314,13 +1329,22 @@ bool CThreadPool::Stop( int timeout )
 		{
 			ThreadSleep( 0 );
 		}
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool before worker delete" );
+		#endif
 		delete m_Threads[i];
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool after worker delete" );
+		#endif
 	}
 
 	m_nJobs = 0;
 	m_SharedQueue.Flush();
 	m_nIdleThreads = 0;
 	m_Threads.RemoveAll();
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool stop complete" );
+	#endif
 
 	return true;
 }

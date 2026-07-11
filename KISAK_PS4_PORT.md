@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.31
-SHA-256: 3e77f4e5e827cba333b6c0d1dd5eaf887c9161bf3bc8f8d3c6e147527ad860b0
+Version: 1.32
+SHA-256: 9588047e430ea56e8850cdac8faeeb5a5a7667ab2918ee7a8b41994003d58c10
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -300,6 +300,10 @@ The v1.30 trace stops in `AsyncFlush()` before pool shutdown. No asynchronous
 requests exist during this failed startup, but the generic flush still enters
 `AbortAll()` and suspends every worker. Version 1.31 returns immediately for an
 empty PS4 async queue, preserving `AbortAll()` when jobs actually exist.
+
+The v1.31 trace skips the empty flush and stops inside `CThreadPool::Stop()`.
+Version 1.32 traces each worker exit call, native join, deletion, and final pool
+cleanup.
 
 Reproduce the current cross-build with:
 
