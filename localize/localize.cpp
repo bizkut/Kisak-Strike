@@ -189,6 +189,13 @@ static CLocalize s_Localize;
 // expose the interface
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CLocalize, ILocalize, LOCALIZE_INTERFACE_VERSION, s_Localize);
 
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakLocalizeFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor

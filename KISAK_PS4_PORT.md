@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.54
-SHA-256: a5f97f4388a44c55deeba770119ac29a9f91e1db5626026fda5d7e959286a53d
+Version: 1.55
+SHA-256: 32adb4a422a3c56289858d2a078b9f225c562e887848551374977adad5759d8b
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -504,6 +504,17 @@ Version 1.54 adds bounded dependency-owner, module, interface, factory-hit,
 module-load, add-system, and ordering breadcrumbs to `LoadDependentSystems`.
 This diagnostic checkpoint will identify the exact transitive app-system
 contract preventing the child group from reaching `ConnectSystems`.
+
+The v1.54 hardware run remained stable and identified the first transitive
+dependency: `VGUI_Surface031` requires `localize / Localize_001`. The static
+registry had no `localize` module, so dependency loading failed before system
+connection and the app again shut down cleanly.
+
+Version 1.55 adds the maintained `localize/localize.cpp` implementation to the
+Orbis build, retains its factory in the monolithic link, and registers the
+`localize` module. This supplies the current `ILocalize` ABI and real Source
+token lookup, conversion, formatting, callback, and localization-file behavior;
+the obsolete VGUI2 localized-string-table implementation remains excluded.
 
 Reproduce the current cross-build with:
 

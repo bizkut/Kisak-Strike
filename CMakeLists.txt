@@ -57,6 +57,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_subdirectory(studiorender)
     add_subdirectory(soundemittersystem)
     add_subdirectory(vscript)
+    add_subdirectory(localize)
     add_subdirectory(dmxloader)
     add_subdirectory(vgui2/vgui_surfacelib)
     add_subdirectory(vgui2/src)
@@ -117,6 +118,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         studiorender_client
         soundemittersystem_client
         vscript_client
+        localize_client
         vgui2_client
         vgui_surfacelib_client
         vgui_controls_client
