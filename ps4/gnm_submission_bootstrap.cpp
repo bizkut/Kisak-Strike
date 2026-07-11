@@ -61,13 +61,16 @@ uint64_t g_CompletedLabel = 0;
 GnmVsShader *g_VertexShader = 0;
 GnmPsShader *g_PixelShader = 0;
 GnmPsShader *g_TexturePixelShader = 0;
+GnmPsShader *g_DepthClearPixelShader = 0;
 CPs4GnmShader g_VertexShaderResource;
 CPs4GnmShader g_SolidPixelShaderResource;
 CPs4GnmShader g_TexturePixelShaderResource;
+CPs4GnmShader g_DepthClearPixelShaderResource;
 CPs4GnmShaderHandleTable g_ShaderHandles;
 Ps4GnmShaderHandle g_VertexShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 Ps4GnmShaderHandle g_SolidPixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 Ps4GnmShaderHandle g_TexturePixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
+Ps4GnmShaderHandle g_DepthClearPixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 void *g_FetchShader = 0;
 GnmBuffer *g_VertexBuffers = 0;
 CPs4GnmBuffer g_DiagnosticVertexBuffer;
@@ -163,10 +166,11 @@ uint32_t ShaderFragmentOutputMask( const GnmPsShader *shader )
 bool LoadDiagnosticShaders()
 {
     g_PendingSamplerMask = 0;
-    const Ps4ShaderManifestKey keys[3] = {
+    const Ps4ShaderManifestKey keys[4] = {
         { "kisak_diagnostic", PS4_SHADER_STAGE_VERTEX, 0, 0, 1 },
         { "kisak_diagnostic", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
-        { "kisak_texture_sample", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 }
+        { "kisak_texture_sample", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
+        { "kisak_depth_clear", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 }
     };
     uint8_t *manifestData = 0;
     size_t manifestSize = 0;
@@ -190,7 +194,7 @@ bool LoadDiagnosticShaders()
     }
     uint8_t *gpuCursor = static_cast< uint8_t * >( g_Mapped );
     uint8_t *gpuEnd = gpuCursor + kPersistentMemorySize;
-    for ( unsigned int shader = 0; shader < 3; ++shader )
+    for ( unsigned int shader = 0; shader < 4; ++shader )
     {
         const Ps4ShaderManifestEntry *entry = g_ShaderManifest.Find( keys[shader] );
         if ( !entry )
@@ -257,7 +261,8 @@ bool LoadDiagnosticShaders()
             return false;
         }
         CPs4GnmShader &resource = shader == 0 ? g_VertexShaderResource
-            : ( shader == 1 ? g_SolidPixelShaderResource : g_TexturePixelShaderResource );
+            : ( shader == 1 ? g_SolidPixelShaderResource
+            : ( shader == 2 ? g_TexturePixelShaderResource : g_DepthClearPixelShaderResource ) );
         const GnmShaderType resourceType = shader == 0 ? GNM_SHADER_VERTEX : GNM_SHADER_PIXEL;
         if ( !resource.Initialize( fileData, fileSize, resourceType,
                 gpuCursor, static_cast< size_t >( gpuEnd - gpuCursor ) ) )
@@ -288,13 +293,19 @@ bool LoadDiagnosticShaders()
             g_SolidPixelShaderHandle = handle;
             g_PixelShader = resolved->PixelShader();
         }
-        else
+        else if ( shader == 2 )
         {
             g_TexturePixelShaderHandle = handle;
             g_TexturePixelShader = resolved->PixelShader();
         }
+        else
+        {
+            g_DepthClearPixelShaderHandle = handle;
+            g_DepthClearPixelShader = resolved->PixelShader();
+        }
         const char *role = shader == 0 ? "vertex"
-            : ( shader == 1 ? "solid_pixel" : "texture_pixel" );
+            : ( shader == 1 ? "solid_pixel"
+            : ( shader == 2 ? "texture_pixel" : "depth_clear_pixel" ) );
         char message[112];
         snprintf( message, sizeof( message ),
             "kisak-ps4: native GNM shader resource role=%s handle=0x%x codebytes=%u",
@@ -565,6 +576,43 @@ bool LoadDiagnosticShaders()
     return true;
 }
 
+bool ClearDiagnosticDepth( GnmCommandBuffer *command )
+{
+    if ( !command || !g_DepthTargetReady || !g_DepthClearPixelShader )
+        return false;
+    GnmDbRenderControl db = {};
+    db.depthclearenable = true;
+    GnmDepthStencilControl depth = {};
+    depth.depthenable = true;
+    depth.zwrite = true;
+    depth.zfunc = GNM_DEPTH_COMPARE_ALWAYS;
+    sceGnmDrawCmdSetDbRenderControl( command, &db );
+    sceGnmDrawCmdSetDepthStencilControl( command, &depth );
+    sceGnmDrawCmdSetDepthClearValue( command, 1.0f );
+    sceGnmDrawCmdSetRenderTargetMask( command, 0 );
+    sceGnmDrawCmdSetEmbeddedVsShader( command, GNM_EMBEDDED_VSH_FULLSCREEN, 0 );
+    sceGnmDrawCmdSetPsShader( command, &g_DepthClearPixelShader->registers );
+    float *color = static_cast< float * >(
+        sceGnmCmdAllocInside( command, 4 * sizeof( float ), 4 ) );
+    GnmBuffer *descriptor = static_cast< GnmBuffer * >(
+        sceGnmCmdAllocInside( command, sizeof( GnmBuffer ), 4 ) );
+    if ( !color || !descriptor )
+        return false;
+    memset( color, 0, 4 * sizeof( float ) );
+    *descriptor = sceGnmCreateConstBuffer( color, 4 * sizeof( float ) );
+    sceGnmDrawCmdSetPointerUserData( command, GNM_STAGE_PS, 0, descriptor );
+    const GnmSetViewportInfo viewport = {
+        0.0f, 1.0f, { 960.0f, -540.0f, 0.5f }, { 960.0f, 540.0f, 0.5f }
+    };
+    sceGnmDrawCmdSetViewport( command, 0, &viewport );
+    sceGnmDrawCmdSetScreenScissor( command, 0, 0, 1920, 1080 );
+    sceGnmDrawCmdSetDepthRenderTarget( command, &g_DepthTarget );
+    sceGnmDrawCmdSetPrimitiveType( command, GNM_PT_RECTLIST );
+    sceGnmDrawCmdSetIndexSize( command, GNM_INDEX_16, GNM_POLICY_LRU );
+    sceGnmDrawCmdDrawIndexAuto( command, 3 );
+    return true;
+}
+
 void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     const CPs4GnmDevice::IndexedDrawPacket &packet )
 {
@@ -573,7 +621,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
         1920, 1080, 1, 1, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE, 0, 0 ) != GNM_ERROR_OK )
         return;
     sceGnmDrawCmdInitDefaultHardwareState( command );
-    KisakPs4SetShaderShadowCulling( true );
+    KisakPs4SetShaderShadowCulling( false );
     KisakPs4SetShaderShadowDepth( false, false, 3 );
     KisakPs4SetShaderShadowBlend( false, 1, 0, 0, false, 1, 0, 0 );
     const uint32_t shadowStateMask = KisakPs4ApplyShaderShadowState( command );
@@ -835,16 +883,10 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             return false;
         }
     }
-    if ( g_DepthTargetReady )
+    if ( g_DepthTargetReady && !ClearDiagnosticDepth( &command ) )
     {
-        if ( !sceGnmDrawCmdFillMemory( &command,
-            static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DepthMemory ) ),
-            g_DepthMemorySize, 0x3f800000 ) )
-        {
-            g_Device.CancelFrame();
-            return false;
-        }
-        sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_DB );
+        g_Device.CancelFrame();
+        return false;
     }
     if ( g_ShadersReady )
     {

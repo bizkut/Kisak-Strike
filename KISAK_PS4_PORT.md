@@ -1007,6 +1007,19 @@ The v2.62 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `9bd8ea5ccc736dfcae168b43f768805b4d246c878c18583caba674ac74dc74a0`,
 with marker `kisak-ps4: build marker cube_backface_cull_v262`.
+
+The culling experiment did not remove the interior faces. Inspection of
+`freegnm-examples/cube` identified the actual divergence: the reference uses a
+shader-driven tiled-depth clear, while Kisak wrote `1.0f` linearly into a tiled
+depth allocation. Version 2.63 packages the example's `clear.frag.sb` and ports
+its command sequence: depth-clear enable, `SetDepthClearValue(1.0)`, embedded
+fullscreen VS, clear PS/constant descriptor, bound depth target, and a RECTLIST
+draw. Cube rasterization returns to `GNM_CULL_NONE`, matching the reference, so
+hidden-face removal now tests depth alone.
+The v2.63 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`e3e6e5e1282fe2fa36d89a5c854cafacd79ed9121614bc96a2769e12362e8317`,
+with marker `kisak-ps4: build marker reference_depth_clear_v263`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

@@ -5,10 +5,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VARIANT="${KISAK_PS4_VARIANT:-bootstrap}"
 CONTENT_PROBE="$ROOT_DIR/ps4/content/kisak_ps4_content_probe.txt"
 DIAGNOSTIC_SHADER_DIR="${KISAK_PS4_DIAGNOSTIC_SHADER_DIR:-$ROOT_DIR/../freegnm-examples/eden-renderer-draw/assets/misc}"
+CLEAR_SHADER="${KISAK_PS4_CLEAR_SHADER:-$ROOT_DIR/../freegnm-examples/cube/assets/misc/clear.frag.sb}"
 if [[ "$VARIANT" == "monolithic" ]]; then
     BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
     TITLE="Kisak-Strike PS4 Monolithic"
-    VERSION="2.62"
+    VERSION="2.63"
     TITLE_ID="KISK00002"
     CONTENT_ID="IV0000-KISK00002_00-KISAKMONOLITHIC0"
     EBOOT_INPUT="$BUILD_DIR/kisak_ps4_monolithic.bin"
@@ -67,6 +68,10 @@ if [[ "$VARIANT" == "monolithic" ]]; then
             exit 1
         fi
     done
+    if [[ ! -f "$CLEAR_SHADER" ]]; then
+        echo "Missing PS4 depth clear shader: $CLEAR_SHADER" >&2
+        exit 1
+    fi
 fi
 
 rm -rf "$PACKAGE_DIR"
@@ -81,6 +86,7 @@ if [[ "$VARIANT" == "monolithic" ]]; then
     cp "$DIAGNOSTIC_SHADER_DIR/tri.vert.sb" "$PACKAGE_DIR/kisak_diagnostic.vert.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/tri.frag.sb" "$PACKAGE_DIR/kisak_diagnostic.frag.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/texture_sample.frag.sb" "$PACKAGE_DIR/kisak_texture_sample.frag.sb"
+    cp "$CLEAR_SHADER" "$PACKAGE_DIR/kisak_depth_clear.frag.sb"
     cp "$SHADER_MANIFEST" "$PACKAGE_DIR/kisak_diagnostic.manifest"
 
     manifest_entries=0
@@ -130,7 +136,7 @@ pushd "$PACKAGE_DIR" >/dev/null
 
 PACKAGE_FILES="eboot.bin sce_sys/about/right.sprx sce_sys/param.sfo sce_sys/icon0.png sce_module/libc.prx sce_module/libSceFios2.prx"
 if [[ "$VARIANT" == "monolithic" ]]; then
-    PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt kisak_diagnostic.vert.sb kisak_diagnostic.frag.sb kisak_texture_sample.frag.sb kisak_diagnostic.manifest"
+    PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt kisak_diagnostic.vert.sb kisak_diagnostic.frag.sb kisak_texture_sample.frag.sb kisak_depth_clear.frag.sb kisak_diagnostic.manifest"
 fi
 "$CREATE_GP4" -out=pkg.gp4 -content-id="$CONTENT_ID" -files "$PACKAGE_FILES"
 "$PKGTOOL" pkg_build pkg.gp4 .
