@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.42
-SHA-256: 57c477956e62de2e5c3c3fd9b86f2907475d5fc30800c34d64621d09502069de
+Version: 2.43
+SHA-256: 0376cdcd6641e11710c992274680bb8772dbd0393e8abeb43638cd059c739318
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -742,6 +742,13 @@ GPU code copy, address patch, and typed PS accessor now come from the reusable
 resource; the vertex and solid offscreen pixel shaders retain their established
 storage for this one-resource gate. Startup logs the native resource stage and
 code byte count before the normal shader-loaded marker.
+
+The v2.42 hardware run logged the native texture-pixel resource and preserved
+the opaque orange triangle at 60 FPS. Version 2.43 migrates the solid offscreen
+pixel shader as well. Both PS stages now use independent `CPs4GnmShader`
+objects; only the vertex shader retains its legacy 1 KiB stage buffer. Runtime
+logs `role=solid_pixel` and `role=texture_pixel` with their code sizes before
+the established shader-loaded marker.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

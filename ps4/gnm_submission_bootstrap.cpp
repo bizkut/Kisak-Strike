@@ -54,10 +54,10 @@ CPs4GnmDevice g_Device;
 CPs4GnmDrawState g_DrawState;
 uint64_t g_CompletedLabel = 0;
 uint8_t g_VsStorage[1024];
-uint8_t g_PsStorage[1024];
 GnmVsShader *g_VertexShader = 0;
 GnmPsShader *g_PixelShader = 0;
 GnmPsShader *g_TexturePixelShader = 0;
+CPs4GnmShader g_SolidPixelShaderResource;
 CPs4GnmShader g_TexturePixelShaderResource;
 void *g_FetchShader = 0;
 GnmBuffer *g_VertexBuffers = 0;
@@ -75,7 +75,6 @@ bool g_ShadowStateApplyLogged = false;
 bool g_ShadowDisplayApplyLogged = false;
 bool g_TextureMemoryLogged = false;
 bool g_ShaderManifestLogged = false;
-bool g_ShaderResourceLogged = false;
 uint32_t g_PendingSamplerMask = 0;
 char g_ShaderDiagnostic[160] = "not attempted";
 
@@ -210,7 +209,6 @@ bool LoadDiagnosticShaders()
             ? reinterpret_cast< const GnmPsShader * >( metadata.stage ) : 0;
         const uint32_t availableSamplers = pixelStage ? ShaderSamplerAvailability( pixelStage ) : 0;
         const uint32_t actualFragmentOutputs = pixelStage ? ShaderFragmentOutputMask( pixelStage ) : 0;
-        uint8_t *storage = shader == 0 ? g_VsStorage : g_PsStorage;
         if ( metadataResult != GNM_ERROR_OK || !expectedStage || metadata.stagesize > 1024 ||
             ( entry->vertexInputCount && entry->vertexInputCount != actualVertexInputs ) )
         {
@@ -247,9 +245,11 @@ bool LoadDiagnosticShaders()
             free( fileData );
             return false;
         }
-        if ( shader == 2 )
+        if ( shader != 0 )
         {
-            if ( !g_TexturePixelShaderResource.Initialize( fileData, fileSize,
+            CPs4GnmShader &resource = shader == 1
+                ? g_SolidPixelShaderResource : g_TexturePixelShaderResource;
+            if ( !resource.Initialize( fileData, fileSize,
                     GNM_SHADER_PIXEL, gpuCursor, static_cast< size_t >( gpuEnd - gpuCursor ) ) )
             {
                 snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
@@ -257,32 +257,22 @@ bool LoadDiagnosticShaders()
                 free( fileData );
                 return false;
             }
-            g_TexturePixelShader = g_TexturePixelShaderResource.PixelShader();
-            if ( !g_ShaderResourceLogged )
-            {
-                char message[112];
-                snprintf( message, sizeof( message ),
-                    "kisak-ps4: native GNM shader resource stage=pixel codebytes=%u",
-                    g_TexturePixelShaderResource.CodeSize() );
-                KisakPs4StartupBreadcrumb( message );
-                g_ShaderResourceLogged = true;
-            }
+            if ( shader == 1 )
+                g_PixelShader = resource.PixelShader();
+            else
+                g_TexturePixelShader = resource.PixelShader();
+            char message[112];
+            snprintf( message, sizeof( message ),
+                "kisak-ps4: native GNM shader resource role=%s codebytes=%u",
+                shader == 1 ? "solid_pixel" : "texture_pixel", resource.CodeSize() );
+            KisakPs4StartupBreadcrumb( message );
         }
         else
         {
-            memcpy( storage, metadata.stage, metadata.stagesize );
+            memcpy( g_VsStorage, metadata.stage, metadata.stagesize );
             memcpy( gpuCursor, metadata.shadercode, metadata.shadercodesize );
-            if ( shader == 0 )
-            {
-                g_VertexShader = reinterpret_cast< GnmVsShader * >( storage );
-                sceGnmVsRegsSetAddress( &g_VertexShader->registers, gpuCursor );
-            }
-            else
-            {
-                g_PixelShader = reinterpret_cast< GnmPsShader * >( storage );
-                sceGnmPsRegsSetAddress( &g_PixelShader->registers, gpuCursor );
-                g_PixelShader->registers.spibaryccntl = 0;
-            }
+            g_VertexShader = reinterpret_cast< GnmVsShader * >( g_VsStorage );
+            sceGnmVsRegsSetAddress( &g_VertexShader->registers, gpuCursor );
         }
         gpuCursor += metadata.shadercodesize;
         free( fileData );
