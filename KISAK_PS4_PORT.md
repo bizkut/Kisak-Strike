@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.71
-SHA-256: c4df6567b2753f47bc9c3c860e8afa8d9ffae81c8f72716aa266e2d8e5602195
+Version: 1.72
+SHA-256: b111d255346839656946dd4b3ce129ec040f7c2c65636e97f6f5c4d99b449a3d
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -678,6 +678,12 @@ The v1.70 hardware run classified the failure as the OpenGNM layout stage,
 before any VideoOut service call. Version 1.71 checks the layout directly in
 Kisak and distinguishes invalid arguments, arithmetic overflow, and unsupported
 platform behavior before attempting `sceGnmVideoOutOpen`.
+
+The v1.71 hardware run still reached the generic open-layout failure, while the
+direct pre-check did not report an error. Version 1.72 extends OpenGNM's
+`GnmVideoOut` diagnostic state with the raw helper error code and logs a
+successful direct layout check plus any repeated-open layout error. This tests
+for an ABI/stale-archive mismatch before changing VideoOut parameters.
 
 Version 1.70 extends `GnmVideoOut` with a diagnostic open-stage field and makes
 the helper classify those six boundaries. Kisak logs the stage-specific result

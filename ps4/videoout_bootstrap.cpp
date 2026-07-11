@@ -30,10 +30,15 @@ extern "C" bool KisakPs4VideoOutInitialize()
 			KisakPs4StartupBreadcrumb( "kisak-ps4: videoout layout unsupported" );
 		return false;
 	}
+	KisakPs4StartupBreadcrumb( "kisak-ps4: videoout layout valid" );
     KisakPs4StartupBreadcrumb( "kisak-ps4: videoout before open" );
     if ( sceGnmVideoOutOpen( &g_VideoOut, &info ) != GNM_ERROR_OK )
     {
-		switch ( g_VideoOut.last_error_stage )
+		if ( g_VideoOut.last_error_stage == 1 && g_VideoOut.last_error_code == GNM_ERROR_INVALID_ARGS )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: videoout open layout invalid args" );
+		else if ( g_VideoOut.last_error_stage == 1 && g_VideoOut.last_error_code == GNM_ERROR_OVERFLOW )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: videoout open layout overflow" );
+		else switch ( g_VideoOut.last_error_stage )
 		{
 		case 2: KisakPs4StartupBreadcrumb( "kisak-ps4: videoout sce open failed" ); break;
 		case 3: KisakPs4StartupBreadcrumb( "kisak-ps4: videoout direct memory failed" ); break;
