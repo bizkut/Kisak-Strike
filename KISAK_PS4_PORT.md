@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.36
-SHA-256: ef972714a6da89cedb0bd8d9658b282976c3005ae8e03af8b876e177f096b8cb
+Version: 1.37
+SHA-256: 75a3bcbb935238bf7f1daf365a9ace7c36366a8dbc9403151f3e545795d8035d
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -325,6 +325,12 @@ automatic member-container teardown. Version 1.36 gives PS4 app groups explicit
 process-lifetime storage. Their normal `OnShutdown()` still releases systems,
 filesystem workers, and modules; only the empty legacy containers are retained
 until process exit.
+
+The v1.36 trace reaches `app groups retained` and completes the launcher loop.
+The PS4 source mutex release is a no-op, so the remaining path is a normal
+`LauncherMain` return followed by unsafe legacy global destruction. Version
+1.37 records that return and keeps the bootstrap alive, deferring global
+teardown until an explicit PS4 shutdown path exists.
 
 Reproduce the current cross-build with:
 

@@ -80,7 +80,16 @@ int main( int argc, char **argv )
     LogLine( log, "kisak-ps4: entering LauncherMain" );
     if ( log )
         fclose( log );
-    return LauncherMain( argc, argv );
+    {
+        int launcherResult = LauncherMain( argc, argv );
+        log = OpenStartupLog();
+        LogLine( log, "kisak-ps4: LauncherMain returned" );
+        if ( log )
+            fclose( log );
+        (void)launcherResult;
+        for ( ;; )
+            sceKernelUsleep( 1000000 );
+    }
 #else
     LogLine( log, "kisak-ps4: bootstrap-only build" );
     LogLine( log, "kisak-ps4: launcher not linked" );
