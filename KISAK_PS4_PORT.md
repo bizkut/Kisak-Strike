@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.35
-SHA-256: 6738ac69570526f6196f95f39ebe17fc9bc6c7451b0fd9e64c1c5c65734c9cb8
+Version: 1.36
+SHA-256: ef972714a6da89cedb0bd8d9658b282976c3005ae8e03af8b876e177f096b8cb
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -319,6 +319,12 @@ The v1.34 trace completes all explicit result, reslist, and override cleanup,
 then stops while leaving the launcher iteration scope. Version 1.35 marks entry
 to each `CAppSystemGroup` destructor to distinguish Steam-application member
 cleanup from child Source-group cleanup.
+
+The v1.35 trace enters both app-group destructor bodies before failing in their
+automatic member-container teardown. Version 1.36 gives PS4 app groups explicit
+process-lifetime storage. Their normal `OnShutdown()` still releases systems,
+filesystem workers, and modules; only the empty legacy containers are retained
+until process exit.
 
 Reproduce the current cross-build with:
 

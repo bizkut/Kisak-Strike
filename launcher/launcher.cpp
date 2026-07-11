@@ -1939,16 +1939,16 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 		bRestart = false;
 
 		Ps4LauncherBreadcrumb( "kisak-ps4: before source systems" );
-		CSourceAppSystemGroup sourceSystems;
+		CSourceAppSystemGroup *sourceSystems = new CSourceAppSystemGroup;
 		Ps4LauncherBreadcrumb( "kisak-ps4: after source systems" );
-		CSteamApplication steamApplication( &sourceSystems );
+		CSteamApplication *steamApplication = new CSteamApplication( sourceSystems );
 		Ps4LauncherBreadcrumb( "kisak-ps4: after steam application" );
 #if defined( OSX ) && !defined( USE_SDL )
 		extern int ValveCocoaMain( CAppSystemGroup *pApp );
 		int nRetval = ValveCocoaMain( &steamApplication ); 
 #else
 		Ps4LauncherBreadcrumb( "kisak-ps4: before application run" );
-		int nRetval = steamApplication.Run();
+		int nRetval = steamApplication->Run();
 		Ps4LauncherBreadcrumb( "kisak-ps4: after application run" );
 #endif		
 #if ENABLE_HARDWARE_PROFILER 
@@ -1959,7 +1959,7 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 #endif
 
 		Ps4LauncherBreadcrumb( "kisak-ps4: before application stage" );
-		if ( steamApplication.GetCurrentStage() == CSourceAppSystemGroup::INITIALIZATION )
+		if ( steamApplication->GetCurrentStage() == CSourceAppSystemGroup::INITIALIZATION )
 		{
 			bRestart = (nRetval == INIT_RESTART);
 		}
@@ -1997,6 +1997,15 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 			Ps4LauncherBreadcrumb( "kisak-ps4: after override cleanup" );
 		}
 		Ps4LauncherBreadcrumb( "kisak-ps4: launcher iteration complete" );
+		#if !defined( PLATFORM_PS4 )
+		delete steamApplication;
+		delete sourceSystems;
+		#else
+		// Static modules and their app groups live for the PS4 process lifetime.
+		// OnShutdown has already released systems and workers; retaining these
+		// small containers avoids the currently unsafe legacy container teardown.
+		Ps4LauncherBreadcrumb( "kisak-ps4: app groups retained" );
+		#endif
 	}
 
 #ifdef WIN32
