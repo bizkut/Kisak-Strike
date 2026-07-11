@@ -7,6 +7,7 @@
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 extern "C" bool KisakPs4GnmFillAndWait( void *destination, uint32_t size, uint32_t value );
 extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size );
+extern "C" bool KisakPs4GnmDiagnosticShadersReady();
 
 namespace
 {
@@ -82,7 +83,9 @@ extern "C" bool KisakPs4VideoOutSubmitClear()
     }
     else if ( !g_GpuClearLogged )
     {
-        KisakPs4StartupBreadcrumb( "kisak-ps4: GPU VideoOut RGBA bars and EOP passed" );
+        KisakPs4StartupBreadcrumb( KisakPs4GnmDiagnosticShadersReady()
+            ? "kisak-ps4: shader triangle over RGBA bars and EOP passed"
+            : "kisak-ps4: GPU VideoOut RGBA bars and EOP passed" );
     }
     g_GpuClearLogged = true;
     KisakPs4StartupBreadcrumb( "kisak-ps4: videoout before flip" );

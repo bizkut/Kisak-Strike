@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.85
-SHA-256: 52262f0563b8247dbc66e249d954a595ea56beebdde03aa942e60a0919ad0a10
+Version: 1.86
+SHA-256: eff97028bee36289b8a6fd342826b1eb58a052b02c5b505251fcc79615c54f71
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -171,6 +171,26 @@ two-frame arena reuse are validated beyond the former 1800-frame boundary. The
 next rendering checkpoint is a shader-driven fullscreen clear/triangle using
 packaged `.sb` binaries and explicit binding metadata; the DMA bars remain the
 diagnostic fallback.
+
+Version 1.86 adds the first shader-driven draw over that fallback. Owned vertex
+and fragment GLSL sources describe a three-vertex orange/yellow diagnostic
+triangle. Package generation requires the corresponding externally generated
+PS4 `.sb` files and copies them to `/app0`; generated binaries remain outside
+source control. Runtime loading validates OpenGNM metadata and stage identity,
+copies shader code into a reserved persistent 128 KiB GPU region, patches
+program addresses, creates the fetch shader, binds a 1920x1080 linear
+A8B8G8R8-sRGB render target, emits viewport/raster/depth state, and draws three
+vertices over the DMA color bars before the existing EOP and flip. Shader-load
+failure retains the bars and logs a bounded diagnostic. Expected success
+markers are `diagnostic shader binaries loaded` and
+`shader triangle over RGBA bars and EOP passed`; expected output is the four
+bars with a centered warm-colored triangle.
+
+The advertised `opengnm-psbc` build remains incomplete in its own repository,
+so v1.86 consumes the already generated diagnostic binaries from the FreeGNM
+example build. Replacing this temporary package input with a reproducible
+Kisak-owned `glslc` plus `opengnm-psbc -4` build is still required before the
+Source shader manifest milestone can be considered complete.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

@@ -4,10 +4,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VARIANT="${KISAK_PS4_VARIANT:-bootstrap}"
 CONTENT_PROBE="$ROOT_DIR/ps4/content/kisak_ps4_content_probe.txt"
+DIAGNOSTIC_SHADER_DIR="${KISAK_PS4_DIAGNOSTIC_SHADER_DIR:-$ROOT_DIR/../freegnm-examples/triangle/assets/misc}"
 if [[ "$VARIANT" == "monolithic" ]]; then
     BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
     TITLE="Kisak-Strike PS4 Monolithic"
-    VERSION="1.85"
+    VERSION="1.86"
     TITLE_ID="KISK00002"
     CONTENT_ID="IV0000-KISK00002_00-KISAKMONOLITHIC0"
     EBOOT_INPUT="$BUILD_DIR/kisak_ps4_monolithic.bin"
@@ -57,6 +58,14 @@ if [[ "$VARIANT" == "monolithic" && ! -f "$CONTENT_PROBE" ]]; then
     echo "Missing PS4 package input: $CONTENT_PROBE" >&2
     exit 1
 fi
+if [[ "$VARIANT" == "monolithic" ]]; then
+    for shader in tri.vert.sb tri.frag.sb; do
+        if [[ ! -f "$DIAGNOSTIC_SHADER_DIR/$shader" ]]; then
+            echo "Missing generated PS4 diagnostic shader: $DIAGNOSTIC_SHADER_DIR/$shader" >&2
+            exit 1
+        fi
+    done
+fi
 
 rm -rf "$PACKAGE_DIR"
 mkdir -p "$DOTNET_BUNDLE_EXTRACT_BASE_DIR" "$PACKAGE_DIR/sce_module" "$PACKAGE_DIR/sce_sys/about"
@@ -67,6 +76,8 @@ cp "$ASSET_DIR/icon0.png" "$PACKAGE_DIR/sce_sys/icon0.png"
 cp "$ASSET_DIR/about/right.sprx" "$PACKAGE_DIR/sce_sys/about/right.sprx"
 if [[ "$VARIANT" == "monolithic" ]]; then
     cp "$CONTENT_PROBE" "$PACKAGE_DIR/kisak_ps4_content_probe.txt"
+    cp "$DIAGNOSTIC_SHADER_DIR/tri.vert.sb" "$PACKAGE_DIR/kisak_diagnostic.vert.sb"
+    cp "$DIAGNOSTIC_SHADER_DIR/tri.frag.sb" "$PACKAGE_DIR/kisak_diagnostic.frag.sb"
 fi
 
 pushd "$PACKAGE_DIR" >/dev/null
@@ -84,7 +95,7 @@ pushd "$PACKAGE_DIR" >/dev/null
 
 PACKAGE_FILES="eboot.bin sce_sys/about/right.sprx sce_sys/param.sfo sce_sys/icon0.png sce_module/libc.prx sce_module/libSceFios2.prx"
 if [[ "$VARIANT" == "monolithic" ]]; then
-    PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt"
+    PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt kisak_diagnostic.vert.sb kisak_diagnostic.frag.sb"
 fi
 "$CREATE_GP4" -out=pkg.gp4 -content-id="$CONTENT_ID" -files "$PACKAGE_FILES"
 "$PKGTOOL" pkg_build pkg.gp4 .

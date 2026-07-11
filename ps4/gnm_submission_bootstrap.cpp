@@ -1,12 +1,18 @@
 #include "materialsystem/ps4gnm/ps4_gnm_device.h"
 
 #include <gnm_commandbuffer.h>
+#include <gnm_controls.h>
 #include <gnm_drawcommandbuffer.h>
+#include <gnm_helpers.h>
+#include <gnm_rendertarget.h>
+#include <gnm_shaderbinary.h>
 #include <gnmdriver.h>
 #include <orbis/libkernel.h>
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
@@ -35,10 +41,17 @@ namespace
 const size_t kDirectMemorySize = 2 * 1024 * 1024;
 const size_t kDirectMemoryAlignment = 2 * 1024 * 1024;
 const size_t kCommandBufferSize = 64 * 1024;
+const size_t kShaderMemorySize = 128 * 1024;
 off_t g_DirectMemory = 0;
 void *g_Mapped = 0;
 CPs4GnmDevice g_Device;
 uint64_t g_CompletedLabel = 0;
+uint8_t g_VsStorage[1024];
+uint8_t g_PsStorage[1024];
+GnmVsShader *g_VertexShader = 0;
+GnmPsShader *g_PixelShader = 0;
+void *g_FetchShader = 0;
+bool g_ShadersReady = false;
 
 void LogResult( const char *stage, int result )
 {
@@ -56,6 +69,142 @@ bool WaitForLabel( volatile uint64_t *label, uint64_t expected )
         sceKernelUsleep( 50 );
     }
     return false;
+}
+
+bool ReadShaderFile( const char *path, uint8_t **data, size_t *size )
+{
+    FILE *file = fopen( path, "rb" );
+    if ( !file || fseek( file, 0, SEEK_END ) != 0 )
+    {
+        if ( file ) fclose( file );
+        return false;
+    }
+    const long fileSize = ftell( file );
+    if ( fileSize <= 0 || fseek( file, 0, SEEK_SET ) != 0 )
+    {
+        fclose( file );
+        return false;
+    }
+    uint8_t *bytes = static_cast< uint8_t * >( malloc( static_cast< size_t >( fileSize ) ) );
+    if ( !bytes || fread( bytes, 1, static_cast< size_t >( fileSize ), file ) != static_cast< size_t >( fileSize ) )
+    {
+        free( bytes );
+        fclose( file );
+        return false;
+    }
+    fclose( file );
+    *data = bytes;
+    *size = static_cast< size_t >( fileSize );
+    return true;
+}
+
+bool LoadDiagnosticShaders()
+{
+    const char *paths[2] = {
+        "/app0/kisak_diagnostic.vert.sb",
+        "/app0/kisak_diagnostic.frag.sb"
+    };
+    uint8_t *gpuCursor = static_cast< uint8_t * >( g_Mapped );
+    uint8_t *gpuEnd = gpuCursor + kShaderMemorySize;
+    for ( unsigned int shader = 0; shader < 2; ++shader )
+    {
+        uint8_t *fileData = 0;
+        size_t fileSize = 0;
+        if ( !ReadShaderFile( paths[shader], &fileData, &fileSize ) )
+            return false;
+        GnmShaderMetadata metadata = {};
+        const GnmError metadataResult = sceGnmShaderBinaryGetMetadata( fileData, fileSize, &metadata );
+        const bool expectedStage = shader == 0 ? metadata.type == GNM_SHADER_VERTEX : metadata.type == GNM_SHADER_PIXEL;
+        uint8_t *storage = shader == 0 ? g_VsStorage : g_PsStorage;
+        if ( metadataResult != GNM_ERROR_OK || !expectedStage || metadata.stagesize > 1024 )
+        {
+            free( fileData );
+            return false;
+        }
+        gpuCursor = reinterpret_cast< uint8_t * >(
+            ( reinterpret_cast< uintptr_t >( gpuCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
+        if ( metadata.shadercodesize > static_cast< uint32_t >( gpuEnd - gpuCursor ) )
+        {
+            free( fileData );
+            return false;
+        }
+        memcpy( storage, metadata.stage, metadata.stagesize );
+        memcpy( gpuCursor, metadata.shadercode, metadata.shadercodesize );
+        if ( shader == 0 )
+        {
+            g_VertexShader = reinterpret_cast< GnmVsShader * >( storage );
+            sceGnmVsRegsSetAddress( &g_VertexShader->registers, gpuCursor );
+        }
+        else
+        {
+            g_PixelShader = reinterpret_cast< GnmPsShader * >( storage );
+            sceGnmPsRegsSetAddress( &g_PixelShader->registers, gpuCursor );
+            g_PixelShader->registers.spibaryccntl = 0;
+        }
+        gpuCursor += metadata.shadercodesize;
+        free( fileData );
+    }
+
+    GnmFetchShaderCreateInfo fetchInfo = {};
+    fetchInfo.regs = &g_VertexShader->registers;
+    fetchInfo.inputusages = sceGnmVsShaderInputUsageSlotTable( g_VertexShader );
+    fetchInfo.numinputusages = g_VertexShader->common.numinputusageslots;
+    fetchInfo.vtxinputs = sceGnmVsShaderInputSemanticTable( g_VertexShader );
+    fetchInfo.numvtxinputs = g_VertexShader->numinputsemantics;
+    uint32_t fetchSize = 0;
+    if ( sceGnmFetchShaderCalcSize( &fetchSize, &fetchInfo ) != GNM_ERROR_OK )
+        return false;
+    gpuCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( gpuCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
+    if ( fetchSize > static_cast< uint32_t >( gpuEnd - gpuCursor ) )
+        return false;
+    GnmFetchShaderResults fetchResults = {};
+    if ( sceGnmCreateFetchShader( gpuCursor, fetchSize, &fetchInfo, &fetchResults ) != GNM_ERROR_OK )
+        return false;
+    g_FetchShader = gpuCursor;
+    sceGnmVsRegsSetFetchShaderModifier( &g_VertexShader->registers, &fetchResults );
+    return true;
+}
+
+void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination )
+{
+    GnmRenderTarget renderTarget = {};
+    if ( sceGnmRtCreateColorTarget( &renderTarget, destination, GNM_FMT_R8G8B8A8_SRGB,
+        1920, 1080, 1, 1, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE, 0, 0 ) != GNM_ERROR_OK )
+        return;
+    sceGnmDrawCmdInitDefaultHardwareState( command );
+    const GnmSetViewportInfo viewport = {
+        0.0f, 1.0f,
+        { 960.0f, -540.0f, 0.5f },
+        { 960.0f, 540.0f, 0.5f }
+    };
+    sceGnmDrawCmdSetViewport( command, 0, &viewport );
+    sceGnmDrawCmdSetScreenScissor( command, 0, 0, 1920, 1080 );
+    GnmViewportTransformControl viewportControl = {};
+    viewportControl.scalex = viewportControl.offsetx = 1;
+    viewportControl.scaley = viewportControl.offsety = 1;
+    viewportControl.scalez = viewportControl.offsetz = 1;
+    viewportControl.invertw = 1;
+    sceGnmDrawCmdSetViewportTransformControl( command, &viewportControl );
+    GnmPrimitiveSetup primitiveSetup = {};
+    primitiveSetup.cullmode = GNM_CULL_NONE;
+    primitiveSetup.frontface = GNM_FACE_CCW;
+    primitiveSetup.frontmode = primitiveSetup.backmode = GNM_FILL_SOLID;
+    sceGnmDrawCmdSetPrimitiveSetup( command, &primitiveSetup );
+    GnmDepthStencilControl depthControl = {};
+    sceGnmDrawCmdSetDepthStencilControl( command, &depthControl );
+    GnmDbRenderControl dbControl = {};
+    sceGnmDrawCmdSetDbRenderControl( command, &dbControl );
+    sceGnmDrawCmdSetRenderTarget( command, 0, &renderTarget );
+    sceGnmDrawCmdSetRenderTargetMask( command, 0xf );
+    sceGnmDrawCmdSetVsShader( command, &g_VertexShader->registers, 0 );
+    sceGnmDrawCmdSetPsShader( command, &g_PixelShader->registers );
+    sceGnmDrawCmdSetPointerUserData( command, GNM_STAGE_VS, 0, g_FetchShader );
+    sceGnmDrawCmdSetPsInputUsage( command,
+        sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
+        sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
+    sceGnmDrawCmdSetPrimitiveType( command, GNM_PT_TRILIST );
+    sceGnmDrawCmdDrawIndexAuto( command, 3 );
 }
 }
 
@@ -83,7 +232,12 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
         return false;
     }
 
-    bool passed = g_Device.Initialize( g_Mapped, kDirectMemorySize );
+    g_ShadersReady = LoadDiagnosticShaders();
+    KisakPs4StartupBreadcrumb( g_ShadersReady
+        ? "kisak-ps4: diagnostic shader binaries loaded"
+        : "kisak-ps4: diagnostic shader load failed; DMA bars retained" );
+    bool passed = g_Device.Initialize( static_cast< uint8_t * >( g_Mapped ) + kShaderMemorySize,
+        kDirectMemorySize - kShaderMemorySize );
     for ( unsigned int submit = 0; passed && submit < 3; ++submit )
     {
         passed = g_Device.BeginFrame( g_CompletedLabel );
@@ -218,6 +372,8 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             return false;
         }
     }
+    if ( g_ShadersReady )
+        EmitDiagnosticTriangle( &command, destination );
 
     const uint64_t submittedLabel = g_Device.SubmittedLabel() + 1;
     *eopLabel = 0;
@@ -246,4 +402,9 @@ extern "C" void KisakPs4GnmSubmissionShutdown()
     g_Mapped = 0;
     g_DirectMemory = 0;
     KisakPs4StartupBreadcrumb( "kisak-ps4: gnm submission pool released" );
+}
+
+extern "C" bool KisakPs4GnmDiagnosticShadersReady()
+{
+    return g_ShadersReady;
 }
