@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.21
-SHA-256: 3f6dd11d9e3a960e87cfc4eacf6147fefeed82074987b39a06e5a85f69068122
+Version: 2.22
+SHA-256: c19cbc183aae807f54c2ffebd7b73af02fc1ee2e02762c66c2e6b989fc287827
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -565,6 +565,15 @@ color, blend, raster, texture, and shader categories plus the corresponding
 Source shadow values. Calls still reach the delegate for identical output;
 native PM4 emission can now consume only dirty categories without changing the
 public `IShaderShadow` contract.
+
+The v2.21 hardware run passed at 60 FPS with the opaque orange triangle and
+shader/EOP gate intact. Review then found that the Source-facing shadow cache
+had reused the established native emitter's `CPs4GnmDrawState` name in a
+different translation unit. Version 2.22 corrects that type-level ODR hazard:
+the Source-facing values now live in `CPs4SourceShadowState`, while the existing
+`CPs4GnmDrawState` remains the sole OpenGNM/PM4 cache and emitter. The intended
+pipeline is explicit: Source shadow state is translated into native GNM state,
+then only dirty PM4 categories are emitted.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

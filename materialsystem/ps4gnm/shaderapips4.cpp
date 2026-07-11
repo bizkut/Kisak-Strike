@@ -138,7 +138,7 @@ private:
 
 CShaderDevicePs4 g_DevicePs4;
 
-class CPs4GnmDrawState
+class CPs4SourceShadowState
 {
 public:
     enum DirtyBits
@@ -152,7 +152,7 @@ public:
         DIRTY_ALL = ( 1 << 6 ) - 1
     };
 
-    CPs4GnmDrawState() { Reset(); }
+    CPs4SourceShadowState() { Reset(); }
 
     void Reset()
     {
@@ -221,6 +221,8 @@ public:
 class CShaderShadowPs4 : public IShaderShadow
 {
 public:
+    typedef CPs4SourceShadowState CPs4GnmDrawState;
+
     CShaderShadowPs4() : m_delegate( 0 ) {}
     void SetDelegate( IShaderShadow *delegate ) { m_delegate = delegate; }
 
@@ -293,7 +295,7 @@ private:
     }
 
     IShaderShadow *m_delegate;
-    CPs4GnmDrawState m_state;
+    CPs4SourceShadowState m_state;
 };
 
 CShaderShadowPs4 g_ShaderShadowPs4;
