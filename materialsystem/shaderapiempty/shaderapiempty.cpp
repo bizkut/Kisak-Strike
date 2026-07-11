@@ -329,14 +329,6 @@ static CShaderDeviceMgrEmpty s_ShaderDeviceMgrEmpty;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CShaderDeviceMgrEmpty, IShaderDeviceMgr, 
 								  SHADER_DEVICE_MGR_INTERFACE_VERSION, s_ShaderDeviceMgrEmpty )
 
-#if defined( PLATFORM_PS4 )
-CreateInterfaceFn KisakShaderApiEmptyFactory()
-{
-	return Sys_GetFactoryThis();
-}
-#endif
-
-
 //-----------------------------------------------------------------------------
 // The DX8 implementation of the shader API
 //-----------------------------------------------------------------------------
@@ -1323,10 +1315,14 @@ static void* ShaderInterfaceFactory( const char *pInterfaceName, int *pReturnCod
 	}
 	if ( !Q_stricmp( pInterfaceName, SHADER_DEVICE_INTERFACE_VERSION ) )
 		return static_cast< IShaderDevice* >( &s_ShaderDeviceEmpty );
+	if ( !Q_stricmp( pInterfaceName, SHADER_DEVICE_MGR_INTERFACE_VERSION ) )
+		return static_cast< IShaderDeviceMgr* >( &s_ShaderDeviceMgrEmpty );
 	if ( !Q_stricmp( pInterfaceName, SHADERAPI_INTERFACE_VERSION ) )
 		return static_cast< IShaderAPI* >( &g_ShaderAPIEmpty );
 	if ( !Q_stricmp( pInterfaceName, SHADERSHADOW_INTERFACE_VERSION ) )
 		return static_cast< IShaderShadow* >( &g_ShaderShadow );
+	if ( !Q_stricmp( pInterfaceName, MATERIALSYSTEM_HARDWARECONFIG_INTERFACE_VERSION ) )
+		return static_cast< IMaterialSystemHardwareConfig* >( &g_ShaderAPIEmpty );
 
 	if ( pReturnCode )
 	{
@@ -1334,6 +1330,13 @@ static void* ShaderInterfaceFactory( const char *pInterfaceName, int *pReturnCod
 	}
 	return NULL;
 }
+
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakShaderApiEmptyFactory()
+{
+	return ShaderInterfaceFactory;
+}
+#endif
 
 
 //-----------------------------------------------------------------------------

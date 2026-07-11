@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.61
-SHA-256: 314c087b00cc34e0801a5aab5d48f6866ca102c2462388c5e889a07862afa2b6
+Version: 1.62
+SHA-256: 6e20bd04dead1bd6ab10dfde2e440e7405cb130095049dc1f32372dcc52fdfee
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -589,6 +589,17 @@ Version 1.61 adds bounded result markers around device-manager, hardware-config,
 ShaderAPI, shader-device, shader-shadow, and RocketUI lookups plus the final
 device-manager `Connect` call. It changes no renderer behavior and will identify
 the exact interface contract the temporary scaffold still lacks.
+
+The v1.61 hardware run remained stable and isolated the missing contract:
+`ShaderDeviceMgr001` resolved, while
+`MaterialSystemHardwareConfig013` did not. The empty backend implements the
+hardware-config interface, but its PS4 module factory returned the process-wide
+`CreateInterface` chain rather than a deterministic ShaderAPI-local mapping.
+
+Version 1.62 gives the temporary ShaderAPI module a local factory that maps its
+device manager, hardware config, ShaderAPI, shader device, and shader shadow
+objects explicitly. This avoids monolithic global-factory ambiguity and
+establishes the factory shape the OpenGNM backend will implement.
 
 Reproduce the current cross-build with:
 
