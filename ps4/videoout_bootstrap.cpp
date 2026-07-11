@@ -19,6 +19,17 @@ extern "C" bool KisakPs4VideoOutInitialize()
     GnmVideoOutCreateInfo info;
     sceGnmVideoOutInitDefaultCreateInfo( &info, 1920, 1080 );
     info.numbuffers = 2;
+	const GnmError layoutResult = sceGnmVideoOutCalcBufferLayout( &info, NULL, NULL );
+	if ( layoutResult != GNM_ERROR_OK )
+	{
+		if ( layoutResult == GNM_ERROR_INVALID_ARGS )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: videoout layout invalid args" );
+		else if ( layoutResult == GNM_ERROR_OVERFLOW )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: videoout layout overflow" );
+		else
+			KisakPs4StartupBreadcrumb( "kisak-ps4: videoout layout unsupported" );
+		return false;
+	}
     KisakPs4StartupBreadcrumb( "kisak-ps4: videoout before open" );
     if ( sceGnmVideoOutOpen( &g_VideoOut, &info ) != GNM_ERROR_OK )
     {

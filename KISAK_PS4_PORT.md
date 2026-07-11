@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.70
-SHA-256: d2f4d365086b5df6d9b118c2cb875c54975e6f359147f0aef815cd2764b13d38
+Version: 1.71
+SHA-256: c4df6567b2753f47bc9c3c860e8afa8d9ffae81c8f72716aa266e2d8e5602195
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -673,6 +673,11 @@ The v1.69 hardware run stayed stable but logged `videoout open failed` before
 the first frame. The Orbis OpenGNM helper returned one aggregate error, so the
 failure could not be separated between `sceVideoOutOpen`, direct-memory
 allocation, buffer registration, equeue creation, or flip-event registration.
+
+The v1.70 hardware run classified the failure as the OpenGNM layout stage,
+before any VideoOut service call. Version 1.71 checks the layout directly in
+Kisak and distinguishes invalid arguments, arithmetic overflow, and unsupported
+platform behavior before attempting `sceGnmVideoOutOpen`.
 
 Version 1.70 extends `GnmVideoOut` with a diagnostic open-stage field and makes
 the helper classify those six boundaries. Kisak logs the stage-specific result
