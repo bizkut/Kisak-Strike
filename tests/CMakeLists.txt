@@ -44,6 +44,7 @@ add_executable(ps4_gnm_device_test
     ../materialsystem/ps4gnm/ps4_gnm_buffer.cpp
     ../materialsystem/ps4gnm/ps4_gnm_device.cpp
     ../materialsystem/ps4gnm/ps4_gnm_memory.cpp
+    ../materialsystem/ps4gnm/ps4_gnm_vertex_declaration.cpp
     ../../opengnm/src/dataformat.c
     ../../opengnm/src/error.c
 )
@@ -64,6 +65,19 @@ target_include_directories(ps4_gnm_buffer_test PRIVATE
     ../../opengnm/include)
 set_target_properties(ps4_gnm_buffer_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_gnm_buffer COMMAND ps4_gnm_buffer_test)
+
+add_executable(ps4_gnm_vertex_declaration_test
+    ps4_gnm_vertex_declaration_test.cpp
+    ../materialsystem/ps4gnm/ps4_gnm_vertex_declaration.cpp
+    ../../opengnm/src/dataformat.c
+    ../../opengnm/src/error.c
+)
+target_include_directories(ps4_gnm_vertex_declaration_test PRIVATE
+    ../materialsystem/ps4gnm
+    ../../opengnm/include)
+set_target_properties(ps4_gnm_vertex_declaration_test PROPERTIES
+    CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
+add_test(NAME ps4_gnm_vertex_declaration COMMAND ps4_gnm_vertex_declaration_test)
 
 add_executable(ps4_shadow_state_translate_test
     ps4_shadow_state_translate_test.cpp

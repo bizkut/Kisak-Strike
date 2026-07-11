@@ -7,7 +7,7 @@ CPs4GnmDevice::CPs4GnmDevice()
     for ( unsigned int i = 0; i < kFrameCount; ++i )
         m_frames[i].pendingLabel = 0;
     for ( unsigned int i = 0; i < kMaxVertexStreams; ++i )
-        m_streams[i] = StreamBinding{ 0, 0, 0, 0 };
+        m_streams[i] = StreamBinding{ 0, 0, 0, 0, 0 };
     m_indices = IndexBinding{ 0, 0, false };
 }
 
@@ -30,7 +30,7 @@ bool CPs4GnmDevice::Initialize( void *frameMemory, size_t frameMemorySize )
     m_frameOpen = false;
     m_sceneOpen = false;
     for ( unsigned int i = 0; i < kMaxVertexStreams; ++i )
-        m_streams[i] = StreamBinding{ 0, 0, 0, 0 };
+        m_streams[i] = StreamBinding{ 0, 0, 0, 0, 0 };
     m_indices = IndexBinding{ 0, 0, false };
     m_topology = kPrimitiveTriangles;
     m_initialized = true;
@@ -123,12 +123,12 @@ bool CPs4GnmDevice::SetStreamSource( uint32_t stream, const void *buffer,
         return false;
     if ( !buffer )
     {
-        m_streams[stream] = StreamBinding{ 0, 0, 0, 0 };
+        m_streams[stream] = StreamBinding{ 0, 0, 0, 0, 0 };
         return bufferSize == 0 && offset == 0 && stride == 0;
     }
     if ( !bufferSize || !stride || offset >= bufferSize )
         return false;
-    m_streams[stream] = StreamBinding{ buffer, bufferSize, offset, stride };
+    m_streams[stream] = StreamBinding{ buffer, bufferSize, offset, stride, 0 };
     return true;
 }
 
@@ -139,7 +139,10 @@ bool CPs4GnmDevice::SetStreamSource( uint32_t stream, const CPs4GnmBuffer *buffe
         return SetStreamSource( stream, 0, 0, 0, 0 );
     if ( !buffer->IsValid() || buffer->BufferType() != CPs4GnmBuffer::kVertexBuffer )
         return false;
-    return SetStreamSource( stream, buffer->Data(), buffer->Size(), offset, stride );
+    if ( !SetStreamSource( stream, buffer->Data(), buffer->Size(), offset, stride ) )
+        return false;
+    m_streams[stream].resource = buffer;
+    return true;
 }
 
 bool CPs4GnmDevice::SetIndices( const void *buffer, size_t bufferSize, bool index32 )
@@ -216,4 +219,30 @@ bool CPs4GnmDevice::BuildIndexedDrawPacket( GnmDataFormat vertexFormat,
     }
     return sceGnmBufGetBaseAddress( &packet->vertexBuffer ) ==
         static_cast< uint8_t * >( const_cast< void * >( stream.buffer ) ) + vertexOffset;
+}
+
+bool CPs4GnmDevice::BuildVertexDescriptorTable(
+    const CPs4GnmVertexDeclaration &declaration, int32_t baseVertex,
+    uint32_t vertexCount, GnmBuffer *descriptors,
+    uint32_t descriptorCapacity ) const
+{
+    if ( !declaration.IsValid() || baseVertex < 0 || !vertexCount ||
+        !descriptors || descriptorCapacity < declaration.ElementCount() )
+        return false;
+    for ( uint32_t i = 0; i < declaration.ElementCount(); ++i )
+    {
+        const CPs4GnmVertexDeclaration::Element &element = declaration.GetElement( i );
+        const StreamBinding &stream = m_streams[element.stream];
+        const size_t elementBytes = sceGnmDfGetBytesPerElement( element.format );
+        if ( !stream.resource || !stream.stride || element.offset > stream.stride ||
+            elementBytes > stream.stride - element.offset )
+            return false;
+        const size_t baseOffset = stream.offset +
+            static_cast< size_t >( baseVertex ) * stream.stride;
+        if ( baseOffset < stream.offset || element.offset > SIZE_MAX - baseOffset ||
+            !stream.resource->BuildVertexDescriptor( element.format, stream.stride,
+                vertexCount, baseOffset + element.offset, &descriptors[i] ) )
+            return false;
+    }
+    return true;
 }

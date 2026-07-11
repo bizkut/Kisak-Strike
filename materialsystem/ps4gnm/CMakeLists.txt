@@ -25,5 +25,6 @@ target_sources(${OUTBINNAME} PRIVATE
     ps4_shader_manifest.cpp
     ps4_shadow_state_translate.cpp
     ps4_gnm_texture.cpp
+    ps4_gnm_vertex_declaration.cpp
     shaderapips4.cpp
 )

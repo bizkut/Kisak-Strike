@@ -57,6 +57,17 @@ int main()
     assert( !device.SetIndices( &vertexBuffer ) );
     assert( device.SetStreamSource( 0, &vertexBuffer, 0, 16 ) );
     assert( device.SetIndices( &indexBuffer ) );
+    const CPs4GnmVertexDeclaration::Element declarationElements[] = {
+        { 0, 0, GNM_FMT_R32G32B32A32_FLOAT }
+    };
+    CPs4GnmVertexDeclaration declaration;
+    assert( declaration.Initialize( declarationElements, 1 ) );
+    GnmBuffer descriptorTable[1] = {};
+    assert( device.BuildVertexDescriptorTable( declaration, 0, 3,
+        descriptorTable, 1 ) );
+    assert( sceGnmBufGetBaseAddress( &descriptorTable[0] ) == vertices );
+    assert( !device.BuildVertexDescriptorTable( declaration, 1, 3,
+        descriptorTable, 1 ) );
     device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
     assert( device.ValidateDrawIndexed( 0, 3, 0, 3 ) );
     CPs4GnmDevice::IndexedDrawPacket packet = {};

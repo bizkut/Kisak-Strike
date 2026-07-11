@@ -917,6 +917,18 @@ The v2.57 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `84c9e33c05a49e8ff81eac87596cf6166ba3124ba9a42f08a6fe336e3eb81e82`,
 with marker `kisak-ps4: build marker interleaved_vertex_range_v257`.
+
+The v2.57 hardware run restored the full interleaved-table path, including
+façade draw emission, center-pixel validation, EOP, flips, and stable 60 FPS
+beyond frame 780. Its capture is
+`hardware-captures/logs/2026-07-12/kisak_v257_interleaved_vertex_live.txt`.
+The next host-only façade slice adds `CPs4GnmVertexDeclaration`: up to sixteen
+stream/offset/format elements, validated stream indices and formats, and device
+assembly of descriptor tables from typed stream resources. Tests cover valid
+position declarations, invalid streams, base-vertex offsets, descriptor-table
+capacity, and out-of-range vertex extents. The OpenOrbis monolith links this
+layer; live setup is unchanged until device initialization moves ahead of
+diagnostic resource creation.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

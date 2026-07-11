@@ -6,6 +6,7 @@
 
 #include "ps4_gnm_memory.h"
 #include "ps4_gnm_buffer.h"
+#include "ps4_gnm_vertex_declaration.h"
 
 class CPs4GnmDevice
 {
@@ -27,6 +28,7 @@ public:
         size_t bufferSize;
         size_t offset;
         uint32_t stride;
+        const CPs4GnmBuffer *resource;
     };
 
     struct IndexBinding
@@ -75,6 +77,9 @@ public:
     bool BuildIndexedDrawPacket( GnmDataFormat vertexFormat,
         uint32_t firstIndex, uint32_t indexCount, int32_t baseVertex,
         uint32_t vertexCount, IndexedDrawPacket *packet ) const;
+    bool BuildVertexDescriptorTable( const CPs4GnmVertexDeclaration &declaration,
+        int32_t baseVertex, uint32_t vertexCount, GnmBuffer *descriptors,
+        uint32_t descriptorCapacity ) const;
 
     bool IsInitialized() const { return m_initialized; }
     bool IsFrameOpen() const { return m_frameOpen; }
