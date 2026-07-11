@@ -641,6 +641,9 @@ INLINE_ON_PS3 void* CThread::ThreadProc(LPVOID pv)
 	#endif
 	if (!bInitSuccess)
 		return 0;
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child before run dispatch" );
+	#endif
 
 	if ( !Plat_IsInDebugSession() && (pInit->pThread->m_flags & SUPPORT_STOP_PROTOCOL) )
 	{
@@ -662,7 +665,13 @@ INLINE_ON_PS3 void* CThread::ThreadProc(LPVOID pv)
 #if defined( _WIN32 )
 		CatchAndWriteMiniDumpForVoidPtrFn( ThreadProcRunWithMinidumpHandler, pv, false );
 #else
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child before run" );
+		#endif
 		pInit->pThread->m_result = pInit->pThread->Run();
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: cthread child after run" );
+		#endif
 #endif
 	}
 

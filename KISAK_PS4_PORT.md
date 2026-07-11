@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.27
-SHA-256: 7f99645e5a8458176bb08ebfeea6b8c31949a2f9b1c0b8f625f9d49dce043c06
+Version: 1.28
+SHA-256: 9ed15cb5edc72cf166138ba631a3ceb29f25cf8060269994fc2b806b734a8c7e
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -280,6 +280,11 @@ for creation and idle handshakes.
 The v1.26 trace still stops immediately after child `Init()`. Version 1.27
 splits the only remaining handshake operations: writing the parent's init
 success flag and atomically signaling the create-complete event.
+
+The v1.27 trace completes both success publication and the atomic create signal.
+Version 1.28 traces the child transition into virtual `Run()` and the job
+worker's idle-count/event publication, separating child execution from the
+parent's create-wait return.
 
 Reproduce the current cross-build with:
 

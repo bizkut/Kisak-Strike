@@ -417,12 +417,21 @@ private:
 
 	int Run()
 	{
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: job worker run entered" );
+		#endif
 		// Wait for either a call from the master thread, or an item in the queue...
 		unsigned waitResult;
 		bool	 bExit = false;
 
 		m_pOwner->m_nIdleThreads++;
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: job worker before idle signal" );
+		#endif
 		m_IdleEvent.Set();
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: job worker after idle signal" );
+		#endif
 		while ( !bExit && ( waitResult = Wait() ) != TW_FAILED )
 		{
 			if ( PeekCall() )
