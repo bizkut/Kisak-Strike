@@ -9,8 +9,9 @@ bool Ps4EmitIndexedDraw( GnmCommandBuffer *command, CPs4GnmDrawState *drawState,
     if ( !command || !drawState || !packet.indexAddress || !packet.indexCount )
         return false;
 
-    drawState->SetVertexBuffer( GNM_STAGE_VS, vertexUserDataSlot,
-        packet.vertexBuffer );
+    if ( vertexUserDataSlot != UINT32_MAX )
+        drawState->SetVertexBuffer( GNM_STAGE_VS, vertexUserDataSlot,
+            packet.vertexBuffer );
     drawState->SetIndexSize( packet.indexSize, GNM_POLICY_LRU );
     drawState->SetPrimitiveType( packet.primitiveType );
     const uint32_t emitted = drawState->Apply( command );

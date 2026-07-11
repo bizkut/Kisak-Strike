@@ -861,6 +861,19 @@ builder is host-tested for triangle list/strip, base vertex, record count, and
 index addressing. `Ps4EmitIndexedDraw` consumes that packet, applies only dirty
 draw state, and emits `sceGnmDrawCmdDrawIndex`. Connecting this emitter to the
 live two-frame submission path is next.
+
+Version 2.54 routes the live indexed diagnostic triangle through
+`CPs4GnmBuffer`, `CPs4GnmDevice` scene/binding validation,
+`BuildIndexedDrawPacket`, and `Ps4EmitIndexedDraw`. The proven two-entry fetch
+descriptor table remains in place because the current shader consumes position
+and color through that ABI; only the formerly manual index-width, topology, and
+draw calls move behind the façade in this gate. Hardware should retain the
+opaque orange triangle and log
+`kisak-ps4: D3D9 facade indexed diagnostic draw emitted`.
+The v2.54 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`4ef7c7549891012208a5dc808ba18dd1132be79d671e2dbde8a6a57c1bf4137b`,
+with marker `kisak-ps4: build marker d3d9_facade_draw_v254`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

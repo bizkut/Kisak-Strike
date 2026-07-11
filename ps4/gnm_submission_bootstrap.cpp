@@ -1,5 +1,6 @@
 #include "materialsystem/ps4gnm/ps4_gnm_device.h"
 #include "materialsystem/ps4gnm/ps4_gnm_draw_state.h"
+#include "materialsystem/ps4gnm/ps4_gnm_draw_packet.h"
 #include "materialsystem/ps4gnm/ps4_gnm_texture.h"
 #include "materialsystem/ps4gnm/ps4_gnm_shader.h"
 #include "materialsystem/ps4gnm/ps4_gnm_shader_handles.h"
@@ -66,6 +67,7 @@ Ps4GnmShaderHandle g_SolidPixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 Ps4GnmShaderHandle g_TexturePixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 void *g_FetchShader = 0;
 GnmBuffer *g_VertexBuffers = 0;
+CPs4GnmBuffer g_DiagnosticVertexBuffer;
 GnmDepthRenderTarget g_DepthTarget = {};
 bool g_DepthTargetReady = false;
 void *g_DepthMemory = 0;
@@ -78,6 +80,7 @@ bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 bool g_ShadowStateApplyLogged = false;
 bool g_ShadowDisplayApplyLogged = false;
+bool g_FacadeDrawLogged = false;
 bool g_TextureMemoryLogged = false;
 bool g_ShaderManifestLogged = false;
 uint32_t g_PendingSamplerMask = 0;
@@ -359,6 +362,13 @@ bool LoadDiagnosticShaders()
     }
     DiagnosticVertex *vertexData = reinterpret_cast< DiagnosticVertex * >( gpuCursor );
     memcpy( vertexData, vertices, sizeof( vertices ) );
+    if ( !g_DiagnosticVertexBuffer.Initialize( vertexData, sizeof( vertices ),
+        CPs4GnmBuffer::kVertexBuffer, false ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "vertex facade initialization failed" );
+        return false;
+    }
     gpuCursor += sizeof( vertices );
     gpuCursor = reinterpret_cast< uint8_t * >(
         ( reinterpret_cast< uintptr_t >( gpuCursor ) + 15 ) & ~static_cast< uintptr_t >( 15 ) );
@@ -513,7 +523,8 @@ bool LoadDiagnosticShaders()
     return true;
 }
 
-void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const uint16_t *indices )
+void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
+    const CPs4GnmDevice::IndexedDrawPacket &packet )
 {
     GnmRenderTarget renderTarget = {};
     if ( sceGnmRtCreateColorTarget( &renderTarget, destination, GNM_FMT_R8G8B8A8_SRGB,
@@ -569,7 +580,6 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.SetRenderTarget( 0, g_DiagnosticTexture.ColorTarget() );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
     g_DrawState.SetPixelShader( g_PixelShader->registers );
-    g_DrawState.SetIndexSize( GNM_INDEX_16, GNM_POLICY_LRU );
     if ( g_FetchShader )
     {
         g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
@@ -578,9 +588,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.SetPsInputUsage(
         sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
         sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
-    g_DrawState.SetPrimitiveType( GNM_PT_TRILIST );
-    g_DrawState.Apply( command );
-    sceGnmDrawCmdDrawIndex( command, 3, indices );
+    Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
     if ( !sceGnmDrawCmdCopyMemory( command,
         static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticCopyTexture.Data() ) ),
@@ -612,7 +620,6 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.SetRenderTarget( 0, renderTarget );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
     g_DrawState.SetPixelShader( g_TexturePixelShader->registers );
-    g_DrawState.SetIndexSize( GNM_INDEX_16, GNM_POLICY_LRU );
     if ( g_FetchShader )
     {
         g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
@@ -622,14 +629,11 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.SetPsInputUsage(
         sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
         sceGnmPsShaderInputSemanticTable( g_TexturePixelShader ), g_TexturePixelShader->numinputsemantics );
-    g_DrawState.SetPrimitiveType( GNM_PT_TRILIST );
-    g_DrawState.Apply( command );
-    sceGnmDrawCmdDrawIndex( command, 3, indices );
+    Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
     GnmSetViewportInfo farViewport = viewport;
     farViewport.offset[2] = 0.75f;
     g_DrawState.SetViewport( 0, farViewport );
-    g_DrawState.Apply( command );
-    sceGnmDrawCmdDrawIndex( command, 3, indices );
+    Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
 }
 }
 
@@ -816,8 +820,42 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         indices[0] = 0;
         indices[1] = 1;
         indices[2] = 2;
+        CPs4GnmBuffer indexBuffer;
+        if ( !indexBuffer.Initialize( indices, 3 * sizeof( uint16_t ),
+            CPs4GnmBuffer::kIndexBuffer, true ) || !g_Device.BeginScene() )
+        {
+            g_Device.CancelFrame();
+            return false;
+        }
+        if ( !g_Device.SetStreamSource( 0, &g_DiagnosticVertexBuffer, 0,
+                8 * sizeof( float ) ) || !g_Device.SetIndices( &indexBuffer ) )
+        {
+            g_Device.EndScene();
+            g_Device.CancelFrame();
+            return false;
+        }
+        g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
+        CPs4GnmDevice::IndexedDrawPacket packet = {};
+        if ( !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
+            0, 3, 0, 3, &packet ) )
+        {
+            g_Device.EndScene();
+            g_Device.CancelFrame();
+            return false;
+        }
         sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_CB0 );
-        EmitDiagnosticTriangle( &command, destination, indices );
+        EmitDiagnosticTriangle( &command, destination, packet );
+        if ( !g_Device.EndScene() )
+        {
+            g_Device.CancelFrame();
+            return false;
+        }
+        if ( !g_FacadeDrawLogged )
+        {
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: D3D9 facade indexed diagnostic draw emitted" );
+            g_FacadeDrawLogged = true;
+        }
     }
 
     sceGnmDrawCmdEventWriteEop( &command, GNM_CACHE_FLUSH_AND_INV_TS_EVENT,
