@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.88
-SHA-256: c9e967e3c35acb493817756ea3acd561bfc95d59df46a4a45317842e48bbace6
+Version: 1.89
+SHA-256: 92aa9daa8b6402fa1e560b3c58199b48827bdbe1e5c43c0e54d1b6ad8b468136
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -201,6 +201,16 @@ offset zero. OpenGNM now detects and bounds-checks both bare and wrapped forms,
 with a regression fixture in the seven-test helper suite. Version 1.87 rebuilds
 against that parser fix; expected hardware behavior returns to the v1.86
 triangle markers and visual target.
+
+The next pulled log still contained the old generic load-failure marker and no
+package identity, so it could not prove that the parser-fixed executable was
+actually running. Version 1.89 adds build marker
+`shader_loader_diag_v189` and a bounded `diagnostic shader detail` line. The
+detail identifies file-read, wrapped-metadata, GPU-code allocation, fetch-size,
+fetch-allocation, or fetch-creation failure and includes the relevant sizes and
+result codes. A successful load reports the vertex, pixel, and fetch byte
+counts. This turns the next hardware capture into a definitive package and
+loader-stage check before further PM4 draw changes.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

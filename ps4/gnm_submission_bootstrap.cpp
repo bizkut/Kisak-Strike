@@ -52,6 +52,7 @@ GnmVsShader *g_VertexShader = 0;
 GnmPsShader *g_PixelShader = 0;
 void *g_FetchShader = 0;
 bool g_ShadersReady = false;
+char g_ShaderDiagnostic[160] = "not attempted";
 
 void LogResult( const char *stage, int result )
 {
@@ -111,13 +112,21 @@ bool LoadDiagnosticShaders()
         uint8_t *fileData = 0;
         size_t fileSize = 0;
         if ( !ReadShaderFile( paths[shader], &fileData, &fileSize ) )
+        {
+            snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+                "file read failed stage=%u path=%s", shader, paths[shader] );
             return false;
+        }
         GnmShaderMetadata metadata = {};
         const GnmError metadataResult = sceGnmShaderBinaryGetMetadata( fileData, fileSize, &metadata );
         const bool expectedStage = shader == 0 ? metadata.type == GNM_SHADER_VERTEX : metadata.type == GNM_SHADER_PIXEL;
         uint8_t *storage = shader == 0 ? g_VsStorage : g_PsStorage;
         if ( metadataResult != GNM_ERROR_OK || !expectedStage || metadata.stagesize > 1024 )
         {
+            snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+                "metadata failed stage=%u result=%d type=%u stagebytes=%u filebytes=%llu",
+                shader, metadataResult, metadata.type, metadata.stagesize,
+                static_cast< unsigned long long >( fileSize ) );
             free( fileData );
             return false;
         }
@@ -125,6 +134,10 @@ bool LoadDiagnosticShaders()
             ( reinterpret_cast< uintptr_t >( gpuCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
         if ( metadata.shadercodesize > static_cast< uint32_t >( gpuEnd - gpuCursor ) )
         {
+            snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+                "code allocation failed stage=%u codebytes=%u available=%llu",
+                shader, metadata.shadercodesize,
+                static_cast< unsigned long long >( gpuEnd - gpuCursor ) );
             free( fileData );
             return false;
         }
@@ -153,16 +166,33 @@ bool LoadDiagnosticShaders()
     fetchInfo.numvtxinputs = g_VertexShader->numinputsemantics;
     uint32_t fetchSize = 0;
     if ( sceGnmFetchShaderCalcSize( &fetchSize, &fetchInfo ) != GNM_ERROR_OK )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "fetch size failed inputs=%u usages=%u", fetchInfo.numvtxinputs,
+            fetchInfo.numinputusages );
         return false;
+    }
     gpuCursor = reinterpret_cast< uint8_t * >(
         ( reinterpret_cast< uintptr_t >( gpuCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
     if ( fetchSize > static_cast< uint32_t >( gpuEnd - gpuCursor ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "fetch allocation failed bytes=%u", fetchSize );
         return false;
+    }
     GnmFetchShaderResults fetchResults = {};
     if ( sceGnmCreateFetchShader( gpuCursor, fetchSize, &fetchInfo, &fetchResults ) != GNM_ERROR_OK )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "fetch creation failed bytes=%u", fetchSize );
         return false;
+    }
     g_FetchShader = gpuCursor;
     sceGnmVsRegsSetFetchShaderModifier( &g_VertexShader->registers, &fetchResults );
+    snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+        "ready vsbytes=%u psbytes=%u fetchbytes=%u",
+        g_VertexShader->common.shadersize, g_PixelShader->common.shadersize,
+        fetchSize );
     return true;
 }
 
@@ -233,6 +263,12 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
     }
 
     g_ShadersReady = LoadDiagnosticShaders();
+    {
+        char message[208];
+        snprintf( message, sizeof( message ), "kisak-ps4: diagnostic shader detail %s",
+            g_ShaderDiagnostic );
+        KisakPs4StartupBreadcrumb( message );
+    }
     KisakPs4StartupBreadcrumb( g_ShadersReady
         ? "kisak-ps4: diagnostic shader binaries loaded"
         : "kisak-ps4: diagnostic shader load failed; DMA bars retained" );
