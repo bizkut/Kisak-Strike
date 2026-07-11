@@ -380,12 +380,18 @@ bool LoadDiagnosticShaders()
         return false;
     }
     g_VertexBuffers = reinterpret_cast< GnmBuffer * >( gpuCursor );
-    if ( !g_DiagnosticVertexBuffer.BuildVertexDescriptor(
-            GNM_FMT_R32G32B32A32_FLOAT, sizeof( DiagnosticVertex ), 3,
-            offsetof( DiagnosticVertex, position ), &g_VertexBuffers[0] ) ||
-        !g_DiagnosticVertexBuffer.BuildVertexDescriptor(
-            GNM_FMT_R32G32B32A32_FLOAT, sizeof( DiagnosticVertex ), 3,
-            offsetof( DiagnosticVertex, color ), &g_VertexBuffers[1] ) )
+    const CPs4GnmVertexDeclaration::Element declarationElements[2] = {
+        { 0, static_cast< uint16_t >( offsetof( DiagnosticVertex, position ) ),
+            GNM_FMT_R32G32B32A32_FLOAT },
+        { 0, static_cast< uint16_t >( offsetof( DiagnosticVertex, color ) ),
+            GNM_FMT_R32G32B32A32_FLOAT }
+    };
+    CPs4GnmVertexDeclaration declaration;
+    if ( !declaration.Initialize( declarationElements, 2 ) ||
+        !g_Device.SetStreamSource( 0, &g_DiagnosticVertexBuffer, 0,
+            sizeof( DiagnosticVertex ) ) ||
+        !g_Device.BuildVertexDescriptorTable( declaration, 0, 3,
+            g_VertexBuffers, 2 ) )
     {
         snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
             "vertex facade descriptor table failed" );
@@ -669,7 +675,10 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
         return false;
     }
 
-    g_ShadersReady = LoadDiagnosticShaders();
+    bool passed = g_Device.Initialize(
+        static_cast< uint8_t * >( g_Mapped ) + kPersistentMemorySize,
+        kDirectMemorySize - kPersistentMemorySize );
+    g_ShadersReady = passed && LoadDiagnosticShaders();
     {
         char message[208];
         snprintf( message, sizeof( message ), "kisak-ps4: diagnostic shader detail %s",
@@ -679,8 +688,6 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
     KisakPs4StartupBreadcrumb( g_ShadersReady
         ? "kisak-ps4: diagnostic shader binaries loaded"
         : "kisak-ps4: diagnostic shader load failed; DMA bars retained" );
-    bool passed = g_Device.Initialize( static_cast< uint8_t * >( g_Mapped ) + kPersistentMemorySize,
-        kDirectMemorySize - kPersistentMemorySize );
     for ( unsigned int submit = 0; passed && submit < 3; ++submit )
     {
         CPs4GnmDevice::SubmissionFrame submission = {};

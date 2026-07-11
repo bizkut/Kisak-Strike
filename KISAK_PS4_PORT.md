@@ -929,6 +929,17 @@ position declarations, invalid streams, base-vertex offsets, descriptor-table
 capacity, and out-of-range vertex extents. The OpenOrbis monolith links this
 layer; live setup is unchanged until device initialization moves ahead of
 diagnostic resource creation.
+
+Version 2.58 initializes `CPs4GnmDevice` immediately after direct-memory
+mapping, before persistent shader resources are created. The live diagnostic
+position/color table is now described by a two-element
+`CPs4GnmVertexDeclaration` and assembled through
+`BuildVertexDescriptorTable`; the resulting two `GnmBuffer` records remain in
+the identical direct-memory location consumed by the proven fetch shader.
+The v2.58 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`3b2b3fef62e97a288c74dbc3eb829aa349b60d67a2e87df030f1a6fa1651d916`,
+with marker `kisak-ps4: build marker live_vertex_declaration_v258`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
