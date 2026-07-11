@@ -400,6 +400,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
         { 2.0f, 2.0f, 0.5f }
     };
     g_DrawState.BeginCommand();
+    g_DrawState.RetainDirtyMask( ~static_cast< uint32_t >(
+        CPs4GnmDrawState::kDirtyRenderTargetMask ) );
     g_DrawState.SetViewport( 0, offscreenViewport );
     g_DrawState.SetScissor( 0, 0, 4, 4 );
     sceGnmDrawCmdSetHwScreenOffset( command, 0, 0 );
@@ -428,7 +430,6 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     GnmBlendControl offscreenBlend = {};
     g_DrawState.SetBlendControl( 0, offscreenBlend );
     g_DrawState.SetRenderTarget( 0, g_DiagnosticTexture.ColorTarget() );
-    g_DrawState.SetRenderTargetMask( 0xf );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
     g_DrawState.SetPixelShader( g_PixelShader->registers );
     g_DrawState.SetIndexSize( GNM_INDEX_16, GNM_POLICY_LRU );
@@ -476,7 +477,6 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     blendControl.separatealphaenable = true;
     g_DrawState.SetBlendControl( 0, blendControl );
     g_DrawState.SetRenderTarget( 0, renderTarget );
-    g_DrawState.SetRenderTargetMask( 0xf );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
     g_DrawState.SetPixelShader( g_TexturePixelShader->registers );
     g_DrawState.SetIndexSize( GNM_INDEX_16, GNM_POLICY_LRU );

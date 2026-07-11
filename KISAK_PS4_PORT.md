@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.25
-SHA-256: 16c4b76cec11cd4c4836188f9beda3cd441ff21a62838fc244c51ef552ca96a8
+Version: 2.26
+SHA-256: f210ca470a7cf4fb00d3b23b20dcda69ec215ecb2f959184d3298d72f752b3be
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -598,6 +598,15 @@ render-target mask, and primitive setup—then emits those controls before the
 diagnostic draw state deliberately overwrites them. The log records the exact
 emitted mask, proving that the PS4 shader-shadow path reaches OpenGNM command
 encoding without yet changing the final diagnostic image.
+
+The v2.25 hardware run logged native shadow mask `0x00000458`, exactly the
+primitive, depth/stencil, render-target-mask, and blend categories, before the
+triangle/EOP pass remained opaque orange at 60 FPS. Version 2.26 gives the
+material-system shadow path sole ownership of the diagnostic render-target
+write mask. The bootstrap cache excludes that dirty category and no longer
+emits either duplicate `0xf` mask; all other diagnostic controls remain on the
+existing path. A preserved triangle therefore validates the first state
+category sourced exclusively through `IShaderShadow` and OpenGNM PM4.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
