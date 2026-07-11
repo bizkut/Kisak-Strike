@@ -40,8 +40,11 @@ Current hardware baseline:
 - The current frame is a CPU-cleared buffer. `shaderapiempty` is still active;
   no Source draw call, PM4 draw packet, converted shader, texture, or world
   geometry reaches the GPU yet.
-- The sound-emitter system tolerates missing content, but complete `/app0` and
-  `/data/kisak-strike` content mounting is not yet validated.
+- External content mounting is hardware validated. A post-upload v1.80 launch
+  read `gameinfo.txt`, the sound manifest, one VMT/VTF pair, and
+  `maps/de_dust2.bsp` through the normal layered `GAME` search path. The sound
+  manifest loaded successfully and the diagnostic run shut down cleanly after
+  frame 1200.
 
 Version 1.79 adds a host-tested PS4 content layout. It normalizes relative game
 paths, rejects absolute and traversal inputs, mounts `/data/kisak-strike/csgo`
@@ -58,9 +61,19 @@ through the layered `GAME` search path. It also opens and reads, when supplied,
 breadcrumb for every readable or missing asset. This validates package-root
 mounting independently from user-content availability.
 
+The 2026-07-11 post-upload hardware run validated the external half of that
+layout as well. `/data/kisak-strike/csgo` contains `gameinfo.txt`,
+`pak01_dir.vpk` and its numbered archives, while
+`/data/kisak-strike/platform` contains `platform_pak01_dir.vpk` and its
+numbered archives. All five representative loose-asset probes reported
+`readable`, `sound manifest loaded` replaced the empty-table fallback, and the
+launcher completed its bounded run without a crash. Content-path bring-up is
+therefore complete; the next unresolved boundary is the minimum
+OpenGNM-backed PS4 ShaderAPI/D3D9 draw path.
+
 The detailed version-by-version bring-up record remains below. The active
-boundary is no longer boot, module loading, or VideoOut. It is content mounting
-followed by the minimum OpenGNM-backed D3D9 draw path.
+boundary is no longer boot, module loading, VideoOut, or content mounting. It
+is the minimum OpenGNM-backed D3D9 draw path.
 
 ## Completed work
 
@@ -810,12 +823,13 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
 
 1. **Complete:** add host-tested PS4 path normalization and root selection for
    `/app0` and `/data/kisak-strike`.
-2. **Hardware validation:** mount loose content and VPK search paths, then
-   replace the sound-manifest fallback with a successful normal asset read.
-3. Validate VMT/VTF and BSP reads before introducing GPU resource creation.
-4. Add the PS4 ShaderAPI target and the minimal D3D object/resource skeleton;
-   keep `shaderapiempty` as an explicit diagnostic fallback until clear and
-   triangle tests pass.
+2. **Complete:** hardware validated external loose/VPK roots and replaced the
+   sound-manifest fallback with a successful normal asset load.
+3. **Complete:** validated representative VMT, VTF, and BSP reads through the
+   normal `GAME` search path.
+4. **Next:** add the PS4 ShaderAPI target and minimal D3D object/resource
+   skeleton; keep `shaderapiempty` as an explicit diagnostic fallback until
+   clear and triangle tests pass.
 5. Add command/constant arenas and EOP completion before permitting resource
    reuse across frames.
 
