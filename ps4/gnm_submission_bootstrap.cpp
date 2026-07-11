@@ -776,7 +776,8 @@ bool ClearDiagnosticDepth( GnmCommandBuffer *command )
 }
 
 void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
-    const CPs4GnmDevice::IndexedDrawPacket &packet )
+    const CPs4GnmDevice::IndexedDrawPacket &packet,
+    const CPs4GnmDevice::PrimitiveDrawPacket &cubePacket )
 {
     GnmRenderTarget renderTarget = {};
     if ( sceGnmRtCreateColorTarget( &renderTarget, destination, GNM_FMT_R8G8B8A8_SRGB,
@@ -890,9 +891,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     referenceDepthControl.depthenable = true;
     sceGnmDrawCmdSetDbRenderControl( command, &referenceDbControl );
     sceGnmDrawCmdSetDepthStencilControl( command, &referenceDepthControl );
-    g_DrawState.SetPrimitiveType( GNM_PT_TRILIST );
+    g_DrawState.SetPrimitiveType( cubePacket.primitiveType );
     g_DrawState.Apply( command );
-    sceGnmDrawCmdDrawIndexAuto( command, 36 );
+    sceGnmDrawCmdDrawIndexAuto( command, cubePacket.vertexCount );
 }
 }
 
@@ -1100,15 +1101,17 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         }
         g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
         CPs4GnmDevice::IndexedDrawPacket packet = {};
+        CPs4GnmDevice::PrimitiveDrawPacket cubePacket = {};
         if ( !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
-            0, kDiagnosticIndexCount, 0, kDiagnosticVertexCount, &packet ) )
+                0, kDiagnosticIndexCount, 0, kDiagnosticVertexCount, &packet ) ||
+            !g_Device.BuildPrimitiveDrawPacket( 0, 12, &cubePacket ) )
         {
             g_Device.EndScene();
             g_Device.CancelFrame();
             return false;
         }
         sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_CB0 );
-        EmitDiagnosticTriangle( &command, destination, packet );
+        EmitDiagnosticTriangle( &command, destination, packet, cubePacket );
         if ( !g_Device.EndScene() )
         {
             g_Device.CancelFrame();

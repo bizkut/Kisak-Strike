@@ -1098,6 +1098,21 @@ elapsed microseconds and two changing matrix elements. Marker:
 The v2.68 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `f30efe5d7a46bec04a4125bc6ddd2770aaad75badf607aeaf8e8333f8c379292`.
+
+The v2.68 hardware run showed the textured cube rotating continuously, proving
+native timer progression, per-frame CPU constant writes, shader constant
+visibility, and repeated depth-correct drawing. Version 2.69 begins migrating
+that proven draw contract out of the bootstrap and into `CPs4GnmDevice`.
+`BuildPrimitiveDrawPacket` now implements D3D-style primitive-count conversion
+for triangle lists/strips, line lists, and point lists, rejects zero/overflow
+draws outside an open scene, and returns the corresponding OpenGNM topology.
+The live cube requests 12 triangle primitives through the façade rather than
+hardcoding a 36-vertex OpenGNM draw. Host tests cover every topology and the
+failure boundaries. Marker:
+`kisak-ps4: build marker facade_draw_primitive_v269`.
+The v2.69 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`0c66bc18bcb854a6ba5198eb63504af88bed5adeeeeca5dabf74b35adf5efc21`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

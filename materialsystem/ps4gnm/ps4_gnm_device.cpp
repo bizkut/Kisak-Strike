@@ -221,6 +221,44 @@ bool CPs4GnmDevice::BuildIndexedDrawPacket( GnmDataFormat vertexFormat,
         static_cast< uint8_t * >( const_cast< void * >( stream.buffer ) ) + vertexOffset;
 }
 
+bool CPs4GnmDevice::BuildPrimitiveDrawPacket( uint32_t startVertex,
+    uint32_t primitiveCount, PrimitiveDrawPacket *packet ) const
+{
+    if ( !m_sceneOpen || !packet || !primitiveCount )
+        return false;
+
+    uint32_t verticesPerPrimitive = 1;
+    uint32_t extraVertices = 0;
+    GnmPrimitiveType primitiveType = GNM_PT_POINTLIST;
+    switch ( m_topology )
+    {
+    case kPrimitiveTriangles:
+        verticesPerPrimitive = 3;
+        primitiveType = GNM_PT_TRILIST;
+        break;
+    case kPrimitiveTriangleStrip:
+        extraVertices = 2;
+        primitiveType = GNM_PT_TRISTRIP;
+        break;
+    case kPrimitiveLines:
+        verticesPerPrimitive = 2;
+        primitiveType = GNM_PT_LINELIST;
+        break;
+    case kPrimitivePoints:
+        primitiveType = GNM_PT_POINTLIST;
+        break;
+    }
+    if ( primitiveCount > ( UINT32_MAX - extraVertices ) / verticesPerPrimitive )
+        return false;
+    const uint32_t vertexCount = primitiveCount * verticesPerPrimitive + extraVertices;
+    if ( startVertex > UINT32_MAX - vertexCount )
+        return false;
+    packet->startVertex = startVertex;
+    packet->vertexCount = vertexCount;
+    packet->primitiveType = primitiveType;
+    return true;
+}
+
 bool CPs4GnmDevice::BuildVertexDescriptorTable(
     const CPs4GnmVertexDeclaration &declaration, int32_t baseVertex,
     uint32_t vertexCount, GnmBuffer *descriptors,

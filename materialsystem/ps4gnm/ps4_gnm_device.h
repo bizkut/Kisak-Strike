@@ -47,6 +47,13 @@ public:
         GnmPrimitiveType primitiveType;
     };
 
+    struct PrimitiveDrawPacket
+    {
+        uint32_t startVertex;
+        uint32_t vertexCount;
+        GnmPrimitiveType primitiveType;
+    };
+
     struct SubmissionFrame
     {
         void *commandMemory;
@@ -77,6 +84,8 @@ public:
     bool BuildIndexedDrawPacket( GnmDataFormat vertexFormat,
         uint32_t firstIndex, uint32_t indexCount, int32_t baseVertex,
         uint32_t vertexCount, IndexedDrawPacket *packet ) const;
+    bool BuildPrimitiveDrawPacket( uint32_t startVertex,
+        uint32_t primitiveCount, PrimitiveDrawPacket *packet ) const;
     bool BuildVertexDescriptorTable( const CPs4GnmVertexDeclaration &declaration,
         int32_t baseVertex, uint32_t vertexCount, GnmBuffer *descriptors,
         uint32_t descriptorCapacity ) const;

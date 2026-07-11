@@ -109,7 +109,7 @@ public:
     int Run() override
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-    KisakPs4StartupBreadcrumb( "kisak-ps4: build marker native_timer_cube_v268" );
+    KisakPs4StartupBreadcrumb( "kisak-ps4: build marker facade_draw_primitive_v269" );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformSdkVersion() );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformKernelSelfTest()
 			? "kisak-ps4: scaleform kernel self-test passed"

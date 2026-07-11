@@ -84,6 +84,26 @@ int main()
         0, 2, 1, 2, &packet ) );
     assert( sceGnmBufGetBaseAddress( &packet.vertexBuffer ) == vertices + 16 );
     assert( packet.primitiveType == GNM_PT_TRISTRIP );
+    CPs4GnmDevice::PrimitiveDrawPacket primitivePacket = {};
+    device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
+    assert( device.BuildPrimitiveDrawPacket( 0, 12, &primitivePacket ) );
+    assert( primitivePacket.startVertex == 0 && primitivePacket.vertexCount == 36 );
+    assert( primitivePacket.primitiveType == GNM_PT_TRILIST );
+    device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangleStrip );
+    assert( device.BuildPrimitiveDrawPacket( 4, 10, &primitivePacket ) );
+    assert( primitivePacket.startVertex == 4 && primitivePacket.vertexCount == 12 );
+    assert( primitivePacket.primitiveType == GNM_PT_TRISTRIP );
+    device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveLines );
+    assert( device.BuildPrimitiveDrawPacket( 0, 3, &primitivePacket ) );
+    assert( primitivePacket.vertexCount == 6 &&
+        primitivePacket.primitiveType == GNM_PT_LINELIST );
+    device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitivePoints );
+    assert( device.BuildPrimitiveDrawPacket( 0, 7, &primitivePacket ) );
+    assert( primitivePacket.vertexCount == 7 &&
+        primitivePacket.primitiveType == GNM_PT_POINTLIST );
+    assert( !device.BuildPrimitiveDrawPacket( 0, 0, &primitivePacket ) );
+    device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
+    assert( !device.BuildPrimitiveDrawPacket( 0, UINT32_MAX, &primitivePacket ) );
     assert( !device.ValidateDrawIndexed( 1, 3, 0, 3 ) );
     assert( !device.ValidateDrawIndexed( 0, 3, 1, 3 ) );
     assert( device.EndScene() );
