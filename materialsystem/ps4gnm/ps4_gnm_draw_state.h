@@ -96,6 +96,7 @@ private:
     GnmShaderStage m_vertexBufferStage;
     uint32_t m_vertexBufferSlot;
     GnmBuffer m_vertexBuffer;
+    bool m_vertexBufferBound;
     uint32_t m_dirtyMask;
 };
 

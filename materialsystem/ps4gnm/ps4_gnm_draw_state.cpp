@@ -42,12 +42,15 @@ CPs4GnmDrawState::CPs4GnmDrawState()
     m_vertexBufferStage = GNM_STAGE_VS;
     m_vertexBufferSlot = 0;
     memset( &m_vertexBuffer, 0, sizeof( m_vertexBuffer ) );
+    m_vertexBufferBound = false;
     memset( m_scissor, 0, sizeof( m_scissor ) );
 }
 
 void CPs4GnmDrawState::BeginCommand()
 {
     m_dirtyMask = kDirtyAll;
+    if ( !m_vertexBufferBound )
+        m_dirtyMask &= ~static_cast< uint32_t >( kDirtyVertexBuffer );
 }
 
 void CPs4GnmDrawState::SetViewport( uint32_t index, const GnmSetViewportInfo &viewport )
@@ -222,10 +225,11 @@ void CPs4GnmDrawState::SetVertexBuffer( GnmShaderStage stage, uint32_t startSlot
 {
     const bool bufferChanged = AssignIfChanged( m_vertexBuffer, buffer );
     if ( m_vertexBufferStage != stage || m_vertexBufferSlot != startSlot ||
-        bufferChanged )
+        bufferChanged || !m_vertexBufferBound )
     {
         m_vertexBufferStage = stage;
         m_vertexBufferSlot = startSlot;
+        m_vertexBufferBound = true;
         m_dirtyMask |= kDirtyVertexBuffer;
     }
 }
@@ -276,7 +280,7 @@ uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
             m_vertexExportCount, m_pixelInputs, m_pixelInputCount );
     if ( emitted & kDirtyPrimitiveType )
         sceGnmDrawCmdSetPrimitiveType( command, m_primitiveType );
-    if ( emitted & kDirtyVertexBuffer )
+    if ( ( emitted & kDirtyVertexBuffer ) && m_vertexBufferBound )
         sceGnmDrawCmdSetVsharpUserData( command, m_vertexBufferStage,
             m_vertexBufferSlot, &m_vertexBuffer );
     m_dirtyMask = 0;

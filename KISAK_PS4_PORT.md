@@ -874,6 +874,21 @@ The v2.54 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `4ef7c7549891012208a5dc808ba18dd1132be79d671e2dbde8a6a57c1bf4137b`,
 with marker `kisak-ps4: build marker d3d9_facade_draw_v254`.
+
+The v2.54 hardware run reached
+`D3D9 facade indexed diagnostic draw emitted` and then crashed before the
+center-pixel/readback breadcrumb. The façade packet itself was valid; the
+regression was `BeginCommand()` marking the new vertex-buffer state dirty even
+though this shader still binds its two descriptors through an external fetch
+table. `Apply()` consequently wrote the zero-initialized standalone descriptor
+over VS user data. Version 2.55 tracks whether a standalone vertex buffer has
+ever been bound, excludes unbound state from command-start dirtiness, and
+guards emission. The v2.54 crash log is
+`hardware-captures/logs/2026-07-12/kisak_v254_d3d9_facade_draw_crash.txt`.
+The v2.55 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`94a6ce3248e4d134d2f65336ccc6a70048a260732d4cc7b93c7f9f3c701f0e06`,
+with marker `kisak-ps4: build marker guarded_facade_vsharp_v255`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
