@@ -83,6 +83,14 @@ The monolithic OpenOrbis build links the new module successfully. Hardware
 validation of module selection is the next checkpoint; no real draw is claimed
 yet.
 
+The v1.81 hardware run logged
+`shaderapips4 selected with empty fallback`, kept all five external content
+probes readable, reached at least frame 1200, and sustained the reported 60 FPS
+without a crash. This validates PS4 module selection and preserves the stable
+presentation/content baseline. The next checkpoint is to bind the two frame
+arenas and their completion labels to real OpenGNM command submission; the
+fallback remains active until a hardware clear and triangle pass.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
@@ -840,8 +848,9 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
 3. **Complete:** validated representative VMT, VTF, and BSP reads through the
    normal `GAME` search path.
 4. **In progress:** the PS4 ShaderAPI target, static module selection, minimal
-   device object, and diagnostic `shaderapiempty` delegation are present. Next
-   replace delegated device/resource interfaces through clear and triangle.
+   device object, and diagnostic `shaderapiempty` delegation are hardware
+   validated at 60 FPS. Next replace delegated device/resource interfaces
+   through clear and triangle.
 5. **In progress:** two command/constant frame arenas model EOP-gated reuse;
    next bind their labels to real OpenGNM submission completion.
 
