@@ -252,6 +252,16 @@ zero-input programs retain their compiler-provided VS registers and report
 `fetchbytes=0 procedural=1`; fetch generation remains enabled for shaders with
 real vertex attributes. The center-pixel probe remains active for validation.
 
+The v1.93 hardware run validates the first complete OpenGNM graphics pipeline.
+It remained stable at 60 FPS, displayed the four DMA bars with the centered
+orange gradient triangle, and read back center pixel `0xff00bcff` instead of
+the prior blue-band value `0xffff0000`. The log confirms wrapped VS/PS loading,
+direct procedural VS binding, PM4 state emission, raster output, render-target
+visibility, EOP synchronization, and repeated VideoOut flips. The bootstrap
+triangle milestone is complete. Further renderer work should now move behind
+the PS4 D3D9-compatible device boundary and use this path as its hardware
+smoke test rather than expanding the standalone diagnostic renderer.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
@@ -1058,12 +1068,14 @@ coverage while preserving the shader-triangle diagnostic introduced in v1.87.
    factories and lifecycles must replace the bootstrap launcher stand-in. Exit
    gate: reach the real menu state without missing interface versions or
    proprietary runtime modules.
-5. **Minimum PS4 D3D9/OpenGNM renderer — pending.**
+5. **Minimum PS4 D3D9/OpenGNM renderer — in progress.**
    Add `CPs4GnmDevice`, draw-state, texture, memory, and flip components beside
    the PS3 architecture. First implement aligned pools, two frame arenas, EOP
    labels, deferred destruction, vertex/index buffers, declarations, viewport,
    clear, indexed draw, depth, blend, texture sampling, render targets, copy,
-   and resolve. Exit gate: hardware clear, triangle, indexed texture, depth,
+   and resolve. The standalone hardware clear and procedural triangle are now
+   validated at 60 FPS; migrate that command path into `CPs4GnmDevice` next.
+   Exit gate: hardware clear, triangle, indexed texture, depth,
    blend, and render-to-texture tests pass without timeout or memory growth.
 6. **Offline shader conversion and manifest — pending.**
    Generate the minimum UI/world combinations from Source shader metadata,
