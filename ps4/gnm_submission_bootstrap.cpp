@@ -57,6 +57,8 @@ void *g_FetchShader = 0;
 GnmBuffer *g_VertexBuffers = 0;
 GnmDepthRenderTarget g_DepthTarget = {};
 bool g_DepthTargetReady = false;
+void *g_DepthMemory = 0;
+uint32_t g_DepthMemorySize = 0;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 char g_ShaderDiagnostic[160] = "not attempted";
@@ -272,6 +274,8 @@ bool LoadDiagnosticShaders()
         return false;
     }
     g_DepthTargetReady = true;
+    g_DepthMemory = gpuCursor;
+    g_DepthMemorySize = static_cast< uint32_t >( depthSize );
     snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
         "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u depthbytes=%llu",
         g_VertexShader->common.shadersize, g_PixelShader->common.shadersize,
@@ -309,6 +313,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     primitiveSetup.frontmode = primitiveSetup.backmode = GNM_FILL_SOLID;
     g_DrawState.SetPrimitiveSetup( primitiveSetup );
     GnmDepthStencilControl depthControl = {};
+    depthControl.zwrite = g_DepthTargetReady;
+    depthControl.zfunc = GNM_DEPTH_COMPARE_LESSEQUAL;
+    depthControl.depthenable = g_DepthTargetReady;
     g_DrawState.SetDepthStencilControl( depthControl );
     if ( g_DepthTargetReady )
         g_DrawState.SetDepthRenderTarget( g_DepthTarget );
@@ -504,6 +511,17 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             g_Device.CancelFrame();
             return false;
         }
+    }
+    if ( g_DepthTargetReady )
+    {
+        if ( !sceGnmDrawCmdFillMemory( &command,
+            static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DepthMemory ) ),
+            g_DepthMemorySize, 0x3f800000 ) )
+        {
+            g_Device.CancelFrame();
+            return false;
+        }
+        sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_DB );
     }
     if ( g_ShadersReady )
     {

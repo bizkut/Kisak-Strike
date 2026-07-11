@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.05
-SHA-256: 5ab7e11eb2fead99ecd967d854947fbbec40f01e58bae735303fc440ff52fb70
+Version: 2.06
+SHA-256: 5cc32f20b6a7cc3e20211bf26281527b67936b48aff722aa35afc664164c489b
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -378,6 +378,15 @@ writes. The build also removes synchronous `before flip`/`flip complete` file
 logging from every frame: those markers now cover the first three flips and a
 once-per-3600-frame heartbeat. This reduces avoidable hot-path I/O behind the
 reported 58-62 FPS sampling jitter while retaining VSYNC pacing and failures.
+
+The v2.05 hardware run validated the 8,294,400-byte Z32 allocation and binding,
+retained the blended `0x80bc89bc` center pixel, and stayed stable at 60 FPS with
+only the first three flip breadcrumbs. Version 2.06 clears the entire tiled
+depth allocation with the uniform IEEE-754 `1.0f` bit pattern using bounded GPU
+fills, waits for DB visibility, and enables Z writes with `LESS_EQUAL` testing.
+The existing triangle emits Z=0.5 and must remain visible. This validates depth
+clear, target binding, comparison, and writes before overlapping geometry is
+introduced.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
