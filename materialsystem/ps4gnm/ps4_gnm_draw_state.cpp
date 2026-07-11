@@ -39,6 +39,9 @@ CPs4GnmDrawState::CPs4GnmDrawState()
     m_vertexExportCount = 0;
     m_pixelInputCount = 0;
     m_primitiveType = GNM_PT_TRILIST;
+    m_vertexBufferStage = GNM_STAGE_VS;
+    m_vertexBufferSlot = 0;
+    memset( &m_vertexBuffer, 0, sizeof( m_vertexBuffer ) );
     memset( m_scissor, 0, sizeof( m_scissor ) );
 }
 
@@ -214,6 +217,19 @@ void CPs4GnmDrawState::SetPrimitiveType( GnmPrimitiveType primitiveType )
     }
 }
 
+void CPs4GnmDrawState::SetVertexBuffer( GnmShaderStage stage, uint32_t startSlot,
+    const GnmBuffer &buffer )
+{
+    const bool bufferChanged = AssignIfChanged( m_vertexBuffer, buffer );
+    if ( m_vertexBufferStage != stage || m_vertexBufferSlot != startSlot ||
+        bufferChanged )
+    {
+        m_vertexBufferStage = stage;
+        m_vertexBufferSlot = startSlot;
+        m_dirtyMask |= kDirtyVertexBuffer;
+    }
+}
+
 uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
 {
     if ( !command )
@@ -260,6 +276,9 @@ uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
             m_vertexExportCount, m_pixelInputs, m_pixelInputCount );
     if ( emitted & kDirtyPrimitiveType )
         sceGnmDrawCmdSetPrimitiveType( command, m_primitiveType );
+    if ( emitted & kDirtyVertexBuffer )
+        sceGnmDrawCmdSetVsharpUserData( command, m_vertexBufferStage,
+            m_vertexBufferSlot, &m_vertexBuffer );
     m_dirtyMask = 0;
     return emitted;
 }

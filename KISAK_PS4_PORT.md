@@ -845,6 +845,14 @@ uploads, D3D-style partial locks, full-buffer dynamic discard locks, balanced
 unlocking, and discard generations for later deferred-storage rotation.
 `CPs4GnmDevice` accepts these typed resources directly and rejects cross-binding
 an index buffer as a vertex stream or a vertex buffer as indices.
+
+The buffer layer now generates native 16-byte `GnmBuffer` vertex descriptors
+with validated format, stride, offset, and record count. `CPs4GnmDrawState`
+caches the descriptor as a distinct dirty state and emits it with
+`sceGnmDrawCmdSetVsharpUserData`, alongside the existing cached index-size and
+primitive-topology commands. Descriptor layout and out-of-range record counts
+are host-tested against OpenGNM's data-format implementation. Device-to-draw
+state assembly and the final indexed draw packet remain the next slice.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

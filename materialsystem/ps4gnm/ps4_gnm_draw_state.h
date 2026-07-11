@@ -26,7 +26,8 @@ public:
         kDirtyPointerUserData = 1u << 13,
         kDirtyPsInputUsage = 1u << 14,
         kDirtyPrimitiveType = 1u << 15,
-        kDirtyAll = ( 1u << 16 ) - 1
+        kDirtyVertexBuffer = 1u << 16,
+        kDirtyAll = ( 1u << 17 ) - 1
     };
 
     CPs4GnmDrawState();
@@ -51,6 +52,8 @@ public:
         uint32_t vertexExportCount, const GnmPixelInputSemantic *pixelInputs,
         uint32_t pixelInputCount );
     void SetPrimitiveType( GnmPrimitiveType primitiveType );
+    void SetVertexBuffer( GnmShaderStage stage, uint32_t startSlot,
+        const GnmBuffer &buffer );
     uint32_t Apply( GnmCommandBuffer *command );
     void RetainDirtyMask( uint32_t mask ) { m_dirtyMask &= mask; }
 
@@ -90,6 +93,9 @@ private:
     uint32_t m_vertexExportCount;
     uint32_t m_pixelInputCount;
     GnmPrimitiveType m_primitiveType;
+    GnmShaderStage m_vertexBufferStage;
+    uint32_t m_vertexBufferSlot;
+    GnmBuffer m_vertexBuffer;
     uint32_t m_dirtyMask;
 };
 

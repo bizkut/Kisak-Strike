@@ -8,6 +8,10 @@ if(NOT PS4 OR NOT POSIX OR NOT STATIC_LINK OR NOT _DLL_EXT STREQUAL "")
 endif()
 
 enable_testing()
+set_source_files_properties(
+    ../../opengnm/src/dataformat.c
+    ../../opengnm/src/error.c
+    PROPERTIES LANGUAGE CXX)
 add_executable(static_module_registry_test
     static_module_registry_test.cpp
     ../appframework/StaticModuleRegistry.cpp
@@ -40,16 +44,24 @@ add_executable(ps4_gnm_device_test
     ../materialsystem/ps4gnm/ps4_gnm_buffer.cpp
     ../materialsystem/ps4gnm/ps4_gnm_device.cpp
     ../materialsystem/ps4gnm/ps4_gnm_memory.cpp
+    ../../opengnm/src/dataformat.c
+    ../../opengnm/src/error.c
 )
-target_include_directories(ps4_gnm_device_test PRIVATE ../materialsystem/ps4gnm)
+target_include_directories(ps4_gnm_device_test PRIVATE
+    ../materialsystem/ps4gnm
+    ../../opengnm/include)
 set_target_properties(ps4_gnm_device_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_gnm_device COMMAND ps4_gnm_device_test)
 
 add_executable(ps4_gnm_buffer_test
     ps4_gnm_buffer_test.cpp
     ../materialsystem/ps4gnm/ps4_gnm_buffer.cpp
+    ../../opengnm/src/dataformat.c
+    ../../opengnm/src/error.c
 )
-target_include_directories(ps4_gnm_buffer_test PRIVATE ../materialsystem/ps4gnm)
+target_include_directories(ps4_gnm_buffer_test PRIVATE
+    ../materialsystem/ps4gnm
+    ../../opengnm/include)
 set_target_properties(ps4_gnm_buffer_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_gnm_buffer COMMAND ps4_gnm_buffer_test)
 

@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <gnm.h>
 
 class CPs4GnmBuffer
 {
@@ -21,6 +22,8 @@ public:
     bool Lock( size_t offset, size_t size, bool discard, void **data );
     bool Unlock();
     bool Upload( size_t offset, const void *source, size_t size );
+    bool BuildVertexDescriptor( GnmDataFormat format, uint32_t stride,
+        uint32_t vertexCount, size_t offset, GnmBuffer *descriptor ) const;
 
     bool IsValid() const { return m_memory != 0; }
     bool IsLocked() const { return m_locked; }

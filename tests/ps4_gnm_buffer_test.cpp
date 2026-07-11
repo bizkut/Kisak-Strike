@@ -12,6 +12,13 @@ int main()
     assert( buffer.Initialize( storage, sizeof( storage ),
         CPs4GnmBuffer::kVertexBuffer, true ) );
     assert( buffer.Generation() == 1 );
+    GnmBuffer descriptor = {};
+    assert( buffer.BuildVertexDescriptor( GNM_FMT_R32G32B32A32_FLOAT,
+        16, 4, 0, &descriptor ) );
+    assert( sceGnmBufGetBaseAddress( &descriptor ) == storage );
+    assert( descriptor.stride == 16 && descriptor.numrecords == 4 );
+    assert( !buffer.BuildVertexDescriptor( GNM_FMT_R32G32B32A32_FLOAT,
+        16, 5, 0, &descriptor ) );
 
     uint8_t source[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
     assert( buffer.Upload( 4, source, sizeof( source ) ) );

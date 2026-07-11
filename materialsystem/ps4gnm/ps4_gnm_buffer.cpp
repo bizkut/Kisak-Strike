@@ -71,3 +71,16 @@ bool CPs4GnmBuffer::Upload( size_t offset, const void *source, size_t size )
     memcpy( m_memory + offset, source, size );
     return true;
 }
+
+bool CPs4GnmBuffer::BuildVertexDescriptor( GnmDataFormat format, uint32_t stride,
+    uint32_t vertexCount, size_t offset, GnmBuffer *descriptor ) const
+{
+    if ( !descriptor || !m_memory || m_type != kVertexBuffer || !stride ||
+        !vertexCount || offset >= m_size ||
+        vertexCount > ( m_size - offset ) / stride )
+        return false;
+    *descriptor = sceGnmCreateVertexBuffer( m_memory + offset, format, stride,
+        vertexCount );
+    return sceGnmBufGetBaseAddress( descriptor ) == m_memory + offset &&
+        descriptor->stride == stride && descriptor->numrecords == vertexCount;
+}
