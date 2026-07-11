@@ -64,3 +64,11 @@ add_executable(ps4_shader_manifest_test
 target_include_directories(ps4_shader_manifest_test PRIVATE ../materialsystem/ps4gnm)
 set_target_properties(ps4_shader_manifest_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_shader_manifest COMMAND ps4_shader_manifest_test)
+
+add_executable(ps4_gnm_shader_handles_test
+    ps4_gnm_shader_handles_test.cpp
+    ../materialsystem/ps4gnm/ps4_gnm_shader_handles.cpp
+)
+target_include_directories(ps4_gnm_shader_handles_test PRIVATE ../materialsystem/ps4gnm)
+set_target_properties(ps4_gnm_shader_handles_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
+add_test(NAME ps4_gnm_shader_handles COMMAND ps4_gnm_shader_handles_test)

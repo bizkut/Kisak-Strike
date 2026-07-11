@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.44
-SHA-256: a349422f0ef5bbd37828e5bfac28dc612e3a16bf5d0fd35b562aa20c85df11f9
+Version: 2.45
+SHA-256: 1fa7add24c0c8b446034b9504588173c29c6c4d51e9b9ef92d596870c515ab2b
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -756,6 +756,15 @@ vertex shader, removes the last legacy stage array, and loads all three stages
 through `CPs4GnmShader`. GPU code placement now advances using each resource's
 validated code size. Runtime logs `role=vertex` in addition to both pixel roles
 before fetch-shader construction and the established shader-loaded marker.
+
+The v2.44 hardware run logged all three native shader resources (`40`, `52`,
+and `84` code bytes) and preserved the opaque orange triangle at 60 FPS.
+Version 2.45 adds a bounded 64-entry native shader-handle table. Handles encode
+slot plus generation, resolve only for the requested vertex/pixel stage,
+register idempotently, reject capacity exhaustion, and invalidate stale handles
+after destruction and slot reuse. Host tests cover stage mismatch, idempotence,
+destruction, generation advancement, and stale-handle rejection. Runtime
+resource registration follows after this table-only no-regression gate.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
