@@ -1116,23 +1116,21 @@ CThreadEvent::CThreadEvent( bool bManualReset )
 #elif defined( POSIX )
 	#if defined( PLATFORM_PS4 )
 	if ( g_KisakPs4TraceThreadPool )
-		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event before attr init" );
-	#endif
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event before mutex init" );
+	// The OpenOrbis pthread headers expose a smaller pthread_mutexattr_t than
+	// the runtime writes.  A stack-local attribute is therefore unsafe here,
+	// and an event's private mutex does not require recursive behavior.
+    pthread_mutex_init( &m_Mutex, NULL );
+	#else
     pthread_mutexattr_t Attr;
     pthread_mutexattr_init( &Attr );
-	#if defined( PLATFORM_PS4 )
-	if ( g_KisakPs4TraceThreadPool )
-		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event after attr init" );
-	#endif
     pthread_mutex_init( &m_Mutex, &Attr );
+	#endif
 	#if defined( PLATFORM_PS4 )
 	if ( g_KisakPs4TraceThreadPool )
 		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event after mutex init" );
-	#endif
+	#else
     pthread_mutexattr_destroy( &Attr );
-	#if defined( PLATFORM_PS4 )
-	if ( g_KisakPs4TraceThreadPool )
-		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event after attr destroy" );
 	#endif
     pthread_cond_init( &m_Condition, NULL );
 	#if defined( PLATFORM_PS4 )

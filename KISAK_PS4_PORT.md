@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.11
-SHA-256: 0c941816dbf927541c817442b12deacd055ff47157d6e0f07c1ff81c717211a0
+Version: 1.12
+SHA-256: 036bc33347d38213d10c800f583d110f34c1069b75dd049c55538b4e79d2a875
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -198,6 +198,12 @@ The v1.10 trace completed the manual event's mutex, attribute teardown, and
 condition-variable initialization. It stopped before the next pool mutex.
 Version 1.11 marks the completed `CJobQueue` body and the empty thread-vector's
 debug-pointer setup, the only non-trivial boundaries remaining between them.
+
+The v1.11 run again logged `thread pool event complete` but never returned to
+the `CJobQueue` body. Disassembly shows the next operation is the constructor's
+stack-canary check. OpenOrbis's pthread runtime overwrote the undersized local
+`pthread_mutexattr_t`. Version 1.12 removes that local attribute on PS4 and
+initializes the event's non-recursive private mutex with default attributes.
 
 Reproduce the current cross-build with:
 
