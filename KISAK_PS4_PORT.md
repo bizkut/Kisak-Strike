@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.59
-SHA-256: 13939d7463ceaad01a513a664203d3dea86dbae26750fed783cc3dec660e7694
+Version: 1.60
+SHA-256: 9ddb7f657f6c6df3c1f3bc49ca495ce3983ec13cde7fd80389db7c4631669a4f
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -569,6 +569,16 @@ material-system-owned `g_pShaderUtil` global instead of retaining the original
 DLL-local duplicate. This checkpoint is only for advancing initialization and
 diagnostics; OpenGNM remains the sole intended PS4 graphics backend and must
 replace the empty factory before rendering acceptance.
+
+The v1.59 hardware run remained stable but still logged `materialsystem shader
+factory missing`. The scaffold was present in the executable, while
+`CMaterialSystem::CreateShaderAPI` continued to use `Sys_LoadModule`, bypassing
+the static module registry used by the monolithic app-system loader.
+
+Version 1.60 routes PS4 ShaderAPI creation through
+`FindStaticModuleFactory`. Other platforms retain dynamic module loading. This
+allows the temporary empty ShaderAPI to connect now and provides the same
+factory-selection hook that the future OpenGNM ShaderAPI will use.
 
 Reproduce the current cross-build with:
 

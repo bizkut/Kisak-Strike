@@ -33,6 +33,7 @@
 #include "tier0/perfstats.h"
 
 #if defined( PLATFORM_PS4 )
+#include "appframework/StaticModuleRegistry.h"
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 #define PS4_MATSYS_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
 #else
@@ -739,6 +740,12 @@ CreateInterfaceFn CMaterialSystem::CreateShaderAPI( char const* pShaderDLL )
 	// Clean up the old shader
 	DestroyShaderAPI();
 
+#if defined( PLATFORM_PS4 )
+	// PS4 initially ships as one executable. ShaderAPI modules are factories in
+	// the static registry rather than dynamically loaded PRX/shared libraries.
+	return FindStaticModuleFactory( pShaderDLL );
+#else
+
 	// Load the new shader
 	m_ShaderHInst = Sys_LoadModule( pShaderDLL );
 
@@ -748,6 +755,7 @@ CreateInterfaceFn CMaterialSystem::CreateShaderAPI( char const* pShaderDLL )
 
 	// Get our class factory methods...
 	return Sys_GetFactory( m_ShaderHInst );
+#endif
 }
 
 void CMaterialSystem::DestroyShaderAPI()
