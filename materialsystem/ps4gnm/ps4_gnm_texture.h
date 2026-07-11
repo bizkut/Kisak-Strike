@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <gnm.h>
 
@@ -20,6 +21,24 @@ public:
         uint32_t rowCount );
     bool CreateColorTargetView( GnmDataFormat format, uint32_t width,
         uint32_t height, GnmTileMode tileMode, GnmGpuMode gpuMode );
+    bool BuildSamplerTable( const GnmSampler &sampler, void *storage,
+        size_t storageSize, void **table ) const;
+    static size_t SamplerTableSize()
+    {
+        return sizeof( GnmTexture ) + sizeof( GnmSampler );
+    }
+    static bool WriteSamplerTable( const GnmTexture &texture,
+        const GnmSampler &sampler, void *storage, size_t storageSize,
+        void **table )
+    {
+        if ( !storage || !table || storageSize < SamplerTableSize() )
+            return false;
+        memcpy( storage, &texture, sizeof( texture ) );
+        memcpy( static_cast< uint8_t * >( storage ) + sizeof( texture ),
+            &sampler, sizeof( sampler ) );
+        *table = storage;
+        return true;
+    }
 
     bool IsValid() const { return m_valid; }
     const GnmTexture &Descriptor() const { return m_texture; }

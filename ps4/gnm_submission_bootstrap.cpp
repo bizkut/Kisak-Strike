@@ -616,8 +616,6 @@ bool LoadDiagnosticShaders()
         snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ), "texture table allocation failed" );
         return false;
     }
-    GnmTexture *textureTable = reinterpret_cast< GnmTexture * >( tableCursor );
-    *textureTable = g_DiagnosticTexture.Descriptor();
     GnmSampler *sampler = reinterpret_cast< GnmSampler * >( tableCursor + sizeof( GnmTexture ) );
     memset( sampler, 0, sizeof( *sampler ) );
     sampler->clampx = sampler->clampy = sampler->clampz = GNM_TEX_CLAMP_CLAMP_LAST_TEXEL;
@@ -627,7 +625,9 @@ bool LoadDiagnosticShaders()
     sampler->zfilter = GNM_ZFILTER_NONE;
     sampler->mipfilter = GNM_MIPFILTER_NONE;
     sampler->bordercolortype = GNM_BORDER_COLOR_OPAQUE_BLACK;
-    g_TextureSamplerTable = tableCursor;
+    if ( !g_DiagnosticTexture.BuildSamplerTable( *sampler, tableCursor,
+            CPs4GnmTexture::SamplerTableSize(), &g_TextureSamplerTable ) )
+        return false;
     uint8_t *copyCursor = tableCursor + sizeof( GnmTexture ) + sizeof( GnmSampler );
     copyCursor = reinterpret_cast< uint8_t * >(
         ( reinterpret_cast< uintptr_t >( copyCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
@@ -650,9 +650,9 @@ bool LoadDiagnosticShaders()
         snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ), "copy texture table failed" );
         return false;
     }
-    *reinterpret_cast< GnmTexture * >( copyTableCursor ) = g_DiagnosticCopyTexture.Descriptor();
-    *reinterpret_cast< GnmSampler * >( copyTableCursor + sizeof( GnmTexture ) ) = *sampler;
-    g_TextureSamplerTable = copyTableCursor;
+    if ( !g_DiagnosticCopyTexture.BuildSamplerTable( *sampler, copyTableCursor,
+            CPs4GnmTexture::SamplerTableSize(), &g_TextureSamplerTable ) )
+        return false;
     const uint32_t combinedTableSamplerMask = 1u;
     if ( ( g_PendingSamplerMask & ~combinedTableSamplerMask ) != 0 )
     {
@@ -686,9 +686,9 @@ bool LoadDiagnosticShaders()
     if ( sizeof( GnmTexture ) + sizeof( GnmSampler ) >
         static_cast< size_t >( gpuEnd - referenceCursor ) )
         return false;
-    *reinterpret_cast< GnmTexture * >( referenceCursor ) = g_CubeEdgeTexture.Descriptor();
-    *reinterpret_cast< GnmSampler * >( referenceCursor + sizeof( GnmTexture ) ) = *sampler;
-    g_CubeEdgeSamplerTable = referenceCursor;
+    if ( !g_CubeEdgeTexture.BuildSamplerTable( *sampler, referenceCursor,
+            CPs4GnmTexture::SamplerTableSize(), &g_CubeEdgeSamplerTable ) )
+        return false;
     referenceCursor += sizeof( GnmTexture ) + sizeof( GnmSampler );
     referenceCursor = reinterpret_cast< uint8_t * >(
         ( reinterpret_cast< uintptr_t >( referenceCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );

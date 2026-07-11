@@ -1,4 +1,5 @@
 #include "ps4_gnm_buffer.h"
+#include "ps4_gnm_texture.h"
 
 #include <assert.h>
 #include <stdint.h>
@@ -6,6 +7,22 @@
 
 int main()
 {
+    GnmTexture texture = {};
+    GnmSampler sampler = {};
+    texture.width = 7;
+    sampler.clampx = GNM_TEX_CLAMP_CLAMP_LAST_TEXEL;
+    uint8_t samplerTable[sizeof( GnmTexture ) + sizeof( GnmSampler )] = {};
+    void *table = 0;
+    assert( CPs4GnmTexture::SamplerTableSize() == sizeof( samplerTable ) );
+    assert( !CPs4GnmTexture::WriteSamplerTable( texture, sampler,
+        samplerTable, sizeof( samplerTable ) - 1, &table ) );
+    assert( CPs4GnmTexture::WriteSamplerTable( texture, sampler,
+        samplerTable, sizeof( samplerTable ), &table ) );
+    assert( table == samplerTable );
+    assert( reinterpret_cast< GnmTexture * >( table )->width == 7 );
+    assert( reinterpret_cast< GnmSampler * >(
+        samplerTable + sizeof( GnmTexture ) )->clampx ==
+        GNM_TEX_CLAMP_CLAMP_LAST_TEXEL );
     alignas( 16 ) uint8_t storage[64] = {};
     CPs4GnmBuffer buffer;
     assert( !buffer.Initialize( storage + 1, 32, CPs4GnmBuffer::kVertexBuffer, false ) );

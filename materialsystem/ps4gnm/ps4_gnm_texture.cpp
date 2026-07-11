@@ -129,6 +129,13 @@ bool CPs4GnmTexture::CreateColorTargetView( GnmDataFormat format,
     return true;
 }
 
+bool CPs4GnmTexture::BuildSamplerTable( const GnmSampler &sampler,
+    void *storage, size_t storageSize, void **table ) const
+{
+    return m_valid && WriteSamplerTable( m_texture, sampler, storage,
+        storageSize, table );
+}
+
 void CPs4GnmTexture::Reset()
 {
     if ( m_valid )

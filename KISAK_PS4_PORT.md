@@ -1159,6 +1159,19 @@ draws second under the same depth target. Marker:
 The v2.73 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `7591803a6d87491984556abe880b14a06e979032a575436dc236e10de6218c39`.
+
+The v2.73 hardware run retained 60 FPS and visibly rendered the dark-navy
+contrast lines on the spinning cube, validating the second line-list draw and
+edge texture. Version 2.74 moves native texture/sampler table construction into
+`CPs4GnmTexture::BuildSamplerTable`. The render-to-texture source, copied face
+texture, and navy edge texture now all build their adjacent descriptor tables
+through the resource façade. The helper checks validity and storage size;
+host coverage verifies exact texture/sampler layout, preserved fields, and
+undersized-storage rejection. Marker:
+`kisak-ps4: build marker facade_sampler_tables_v274`.
+The v2.74 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`238f059bb90ee628b25420c018b905dc670ab77fe2ac4794818eb7b4c0623dd4`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
