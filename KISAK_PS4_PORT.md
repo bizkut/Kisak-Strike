@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.56
-SHA-256: 19aa49700a2631a323c144ccd14665f1081c6f7bbf7fceffc3197242bc04ee88
+Version: 1.57
+SHA-256: afe38194edcb32d1aa6342360a2386d037b06393b30c3823cdbcc13b75beefbe
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -526,6 +526,18 @@ Version 1.56 anchors the existing `CInputStackSystem` translation unit through
 the PS4 input-system factory. This exposes the real input-context stack under
 the existing module identity without duplicating registration or introducing
 a placeholder implementation.
+
+The v1.56 hardware run regressed to a crash, but proved the retained input-stack
+contract itself resolves correctly. Dependency scanning satisfied localization,
+input stack, material system, and VGUI dependencies, completed ordering, and
+reached `ConnectSystems`. The log stopped immediately after `app before
+connect`, before the first connection result, isolating the failure to an
+app-system `Connect` call rather than static construction or dependency lookup.
+
+Version 1.57 adds the interface name plus before-call, false-return, and
+successful-return breadcrumbs around every `ConnectSystems` invocation. This
+diagnostic build leaves connection order and subsystem behavior unchanged and
+will identify the exact system whose connection path crashes.
 
 Reproduce the current cross-build with:
 

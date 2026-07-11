@@ -670,13 +670,20 @@ bool CAppSystemGroup::ConnectSystems()
 	for (int i = 0; i < m_Systems.Count(); ++i )
 	{
 		IAppSystem *pSystem = m_Systems[i];
+		const char *pInterfaceName = FindSystemName( i );
+		PS4_APP_BREADCRUMB( "kisak-ps4: connect system" );
+		PS4_APP_BREADCRUMB( pInterfaceName ? pInterfaceName : "<unnamed>" );
+		PS4_APP_BREADCRUMB( "kisak-ps4: connect before call" );
 		if ( !pSystem->Connect( GetFactory() ) )
 		{
+			PS4_APP_BREADCRUMB( "kisak-ps4: connect returned false" );
 			ReportStartupFailure( CONNECTION, i );
 			return false;
 		}
+		PS4_APP_BREADCRUMB( "kisak-ps4: connect complete" );
 	}
 
+	PS4_APP_BREADCRUMB( "kisak-ps4: connect systems complete" );
 	return true;
 }
 
