@@ -130,7 +130,8 @@ public:
 					break;
 				}
 			}
-			std::this_thread::sleep_for( std::chrono::milliseconds( 16 ) );
+			if ( !videoOutReady )
+				std::this_thread::sleep_for( std::chrono::milliseconds( 16 ) );
 		}
 		KisakPs4VideoOutShutdown();
         return RUN_OK;

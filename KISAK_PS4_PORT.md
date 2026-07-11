@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.77
-SHA-256: e24f8144f091ad1edf5a7cdf3d651477fc4de45fe9fab5d8f1701adea75915fb
+Version: 1.78
+SHA-256: 438f2ab7f78e5f214fb80a85168a73bcd60ef289de161e78e1b784803d71a0ec
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -60,6 +60,12 @@ four seconds: the bounded loop had ended, not hung. Kisak v1.77 extends the
 same presentation stress loop to 1,800 frames and emits a heartbeat every 60
 frames, giving the next run about a minute of continuous evidence before
 shutdown.
+
+The v1.77 cadence was approximately 28–30 FPS because each VSYNC flip already
+waited for presentation and the loop then added a second 16 ms sleep. Kisak
+v1.78 removes that redundant sleep whenever VideoOut is active; the VSYNC wait
+now provides the frame pacing, while the no-VideoOut fallback retains its
+sleep.
 
 Expected hardware log:
 
