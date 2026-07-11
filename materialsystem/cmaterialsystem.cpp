@@ -839,12 +839,22 @@ bool CMaterialSystem::Connect( CreateInterfaceFn factory )
 	// Get at the interfaces exported by the shader DLL
 
 #ifndef _OSX
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem before device manager query" );
 	g_pShaderDeviceMgr = (IShaderDeviceMgr*)m_ShaderAPIFactory( SHADER_DEVICE_MGR_INTERFACE_VERSION, 0 );
 	if ( !g_pShaderDeviceMgr )
+	{
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem device manager missing" );
 		return false;
+	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem device manager ready" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem before hardware config query" );
 	g_pHWConfig = (IHardwareConfigInternal*)m_ShaderAPIFactory( MATERIALSYSTEM_HARDWARECONFIG_INTERFACE_VERSION, 0 );
 	if ( !g_pHWConfig )
+	{
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem hardware config missing" );
 		return false;
+	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem hardware config ready" );
 #endif
 
 #ifndef DEDICATED
@@ -889,15 +899,30 @@ bool CMaterialSystem::Connect( CreateInterfaceFn factory )
 
 #ifndef _OSX
 	// FIXME: ShaderAPI, ShaderDevice, and ShaderShadow should only come in after setting mode
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem before shader api query" );
 	g_pShaderAPI = (IShaderAPI*)m_ShaderAPIFactory( SHADERAPI_INTERFACE_VERSION, 0 );
 	if ( !g_pShaderAPI )
+	{
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem shader api missing" );
 		return false;
+	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem shader api ready" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem before shader device query" );
 	g_pShaderDevice = (IShaderDevice*)m_ShaderAPIFactory( SHADER_DEVICE_INTERFACE_VERSION, 0 );
 	if ( !g_pShaderDevice )
+	{
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem shader device missing" );
 		return false;
+	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem shader device ready" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem before shader shadow query" );
 	g_pShaderShadow = (IShaderShadow*)m_ShaderAPIFactory( SHADERSHADOW_INTERFACE_VERSION, 0 );
 	if ( !g_pShaderShadow )
+	{
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem shader shadow missing" );
 		return false;
+	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem shader shadow ready" );
 #endif
 
 	// Remember the factory for connect
@@ -907,9 +932,13 @@ bool CMaterialSystem::Connect( CreateInterfaceFn factory )
 	g_pScaleformUI = ( IScaleformUI* ) factory( SCALEFORMUI_INTERFACE_VERSION, 0 );
 #elif defined( INCLUDE_ROCKETUI )
 	g_pRocketUI = ( IRocketUI* ) factory( ROCKETUI_INTERFACE_VERSION, 0 );
+	PS4_MATSYS_BREADCRUMB( g_pRocketUI ? "kisak-ps4: materialsystem rocketui ready" : "kisak-ps4: materialsystem rocketui missing" );
 #endif
 
-	return g_pShaderDeviceMgr->Connect( ShaderFactory );	
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem before device manager connect" );
+	const bool connected = g_pShaderDeviceMgr->Connect( ShaderFactory );
+	PS4_MATSYS_BREADCRUMB( connected ? "kisak-ps4: materialsystem device manager connected" : "kisak-ps4: materialsystem device manager connect failed" );
+	return connected;
 }
 
 void CMaterialSystem::Disconnect()

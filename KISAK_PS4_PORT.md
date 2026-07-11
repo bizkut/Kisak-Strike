@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.60
-SHA-256: 9ddb7f657f6c6df3c1f3bc49ca495ce3983ec13cde7fd80389db7c4631669a4f
+Version: 1.61
+SHA-256: 314c087b00cc34e0801a5aab5d48f6866ca102c2462388c5e889a07862afa2b6
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -579,6 +579,16 @@ Version 1.60 routes PS4 ShaderAPI creation through
 `FindStaticModuleFactory`. Other platforms retain dynamic module loading. This
 allows the temporary empty ShaderAPI to connect now and provides the same
 factory-selection hook that the future OpenGNM ShaderAPI will use.
+
+The v1.60 hardware run remained stable and confirmed the static loader fix:
+`materialsystem shader factory ready` appeared. Material-system connection then
+returned false before exposing which ShaderAPI interface lookup or final device
+manager connection failed.
+
+Version 1.61 adds bounded result markers around device-manager, hardware-config,
+ShaderAPI, shader-device, shader-shadow, and RocketUI lookups plus the final
+device-manager `Connect` call. It changes no renderer behavior and will identify
+the exact interface contract the temporary scaffold still lacks.
 
 Reproduce the current cross-build with:
 
