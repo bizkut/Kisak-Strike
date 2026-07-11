@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.03
-SHA-256: 0aa00bece121fb2fdd9dd8c2a3a0537679a7c289cafdb813444fe083279e68bb
+Version: 1.04
+SHA-256: 688ed669c4569c518e26dcde44d228daf84c8fdeddd130c336bf069e8953d63b
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -148,6 +148,12 @@ is not yet PS4-safe. Version 1.03 moves the same 44 entries into a private
 bootstrap walks the constructor table in legacy reverse order after opening the
 log, writing before/after markers for every constructor index. This turns the
 pre-main crash into a bounded constructor-level diagnostic.
+
+The v1.03 trace completed constructor slots 43 and 42, then failed in slot 41,
+`_GLOBAL__sub_I_tslist.cpp`. That translation unit contains tier0 stress-test
+queues, lists, counters, and test operation objects rather than production
+runtime state. Version 1.04 excludes `tslist.cpp` from the Orbis tier0 archive
+instead of relaxing the failing lock-free queue invariant.
 
 Reproduce the current cross-build with:
 
