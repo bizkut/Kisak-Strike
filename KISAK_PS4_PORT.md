@@ -388,6 +388,23 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
     RocketUI menu, BSP/world rendering, models/effects, audio/input, offline bot
     match, clean shutdown, 30-minute stability, and base-PS4 30 FPS gate.
 
+## Multiplayer follow-on
+
+The tracked companion plan [KISAK_PS4_MULTIPLAYER_PLAN.md](KISAK_PS4_MULTIPLAYER_PLAN.md)
+governs networking work after the offline acceptance gate. Its sequencing is
+part of this port plan: preserve Source UDP and `CNetChan`, validate OpenOrbis
+BSD-socket loopback, then add LAN play, public dedicated/community servers, and
+only afterward player-hosted Internet sessions through an ICE transport
+adapter. Cloudflare STUN/TURN is an optional late fallback for NAT traversal;
+it must not become a dependency for startup, offline play, LAN, or dedicated
+servers.
+
+PS4 builds remain Steam-free. Do not emulate `ISteamNetworking` or retain Steam
+lobby assumptions. Any required online session behavior belongs behind narrow
+PS4 datagram/session interfaces, with signaling and short-lived TURN
+credentials supplied by a separate trusted service. The immediate monolithic
+bring-up and offline bot-match milestones remain unchanged.
+
 ## Commit history
 
 ```text
