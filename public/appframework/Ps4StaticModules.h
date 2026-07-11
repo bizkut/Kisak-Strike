@@ -6,6 +6,7 @@
 CreateInterfaceFn KisakTier0Factory();
 CreateInterfaceFn KisakVstdlibFactory();
 CreateInterfaceFn KisakLauncherFactory();
+CreateInterfaceFn KisakFilesystemFactory();
 
 extern "C" int KisakRegisterStaticModules();
 

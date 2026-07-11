@@ -602,6 +602,17 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CFileSystem_Stdio, IBaseFileSystem, BASEFILES
 
 #ifndef _PS3
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CAsyncFileSystem, IAsyncFileSystem, ASYNCFILESYSTEM_INTERFACE_VERSION, g_FileSystem_Async );
+
+#if defined( PLATFORM_PS4 )
+extern CreateInterfaceFn Sys_GetFactoryThis();
+
+CreateInterfaceFn KisakFilesystemFactory()
+{
+	// Keeping this anchor in the interface-exposure translation unit forces
+	// the static archive member into the monolithic executable.
+	return Sys_GetFactoryThis();
+}
+#endif
 #endif // _PS3
 
 

@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.19
-SHA-256: 00028d9e08a31658476f4df040448c5cc35610548f528f0b3b2b96667e461121
+Version: 1.20
+SHA-256: 290cc25f05a109ed77de9e56e841cb0e7ad95cf0ffb2974b5d824a53ba2d6978
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -240,6 +240,11 @@ fails cleanly because `filesystem_stdio` is not yet part of the monolith.
 Version 1.19 adds the existing VPK and stdio-filesystem targets to the Orbis
 build/link and registers the filesystem module name with the monolithic
 `CreateInterface` factory.
+
+The v1.19 trace still receives no filesystem interface. Although the archive is
+linked, no referenced symbol forced its interface-exposure object into the
+executable. Version 1.20 adds a filesystem-specific factory anchor beside the
+`EXPOSE_SINGLE_INTERFACE_GLOBALVAR` declarations and registers that anchor.
 
 Reproduce the current cross-build with:
 
