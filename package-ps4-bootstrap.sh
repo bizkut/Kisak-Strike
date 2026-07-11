@@ -8,7 +8,7 @@ DIAGNOSTIC_SHADER_DIR="${KISAK_PS4_DIAGNOSTIC_SHADER_DIR:-$ROOT_DIR/../freegnm-e
 if [[ "$VARIANT" == "monolithic" ]]; then
     BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
     TITLE="Kisak-Strike PS4 Monolithic"
-    VERSION="2.02"
+    VERSION="2.03"
     TITLE_ID="KISK00002"
     CONTENT_ID="IV0000-KISK00002_00-KISAKMONOLITHIC0"
     EBOOT_INPUT="$BUILD_DIR/kisak_ps4_monolithic.bin"
@@ -45,9 +45,10 @@ CREATE_GP4="${CREATE_GP4:-$OO_PS4_TOOLCHAIN/bin/macos/create-gp4}"
 PKGTOOL="${PKGTOOL:-$OO_PS4_TOOLCHAIN/bin/macos/PkgTool.Core}"
 RUNTIME_MODULE_DIR="${RUNTIME_MODULE_DIR:-$OO_PS4_TOOLCHAIN/src/modules}"
 ASSET_DIR="${KISAK_PS4_ASSET_DIR:-$ROOT_DIR/../freegnm-examples/videoout-linear/sce_sys}"
+ICON_PATH="${KISAK_PS4_ICON_PATH:-$ROOT_DIR/ps4/sce_sys/icon0.png}"
 
 for required in "$CREATE_GP4" "$PKGTOOL" "$RUNTIME_MODULE_DIR/libc.prx" \
-    "$RUNTIME_MODULE_DIR/libSceFios2.prx" "$ASSET_DIR/icon0.png" \
+    "$RUNTIME_MODULE_DIR/libSceFios2.prx" "$ICON_PATH" \
     "$ASSET_DIR/about/right.sprx" "$EBOOT_INPUT"; do
     if [[ ! -e "$required" ]]; then
         echo "Missing PS4 package input: $required" >&2
@@ -72,7 +73,7 @@ mkdir -p "$DOTNET_BUNDLE_EXTRACT_BASE_DIR" "$PACKAGE_DIR/sce_module" "$PACKAGE_D
 cp "$EBOOT_INPUT" "$PACKAGE_DIR/eboot.bin"
 cp "$RUNTIME_MODULE_DIR/libc.prx" "$PACKAGE_DIR/sce_module/libc.prx"
 cp "$RUNTIME_MODULE_DIR/libSceFios2.prx" "$PACKAGE_DIR/sce_module/libSceFios2.prx"
-cp "$ASSET_DIR/icon0.png" "$PACKAGE_DIR/sce_sys/icon0.png"
+cp "$ICON_PATH" "$PACKAGE_DIR/sce_sys/icon0.png"
 cp "$ASSET_DIR/about/right.sprx" "$PACKAGE_DIR/sce_sys/about/right.sprx"
 if [[ "$VARIANT" == "monolithic" ]]; then
     cp "$CONTENT_PROBE" "$PACKAGE_DIR/kisak_ps4_content_probe.txt"

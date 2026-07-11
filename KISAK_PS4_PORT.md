@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.02
-SHA-256: 8efc88dbf3a5552787e80ce1a502a9f2e191b059dc44c9d5ed1e9d831eb9786c
+Version: 2.03
+SHA-256: ae0abbfcb1cbe0644f31c24900c527aa3a2c26f8ddba4dc5198e548bf5dc32a5
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -354,6 +354,13 @@ bindings at command-buffer boundaries, and rejects capacity overflow. The
 current fetch shader and vertex-descriptor table at VS slots 0 and 2 no longer
 bypass the state cache. PS semantic linkage is now the only direct shader-state
 call remaining in the diagnostic path.
+
+Version 2.03 replaces the inherited FreeGNM example icon with the user-supplied
+512x512 RGB CS:GO logo at `ps4/sce_sys/icon0.png`. Packaging now defaults to
+that tracked asset while retaining `KISAK_PS4_ICON_PATH` as an explicit build
+override. Runtime graphics behavior is unchanged from v2.02; the hardware gate
+is the same fetched, indexed, blended triangle plus the new icon in the PS4
+launcher and package information views.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
