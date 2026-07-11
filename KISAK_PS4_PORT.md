@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.69
-SHA-256: 8128ab09ccac428ccc60ce0181e09572d82a3d838eda011ce70d248dab474a56
+Version: 1.70
+SHA-256: d2f4d365086b5df6d9b118c2cb875c54975e6f359147f0aef815cd2764b13d38
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -668,6 +668,16 @@ them with VideoOut, clears and submits one VSYNC flip on the first frame, and
 closes the helper after the loop. OpenGNM/VideoOut failures are logged and kept
 non-fatal for this first presentation checkpoint; the temporary empty ShaderAPI
 still supplies no GPU draw commands.
+
+The v1.69 hardware run stayed stable but logged `videoout open failed` before
+the first frame. The Orbis OpenGNM helper returned one aggregate error, so the
+failure could not be separated between `sceVideoOutOpen`, direct-memory
+allocation, buffer registration, equeue creation, or flip-event registration.
+
+Version 1.70 extends `GnmVideoOut` with a diagnostic open-stage field and makes
+the helper classify those six boundaries. Kisak logs the stage-specific result
+while preserving non-fatal startup behavior. The change is in OpenGNM's shared
+VideoOut helper and applies to its standalone hardware smoke path as well.
 
 Reproduce the current cross-build with:
 

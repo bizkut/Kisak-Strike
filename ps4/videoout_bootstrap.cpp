@@ -22,7 +22,15 @@ extern "C" bool KisakPs4VideoOutInitialize()
     KisakPs4StartupBreadcrumb( "kisak-ps4: videoout before open" );
     if ( sceGnmVideoOutOpen( &g_VideoOut, &info ) != GNM_ERROR_OK )
     {
-        KisakPs4StartupBreadcrumb( "kisak-ps4: videoout open failed" );
+		switch ( g_VideoOut.last_error_stage )
+		{
+		case 2: KisakPs4StartupBreadcrumb( "kisak-ps4: videoout sce open failed" ); break;
+		case 3: KisakPs4StartupBreadcrumb( "kisak-ps4: videoout direct memory failed" ); break;
+		case 4: KisakPs4StartupBreadcrumb( "kisak-ps4: videoout register buffers failed" ); break;
+		case 5: KisakPs4StartupBreadcrumb( "kisak-ps4: videoout equeue failed" ); break;
+		case 6: KisakPs4StartupBreadcrumb( "kisak-ps4: videoout flip event failed" ); break;
+		default: KisakPs4StartupBreadcrumb( "kisak-ps4: videoout layout failed" ); break;
+		}
         return false;
     }
 
