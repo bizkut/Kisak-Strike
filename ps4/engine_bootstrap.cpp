@@ -5,6 +5,8 @@
 #include "tier1/convar.h"
 
 #include <chrono>
+#include <atomic>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <thread>
@@ -89,6 +91,7 @@ public:
     }
     void Shutdown() override
     {
+		m_QuitRequested.store( true );
         KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap shutdown" );
     }
 
@@ -105,7 +108,9 @@ public:
 		IRocketUI *rocketUI = RocketUI();
 		const bool videoOutReady = KisakPs4VideoOutInitialize();
 		KisakPs4GnmSubmissionSelfTest();
-		for ( int frame = 0; frame < 1800; ++frame )
+		m_QuitRequested.store( false );
+		uint64_t frame = 0;
+		while ( !m_QuitRequested.load() )
 		{
 			if ( g_pInputSystem )
 				g_pInputSystem->PollInputState( false );
@@ -113,16 +118,19 @@ public:
 			{
 				if ( frame == 0 )
 					KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame begin" );
-				rocketUI->RunFrame( frame * ( 1.0f / 60.0f ) );
+				rocketUI->RunFrame( static_cast< float >( frame ) * ( 1.0f / 60.0f ) );
 				rocketUI->RenderMenuFrame();
 				if ( frame == 0 )
 					KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame complete" );
 			}
-			if ( ( frame + 1 ) % 60 == 0 )
+			const uint64_t completedFrame = frame + 1;
+			if ( ( completedFrame <= 1200 && completedFrame % 60 == 0 ) ||
+				completedFrame % 3600 == 0 )
 			{
 				char marker[80];
 				snprintf( marker, sizeof( marker ),
-					"kisak-ps4: engine launcher frame %d", frame + 1 );
+					"kisak-ps4: engine launcher frame %llu",
+					static_cast< unsigned long long >( completedFrame ) );
 				KisakPs4StartupBreadcrumb( marker );
 			}
 			if ( videoOutReady )
@@ -135,13 +143,26 @@ public:
 			}
 			if ( !videoOutReady )
 				std::this_thread::sleep_for( std::chrono::milliseconds( 16 ) );
+			++frame;
 		}
+		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher quit requested" );
 		KisakPs4GnmSubmissionShutdown();
 		KisakPs4VideoOutShutdown();
         return RUN_OK;
     }
     void SetEngineWindow( void * ) override {}
-    void PostConsoleCommand( const char * ) override {}
+    void PostConsoleCommand( const char *command ) override
+    {
+		if ( !command )
+			return;
+		if ( ( strncmp( command, "quit", 4 ) == 0 &&
+			( command[4] == 0 || command[4] == '\n' || command[4] == ' ' ) ) ||
+			( strncmp( command, "exit", 4 ) == 0 &&
+			( command[4] == 0 || command[4] == '\n' || command[4] == ' ' ) ) )
+		{
+			m_QuitRequested.store( true );
+		}
+    }
     bool IsRunningSimulation() const override { return m_bSimulationActive; }
     void ActivateSimulation( bool active ) override { m_bSimulationActive = active; }
     void SetMap( const char * ) override {}
@@ -149,6 +170,7 @@ public:
 private:
     StartupInfo_t m_StartupInfo = {};
     bool m_bSimulationActive = false;
+    std::atomic< bool > m_QuitRequested{ false };
 };
 
 CPs4CvarQuery g_Ps4CvarQuery;

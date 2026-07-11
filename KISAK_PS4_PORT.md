@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.84
-SHA-256: 6818d679b6b0558fea42823374ee3828a5ae29ae2d05c9909445baf866faa28d
+Version: 1.85
+SHA-256: 52262f0563b8247dbc66e249d954a595ea56beebdde03aa942e60a0919ad0a10
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -152,6 +152,16 @@ A8B8G8R8 byte order, 1920-pixel pitch, linear scanout, GPU fill, and EOP-before-
 flip ordering are validated. The next runtime change should replace the fixed
 1800-frame loop with a quit-aware engine loop that retains VideoOut and GPU
 arenas until actual application shutdown.
+
+Version 1.85 removes the fixed 1800-frame termination condition. The bootstrap
+now retains VideoOut and the two-frame GPU submission pool while its engine
+loop is running, and accepts `quit` or `exit` through `PostConsoleCommand` as a
+clean shutdown request. Frame breadcrumbs retain the existing 60-frame detail
+through frame 1200, then reduce to one marker every 3600 frames to bound log
+growth during long soaks. No controller-specific quit shortcut is introduced;
+that belongs to the real input/menu path. Hardware validation should show the
+RGBA bars and 60 FPS continuing beyond frame 1800 with no `pool released`,
+`videoout closed`, or `LauncherMain returned` marker during the active run.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
