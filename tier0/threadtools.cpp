@@ -1114,15 +1114,39 @@ CThreadEvent::CThreadEvent( bool bManualReset )
 		LLLinkNode(m_pWaitObjectsPool, &m_waitObjects[i]);
 	}
 #elif defined( POSIX )
+	#if defined( PLATFORM_PS4 )
+	if ( g_KisakPs4TraceThreadPool )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event before attr init" );
+	#endif
     pthread_mutexattr_t Attr;
     pthread_mutexattr_init( &Attr );
+	#if defined( PLATFORM_PS4 )
+	if ( g_KisakPs4TraceThreadPool )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event after attr init" );
+	#endif
     pthread_mutex_init( &m_Mutex, &Attr );
+	#if defined( PLATFORM_PS4 )
+	if ( g_KisakPs4TraceThreadPool )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event after mutex init" );
+	#endif
     pthread_mutexattr_destroy( &Attr );
+	#if defined( PLATFORM_PS4 )
+	if ( g_KisakPs4TraceThreadPool )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event after attr destroy" );
+	#endif
     pthread_cond_init( &m_Condition, NULL );
+	#if defined( PLATFORM_PS4 )
+	if ( g_KisakPs4TraceThreadPool )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event after cond init" );
+	#endif
     m_bInitalized = true;
     m_cSet = 0;
 	m_bWakeForEvent = false;
-    m_bManualReset = bManualReset;
+	m_bManualReset = bManualReset;
+	#if defined( PLATFORM_PS4 )
+	if ( g_KisakPs4TraceThreadPool )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: thread pool event complete" );
+	#endif
 #else
 #error "Implement me"
 #endif

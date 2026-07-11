@@ -124,8 +124,8 @@ Latest monolithic diagnostic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 1.09
-SHA-256: 50b2cc570fbdfc0de6a745f8b7605d2f1e829e874137897b86a978492dc89005
+Version: 1.10
+SHA-256: 617a7c34c58aa9045e67009c63093d004db9a1735fb373a97ff2e8f675a5b805
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -187,6 +187,12 @@ The v1.08 trace completed the dummy-node allocation for all four priority
 queues and stopped immediately afterward, before the `CJobQueue` member set
 finished. Version 1.09 traces the following `CThreadMutex` construction around
 pthread attribute initialization, recursive-type selection, and mutex creation.
+
+The v1.09 trace completed the queue's pthread mutex construction, including
+attribute initialization, recursive type selection, and mutex creation. It
+then stopped before the `CJobQueue` members completed. Version 1.10 traces the
+following manual event across its mutex attribute, mutex, and condition-variable
+initialization calls.
 
 Reproduce the current cross-build with:
 
