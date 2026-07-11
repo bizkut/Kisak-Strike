@@ -889,6 +889,20 @@ The v2.55 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `94a6ce3248e4d134d2f65336ccc6a70048a260732d4cc7b93c7f9f3c701f0e06`,
 with marker `kisak-ps4: build marker guarded_facade_vsharp_v255`.
+
+The v2.55 hardware run restored the complete path: façade draw emission,
+center pixel `0xff00daff`, EOP completion, repeated flips, and stable 60 FPS
+beyond frame 900. Its capture is
+`hardware-captures/logs/2026-07-12/kisak_v255_guarded_facade_live.txt`.
+Version 2.56 removes the remaining direct `sceGnmCreateVertexBuffer` calls from
+the diagnostic setup. Both interleaved position and color descriptors are now
+built through `CPs4GnmBuffer::BuildVertexDescriptor`, including offset, stride,
+format, and record-count validation, while retaining the proven direct-memory
+descriptor table consumed by the fetch shader.
+The v2.56 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`77d9d500385f9cca1693ecfe73229415c31e2275a233cfc04e8e3854f5702a38`,
+with marker `kisak-ps4: build marker facade_vertex_table_v256`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

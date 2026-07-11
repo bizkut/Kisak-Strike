@@ -18,6 +18,7 @@
 #include <orbis/libkernel.h>
 
 #include <stdint.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -379,10 +380,17 @@ bool LoadDiagnosticShaders()
         return false;
     }
     g_VertexBuffers = reinterpret_cast< GnmBuffer * >( gpuCursor );
-    g_VertexBuffers[0] = sceGnmCreateVertexBuffer( vertexData[0].position,
-        GNM_FMT_R32G32B32A32_FLOAT, sizeof( DiagnosticVertex ), 3 );
-    g_VertexBuffers[1] = sceGnmCreateVertexBuffer( vertexData[0].color,
-        GNM_FMT_R32G32B32A32_FLOAT, sizeof( DiagnosticVertex ), 3 );
+    if ( !g_DiagnosticVertexBuffer.BuildVertexDescriptor(
+            GNM_FMT_R32G32B32A32_FLOAT, sizeof( DiagnosticVertex ), 3,
+            offsetof( DiagnosticVertex, position ), &g_VertexBuffers[0] ) ||
+        !g_DiagnosticVertexBuffer.BuildVertexDescriptor(
+            GNM_FMT_R32G32B32A32_FLOAT, sizeof( DiagnosticVertex ), 3,
+            offsetof( DiagnosticVertex, color ), &g_VertexBuffers[1] ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "vertex facade descriptor table failed" );
+        return false;
+    }
     gpuCursor += 2 * sizeof( GnmBuffer );
 
     const GnmDepthRenderTargetCreateInfo depthInfo = {
