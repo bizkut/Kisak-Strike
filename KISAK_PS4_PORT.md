@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.27
-SHA-256: 59f381c968eabb0225932e04b4498812b08dd9f225ebee5835a95b341959b33a
+Version: 2.28
+SHA-256: 4fb148abd11da08b4f6a5d88564cf02486a1af85f6255f25840235ab1bc1591c
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -617,6 +617,15 @@ control, and the bootstrap draw cache excludes its duplicate primitive command.
 Depth and blend remain deliberately duplicated until their per-pass state
 changes are routed through the shadow interface.
 
+The v2.27 hardware run preserved the opaque orange triangle at 60 FPS, proving
+primitive setup is now the second exclusively shadow-owned state category.
+Version 2.28 moves depth/stencil control next. The offscreen pass disables depth
+testing and writes through the shadow bridge; the display pass enables both
+only when its depth target exists and reapplies the translated control. Both
+bootstrap `GnmDepthStencilControl` emissions are removed, and the second native
+apply logs an expected depth-only dirty mask. Depth-target binding itself stays
+in the diagnostic cache because it is a resource binding, not shadow state.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
@@ -925,6 +934,31 @@ Version 1.39 adds the existing input-system and math libraries to the Orbis
 monolith, anchors `InputSystemVersion001` in the static registry, and excludes
 the desktop Steam Controller implementation and proprietary Steam API link.
 DualShock 4 device sampling remains a later `libScePad` backend unit.
+
+The extracted retail PS3 game at
+`/Users/bizkut/Downloads/Counter Strike Global Offensive/extracted_main`
+provides a useful behavioral reference for that backend. Its loose content
+includes `controller.ps3.cfg`,
+`controller_bindings.ps3.cfg`, and `controller_move_bindings.ps3.cfg`, covering
+axis assignments, dead zones, response curves, sensitivity, rumble scale, and
+the complete gameplay binding set. Preserve Source's existing Xbox-style input
+abstraction on PS4 and map DualShock 4 controls as follows: Cross/Circle/
+Square/Triangle to `A_BUTTON`/`B_BUTTON`/`X_BUTTON`/`Y_BUTTON`; L1/R1 to the
+shoulders; L2/R2 to the triggers; L3/R3 to `STICK1`/`STICK2`; Share to `BACK`;
+Options to `START`; D-pad directions directly; and the two analog sticks to
+`xmove` and `xlook`. The PS3 defaults are the initial tuning reference, not an
+immutable PS4 profile; hardware tests must calibrate DS4 dead zones and trigger
+ranges.
+
+The same content contains controller help/localization plus Scaleform assets
+such as `cs15_controller_flyouts_ps3_03.png.dds`,
+`cs15_controller_flyouts_gamepad.png.dds`, individual stick/trigger/D-pad
+textures, and the original `.gfx` HUD/menu files. RocketUI cannot execute those
+Scaleform files. Recreate their navigation and flyout behavior in RML/CSS and
+convert legally supplied controller artwork to package-friendly textures. Do
+not commit or redistribute proprietary retail assets. `inputsystem_ps3.sprx`
+is compiled proprietary PS3/PowerPC code and is reference-only: no Cell Pad,
+PS3 PRX, or Move implementation may enter the PS4 build.
 
 The v1.39 hardware run remained stable and completed the entire launcher,
 filesystem worker-pool shutdown, application cleanup, and `LauncherMain`
@@ -1439,9 +1473,16 @@ coverage while preserving the shader-triangle diagnostic introduced in v1.87.
    package; diagnostic builds display an error shader and log the combo key.
 7. **RocketUI plus DualShock 4 input — pending.**
    Replace the no-device PS4 input backend with `libScePad` sampling, button and
-   analog mapping, reconnect handling, and rumble. Route RocketUI through the
-   real ShaderAPI. Exit gate: navigate the menu using only a DualShock 4 for a
-   30-minute soak.
+   analog mapping, dead zones, trigger normalization, controller slots,
+   disconnect/reconnect handling, and rumble. Feed Source `KEY_XBUTTON_*` and
+   analog events so existing gameplay code and the PS3-derived configuration
+   remain usable. Add RocketUI focus navigation for D-pad/left stick,
+   Cross/confirm, Circle/back, and Options/pause; switch prompts based on the
+   last-used input device; and provide PlayStation button glyphs derived at
+   packaging time from legally supplied content. Route RocketUI through the
+   real ShaderAPI. Exit gates: navigate every menu using only a DualShock 4,
+   verify gameplay movement/look/actions and rumble, pass disconnect/reconnect,
+   and complete a 30-minute controller-only soak.
 8. **World and gameplay rendering — pending.**
    Load a BSP, then add static props, models, skinning, decals, particles,
    shadows, and required post-processing in that order. Unsupported states or

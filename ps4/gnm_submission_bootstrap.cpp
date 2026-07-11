@@ -69,6 +69,7 @@ void *g_TextureSamplerTable = 0;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 bool g_ShadowStateApplyLogged = false;
+bool g_ShadowDepthApplyLogged = false;
 char g_ShaderDiagnostic[160] = "not attempted";
 
 void LogResult( const char *stage, int result )
@@ -381,6 +382,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
         return;
     sceGnmDrawCmdInitDefaultHardwareState( command );
     KisakPs4SetShaderShadowCulling( false );
+    KisakPs4SetShaderShadowDepth( false, false, 3 );
     const uint32_t shadowStateMask = KisakPs4ApplyShaderShadowState( command );
     if ( !g_ShadowStateApplyLogged )
     {
@@ -403,7 +405,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.BeginCommand();
     g_DrawState.RetainDirtyMask( ~static_cast< uint32_t >(
         CPs4GnmDrawState::kDirtyRenderTargetMask |
-        CPs4GnmDrawState::kDirtyPrimitive ) );
+        CPs4GnmDrawState::kDirtyPrimitive |
+        CPs4GnmDrawState::kDirtyDepthStencil ) );
     g_DrawState.SetViewport( 0, offscreenViewport );
     g_DrawState.SetScissor( 0, 0, 4, 4 );
     sceGnmDrawCmdSetHwScreenOffset( command, 0, 0 );
@@ -419,8 +422,6 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
         static_cast< uint32_t >( g_DiagnosticTexture.Size() ), 0xff000000 ) )
         return;
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
-    GnmDepthStencilControl offscreenDepth = {};
-    g_DrawState.SetDepthStencilControl( offscreenDepth );
     g_DrawState.ClearDepthRenderTarget();
     GnmDbRenderControl dbControl = {};
     g_DrawState.SetDbRenderControl( dbControl );
@@ -453,11 +454,16 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
     g_DrawState.SetScissor( 0, 0, 1920, 1080 );
     sceGnmDrawCmdSetHwScreenOffset( command, 60, 32 );
     sceGnmDrawCmdSetGuardBands( command, 33.0f, 59.0f, 1.0f, 1.0f );
-    GnmDepthStencilControl depthControl = {};
-    depthControl.zwrite = g_DepthTargetReady;
-    depthControl.zfunc = GNM_DEPTH_COMPARE_LESSEQUAL;
-    depthControl.depthenable = g_DepthTargetReady;
-    g_DrawState.SetDepthStencilControl( depthControl );
+    KisakPs4SetShaderShadowDepth( g_DepthTargetReady, g_DepthTargetReady, 3 );
+    const uint32_t depthStateMask = KisakPs4ApplyShaderShadowState( command );
+    if ( !g_ShadowDepthApplyLogged )
+    {
+        char message[112];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: native shader shadow display depth mask=0x%08x", depthStateMask );
+        KisakPs4StartupBreadcrumb( message );
+        g_ShadowDepthApplyLogged = true;
+    }
     if ( g_DepthTargetReady )
         g_DrawState.SetDepthRenderTarget( g_DepthTarget );
     else

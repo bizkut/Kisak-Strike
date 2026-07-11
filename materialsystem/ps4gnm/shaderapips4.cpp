@@ -408,3 +408,11 @@ extern "C" void KisakPs4SetShaderShadowCulling( bool enabled )
 {
     g_ShaderShadowPs4.EnableCulling( enabled );
 }
+
+extern "C" void KisakPs4SetShaderShadowDepth( bool testEnabled,
+    bool writesEnabled, int depthFunction )
+{
+    g_ShaderShadowPs4.EnableDepthTest( testEnabled );
+    g_ShaderShadowPs4.EnableDepthWrites( writesEnabled );
+    g_ShaderShadowPs4.DepthFunc( static_cast< ShaderDepthFunc_t >( depthFunction ) );
+}
