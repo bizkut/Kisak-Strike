@@ -504,6 +504,16 @@ footprint, a destination visibility barrier follows, and the display pass binds
 only the copied texture. The opaque orange `0xff00daff` result must remain;
 doing so proves copy ordering and sampling without shared-backing aliasing.
 
+The v2.16 hardware run retained the opaque orange triangle and exact center
+pixel `0xff00daff` at 60 FPS while sampling only the separate destination
+texture. This validates synchronized GPU memory copy, the full 512-byte shared
+layout footprint, destination visibility, descriptor-table separation, and
+non-aliased sampling. The minimum renderer's clear, indexed fetch, blend,
+depth, texture upload/sample, render-to-texture, and copy/resolve hardware gates
+are now complete. The next architectural step is exposing these validated
+operations through the PS4 D3D9-compatible resource/device façade rather than
+adding more standalone bootstrap draws.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
