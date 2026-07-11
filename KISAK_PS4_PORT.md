@@ -1148,6 +1148,17 @@ path. Marker: `kisak-ps4: build marker orange_cube_frame_v272`.
 The v2.72 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `bed9081b85992529dec95b9b319fa8838d9a64d6ee044bc541b80536dc1f510a`.
+
+Version 2.73 adds an actual contrast outline rather than changing more face
+texels. A façade-owned 24-vertex line-list buffer describes the 12 cube edges,
+expanded 1.2 percent to avoid coplanar depth flicker. It reuses the validated
+cube VS, animated frame-local MVP, and sampled PS, with a dedicated 1x1 dark
+navy texture descriptor. The filled cube draws first and the navy line list
+draws second under the same depth target. Marker:
+`kisak-ps4: build marker navy_cube_edges_v273`.
+The v2.73 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`7591803a6d87491984556abe880b14a06e979032a575436dc236e10de6218c39`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

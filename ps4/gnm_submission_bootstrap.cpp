@@ -89,13 +89,17 @@ void *g_DepthMemory = 0;
 uint32_t g_DepthMemorySize = 0;
 CPs4GnmTexture g_DiagnosticTexture;
 CPs4GnmTexture g_DiagnosticCopyTexture;
+CPs4GnmTexture g_CubeEdgeTexture;
 CPs4ShaderManifest g_ShaderManifest;
 void *g_TextureSamplerTable = 0;
 void *g_ReferenceCubeFetchShader = 0;
 GnmBuffer *g_ReferenceCubeVertexBuffers = 0;
+GnmBuffer *g_CubeEdgeVertexBuffers = 0;
 CPs4GnmBuffer g_ReferenceCubeVertexBuffer;
+CPs4GnmBuffer g_CubeEdgeVertexBuffer;
 CPs4GnmVertexDeclaration g_ReferenceCubeVertexDeclaration;
 CPs4GnmConstants g_ReferenceCubeConstants;
+void *g_CubeEdgeSamplerTable = 0;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 bool g_ShadowStateApplyLogged = false;
@@ -668,6 +672,26 @@ bool LoadDiagnosticShaders()
     uint8_t *referenceCursor = copyTableCursor + sizeof( GnmTexture ) + sizeof( GnmSampler );
     referenceCursor = reinterpret_cast< uint8_t * >(
         ( reinterpret_cast< uintptr_t >( referenceCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
+    if ( !g_CubeEdgeTexture.Initialize2D( referenceCursor,
+            static_cast< size_t >( gpuEnd - referenceCursor ), GNM_FMT_R8G8B8A8_UNORM,
+            1, 1, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) )
+        return false;
+    const uint32_t edgeColor = 0xff411f10;
+    if ( !g_CubeEdgeTexture.UploadLinear( &edgeColor, sizeof( edgeColor ), 1 ) )
+        return false;
+    referenceCursor = static_cast< uint8_t * >( g_CubeEdgeTexture.Data() ) +
+        g_CubeEdgeTexture.Size();
+    referenceCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( referenceCursor ) + 15 ) & ~static_cast< uintptr_t >( 15 ) );
+    if ( sizeof( GnmTexture ) + sizeof( GnmSampler ) >
+        static_cast< size_t >( gpuEnd - referenceCursor ) )
+        return false;
+    *reinterpret_cast< GnmTexture * >( referenceCursor ) = g_CubeEdgeTexture.Descriptor();
+    *reinterpret_cast< GnmSampler * >( referenceCursor + sizeof( GnmTexture ) ) = *sampler;
+    g_CubeEdgeSamplerTable = referenceCursor;
+    referenceCursor += sizeof( GnmTexture ) + sizeof( GnmSampler );
+    referenceCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( referenceCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
     const size_t referenceVertexBytes = 36 * 8 * sizeof( float );
     if ( referenceVertexBytes + 2 * sizeof( GnmBuffer ) >
         static_cast< size_t >( gpuEnd - referenceCursor ) )
@@ -710,6 +734,39 @@ bool LoadDiagnosticShaders()
             "reference cube facade descriptor table failed" );
         return false;
     }
+    referenceCursor += 2 * sizeof( GnmBuffer );
+    referenceCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( referenceCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
+    const size_t edgeVertexBytes = 24 * 8 * sizeof( float );
+    if ( edgeVertexBytes + 2 * sizeof( GnmBuffer ) >
+        static_cast< size_t >( gpuEnd - referenceCursor ) )
+        return false;
+    float *edgeVertices = reinterpret_cast< float * >( referenceCursor );
+    const uint8_t cubeEdges[12][2] = {
+        {0,1},{1,2},{2,3},{3,0}, {4,5},{5,6},{6,7},{7,4},
+        {0,4},{1,5},{2,6},{3,7}
+    };
+    for ( uint32_t edge = 0; edge < 12; ++edge )
+        for ( uint32_t endpoint = 0; endpoint < 2; ++endpoint )
+        {
+            float *destination = edgeVertices + ( edge * 2 + endpoint ) * 8;
+            const float *source = cubeCorners[cubeEdges[edge][endpoint]];
+            destination[0] = source[0] * 1.012f;
+            destination[1] = source[1] * 1.012f;
+            destination[2] = source[2] * 1.012f;
+            memset( destination + 3, 0, 3 * sizeof( float ) );
+            destination[6] = destination[7] = 0.5f;
+        }
+    referenceCursor += edgeVertexBytes;
+    referenceCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( referenceCursor ) + 15 ) & ~static_cast< uintptr_t >( 15 ) );
+    g_CubeEdgeVertexBuffers = reinterpret_cast< GnmBuffer * >( referenceCursor );
+    if ( !g_CubeEdgeVertexBuffer.Initialize( edgeVertices, edgeVertexBytes,
+            CPs4GnmBuffer::kVertexBuffer, false ) ||
+        !g_Device.SetStreamSource( 0, &g_CubeEdgeVertexBuffer, 0, 8 * sizeof( float ) ) ||
+        !g_Device.BuildVertexDescriptorTable( g_ReferenceCubeVertexDeclaration,
+            0, 24, g_CubeEdgeVertexBuffers, 2 ) )
+        return false;
     referenceCursor += 2 * sizeof( GnmBuffer );
     GnmFetchShaderCreateInfo referenceFetchInfo = {};
     referenceFetchInfo.regs = &g_ReferenceCubeVertexShader->registers;
@@ -786,6 +843,7 @@ bool ClearDiagnosticDepth( GnmCommandBuffer *command )
 void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     const CPs4GnmDevice::IndexedDrawPacket &packet,
     const CPs4GnmDevice::PrimitiveDrawPacket &cubePacket,
+    const CPs4GnmDevice::PrimitiveDrawPacket &edgePacket,
     GnmBuffer *cubeVsDescriptor )
 {
     GnmRenderTarget renderTarget = {};
@@ -903,6 +961,11 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetPrimitiveType( cubePacket.primitiveType );
     g_DrawState.Apply( command );
     sceGnmDrawCmdDrawIndexAuto( command, cubePacket.vertexCount );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_CubeEdgeVertexBuffers );
+    g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_CubeEdgeSamplerTable );
+    g_DrawState.SetPrimitiveType( edgePacket.primitiveType );
+    g_DrawState.Apply( command );
+    sceGnmDrawCmdDrawIndexAuto( command, edgePacket.vertexCount );
 }
 }
 
@@ -1123,6 +1186,7 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
         CPs4GnmDevice::IndexedDrawPacket packet = {};
         CPs4GnmDevice::PrimitiveDrawPacket cubePacket = {};
+        CPs4GnmDevice::PrimitiveDrawPacket edgePacket = {};
         if ( !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
                 0, kDiagnosticIndexCount, 0, kDiagnosticVertexCount, &packet ) ||
             !g_Device.SetStreamSource( 0, &g_ReferenceCubeVertexBuffer, 0,
@@ -1135,8 +1199,19 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             g_Device.CancelFrame();
             return false;
         }
+        g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveLines );
+        if ( !g_Device.SetStreamSource( 0, &g_CubeEdgeVertexBuffer, 0,
+                8 * sizeof( float ) ) ||
+            !g_Device.BuildVertexDescriptorTable( g_ReferenceCubeVertexDeclaration,
+                0, 24, g_CubeEdgeVertexBuffers, 2 ) ||
+            !g_Device.BuildPrimitiveDrawPacket( 0, 12, &edgePacket ) )
+        {
+            g_Device.EndScene();
+            g_Device.CancelFrame();
+            return false;
+        }
         sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_CB0 );
-        EmitDiagnosticTriangle( &command, destination, packet, cubePacket,
+        EmitDiagnosticTriangle( &command, destination, packet, cubePacket, edgePacket,
             cubeVsDescriptor );
         if ( !g_Device.EndScene() )
         {
