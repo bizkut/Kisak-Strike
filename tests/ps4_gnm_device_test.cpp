@@ -47,8 +47,16 @@ int main()
     assert( !device.BeginScene() );
     assert( !device.SetStreamSource( CPs4GnmDevice::kMaxVertexStreams,
         vertices, sizeof( vertices ), 0, 16 ) );
-    assert( device.SetStreamSource( 0, vertices, sizeof( vertices ), 0, 16 ) );
-    assert( device.SetIndices( indices, sizeof( indices ), false ) );
+    CPs4GnmBuffer vertexBuffer;
+    CPs4GnmBuffer indexBuffer;
+    assert( vertexBuffer.Initialize( vertices, sizeof( vertices ),
+        CPs4GnmBuffer::kVertexBuffer, true ) );
+    assert( indexBuffer.Initialize( indices, sizeof( indices ),
+        CPs4GnmBuffer::kIndexBuffer, false ) );
+    assert( !device.SetStreamSource( 0, &indexBuffer, 0, 16 ) );
+    assert( !device.SetIndices( &vertexBuffer ) );
+    assert( device.SetStreamSource( 0, &vertexBuffer, 0, 16 ) );
+    assert( device.SetIndices( &indexBuffer ) );
     device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
     assert( device.ValidateDrawIndexed( 0, 3, 0, 3 ) );
     assert( !device.ValidateDrawIndexed( 1, 3, 0, 3 ) );

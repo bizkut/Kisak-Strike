@@ -132,6 +132,16 @@ bool CPs4GnmDevice::SetStreamSource( uint32_t stream, const void *buffer,
     return true;
 }
 
+bool CPs4GnmDevice::SetStreamSource( uint32_t stream, const CPs4GnmBuffer *buffer,
+    size_t offset, uint32_t stride )
+{
+    if ( !buffer )
+        return SetStreamSource( stream, 0, 0, 0, 0 );
+    if ( !buffer->IsValid() || buffer->BufferType() != CPs4GnmBuffer::kVertexBuffer )
+        return false;
+    return SetStreamSource( stream, buffer->Data(), buffer->Size(), offset, stride );
+}
+
 bool CPs4GnmDevice::SetIndices( const void *buffer, size_t bufferSize, bool index32 )
 {
     if ( !buffer )
@@ -144,6 +154,15 @@ bool CPs4GnmDevice::SetIndices( const void *buffer, size_t bufferSize, bool inde
         return false;
     m_indices = IndexBinding{ buffer, bufferSize, index32 };
     return true;
+}
+
+bool CPs4GnmDevice::SetIndices( const CPs4GnmBuffer *buffer )
+{
+    if ( !buffer )
+        return SetIndices( 0, 0, false );
+    if ( !buffer->IsValid() || buffer->BufferType() != CPs4GnmBuffer::kIndexBuffer )
+        return false;
+    return SetIndices( buffer->Data(), buffer->Size(), buffer->IsIndex32() );
 }
 
 void CPs4GnmDevice::SetPrimitiveTopology( PrimitiveTopology topology )

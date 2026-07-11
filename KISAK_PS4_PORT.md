@@ -838,6 +838,13 @@ binding, primitive-topology state, and overflow-safe indexed-draw range
 validation. Host tests cover missing bindings, double scene entry/exit, stream
 limits, index range overflow, and vertex range overflow. The OpenOrbis monolith
 also links with this state layer; live command emission remains the next slice.
+
+`CPs4GnmBuffer` now supplies the façade's external-memory vertex/index resource
+boundary. It validates GPU alignment and index widths, supports bounded static
+uploads, D3D-style partial locks, full-buffer dynamic discard locks, balanced
+unlocking, and discard generations for later deferred-storage rotation.
+`CPs4GnmDevice` accepts these typed resources directly and rejects cross-binding
+an index buffer as a vertex stream or a vertex buffer as indices.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

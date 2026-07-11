@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "ps4_gnm_memory.h"
+#include "ps4_gnm_buffer.h"
 
 class CPs4GnmDevice
 {
@@ -55,7 +56,10 @@ public:
     bool EndScene();
     bool SetStreamSource( uint32_t stream, const void *buffer, size_t bufferSize,
         size_t offset, uint32_t stride );
+    bool SetStreamSource( uint32_t stream, const CPs4GnmBuffer *buffer,
+        size_t offset, uint32_t stride );
     bool SetIndices( const void *buffer, size_t bufferSize, bool index32 );
+    bool SetIndices( const CPs4GnmBuffer *buffer );
     void SetPrimitiveTopology( PrimitiveTopology topology );
     bool ValidateDrawIndexed( uint32_t firstIndex, uint32_t indexCount,
         int32_t baseVertex, uint32_t vertexCount ) const;
