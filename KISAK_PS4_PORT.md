@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.17
-SHA-256: 037d12be6dc46add5bd0f5193bc0412276882fb6bbf49a8824d6c3b6c9b17c7a
+Version: 2.18
+SHA-256: 10b77df06854a1afcda6f1e0b2148be784540fcbd0b0a14ab5fdbaa0044d4660
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -531,6 +531,15 @@ at 60 FPS. The factory trampoline is therefore the validated interception point
 for the first native interface. Replace `IShaderDeviceMgr` first while
 forwarding device/API/shadow/config lookups until its adapter enumeration and
 `SetMode` lifecycle are stable.
+
+Version 2.18 replaces the first interface lookup with a PS4-owned object.
+`CShaderDeviceMgrPs4` implements the complete `IShaderDeviceMgr` and
+`IAppSystem` surface, delegates adapter/mode behavior to the established empty
+manager for now, returns itself from `QueryInterface`, and forwards callbacks
+and dependent-object registration. Crucially, successful `SetMode` returns the
+PS4 factory rather than the empty factory, keeping subsequent device/API
+lookups inside the interception boundary. Other interfaces still forward
+unchanged. The copied-texture renderer remains the no-regression hardware gate.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
