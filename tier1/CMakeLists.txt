@@ -58,7 +58,7 @@ endif()
 if( POSIX )
     target_sources(${OUTLIBNAME} PRIVATE "processor_detect_linux.cpp")
 endif()
-if( LINUXALL OR PS3 )
+if( LINUXALL OR PS3 OR ORBIS )
     target_sources(${OUTLIBNAME} PRIVATE "qsort_s.cpp")
 endif()
 

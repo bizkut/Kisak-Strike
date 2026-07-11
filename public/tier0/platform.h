@@ -9,6 +9,13 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
+#include <stdarg.h>
+#include <time.h>
+
+#if defined( PLATFORM_PS4 )
+#define iswascii( c ) ( (unsigned int)( c ) <= 0x7fU )
+#endif
+
 #if defined(__x86_64__) || defined(_WIN64) || defined(__e2k__)
 #define PLATFORM_64BITS 1
 #endif
@@ -2070,7 +2077,7 @@ class CReuseVaList
 public:
 	CReuseVaList( va_list List )
 	{
-#if defined(LINUX) || defined(OSX)
+#if defined(LINUX) || defined(OSX) || defined(PLATFORM_PS4)
 		va_copy( m_ReuseList, List );
 #else
 		m_ReuseList = List;
@@ -2078,7 +2085,7 @@ public:
 	}
 	~CReuseVaList()
 	{
-#if defined(LINUX) || defined(OSX)
+#if defined(LINUX) || defined(OSX) || defined(PLATFORM_PS4)
 		va_end( m_ReuseList );
 #endif
 	}

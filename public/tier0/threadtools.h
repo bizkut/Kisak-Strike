@@ -448,6 +448,12 @@ inline int64 ThreadInterlockedDecrement64( int64 volatile *p )
 	return __sync_fetch_and_add( p, -1 ) - 1;
 }
 
+inline int64 ThreadInterlockedExchangeAdd64( int64 volatile *p, int64 value )
+{
+	AssertDbg( (size_t)p % 8 == 0 );
+	return __sync_fetch_and_add( p, value );
+}
+
 #endif
 
 #ifdef COMPILER_MSVC64
@@ -520,7 +526,7 @@ DLL_IMPORT __thread int g_nThreadID;
 #endif
 
 
-#if defined(WIN32) || defined(OSX) ||  defined( _PS3 ) || ( defined (_LINUX) && !defined(DEDICATED) )
+#if defined(WIN32) || defined(OSX) || defined( PLATFORM_PS4 ) || defined( _PS3 ) || ( defined (_LINUX) && !defined(DEDICATED) )
 #ifndef __AFXTLS_H__ // not compatible with some Windows headers
 
 #if defined(_PS3)

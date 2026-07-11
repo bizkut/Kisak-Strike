@@ -91,23 +91,28 @@ dedicated `/orbis` library output directory. The SDK's libc++ headers are added
 explicitly because Clang did not discover `${OO_PS4_TOOLCHAIN}/include/c++/v1`
 from the PS4 sysroot automatically.
 
-The build configures and begins compiling the Source libraries. It has not yet
-produced `launcher_client.a` or a monolithic engine executable.
+The initial core archive set now compiles successfully for Orbis: tier0, tier1,
+tier2, tier3, interfaces, vstdlib, appframework, and launcher. The build
+produces `launcher_client.a`; it has not yet produced the monolithic engine
+executable.
 
-## Active compiler blockers
+## Cleared compiler blockers
 
-The current failure is in the platform compatibility layer, before launcher
-logic:
+The core compile pass fixed the following PS4 compatibility gaps:
 
-1. `public/tier0/platform.h` uses `time_t` without a visible `<time.h>` include.
-2. The same header uses `va_list` without a visible `<stdarg.h>` include.
-3. `public/tier0/threadtools.h` selects a branch without a PS4/x86-64
-   `ThreadInterlockedExchangeAdd64` implementation.
-4. The build reaches its error limit while those declarations are included by
-   appframework and tier2 sources.
+1. Added self-contained time and varargs declarations plus correct `va_copy`.
+2. Added x86-64 `ThreadInterlockedExchangeAdd64` using the compiler atomic.
+3. Enabled Source's generic thread-local wrappers for PS4.
+4. Switched PS4 socket nonblocking setup from missing `FIONBIO` to `fcntl`.
+5. Added PS4-safe `iswascii`, `qsort_s`, pthread yield, filesystem platform
+   path, and launcher single-instance behavior.
+6. Forced the legacy Source code to GNU C++11 instead of Clang's newer default.
+7. Added a temporary PS4 `D3DFORMAT` declaration until the PS4 D3D façade owns
+   the complete format definitions.
 
-These must be fixed behind `PLATFORM_PS4` or genuinely platform-neutral include
-corrections. Do not define PS4 as Linux or PS3 to select an incompatible branch.
+The active boundary is now link closure: combine the archives with the
+bootstrap, libc++, libc++abi, OpenOrbis libraries, and the additional Source
+subsystems referenced by `LauncherMain`.
 
 Reproduce the current cross-build with:
 
@@ -127,10 +132,10 @@ cmake --build build-ps4-engine --target launcher_client --parallel 4
    Hardware boot, writable data path, stable process, package validation.
 2. **Static module registry — complete.**
    Name-to-factory lookup integrated into `CAppSystemGroup`.
-3. **Compile core Source libraries — in progress.**
-   Fix PS4 time/varargs/atomics, then continue through tier0–tier3,
-   vstdlib, appframework, and launcher compile errors.
-4. **Direct monolithic launcher startup — pending.**
+3. **Compile core Source libraries — complete.**
+   tier0–tier3, interfaces, vstdlib, appframework, and launcher archives build
+   for `x86_64-ps4-elf`.
+4. **Direct monolithic launcher startup — in progress.**
    Link the core archives, enable `KISAK_PS4_MONOLITHIC`, register factories,
    and enter `LauncherMain(argc, argv)` without `dlopen`.
 5. **Engine initialization — pending.**

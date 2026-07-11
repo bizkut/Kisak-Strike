@@ -429,6 +429,8 @@ bool FileSystem_GetExecutableDir( char *exedir, int exeDirLen )
 				const char *pPlatPath = "osx64";
 			#elif LINUX
 				const char *pPlatPath = "linux64";
+			#elif defined( PLATFORM_PS4 )
+				const char *pPlatPath = "orbis";
 			#endif
 
 			Q_strncat( exedir, CORRECT_PATH_SEPARATOR_S, exeDirLen, COPY_ALL_CHARACTERS );
@@ -1229,6 +1231,8 @@ FSReturnCode_t SetSteamInstallPath( char *steamInstallPath, int steamInstallPath
 	Q_StripLastDir( steamInstallPath, steamInstallPathLen );
 #elif defined( _PS3 )
 	const char *pchSteamDLL = "steam_ps3.ps3";
+#elif defined( PLATFORM_PS4 )
+	const char *pchSteamDLL = "";
 #else
 #error
 #endif

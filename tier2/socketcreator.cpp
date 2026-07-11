@@ -19,6 +19,9 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <errno.h>
+#if defined( PLATFORM_PS4 )
+#include <fcntl.h>
+#endif
 #ifdef OSX
 #define MSG_NOSIGNAL 0
 #endif
@@ -209,8 +212,12 @@ bool CSocketCreator::ConfigureSocket( int sock )
 	nodelay = 1;
 	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&nodelay, sizeof(nodelay));
 
-	int opt = 1, ret; 
+	int opt = 1, ret;
+#if defined( PLATFORM_PS4 )
+	ret = fcntl( sock, F_SETFL, fcntl( sock, F_GETFL, 0 ) | O_NONBLOCK );
+#else
 	ret = ioctlsocket( sock, FIONBIO, (unsigned long*)&opt ); // non-blocking
+#endif
 	if ( ret == -1 )
 	{
 		Warning( "Socket accept ioctl(FIONBIO) failed (%i)\n", WSAGetLastError() );
@@ -301,7 +308,11 @@ int CSocketCreator::ConnectSocket( const netadr_t &netAdr, bool bSingleSocket )
 	}
 
 	int opt = 1, ret;
+#if defined( PLATFORM_PS4 )
+	ret = fcntl( hSocket, F_SETFL, fcntl( hSocket, F_GETFL, 0 ) | O_NONBLOCK );
+#else
 	ret = ioctlsocket( hSocket, FIONBIO, (unsigned long*)&opt ); // non-blocking
+#endif
 	if ( ret == -1 )
 	{
 		Warning( "Socket ioctl(FIONBIO) failed (%s)\n", NET_ErrorString( WSAGetLastError() ) );
@@ -462,5 +473,4 @@ void* CSocketCreator::GetAcceptedSocketData( int nIndex )
 {
 	return m_hAcceptedSockets[nIndex].m_pData;
 }
-
 

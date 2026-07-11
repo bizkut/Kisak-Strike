@@ -37,9 +37,17 @@
 	#include <sys/time.h>
 	#define GetLastError() errno
 	typedef void *LPVOID;
+#if defined( PLATFORM_PS4 )
+	#define pthread_yield sched_yield
+#endif
 #if !defined(OSX)
+	#if defined( PLATFORM_PS4 )
+	#include <fcntl.h>
+	#include <unistd.h>
+	#else
 	#include <sys/fcntl.h>
 	#include <sys/unistd.h>
+	#endif
 	#define sem_unlink( arg )
 	#define OS_TO_PTHREAD(x) (x)
 #else

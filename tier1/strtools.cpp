@@ -3749,7 +3749,7 @@ size_t Q_URLDecodeRaw( char *pchDecodeDest, int nDecodeDestLen, const char *pchE
 	return Q_URLDecodeInternal( pchDecodeDest, nDecodeDestLen, pchEncodedSource, nEncodedSourceLen, false );
 }
 
-#if defined( LINUX ) || defined( _PS3 )
+#if defined( LINUX ) || defined( _PS3 ) || defined( PLATFORM_PS4 )
 extern "C" void qsort_s( void *base, size_t num, size_t width, int (*compare )(void *, const void *, const void *), void * context );
 #endif
 
@@ -5114,5 +5114,4 @@ void V_StripAndPreserveHTML( CUtlBuffer *pbuffer, const char *pchHTML, const cha
 	const char *rgszNoCloseTags[] = { "br", "img" };
 	V_StripAndPreserveHTMLCore( pbuffer, pchHTML, rgszPreserveTags, cPreserveTags, rgszNoCloseTags, V_ARRAYSIZE( rgszNoCloseTags ), cMaxResultSize );
 }
-
 

@@ -17,6 +17,10 @@
 
 #include "bitmap/imageformat_declarations.h"
 
+#if defined( PLATFORM_PS4 )
+typedef int D3DFORMAT;
+#endif
+
 
 //-----------------------------------------------------------------------------
 // Color structures

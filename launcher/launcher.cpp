@@ -14,7 +14,7 @@
 #endif
 #elif defined ( OSX ) 
 #include <Carbon/Carbon.h>
-#elif defined ( LINUX )
+#elif defined ( LINUX ) || defined( PLATFORM_PS4 )
 #define O_EXLOCK 0
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -85,7 +85,7 @@
 #include "xbox/xbox_launch.h"
 #endif
 
-#ifdef LINUX
+#if defined( LINUX )
 #include "SDL.h"
 
 #define MB_OK 			0x00000001
@@ -1132,7 +1132,10 @@ bool GrabSourceMutex()
 	CRC32_ProcessBuffer( &gameCRC, (void *)pchGameParam, Q_strlen( pchGameParam ) );
 	CRC32_Final( &gameCRC );
 	
-#ifdef LINUX
+#if defined( PLATFORM_PS4 )
+	// The PS4 application manager already prevents a second title instance.
+	return true;
+#elif defined( LINUX )
 	/*
 	 * Linux
 	 */
@@ -1840,7 +1843,11 @@ extern "C" DLL_EXPORT int LauncherMain( int argc, char **argv )
 	{
 		if ( !GrabSourceMutex() )
 		{
+			#if defined( PLATFORM_PS4 )
+			Warning( "Only one instance of the game can be running at one time.\n" );
+			#else
 			::MessageBox(NULL, "Only one instance of the game can be running at one time.", "Source - Warning", 0 );
+			#endif
 			return -1;
 		}
 	}
