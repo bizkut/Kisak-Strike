@@ -1072,6 +1072,19 @@ this fixed-MVP parity gate passes.
 The v2.66 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `91668cdc076e1ec5dce72a87e3bcc89e358c9bb4916efda3c8979ae65d1401db`.
+
+The v2.66 hardware run displayed a correctly projected textured cube with
+three exterior faces, coherent UV interpolation, and hidden-surface removal at
+approximately 60 FPS. This passes the fixed-MVP parity gate and confirms the
+Kisak display pass now matches the proven reference shader and depth contract.
+Version 2.67 retains that contract and updates only the existing MVP contents:
+monotonic elapsed time drives 15-degree/second X rotation and 60-degree/second
+Y rotation, composed after the validated base matrix. This makes animation
+speed independent of the observed 58-62 FPS presentation variation. Marker:
+`kisak-ps4: build marker rotating_reference_cube_v267`.
+The v2.67 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`5ade8cf52a7c0ca4852f444b5b3b76b39576128b5470e7e50ef669ba70a07332`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

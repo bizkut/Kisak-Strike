@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <math.h>
+#include <time.h>
 
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 extern "C" int sceKernelUsleep( unsigned int microseconds );
@@ -92,6 +94,7 @@ void *g_TextureSamplerTable = 0;
 void *g_ReferenceCubeFetchShader = 0;
 GnmBuffer *g_ReferenceCubeVertexBuffers = 0;
 GnmBuffer *g_ReferenceCubeVsDescriptor = 0;
+float *g_ReferenceCubeMvp = 0;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 bool g_ShadowStateApplyLogged = false;
@@ -101,6 +104,56 @@ bool g_TextureMemoryLogged = false;
 bool g_ShaderManifestLogged = false;
 uint32_t g_PendingSamplerMask = 0;
 char g_ShaderDiagnostic[160] = "not attempted";
+
+const float kReferenceCubeBaseMvp[16] = {
+    0.219f, 0.059f, 0.094f, 0.0f, 0.0f, 0.423f, -0.068f, 0.0f,
+    0.126f, -0.102f, -0.163f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f
+};
+
+void MultiplyMatrices( const float *left, const float *right, float *result )
+{
+    for ( uint32_t column = 0; column < 4; ++column )
+        for ( uint32_t row = 0; row < 4; ++row )
+        {
+            float value = 0.0f;
+            for ( uint32_t inner = 0; inner < 4; ++inner )
+                value += left[inner * 4 + row] * right[column * 4 + inner];
+            result[column * 4 + row] = value;
+        }
+}
+
+void UpdateReferenceCubeMvp()
+{
+    if ( !g_ReferenceCubeMvp )
+        return;
+    static bool clockReady = false;
+    static timespec startTime = {};
+    timespec now = {};
+    if ( clock_gettime( CLOCK_MONOTONIC, &now ) != 0 )
+        return;
+    if ( !clockReady )
+    {
+        startTime = now;
+        clockReady = true;
+    }
+    const float seconds = static_cast< float >( now.tv_sec - startTime.tv_sec ) +
+        static_cast< float >( now.tv_nsec - startTime.tv_nsec ) * 0.000000001f;
+    const float xAngle = seconds * 0.261799388f;
+    const float yAngle = seconds * 1.047197551f;
+    const float sinX = sinf( xAngle );
+    const float cosX = cosf( xAngle );
+    const float sinY = sinf( yAngle );
+    const float cosY = cosf( yAngle );
+    const float rotationX[16] = {
+        1, 0, 0, 0, 0, cosX, sinX, 0, 0, -sinX, cosX, 0, 0, 0, 0, 1
+    };
+    const float rotationY[16] = {
+        cosY, 0, -sinY, 0, 0, 1, 0, 0, sinY, 0, cosY, 0, 0, 0, 0, 1
+    };
+    float rotation[16];
+    MultiplyMatrices( rotationY, rotationX, rotation );
+    MultiplyMatrices( kReferenceCubeBaseMvp, rotation, g_ReferenceCubeMvp );
+}
 
 void LogResult( const char *stage, int result )
 {
@@ -637,15 +690,12 @@ bool LoadDiagnosticShaders()
     referenceCursor += 2 * sizeof( GnmBuffer );
     referenceCursor = reinterpret_cast< uint8_t * >(
         ( reinterpret_cast< uintptr_t >( referenceCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
-    float *mvp = reinterpret_cast< float * >( referenceCursor );
-    const float fixedMvp[16] = {
-        0.219f, 0.059f, 0.094f, 0.0f, 0.0f, 0.423f, -0.068f, 0.0f,
-        0.126f, -0.102f, -0.163f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f
-    };
-    memcpy( mvp, fixedMvp, sizeof( fixedMvp ) );
-    referenceCursor += sizeof( fixedMvp );
+    g_ReferenceCubeMvp = reinterpret_cast< float * >( referenceCursor );
+    memcpy( g_ReferenceCubeMvp, kReferenceCubeBaseMvp, sizeof( kReferenceCubeBaseMvp ) );
+    referenceCursor += sizeof( kReferenceCubeBaseMvp );
     g_ReferenceCubeVsDescriptor = reinterpret_cast< GnmBuffer * >( referenceCursor );
-    *g_ReferenceCubeVsDescriptor = sceGnmCreateConstBuffer( mvp, sizeof( fixedMvp ) );
+    *g_ReferenceCubeVsDescriptor = sceGnmCreateConstBuffer(
+        g_ReferenceCubeMvp, sizeof( kReferenceCubeBaseMvp ) );
     referenceCursor += sizeof( GnmBuffer );
     GnmFetchShaderCreateInfo referenceFetchInfo = {};
     referenceFetchInfo.regs = &g_ReferenceCubeVertexShader->registers;
@@ -1008,6 +1058,7 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
     }
     if ( g_ShadersReady )
     {
+        UpdateReferenceCubeMvp();
         uint16_t *indices = static_cast< uint16_t * >(
             g_Device.FrameArena().Allocate( kDiagnosticIndexCount * sizeof( uint16_t ), 8 ) );
         if ( !indices )
