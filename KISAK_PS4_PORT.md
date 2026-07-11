@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.03
-SHA-256: ae0abbfcb1cbe0644f31c24900c527aa3a2c26f8ddba4dc5198e548bf5dc32a5
+Version: 2.04
+SHA-256: 4bb1bc44e7147db2af10f4a9e2ac2c64a2b5ba4f7a7d02a653e3c54b5456b352
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -361,6 +361,13 @@ that tracked asset while retaining `KISAK_PS4_ICON_PATH` as an explicit build
 override. Runtime graphics behavior is unchanged from v2.02; the hardware gate
 is the same fetched, indexed, blended triangle plus the new icon in the PS4
 launcher and package information views.
+
+Version 2.04 moves PS input semantic linkage into `CPs4GnmDrawState`. The cache
+tracks the VS export and PS input table identities and counts, invalidates when
+the active shader pair changes, and re-emits the linkage at every command-buffer
+boundary. The fetched, indexed, blended diagnostic now has no direct shader
+state or user-data calls outside the cache. The CS:GO package icon remains the
+v2.03 tracked asset; runtime rendering should remain unchanged.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It

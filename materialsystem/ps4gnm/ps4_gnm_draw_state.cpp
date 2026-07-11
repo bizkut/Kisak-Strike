@@ -34,6 +34,10 @@ CPs4GnmDrawState::CPs4GnmDrawState()
     m_depthTargetBound = false;
     memset( m_pointerBindings, 0, sizeof( m_pointerBindings ) );
     m_pointerBindingCount = 0;
+    m_vertexExports = 0;
+    m_pixelInputs = 0;
+    m_vertexExportCount = 0;
+    m_pixelInputCount = 0;
     memset( m_scissor, 0, sizeof( m_scissor ) );
 }
 
@@ -185,6 +189,21 @@ bool CPs4GnmDrawState::SetPointerUserData( GnmShaderStage stage, uint32_t startS
     return true;
 }
 
+void CPs4GnmDrawState::SetPsInputUsage(
+    const GnmVertexExportSemantic *vertexExports, uint32_t vertexExportCount,
+    const GnmPixelInputSemantic *pixelInputs, uint32_t pixelInputCount )
+{
+    if ( m_vertexExports != vertexExports || m_vertexExportCount != vertexExportCount ||
+        m_pixelInputs != pixelInputs || m_pixelInputCount != pixelInputCount )
+    {
+        m_vertexExports = vertexExports;
+        m_vertexExportCount = vertexExportCount;
+        m_pixelInputs = pixelInputs;
+        m_pixelInputCount = pixelInputCount;
+        m_dirtyMask |= kDirtyPsInputUsage;
+    }
+}
+
 uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
 {
     if ( !command )
@@ -226,6 +245,9 @@ uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
                 binding.startSlot, binding.pointer );
         }
     }
+    if ( emitted & kDirtyPsInputUsage )
+        sceGnmDrawCmdSetPsInputUsage( command, m_vertexExports,
+            m_vertexExportCount, m_pixelInputs, m_pixelInputCount );
     m_dirtyMask = 0;
     return emitted;
 }

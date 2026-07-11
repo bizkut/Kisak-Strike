@@ -297,10 +297,10 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination, const
         g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
         g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_VertexBuffers );
     }
-    g_DrawState.Apply( command );
-    sceGnmDrawCmdSetPsInputUsage( command,
+    g_DrawState.SetPsInputUsage(
         sceGnmVsShaderExportSemanticTable( g_VertexShader ), g_VertexShader->numexportsemantics,
         sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
+    g_DrawState.Apply( command );
     sceGnmDrawCmdSetPrimitiveType( command, GNM_PT_TRILIST );
     sceGnmDrawCmdDrawIndex( command, 3, indices );
 }

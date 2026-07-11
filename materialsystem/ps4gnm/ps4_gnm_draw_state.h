@@ -24,7 +24,8 @@ public:
         kDirtyIndexSize = 1u << 11,
         kDirtyDepthTarget = 1u << 12,
         kDirtyPointerUserData = 1u << 13,
-        kDirtyAll = ( 1u << 14 ) - 1
+        kDirtyPsInputUsage = 1u << 14,
+        kDirtyAll = ( 1u << 15 ) - 1
     };
 
     CPs4GnmDrawState();
@@ -45,6 +46,9 @@ public:
     void SetDepthRenderTarget( const GnmDepthRenderTarget &target );
     void ClearDepthRenderTarget();
     bool SetPointerUserData( GnmShaderStage stage, uint32_t startSlot, void *pointer );
+    void SetPsInputUsage( const GnmVertexExportSemantic *vertexExports,
+        uint32_t vertexExportCount, const GnmPixelInputSemantic *pixelInputs,
+        uint32_t pixelInputCount );
     uint32_t Apply( GnmCommandBuffer *command );
 
     uint32_t DirtyMask() const { return m_dirtyMask; }
@@ -78,6 +82,10 @@ private:
     bool m_depthTargetBound;
     PointerBinding m_pointerBindings[kMaxPointerBindings];
     uint32_t m_pointerBindingCount;
+    const GnmVertexExportSemantic *m_vertexExports;
+    const GnmPixelInputSemantic *m_pixelInputs;
+    uint32_t m_vertexExportCount;
+    uint32_t m_pixelInputCount;
     uint32_t m_dirtyMask;
 };
 
