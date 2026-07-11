@@ -290,6 +290,13 @@ those PM4 state calls directly. The complete OpenOrbis build passes; hardware
 must retain the v1.94 image and `0xff00bcff` readback before shader and resource
 bindings move into the same cache.
 
+The v1.95 hardware run validates the first cached draw-state groups. It stayed
+stable at 60 FPS, displayed the expected bars and orange gradient triangle,
+passed the two-frame EOP test, and retained center pixel `0xff00bcff`. Viewport,
+scissor, viewport transform, rasterizer, depth/DB, and color-mask emission can
+therefore remain behind `CPs4GnmDrawState`. Add render-target and VS/PS binding
+next, followed by blend state and the first indexed vertex-buffer diagnostic.
+
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
 is the minimum OpenGNM-backed D3D9 draw path.
