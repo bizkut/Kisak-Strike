@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.41
-SHA-256: 5549cbaec3040c1ff353a4f81c6a8ed894b5f2260c208c304d261fbfe7a0beb2
+Version: 2.42
+SHA-256: 57c477956e62de2e5c3c3fd9b86f2907475d5fc30800c34d64621d09502069de
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -734,6 +734,14 @@ code memory, bounds code size to the supplied allocation, patches VS/PS program
 addresses, and exposes typed stage accessors. It owns no GPU allocation yet;
 the next gate replaces one diagnostic shader's ad-hoc storage with this object
 before moving all three and then native shader handles.
+
+The v2.41 hardware run validated the shader-resource foundation without a
+rendering regression. Version 2.42 migrates the texture-sampling pixel shader,
+which produces the final display triangle, to `CPs4GnmShader`. Its stage header,
+GPU code copy, address patch, and typed PS accessor now come from the reusable
+resource; the vertex and solid offscreen pixel shaders retain their established
+storage for this one-resource gate. Startup logs the native resource stage and
+code byte count before the normal shader-loaded marker.
 
 The detailed version-by-version bring-up record remains below. The active
 boundary is no longer boot, module loading, VideoOut, or content mounting. It
