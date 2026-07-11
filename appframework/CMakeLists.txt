@@ -36,6 +36,7 @@ else()
 endif()
 
 target_sources(${OUTLIBNAME} PRIVATE "${AF_SRCDIR}/AppSystemGroup.cpp")
+target_sources(${OUTLIBNAME} PRIVATE "${AF_SRCDIR}/StaticModuleRegistry.cpp")
 target_sources(${OUTLIBNAME} PRIVATE "${SRCDIR}/public/filesystem_init.cpp")
 if( WINDOWS )
 endif()

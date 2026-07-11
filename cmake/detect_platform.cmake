@@ -1,6 +1,20 @@
 #Something custom/made by me(lwss).
 #Include this in your CMakeLists.txt to set the various platform defines the codebase expects
-if(WIN32)
+if(CMAKE_SYSTEM_NAME STREQUAL "Orbis" OR ORBIS)
+    set(ORBIS "1")
+    set(PS4 "1")
+    set(POSIX "1")
+    set(STATIC_LINK "1")
+    set(_DLL_EXT "")
+    add_definitions(
+        -DORBIS
+        -DPLATFORM_PS4
+        -DPLATFORM_CONSOLE
+        -DPOSIX
+        -D_POSIX
+        -DPLATFORM_64BITS
+    )
+elseif(WIN32)
     message(FATAL_ERROR "install gentoo")
 elseif(UNIX AND NOT APPLE) #LINUX
     add_definitions(-DLINUX -D_LINUX -DPOSIX)

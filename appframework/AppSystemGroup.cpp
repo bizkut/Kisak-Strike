@@ -20,6 +20,9 @@
 #include "interface.h"
 #include "filesystem.h"
 #include "filesystem_init.h"
+#if defined( PLATFORM_PS4 )
+#include "appframework/StaticModuleRegistry.h"
+#endif
 #include <algorithm>
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -70,6 +73,22 @@ AppModule_t CAppSystemGroup::LoadModule( const char *pDLLName )
 		}
 	}
 
+#if defined( PLATFORM_PS4 )
+	CreateInterfaceFn staticFactory = FindStaticModuleFactory( pModuleName );
+	if ( staticFactory )
+	{
+		int nIndex = m_Modules.AddToTail();
+		m_Modules[nIndex].m_pModule = NULL;
+		m_Modules[nIndex].m_Factory = staticFactory;
+		m_Modules[nIndex].m_pModuleName = (char*)malloc( nLen );
+		Q_strncpy( m_Modules[nIndex].m_pModuleName, pModuleName, nLen );
+		return nIndex;
+	}
+
+	Warning( "AppFramework : Static PS4 module %s is not registered!\n", pDLLName );
+	return APP_MODULE_INVALID;
+#else
+
 	CSysModule *pSysModule = LoadModuleDLL( pDLLName );
 	if (!pSysModule)
 	{
@@ -88,6 +107,7 @@ AppModule_t CAppSystemGroup::LoadModule( const char *pDLLName )
 	Q_strncpy( m_Modules[nIndex].m_pModuleName, pModuleName, nLen );
 
 	return nIndex;
+#endif
 }
 
 
