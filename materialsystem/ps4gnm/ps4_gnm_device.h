@@ -36,6 +36,15 @@ public:
         bool index32;
     };
 
+    struct IndexedDrawPacket
+    {
+        GnmBuffer vertexBuffer;
+        const void *indexAddress;
+        uint32_t indexCount;
+        GnmIndexSize indexSize;
+        GnmPrimitiveType primitiveType;
+    };
+
     struct SubmissionFrame
     {
         void *commandMemory;
@@ -63,6 +72,9 @@ public:
     void SetPrimitiveTopology( PrimitiveTopology topology );
     bool ValidateDrawIndexed( uint32_t firstIndex, uint32_t indexCount,
         int32_t baseVertex, uint32_t vertexCount ) const;
+    bool BuildIndexedDrawPacket( GnmDataFormat vertexFormat,
+        uint32_t firstIndex, uint32_t indexCount, int32_t baseVertex,
+        uint32_t vertexCount, IndexedDrawPacket *packet ) const;
 
     bool IsInitialized() const { return m_initialized; }
     bool IsFrameOpen() const { return m_frameOpen; }

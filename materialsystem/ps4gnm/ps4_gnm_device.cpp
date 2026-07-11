@@ -186,3 +186,34 @@ bool CPs4GnmDevice::ValidateDrawIndexed( uint32_t firstIndex, uint32_t indexCoun
     return static_cast< size_t >( baseVertex ) <= availableVertices &&
         vertexCount <= availableVertices - static_cast< size_t >( baseVertex );
 }
+
+bool CPs4GnmDevice::BuildIndexedDrawPacket( GnmDataFormat vertexFormat,
+    uint32_t firstIndex, uint32_t indexCount, int32_t baseVertex,
+    uint32_t vertexCount, IndexedDrawPacket *packet ) const
+{
+    if ( !packet || !ValidateDrawIndexed( firstIndex, indexCount, baseVertex,
+        vertexCount ) )
+        return false;
+
+    const StreamBinding &stream = m_streams[0];
+    const size_t vertexOffset = stream.offset +
+        static_cast< size_t >( baseVertex ) * stream.stride;
+    packet->vertexBuffer = sceGnmCreateVertexBuffer(
+        static_cast< uint8_t * >( const_cast< void * >( stream.buffer ) ) + vertexOffset,
+        vertexFormat, stream.stride, vertexCount );
+
+    const size_t indexSize = m_indices.index32 ? 4 : 2;
+    packet->indexAddress = static_cast< const uint8_t * >( m_indices.buffer ) +
+        static_cast< size_t >( firstIndex ) * indexSize;
+    packet->indexCount = indexCount;
+    packet->indexSize = m_indices.index32 ? GNM_INDEX_32 : GNM_INDEX_16;
+    switch ( m_topology )
+    {
+    case kPrimitiveTriangleStrip: packet->primitiveType = GNM_PT_TRISTRIP; break;
+    case kPrimitiveLines: packet->primitiveType = GNM_PT_LINELIST; break;
+    case kPrimitivePoints: packet->primitiveType = GNM_PT_POINTLIST; break;
+    case kPrimitiveTriangles: packet->primitiveType = GNM_PT_TRILIST; break;
+    }
+    return sceGnmBufGetBaseAddress( &packet->vertexBuffer ) ==
+        static_cast< uint8_t * >( const_cast< void * >( stream.buffer ) ) + vertexOffset;
+}

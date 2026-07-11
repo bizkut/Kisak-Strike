@@ -853,6 +853,14 @@ caches the descriptor as a distinct dirty state and emits it with
 primitive-topology commands. Descriptor layout and out-of-range record counts
 are host-tested against OpenGNM's data-format implementation. Device-to-draw
 state assembly and the final indexed draw packet remain the next slice.
+
+`CPs4GnmDevice::BuildIndexedDrawPacket` now freezes validated D3D9 façade state
+into an immutable OpenGNM packet: base-vertex-adjusted `GnmBuffer`, first-index
+GPU address, index width/count, and translated primitive type. The pure packet
+builder is host-tested for triangle list/strip, base vertex, record count, and
+index addressing. `Ps4EmitIndexedDraw` consumes that packet, applies only dirty
+draw state, and emits `sceGnmDrawCmdDrawIndex`. Connecting this emitter to the
+live two-frame submission path is next.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

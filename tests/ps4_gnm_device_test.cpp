@@ -59,6 +59,20 @@ int main()
     assert( device.SetIndices( &indexBuffer ) );
     device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
     assert( device.ValidateDrawIndexed( 0, 3, 0, 3 ) );
+    CPs4GnmDevice::IndexedDrawPacket packet = {};
+    assert( device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
+        0, 3, 0, 3, &packet ) );
+    assert( sceGnmBufGetBaseAddress( &packet.vertexBuffer ) == vertices );
+    assert( packet.vertexBuffer.stride == 16 &&
+        packet.vertexBuffer.numrecords == 3 );
+    assert( packet.indexAddress == indices && packet.indexCount == 3 );
+    assert( packet.indexSize == GNM_INDEX_16 );
+    assert( packet.primitiveType == GNM_PT_TRILIST );
+    device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangleStrip );
+    assert( device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
+        0, 2, 1, 2, &packet ) );
+    assert( sceGnmBufGetBaseAddress( &packet.vertexBuffer ) == vertices + 16 );
+    assert( packet.primitiveType == GNM_PT_TRISTRIP );
     assert( !device.ValidateDrawIndexed( 1, 3, 0, 3 ) );
     assert( !device.ValidateDrawIndexed( 0, 3, 1, 3 ) );
     assert( device.EndScene() );
