@@ -3165,6 +3165,32 @@ The PS4 link/package build completes and all 11 host tests pass. Hardware
 validation should first confirm full movie sizes before evaluating the root
 globals or Scaleform render tree.
 
+### v3.56: Measure packaged files through their open descriptors
+
+The v3.55 run remained stable but proved that OpenOrbis stdio does not provide
+a reliable `SEEK_END` size for packaged `/app0` streams. The fallback reported
+only 128 bytes for each root movie and 14,720 bytes for fontlib, while their
+headers still declared 36-47 KiB and 7.49 MiB respectively. GFx could continue
+past the memory-file boundary only through its zero-fill error behavior, so it
+again stopped at the first class tag.
+
+The PS4 fallback now calls `fileno()` on the successfully opened stream and
+uses descriptor-based `fstat()` first. This avoids both the failing path-based
+`_stat()` call and the packaged-stream `SEEK_END` behavior. The seek probe is
+retained only as a final fallback if the descriptor cannot be queried. The
+existing actual-versus-declared breadcrumbs will validate the result directly.
+
+The next gate remains full file sizes, followed by loading every root class and
+`DoInitAction` block, the root `ShowFrame`, non-zero AS2 globals, and the first
+`MainMenu` element request.
+
+Marker: `kisak-ps4: build marker scaleform_app0_fstat_v356`.
+
+The v3.56 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`80634bbdf6a9361bc79f17d42e79cbf1698ba16ffe3b337ad04346038f1019e8`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
