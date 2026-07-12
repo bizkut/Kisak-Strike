@@ -40,6 +40,74 @@ class KisakScaleformFileOpener final : public Scaleform::GFx::FileOpener
 public:
     Scaleform::File *OpenFile( const char *url, int flags, int mode ) override
     {
+        // OpenOrbis' stat, fstat, ftell, and lseek end-position paths all report
+        // truncated lengths for packaged /app0 files on hardware.  Uncompressed
+        // SWF/GFX files carry their exact byte length in the header, so read that
+        // many bytes sequentially instead of asking the runtime for a file size.
+        if ( url != NULL && strncmp( url, "resource/flash/", 15 ) == 0 )
+        {
+            char packagedPath[512];
+            snprintf( packagedPath, sizeof( packagedPath ), "/app0/%s", url );
+            FILE *packagedFile = fopen( packagedPath, "rb" );
+            if ( packagedFile != NULL )
+            {
+                Scaleform::UByte header[8];
+                const size_t headerBytes = fread( header, 1, sizeof( header ), packagedFile );
+                const bool uncompressedMovie = headerBytes == sizeof( header ) &&
+                    ( header[0] == 'F' || header[0] == 'G' ) &&
+                    ( header[1] == 'W' || header[1] == 'F' ) &&
+                    ( header[2] == 'S' || header[2] == 'X' );
+                const uint32_t declaredSize = uncompressedMovie
+                    ? static_cast< uint32_t >( header[4] ) |
+                        ( static_cast< uint32_t >( header[5] ) << 8 ) |
+                        ( static_cast< uint32_t >( header[6] ) << 16 ) |
+                        ( static_cast< uint32_t >( header[7] ) << 24 )
+                    : 0;
+                if ( declaredSize >= sizeof( header ) &&
+                     declaredSize <= 64u * 1024u * 1024u )
+                {
+                    Scaleform::UByte *data = static_cast< Scaleform::UByte * >(
+                        Scaleform::Memory::Alloc( declaredSize ) );
+                    if ( data != NULL )
+                    {
+                        memcpy( data, header, sizeof( header ) );
+                        size_t totalBytes = sizeof( header );
+                        while ( totalBytes < declaredSize )
+                        {
+                            const size_t bytesRead = fread( data + totalBytes, 1,
+                                declaredSize - totalBytes, packagedFile );
+                            if ( bytesRead == 0 )
+                                break;
+                            totalBytes += bytesRead;
+                        }
+                        fclose( packagedFile );
+
+                        static unsigned int loggedDirectReads = 0;
+                        if ( loggedDirectReads++ < 8 )
+                        {
+                            char directMarker[256];
+                            snprintf( directMarker, sizeof( directMarker ),
+                                "kisak-ps4: scaleform direct app0 bytes=%lu declared=%u url=%s",
+                                static_cast< unsigned long >( totalBytes ), declaredSize, url );
+                            KisakPs4StartupBreadcrumb( directMarker );
+                        }
+                        if ( totalBytes == declaredSize )
+                            return new KisakScaleformMemoryFile(
+                                url, data, static_cast< int >( declaredSize ) );
+                        Scaleform::Memory::Free( data );
+                    }
+                    else
+                    {
+                        fclose( packagedFile );
+                    }
+                }
+                else
+                {
+                    fclose( packagedFile );
+                }
+            }
+        }
+
         if ( g_pFullFileSystem != NULL )
         {
             CUtlBuffer sourceData;

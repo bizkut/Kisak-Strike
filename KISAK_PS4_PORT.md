@@ -3216,6 +3216,32 @@ The v3.57 monolithic package is staged at
 `9bfe06dd4f1f0a017bba295f64c339280b2362c1af8ed5c4fdf3a4fc8e2bd0b0`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.58: Read packaged Scaleform movies without runtime size queries
+
+The v3.57 hardware run stayed stable at 60 FPS with the dark-red spinning cube
+and clipped transparent triangle, but descriptor `lseek(SEEK_END)` returned the
+same false 128-byte root sizes and 14,720-byte fontlib size. This exhausts the
+path stat, descriptor stat, stdio seek, and descriptor seek length mechanisms;
+the extracted uploaded package remains byte-for-byte complete.
+
+The Scaleform file opener now handles uncompressed `/app0/resource/flash`
+SWF/GFX movies directly. It reads the eight-byte movie header, validates its
+declared length against a 64 MiB bound, allocates that exact buffer, and fills
+it with sequential `fread()` calls. No PS4 file-size or end-position API is
+used. A bounded breadcrumb records actual sequential bytes versus the declared
+length. The existing filesystem and compressed-movie paths remain as fallback.
+
+The next hardware gate is exact byte equality for fontlib and both root movies,
+followed by parsing beyond the former `DefineSprite` boundaries and exposure of
+the root `InitSlot`/`RequestElement` hooks.
+
+Marker: `kisak-ps4: build marker scaleform_app0_direct_read_v358`.
+
+The v3.58 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`9aaa72fbbb6ab7f9ce24251bbc6c098ab0e7658ded2074eeaeffcda6e44b4680`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
