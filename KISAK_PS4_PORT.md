@@ -3093,6 +3093,23 @@ The v3.49 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.50: Trace root action scheduling and script-global creation
+
+The v3.49 capture still had no hooks or AS2 errors. The root now receives one
+additional advance equal to its authored frame interval after the zero-delta
+bootstrap. The script marker also records the definition's loaded-frame count
+and whether `gfxExtensions`, `ElementLoaders`, and `resizeManager` were created.
+This separates a missing frame-action schedule from an early script dependency
+failure without changing the diagnostic fallback scene.
+
+Marker: `kisak-ps4: build marker scaleform_action_schedule_v350`.
+
+The v3.50 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`edd7d437f878e6dc0682ecd9a1df44f55600e6bde7a8d0e258ec7d69b2f5b73a`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.46: Execute the first root timeline tick before querying hooks
 
 The v3.45 hardware run shows that `LoadWaitFrame1` succeeds without using the

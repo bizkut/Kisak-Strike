@@ -730,9 +730,10 @@ private:
         const char *movieUrl = movieSlot.definition->GetFileURL();
         char metadataMarker[256];
         snprintf( metadataMarker, sizeof( metadataMarker ),
-            "kisak-ps4: scaleform %s metadata url=%s version=%u frames=%u size=%ux%u avm=%d current=%u",
+            "kisak-ps4: scaleform %s metadata url=%s version=%u frames=%u loading=%u size=%ux%u avm=%d current=%u",
             ScaleformSlotLabel( slot ), movieUrl ? movieUrl : "",
             movieSlot.definition->GetVersion(), movieSlot.definition->GetFrameCount(),
+            movieSlot.definition->GetLoadingFrame(),
             static_cast< unsigned int >( movieSlot.definition->GetWidth() ),
             static_cast< unsigned int >( movieSlot.definition->GetHeight() ),
             movieSlot.movie->GetAVMVersion(), movieSlot.movie->GetCurrentFrame() );
@@ -773,12 +774,29 @@ private:
         // Match the original BaseSlot::Init bootstrap: a zero-delta advance
         // flushes frame-0 actions after PlatformCode/GameInterface are set.
         movieSlot.movie->Advance( 0.0f );
+        // LoadWaitFrame1 makes the root resident, but some GFx builds queue
+        // frame actions until one complete movie interval has elapsed.
+        const float frameRate = movieSlot.movie->GetFrameRate();
+        if ( frameRate > 0.0f )
+            movieSlot.movie->Advance( 1.0f / frameRate );
 
-        char scriptMarker[224];
+        Scaleform::GFx::Value scriptProbe;
+        scriptProbe.SetNull();
+        const bool globalGfxExtensions = globalReady &&
+            global.GetMember( "gfxExtensions", &scriptProbe );
+        scriptProbe.SetNull();
+        const bool globalElementLoaders = globalReady &&
+            global.GetMember( "ElementLoaders", &scriptProbe );
+        scriptProbe.SetNull();
+        const bool globalResizeManager = globalReady &&
+            global.GetMember( "resizeManager", &scriptProbe );
+        char scriptMarker[320];
         snprintf( scriptMarker, sizeof( scriptMarker ),
-            "kisak-ps4: scaleform %s script avm=%d current=%u init=%u request=%u globalInit=%u globalRequest=%u",
+            "kisak-ps4: scaleform %s script avm=%d current=%u gfx=%u elements=%u resize=%u init=%u request=%u globalInit=%u globalRequest=%u",
             ScaleformSlotLabel( slot ), movieSlot.movie->GetAVMVersion(),
             movieSlot.movie->GetCurrentFrame(),
+            globalGfxExtensions ? 1u : 0u, globalElementLoaders ? 1u : 0u,
+            globalResizeManager ? 1u : 0u,
             movieSlot.movie->IsAvailable( "InitSlot" ) ? 1u : 0u,
             movieSlot.movie->IsAvailable( "RequestElement" ) ? 1u : 0u,
             movieSlot.movie->IsAvailable( "_global.InitSlot" ) ? 1u : 0u,
