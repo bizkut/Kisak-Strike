@@ -131,6 +131,8 @@ target_include_directories(ps4_scaleform_hal_test PRIVATE
     ..
     ../ps4
     ../../opengnm/include)
+target_compile_definitions(ps4_scaleform_hal_test PRIVATE
+    POSIX _POSIX GNUC COMPILER_GCC)
 set_target_properties(ps4_scaleform_hal_test PROPERTIES
     CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_scaleform_hal COMMAND ps4_scaleform_hal_test)

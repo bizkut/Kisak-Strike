@@ -1,5 +1,9 @@
 #include "ps4/scaleform_gnm_hal.h"
 
+#if defined( KISAK_PS4_MONOLITHIC )
+#include "Render/Render_TreeNode.h"
+#endif
+
 #include <algorithm>
 
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
@@ -14,6 +18,7 @@ void CPs4ScaleformHal::BeginFrame( uint64_t frame )
     m_frameOpen = true;
     m_frame = frame;
     m_pendingBatches = 0;
+    m_lastTreeStats = TreeStats();
 }
 
 void CPs4ScaleformHal::EndFrame()
@@ -33,6 +38,82 @@ bool CPs4ScaleformHal::QueueCapturedTree( bool captured, const char *phase )
     (void)phase;
     return true;
 }
+
+#if defined( KISAK_PS4_MONOLITHIC )
+void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node,
+    TreeStats *stats )
+{
+    if ( !node || !stats )
+        return;
+
+    ++stats->totalNodes;
+    if ( node->IsVisible() )
+        ++stats->visibleNodes;
+
+    switch ( node->GetReadOnlyData()->GetType() )
+    {
+    case Scaleform::Render::Context::EntryData::ET_Root:
+        stats->hasViewport = static_cast< const Scaleform::Render::TreeRoot * >( node )
+            ->HasViewport();
+        ++stats->containerNodes;
+        break;
+    case Scaleform::Render::Context::EntryData::ET_Container:
+        ++stats->containerNodes;
+        break;
+    case Scaleform::Render::Context::EntryData::ET_Shape:
+        ++stats->shapeNodes;
+        break;
+    case Scaleform::Render::Context::EntryData::ET_Mesh:
+        ++stats->meshNodes;
+        break;
+    case Scaleform::Render::Context::EntryData::ET_Text:
+        ++stats->textNodes;
+        break;
+    default:
+        break;
+    }
+
+    const Scaleform::Render::Context::EntryData::EntryType type =
+        node->GetReadOnlyData()->GetType();
+    if ( type != Scaleform::Render::Context::EntryData::ET_Root &&
+         type != Scaleform::Render::Context::EntryData::ET_Container )
+    {
+        return;
+    }
+
+    const Scaleform::Render::TreeContainer *container =
+        static_cast< const Scaleform::Render::TreeContainer * >( node );
+    for ( Scaleform::UPInt i = 0; i < container->GetSize(); ++i )
+        CollectTreeStats( container->GetAt( i ), stats );
+}
+
+bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
+    const char *phase )
+{
+    if ( !m_frameOpen || !root )
+        return false;
+
+    m_lastTreeStats = TreeStats();
+    CollectTreeStats( root, &m_lastTreeStats );
+    if ( m_lastTreeStats.totalNodes == 0 )
+        return false;
+
+    ++m_capturedTrees;
+    ++m_pendingBatches;
+    if ( m_capturedTrees == 1 )
+        KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform OpenGNM HAL tree batch queued" );
+    (void)phase;
+    return true;
+}
+#else
+bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
+    const char *phase )
+{
+    (void)root;
+    (void)phase;
+    return false;
+}
+#endif
 
 bool CPs4ScaleformHal::TranslateBlend( BlendMode mode, GnmBlendControl *control ) const
 {

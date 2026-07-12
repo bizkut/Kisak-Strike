@@ -22,8 +22,10 @@ int main()
     assert( !hal.TranslateScissor( 10, 10, 10, 100, 1920, 1080, scissor ) );
 
     hal.BeginFrame( 1 );
+    assert( !hal.QueueCapturedTree( static_cast< Scaleform::Render::TreeRoot * >( nullptr ), "menu" ) );
     assert( hal.QueueCapturedTree( true, "menu" ) );
     assert( hal.PendingBatches() == 1 );
+    assert( hal.LastTreeStats().totalNodes == 0 );
     hal.EndFrame();
     assert( hal.CapturedTrees() == 1 );
     return 0;

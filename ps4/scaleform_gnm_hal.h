@@ -5,12 +5,39 @@
 
 #include <gnm.h>
 
+namespace Scaleform
+{
+namespace Render
+{
+class TreeNode;
+class TreeRoot;
+}
+}
+
 // OpenGNM state translation boundary for Scaleform batches. The movie manager
 // owns GFx lifetime and capture; this class owns PS4 blend/scissor semantics
 // and will become the Render::HAL adapter once tree batches are wired through.
 class CPs4ScaleformHal
 {
 public:
+    struct TreeStats
+    {
+        uint32_t totalNodes;
+        uint32_t visibleNodes;
+        uint32_t containerNodes;
+        uint32_t shapeNodes;
+        uint32_t meshNodes;
+        uint32_t textNodes;
+        bool hasViewport;
+
+        TreeStats()
+            : totalNodes( 0 ), visibleNodes( 0 ), containerNodes( 0 ),
+              shapeNodes( 0 ), meshNodes( 0 ), textNodes( 0 ),
+              hasViewport( false )
+        {
+        }
+    };
+
     enum BlendMode
     {
         kBlendNormal,
@@ -24,6 +51,7 @@ public:
     void BeginFrame( uint64_t frame );
     void EndFrame();
     bool QueueCapturedTree( bool captured, const char *phase );
+    bool QueueCapturedTree( Scaleform::Render::TreeRoot *root, const char *phase );
 
     bool TranslateBlend( BlendMode mode, GnmBlendControl *control ) const;
     bool TranslateScissor( int left, int top, int right, int bottom,
@@ -31,12 +59,17 @@ public:
 
     uint64_t CapturedTrees() const { return m_capturedTrees; }
     uint64_t PendingBatches() const { return m_pendingBatches; }
+    const TreeStats &LastTreeStats() const { return m_lastTreeStats; }
 
 private:
+    static void CollectTreeStats( const Scaleform::Render::TreeNode *node,
+        TreeStats *stats );
+
     bool m_frameOpen;
     uint64_t m_frame;
     uint64_t m_capturedTrees;
     uint64_t m_pendingBatches;
+    TreeStats m_lastTreeStats;
 };
 
 CPs4ScaleformHal &KisakPs4ScaleformHal();

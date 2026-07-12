@@ -3,6 +3,7 @@
 
 #include "GFx.h"
 #include "GFxVersion.h"
+#include "Render/Render_TreeNode.h"
 #include "filesystem.h"
 #include "inputsystem/ButtonCode.h"
 #include "tier1/utlbuffer.h"
@@ -235,12 +236,16 @@ public:
         movie->Capture( false );
         Scaleform::GFx::MovieDisplayHandle displayHandle = movie->GetDisplayHandle();
         m_slots[slot].captured = displayHandle.NextCapture( NULL );
+        Scaleform::Render::TreeRoot *root = displayHandle.GetRenderEntry();
         if ( m_slots[slot].captured && !m_loggedCapture )
         {
             KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform captured display tree" );
             m_loggedCapture = true;
         }
-        KisakPs4ScaleformHal().QueueCapturedTree( m_slots[slot].captured, phase );
+        if ( m_slots[slot].captured && root )
+            KisakPs4ScaleformHal().QueueCapturedTree( root, phase );
+        else
+            KisakPs4ScaleformHal().QueueCapturedTree( m_slots[slot].captured, phase );
         if ( slot == kScaleformHudSlot )
             KisakPs4ScaleformHal().EndFrame();
         if ( m_slots[slot].captured && phase )

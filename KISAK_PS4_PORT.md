@@ -3012,3 +3012,22 @@ does not yet submit that tree as OpenGNM geometry. `CPs4ScaleformHal` now owns
 the first OpenGNM blend/scissor translation and capture queue boundary; the
 next code slice connects captured GFx batches to vertex/index/texture emission
 and an EOP-fenced quad submission.
+
+### v3.30: Inspect captured GFx trees without perturbing the validated scene
+
+The next HAL slice now walks each captured `Render::TreeRoot` on the PS4 path
+and records bounded node statistics (total/visible/container/shape/mesh/text
+counts plus root viewport state) before the batch reaches the OpenGNM queue.
+This keeps the proven dark-red spinning cube and clipped transparent triangle
+diagnostic scene unchanged while proving that the live GFx tree is structurally
+non-empty. Host coverage rejects null roots, resets per-frame statistics, and
+retains the existing blend/scissor checks. The tree walker is excluded from
+the standalone host HAL binary, so the 11-test host suite stays independent of
+Scaleform runtime linkage. The build marker is
+`kisak-ps4: build marker scaleform_tree_capture_v330`.
+
+The remaining UI gate is still real batch emission: convert the captured tree's
+primitive fills into OpenGNM vertex/index/texture packets, submit them behind
+the existing scene resolve, and wait for an EOP label before recycling their
+frame storage. Until that gate passes, the diagnostic scene remains the
+expected hardware image rather than a claim that the `.gfx` movies are visible.
