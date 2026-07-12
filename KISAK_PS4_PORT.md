@@ -3075,6 +3075,28 @@ The v3.32 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.41: Install the compressed-SWF zlib state explicitly
+
+The v3.40 loader log shows that compressed SWF roots are not entering the zlib
+stream path: each root reaches a premature stream-end tag and retains zero
+frames/dimensions. The Scaleform zlib implementation and bundled zlib objects
+are present in the PS4 libraries, but loader states are optional and are linked
+only when explicitly constructed. The manager now creates a retained
+`GFx::ZlibSupport`, installs it on the loader, and emits a one-shot state marker
+before probing or creating any movie.
+
+Root loading remains asynchronous to preserve the stable diagnostic scene. The
+next gate is SWF `GetMovieInfo` reporting one 1280x720 frame without a premature
+stream-end warning. Only after that passes will synchronous root creation be
+retried. Marker:
+`kisak-ps4: build marker scaleform_zlib_state_v341`.
+
+The v3.41 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`c46e299c4c0085bb735972c3607719ff29e939e82d4e1c434e99e9ff0a0c4a48`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.40: Restore the stable roots and capture bounded GFx loader errors
 
 The v3.39 hardware run proved that valid GFX header metadata does not guarantee

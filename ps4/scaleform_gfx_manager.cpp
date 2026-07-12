@@ -385,6 +385,11 @@ public:
         m_loader = new Scaleform::GFx::Loader( fileOpener );
         m_log = *new KisakScaleformLog();
         m_loader->SetLog( m_log );
+        m_zlibSupport = *new Scaleform::GFx::ZlibSupport();
+        m_loader->SetZlibSupport( m_zlibSupport );
+        KisakPs4StartupBreadcrumb( m_loader->GetZlibSupport().GetPtr()
+            ? "kisak-ps4: scaleform zlib support installed"
+            : "kisak-ps4: scaleform zlib support unavailable" );
         m_loader->SetAS2Support( Scaleform::Ptr< Scaleform::GFx::AS2Support >(
             *new Scaleform::GFx::AS2Support() ) );
 
@@ -421,6 +426,7 @@ public:
             m_fontLib.Clear();
             m_fileOpener.Clear();
             m_log.Clear();
+            m_zlibSupport.Clear();
             delete m_system;
             m_system = NULL;
         }
@@ -446,6 +452,7 @@ public:
         m_fontLib.Clear();
         m_fileOpener.Clear();
         m_log.Clear();
+        m_zlibSupport.Clear();
         delete m_system;
         m_system = NULL;
         m_initialized = false;
@@ -701,6 +708,7 @@ private:
     Scaleform::GFx::Loader *m_loader;
     Scaleform::Ptr< KisakScaleformFileOpener > m_fileOpener;
     Scaleform::Ptr< KisakScaleformLog > m_log;
+    Scaleform::Ptr< Scaleform::GFx::ZlibSupportBase > m_zlibSupport;
     Scaleform::Ptr< Scaleform::GFx::FontLib > m_fontLib;
     Scaleform::Ptr< KisakScaleformFunctionHandler > m_callbackHandler;
     ScaleformMovieSlot m_slots[kScaleformSlotCount];
