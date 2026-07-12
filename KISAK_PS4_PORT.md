@@ -3523,6 +3523,32 @@ The v3.69 monolithic package is staged at
 `c751458d27ad6a3898cdfdc7f651daa6915e6e57d16b703b23839604015556e9`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.70: Add a vertex-gradient bridge for complex GFx fills
+
+The v3.69 screenshot and log prove per-vertex solid color transport is correct:
+the scene target reads `0xff38dca6`, matching the visible lime layer. That layer
+is intended to combine with 82 gradient fills which were still omitted, so the
+uniform palette is not another channel-order bug.
+
+The retained tessellation path now detects gradient-backed complex fills and
+samples their complete Scaleform stop records into per-vertex colors. Linear
+fills interpolate across mesh X bounds; radial/focal fills use normalized
+elliptical distance. Multi-stop colors use Scaleform's own `Color::Blend`.
+These gradient meshes join the existing blended draw while image-backed complex
+fills remain excluded. This is a CPU vertex-gradient bridge; the later full HAL
+will replace it with gradient textures and exact fill matrices.
+
+The next gate is 150 submitted color batches / 5,862 indices, stable flips, and
+visible multi-color menu geometry instead of the uniform lime frame. Exact
+fill-matrix mapping and text atlases follow after this geometry/color gate.
+
+Marker: `kisak-ps4: build marker scaleform_gradient_approx_v370`.
+
+The v3.70 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`33057e7c27de31f5f87d926abe7bbab5362dcfaeb1bd77eefd5a4ec5e71b0b9b`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

@@ -24,6 +24,30 @@ bool IsComplexFill( const Scaleform::Render::ShapeDataInterface *shape,
     return fill.pFill.GetPtr() != NULL;
 }
 
+uint32_t SampleGradient( const Scaleform::Render::GradientData *gradient, float ratio )
+{
+    if ( !gradient || gradient->GetRecordCount() == 0 )
+        return 0;
+    ratio = std::max( 0.0f, std::min( ratio, 1.0f ) );
+    const Scaleform::Render::GradientRecord *records = gradient->GetRecords();
+    const unsigned count = gradient->GetRecordCount();
+    const float target = ratio * 255.0f;
+    if ( target <= records[0].Ratio )
+        return records[0].ColorV.Raw;
+    for ( unsigned i = 1; i < count; ++i )
+    {
+        if ( target <= records[i].Ratio )
+        {
+            const float span = static_cast< float >( records[i].Ratio - records[i - 1].Ratio );
+            const float local = span > 0.0f
+                ? ( target - records[i - 1].Ratio ) / span : 0.0f;
+            return Scaleform::Render::Color::Blend(
+                records[i - 1].ColorV, records[i].ColorV, local ).Raw;
+        }
+    }
+    return records[count - 1].ColorV.Raw;
+}
+
 bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
     unsigned layer, const Scaleform::Render::Matrix2F &viewMatrix,
     uint32_t *vertices, uint32_t *triangles,
@@ -101,20 +125,20 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             &tessMesh, &meshVertices[0], tessMesh.VertexCount );
         if ( copiedVertices != tessMesh.VertexCount )
             continue;
-        static bool loggedTransformSample = false;
-        if ( !loggedTransformSample && copiedVertices > 0 )
+        float rawMinX = meshVertices[0].x;
+        float rawMinY = meshVertices[0].y;
+        float rawMaxX = rawMinX;
+        float rawMaxY = rawMinY;
+        for ( unsigned vertex = 1; vertex < copiedVertices; ++vertex )
         {
-            float rawMinX = meshVertices[0].x;
-            float rawMinY = meshVertices[0].y;
-            float rawMaxX = rawMinX;
-            float rawMaxY = rawMinY;
-            for ( unsigned vertex = 1; vertex < copiedVertices; ++vertex )
-            {
-                rawMinX = std::min( rawMinX, meshVertices[vertex].x );
-                rawMinY = std::min( rawMinY, meshVertices[vertex].y );
-                rawMaxX = std::max( rawMaxX, meshVertices[vertex].x );
-                rawMaxY = std::max( rawMaxY, meshVertices[vertex].y );
-            }
+            rawMinX = std::min( rawMinX, meshVertices[vertex].x );
+            rawMinY = std::min( rawMinY, meshVertices[vertex].y );
+            rawMaxX = std::max( rawMaxX, meshVertices[vertex].x );
+            rawMaxY = std::max( rawMaxY, meshVertices[vertex].y );
+        }
+        static bool loggedTransformSample = false;
+        if ( !loggedTransformSample )
+        {
             char sampleMessage[320];
             snprintf( sampleMessage, sizeof( sampleMessage ),
                 "kisak-ps4: scaleform transform sample raw=%.2f,%.2f..%.2f,%.2f m=[%.5f %.5f %.2f; %.5f %.5f %.2f]",
@@ -123,6 +147,17 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
                 viewMatrix.M[1][0], viewMatrix.M[1][1], viewMatrix.M[1][3] );
             KisakPs4StartupBreadcrumb( sampleMessage );
             loggedTransformSample = true;
+        }
+        const unsigned meshStyles[2] = { tessMesh.Style1, tessMesh.Style2 };
+        const Scaleform::Render::GradientData *gradient = NULL;
+        for ( unsigned styleIndex = 0; styleIndex < 2 && !gradient; ++styleIndex )
+        {
+            if ( meshStyles[styleIndex] == 0 )
+                continue;
+            Scaleform::Render::FillStyleType style;
+            provider->GetFillStyle( meshStyles[styleIndex], &style, 0.0f );
+            if ( style.pFill && style.pFill->pGradient )
+                gradient = style.pFill->pGradient;
         }
         for ( unsigned vertex = 0; vertex < copiedVertices; ++vertex )
         {
@@ -146,6 +181,22 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
                         ( ( fill1.Color & 0xfefefefeu ) >> 1 );
                 }
             }
+            else if ( gradient )
+            {
+                float ratio = rawMaxX > rawMinX
+                    ? ( tessVertex.x - rawMinX ) / ( rawMaxX - rawMinX ) : 0.0f;
+                if ( gradient->GetGradientType() != Scaleform::Render::GradientLinear )
+                {
+                    const float centerX = ( rawMinX + rawMaxX ) * 0.5f;
+                    const float centerY = ( rawMinY + rawMaxY ) * 0.5f;
+                    const float radiusX = std::max( 1.0f, ( rawMaxX - rawMinX ) * 0.5f );
+                    const float radiusY = std::max( 1.0f, ( rawMaxY - rawMinY ) * 0.5f );
+                    const float dx = ( tessVertex.x - centerX ) / radiusX;
+                    const float dy = ( tessVertex.y - centerY ) / radiusY;
+                    ratio = sqrtf( dx * dx + dy * dy );
+                }
+                captured.color = SampleGradient( gradient, ratio );
+            }
             viewMatrix.Transform( &captured.x, &captured.y );
             capturedVertices->push_back( captured );
         }
@@ -163,9 +214,9 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
         batch.firstIndex = firstIndex;
         batch.indexCount = triangleCount * 3;
         batch.color = 0;
-        batch.complexFill =
+        batch.complexFill = !gradient && (
             Scaleform::Render::TessStyleIsComplex( tessMesh.Flags1 ) ||
-            Scaleform::Render::TessStyleIsComplex( tessMesh.Flags2 );
+            Scaleform::Render::TessStyleIsComplex( tessMesh.Flags2 ) );
         capturedDraws->push_back( batch );
     }
     generator.Clear();
