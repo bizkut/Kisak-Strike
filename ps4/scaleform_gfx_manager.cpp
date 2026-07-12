@@ -171,6 +171,14 @@ public:
         KisakPs4StartupBreadcrumb( hud
             ? "kisak-ps4: scaleform HUD movie loaded"
             : "kisak-ps4: scaleform HUD movie unavailable" );
+        if ( !m_initialized )
+        {
+            delete m_loader;
+            m_loader = NULL;
+            m_fileOpener.Clear();
+            delete m_system;
+            m_system = NULL;
+        }
         return m_initialized;
     }
 
