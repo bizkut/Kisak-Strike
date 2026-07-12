@@ -69,12 +69,14 @@ GnmPsShader *g_TexturePixelShader = 0;
 GnmPsShader *g_DepthClearPixelShader = 0;
 GnmVsShader *g_ReferenceCubeVertexShader = 0;
 GnmPsShader *g_ReferenceCubePixelShader = 0;
+GnmPsShader *g_PresentPixelShader = 0;
 CPs4GnmShader g_VertexShaderResource;
 CPs4GnmShader g_SolidPixelShaderResource;
 CPs4GnmShader g_TexturePixelShaderResource;
 CPs4GnmShader g_DepthClearPixelShaderResource;
 CPs4GnmShader g_ReferenceCubeVertexShaderResource;
 CPs4GnmShader g_ReferenceCubePixelShaderResource;
+CPs4GnmShader g_PresentPixelShaderResource;
 CPs4GnmShaderHandleTable g_ShaderHandles;
 Ps4GnmShaderHandle g_VertexShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 Ps4GnmShaderHandle g_SolidPixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
@@ -82,6 +84,7 @@ Ps4GnmShaderHandle g_TexturePixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 Ps4GnmShaderHandle g_DepthClearPixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 Ps4GnmShaderHandle g_ReferenceCubeVertexShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 Ps4GnmShaderHandle g_ReferenceCubePixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
+Ps4GnmShaderHandle g_PresentPixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 void *g_FetchShader = 0;
 GnmBuffer *g_VertexBuffers = 0;
 CPs4GnmBuffer g_DiagnosticVertexBuffer;
@@ -252,13 +255,14 @@ uint32_t ShaderFragmentOutputMask( const GnmPsShader *shader )
 bool LoadDiagnosticShaders()
 {
     g_PendingSamplerMask = 0;
-    const Ps4ShaderManifestKey keys[6] = {
+    const Ps4ShaderManifestKey keys[7] = {
         { "kisak_diagnostic", PS4_SHADER_STAGE_VERTEX, 0, 0, 1 },
         { "kisak_diagnostic", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
         { "kisak_texture_sample", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
         { "kisak_depth_clear", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
         { "kisak_reference_cube", PS4_SHADER_STAGE_VERTEX, 0, 0, 2 },
-        { "kisak_reference_cube", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 }
+        { "kisak_reference_cube", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
+        { "kisak_present", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 }
     };
     uint8_t *manifestData = 0;
     size_t manifestSize = 0;
@@ -282,7 +286,7 @@ bool LoadDiagnosticShaders()
     }
     uint8_t *gpuCursor = static_cast< uint8_t * >( g_Mapped );
     uint8_t *gpuEnd = gpuCursor + kPersistentMemorySize;
-    for ( unsigned int shader = 0; shader < 6; ++shader )
+    for ( unsigned int shader = 0; shader < 7; ++shader )
     {
         const Ps4ShaderManifestEntry *entry = g_ShaderManifest.Find( keys[shader] );
         if ( !entry )
@@ -354,7 +358,8 @@ bool LoadDiagnosticShaders()
             : ( shader == 2 ? g_TexturePixelShaderResource
             : ( shader == 3 ? g_DepthClearPixelShaderResource
             : ( shader == 4 ? g_ReferenceCubeVertexShaderResource
-            : g_ReferenceCubePixelShaderResource ) ) ) );
+            : ( shader == 5 ? g_ReferenceCubePixelShaderResource
+            : g_PresentPixelShaderResource ) ) ) ) );
         const GnmShaderType resourceType = vertexStage ? GNM_SHADER_VERTEX : GNM_SHADER_PIXEL;
         if ( !resource.Initialize( fileData, fileSize, resourceType,
                 gpuCursor, static_cast< size_t >( gpuEnd - gpuCursor ) ) )
@@ -402,10 +407,15 @@ bool LoadDiagnosticShaders()
                 g_ReferenceCubeVertexShaderHandle = handle;
                 g_ReferenceCubeVertexShader = resolved->VertexShader();
             }
-            else
+            else if ( shader == 5 )
             {
                 g_ReferenceCubePixelShaderHandle = handle;
                 g_ReferenceCubePixelShader = resolved->PixelShader();
+            }
+            else
+            {
+                g_PresentPixelShaderHandle = handle;
+                g_PresentPixelShader = resolved->PixelShader();
             }
         }
         const char *role = shader == 0 ? "vertex"
@@ -413,7 +423,8 @@ bool LoadDiagnosticShaders()
             : ( shader == 2 ? "texture_pixel"
             : ( shader == 3 ? "depth_clear_pixel"
             : ( shader == 4 ? "reference_cube_vertex"
-            : "reference_cube_pixel" ) ) ) );
+            : ( shader == 5 ? "reference_cube_pixel"
+            : "present_pixel" ) ) ) ) );
         char message[112];
         snprintf( message, sizeof( message ),
             "kisak-ps4: native GNM shader resource role=%s handle=0x%x codebytes=%u",

@@ -63,7 +63,7 @@ if [[ "$VARIANT" == "monolithic" && ! -f "$CONTENT_PROBE" ]]; then
     exit 1
 fi
 if [[ "$VARIANT" == "monolithic" ]]; then
-    for shader in tri.vert.sb tri.frag.sb texture_sample.frag.sb; do
+    for shader in tri.vert.sb tri.frag.sb texture_sample.frag.sb present.frag.sb; do
         if [[ ! -f "$DIAGNOSTIC_SHADER_DIR/$shader" ]]; then
             echo "Missing generated PS4 diagnostic shader: $DIAGNOSTIC_SHADER_DIR/$shader" >&2
             exit 1
@@ -93,6 +93,7 @@ if [[ "$VARIANT" == "monolithic" ]]; then
     cp "$DIAGNOSTIC_SHADER_DIR/tri.vert.sb" "$PACKAGE_DIR/kisak_diagnostic.vert.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/tri.frag.sb" "$PACKAGE_DIR/kisak_diagnostic.frag.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/texture_sample.frag.sb" "$PACKAGE_DIR/kisak_texture_sample.frag.sb"
+    cp "$DIAGNOSTIC_SHADER_DIR/present.frag.sb" "$PACKAGE_DIR/kisak_present.frag.sb"
     cp "$CLEAR_SHADER" "$PACKAGE_DIR/kisak_depth_clear.frag.sb"
     cp "$CUBE_SHADER_DIR/cube.vert.sb" "$PACKAGE_DIR/kisak_reference_cube.vert.sb"
     cp "$CUBE_SHADER_DIR/cube.frag.sb" "$PACKAGE_DIR/kisak_reference_cube.frag.sb"
@@ -145,7 +146,7 @@ pushd "$PACKAGE_DIR" >/dev/null
 
 PACKAGE_FILES="eboot.bin sce_sys/about/right.sprx sce_sys/param.sfo sce_sys/icon0.png sce_module/libc.prx sce_module/libSceFios2.prx"
 if [[ "$VARIANT" == "monolithic" ]]; then
-    PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt kisak_diagnostic.vert.sb kisak_diagnostic.frag.sb kisak_texture_sample.frag.sb kisak_depth_clear.frag.sb kisak_reference_cube.vert.sb kisak_reference_cube.frag.sb kisak_diagnostic.manifest"
+    PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt kisak_diagnostic.vert.sb kisak_diagnostic.frag.sb kisak_texture_sample.frag.sb kisak_present.frag.sb kisak_depth_clear.frag.sb kisak_reference_cube.vert.sb kisak_reference_cube.frag.sb kisak_diagnostic.manifest"
 fi
 "$CREATE_GP4" -out=pkg.gp4 -content-id="$CONTENT_ID" -files "$PACKAGE_FILES"
 "$PKGTOOL" pkg_build pkg.gp4 .

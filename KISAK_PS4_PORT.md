@@ -2888,3 +2888,12 @@ samples remained `0xffff0000`. This proves OpenGNM blend state, shader alpha,
 and tiled RGBA8 color-target blending are correct. The remaining limitation is
 the display-linear VideoOut render target. The renderer must draw blended scene
 content into a tiled intermediate and copy/resolve it into scanout memory.
+
+### v3.24: Add the tiled-scene presentation shader
+
+The presentation pass now has a dedicated pixel shader that samples varying UVs
+from a tiled scene texture and exports opaque RGB to the linear VideoOut target.
+It is compiled offline for base PS4, packaged as `kisak_present.frag.sb`, tracked
+in the strict shader manifest, and loaded through the native shader handle table.
+This prepares the opaque fullscreen resolve without altering Source material
+shader conventions or the validated v3.23 image.
