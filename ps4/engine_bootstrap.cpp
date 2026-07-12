@@ -17,6 +17,8 @@ extern "C" bool KisakPs4VideoOutSubmitClear();
 extern "C" void KisakPs4VideoOutShutdown();
 extern "C" bool KisakPs4GnmSubmissionSelfTest();
 extern "C" void KisakPs4GnmSubmissionShutdown();
+extern "C" void KisakPs4SetSourceFrameCallback(
+    void ( *callback )( void * ), void *context );
 extern "C" const char *KisakPs4ScaleformSdkVersion();
 extern "C" bool KisakPs4ScaleformKernelSelfTest();
 extern "C" bool KisakPs4ScaleformMovieProbe();
@@ -24,6 +26,26 @@ extern "C" bool KisakPs4ScaleformMovieInstanceProbe();
 
 namespace
 {
+struct Ps4SourceFrameContext
+{
+    IRocketUI *rocketUI;
+    uint64_t frame;
+};
+
+void RunPs4SourceFrame( void *opaque )
+{
+    Ps4SourceFrameContext *context = static_cast< Ps4SourceFrameContext * >( opaque );
+    if ( !context || !context->rocketUI )
+        return;
+    if ( context->frame == 0 )
+        KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame begin" );
+    context->rocketUI->RunFrame(
+        static_cast< float >( context->frame ) * ( 1.0f / 60.0f ) );
+    context->rocketUI->RenderMenuFrame();
+    if ( context->frame == 0 )
+        KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame complete" );
+}
+
 class CPs4CvarQuery final : public ICvarQuery
 {
 public:
@@ -109,7 +131,7 @@ public:
     int Run() override
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-    KisakPs4StartupBreadcrumb( "kisak-ps4: build marker imesh_draw_entry_v294" );
+    KisakPs4StartupBreadcrumb( "kisak-ps4: build marker source_frame_scope_v295" );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformSdkVersion() );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformKernelSelfTest()
 			? "kisak-ps4: scaleform kernel self-test passed"
@@ -123,21 +145,15 @@ public:
 		IRocketUI *rocketUI = RocketUI();
 		const bool videoOutReady = KisakPs4VideoOutInitialize();
 		KisakPs4GnmSubmissionSelfTest();
+		Ps4SourceFrameContext sourceFrame = { rocketUI, 0 };
+		KisakPs4SetSourceFrameCallback( RunPs4SourceFrame, &sourceFrame );
 		m_QuitRequested.store( false );
 		uint64_t frame = 0;
 		while ( !m_QuitRequested.load() )
 		{
 			if ( g_pInputSystem )
 				g_pInputSystem->PollInputState( false );
-			if ( rocketUI )
-			{
-				if ( frame == 0 )
-					KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame begin" );
-				rocketUI->RunFrame( static_cast< float >( frame ) * ( 1.0f / 60.0f ) );
-				rocketUI->RenderMenuFrame();
-				if ( frame == 0 )
-					KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame complete" );
-			}
+			sourceFrame.frame = frame;
 			const uint64_t completedFrame = frame + 1;
 			if ( ( completedFrame <= 1200 && completedFrame % 60 == 0 ) ||
 				completedFrame % 3600 == 0 )
@@ -160,6 +176,7 @@ public:
 				std::this_thread::sleep_for( std::chrono::milliseconds( 16 ) );
 			++frame;
 		}
+		KisakPs4SetSourceFrameCallback( 0, 0 );
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher quit requested" );
 		KisakPs4GnmSubmissionShutdown();
 		KisakPs4VideoOutShutdown();

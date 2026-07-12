@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.94
-SHA-256: 5623cb398ea8cc41e7311438c759861ce664adba45cac3d73f15c27d29208d73
+Version: 2.95
+SHA-256: 481abbf4eee2ae5f9e133e4f84b1ab6984d8000d6871fa730f7cbd6b706eaa99
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -1444,6 +1444,19 @@ remain unqueued. Success logs `IMesh Draw command emitted`. Marker:
 The v2.94 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `5623cb398ea8cc41e7311438c759861ce664adba45cac3d73f15c27d29208d73`.
+
+The v2.94 hardware run retained the complete scene at 60 FPS and logged
+`IMesh Draw command emitted`. Version 2.95 moves the RocketUI/Source frame
+hooks inside the lifetime opened by `CPs4GnmDevice::BeginSubmission`. This
+ensures future UI `GetDynamicMeshEx` locks see an active EOP-gated frame arena
+instead of falling back to dummy CPU storage. The callback is cleared before
+renderer shutdown and its first successful invocation logs
+`Source frame callback ran inside GPU frame`. Actual queued UI draw-list
+consumption remains the next boundary. Marker:
+`kisak-ps4: build marker source_frame_scope_v295`.
+The v2.95 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`481abbf4eee2ae5f9e133e4f84b1ab6984d8000d6871fa730f7cbd6b706eaa99`.
 
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.

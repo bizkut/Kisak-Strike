@@ -106,6 +106,10 @@ bool g_TriangleReadbackLogged = false;
 bool g_ShadowStateApplyLogged = false;
 bool g_ShadowDisplayApplyLogged = false;
 bool g_FacadeDrawLogged = false;
+typedef void ( *SourceFrameCallback )( void *context );
+SourceFrameCallback g_SourceFrameCallback = 0;
+void *g_SourceFrameContext = 0;
+bool g_SourceFrameCallbackLogged = false;
 bool g_TextureMemoryLogged = false;
 bool g_ShaderManifestLogged = false;
 uint32_t g_PendingSamplerMask = 0;
@@ -1170,6 +1174,13 @@ extern "C" bool KisakPs4GnmFillAndWait( void *destination, uint32_t size, uint32
     return true;
 }
 
+extern "C" void KisakPs4SetSourceFrameCallback(
+    void ( *callback )( void * ), void *context )
+{
+    g_SourceFrameCallback = callback;
+    g_SourceFrameContext = context;
+}
+
 extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
 {
     if ( !g_Mapped || !destination || size < 16 || ( size & 15 ) )
@@ -1178,6 +1189,16 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
     CPs4GnmDevice::SubmissionFrame submission = {};
     if ( !g_Device.BeginSubmission( g_CompletedLabel, kCommandBufferSize, 256, &submission ) )
         return false;
+    if ( g_SourceFrameCallback )
+    {
+        g_SourceFrameCallback( g_SourceFrameContext );
+        if ( !g_SourceFrameCallbackLogged )
+        {
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: Source frame callback ran inside GPU frame" );
+            g_SourceFrameCallbackLogged = true;
+        }
+    }
     static bool dynamicBufferProbePassed = false;
     if ( !dynamicBufferProbePassed )
     {
