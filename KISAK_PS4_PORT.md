@@ -3345,6 +3345,29 @@ The v3.62 monolithic package is staged at
 `598f8dcc088f5c350de20e1394e890cb01eb31dda1cf605b15a64f267da2dcc0`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.63: Diagnose the collapsed GFx X transform before GPU emission
+
+The v3.62 hardware run remained stable but its transformed bounds were
+`x=960..960`, `y=-0.04..1082.55`. Issuing these vertices would collapse every
+triangle into a vertical line, so GPU submission remains intentionally gated.
+
+The first retained tessellator mesh now logs its raw bounds and complete affine
+matrix. Capture also counts shape matrices whose 2x2 determinant is effectively
+zero. This distinguishes bad raw vertex extraction, one malformed node, and a
+systemic root/viewport matrix issue without changing the proven presentation
+path.
+
+The next gate is the matrix sample and degenerate-transform count. The adapter
+will then correct the exact transform stage, revalidate finite 2D bounds, and
+only afterward upload solid batches to OpenGNM.
+
+Marker: `kisak-ps4: build marker scaleform_transform_diagnostics_v363`.
+
+The v3.63 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`bd800aa2e4df65f6e98e9ce3d97e55a9954f4f1879b66046484d013247aa77df`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

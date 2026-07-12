@@ -52,6 +52,7 @@ public:
         uint32_t tessellatedLayers;
         uint32_t tessellatedVertices;
         uint32_t tessellatedTriangles;
+        uint32_t degenerateTransforms;
         bool collectGeometry;
         bool hasViewport;
         bool truncated;
@@ -62,6 +63,7 @@ public:
               shapeLayers( 0 ), solidFills( 0 ), imageFills( 0 ),
               gradientFills( 0 ), tessellatedLayers( 0 ),
               tessellatedVertices( 0 ), tessellatedTriangles( 0 ),
+              degenerateTransforms( 0 ),
               collectGeometry( false ),
               hasViewport( false ), truncated( false )
         {

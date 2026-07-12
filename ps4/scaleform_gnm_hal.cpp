@@ -101,6 +101,29 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             &tessMesh, &meshVertices[0], tessMesh.VertexCount );
         if ( copiedVertices != tessMesh.VertexCount )
             continue;
+        static bool loggedTransformSample = false;
+        if ( !loggedTransformSample && copiedVertices > 0 )
+        {
+            float rawMinX = meshVertices[0].x;
+            float rawMinY = meshVertices[0].y;
+            float rawMaxX = rawMinX;
+            float rawMaxY = rawMinY;
+            for ( unsigned vertex = 1; vertex < copiedVertices; ++vertex )
+            {
+                rawMinX = std::min( rawMinX, meshVertices[vertex].x );
+                rawMinY = std::min( rawMinY, meshVertices[vertex].y );
+                rawMaxX = std::max( rawMaxX, meshVertices[vertex].x );
+                rawMaxY = std::max( rawMaxY, meshVertices[vertex].y );
+            }
+            char sampleMessage[320];
+            snprintf( sampleMessage, sizeof( sampleMessage ),
+                "kisak-ps4: scaleform transform sample raw=%.2f,%.2f..%.2f,%.2f m=[%.5f %.5f %.2f; %.5f %.5f %.2f]",
+                rawMinX, rawMinY, rawMaxX, rawMaxY,
+                viewMatrix.M[0][0], viewMatrix.M[0][1], viewMatrix.M[0][3],
+                viewMatrix.M[1][0], viewMatrix.M[1][1], viewMatrix.M[1][3] );
+            KisakPs4StartupBreadcrumb( sampleMessage );
+            loggedTransformSample = true;
+        }
         for ( unsigned vertex = 0; vertex < copiedVertices; ++vertex )
         {
             CPs4ScaleformHal::CapturedVertex captured;
@@ -205,6 +228,10 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
             {
                 Scaleform::Render::Matrix2F viewMatrix;
                 shapeNode->CalcViewMatrix( &viewMatrix );
+                const float determinant = viewMatrix.M[0][0] * viewMatrix.M[1][1] -
+                    viewMatrix.M[0][1] * viewMatrix.M[1][0];
+                if ( determinant > -0.000001f && determinant < 0.000001f )
+                    ++stats->degenerateTransforms;
                 const unsigned layerCount = shape->GetLayerCount();
                 stats->shapeLayers += layerCount;
                 for ( unsigned layer = 0; layer < layerCount; ++layer )
@@ -329,16 +356,17 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
          ( m_treeDrawableLoggedMask & statsBit ) == 0 )
     {
         m_treeDrawableLoggedMask |= statsBit;
-        char message[352];
+        char message[384];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform drawable tree phase=%s shapes=%u meshes=%u text=%u layers=%u solid=%u image=%u gradient=%u tess_layers=%u vertices=%u triangles=%u retained_vertices=%u retained_indices=%u retained_batches=%u",
+            "kisak-ps4: scaleform drawable tree phase=%s shapes=%u meshes=%u text=%u layers=%u solid=%u image=%u gradient=%u tess_layers=%u vertices=%u triangles=%u retained_vertices=%u retained_indices=%u retained_batches=%u degenerate=%u",
             phase ? phase : "unknown", m_lastTreeStats.shapeNodes,
             m_lastTreeStats.meshNodes, m_lastTreeStats.textNodes,
             m_lastTreeStats.shapeLayers, m_lastTreeStats.solidFills,
             m_lastTreeStats.imageFills, m_lastTreeStats.gradientFills,
             m_lastTreeStats.tessellatedLayers, m_lastTreeStats.tessellatedVertices,
             m_lastTreeStats.tessellatedTriangles, CapturedVertexCount(),
-            CapturedIndexCount(), CapturedBatchCount() );
+            CapturedIndexCount(), CapturedBatchCount(),
+            m_lastTreeStats.degenerateTransforms );
         KisakPs4StartupBreadcrumb( message );
     }
     (void)phase;
