@@ -3129,11 +3129,11 @@ logs a separate drawable-tree marker when a later capture contains shape, mesh,
 or text nodes, so asynchronous `MovieClipLoader` completion is not hidden by
 the first four-container snapshot. The diagnostic cube and clipped transparent
 triangle remain unchanged. Marker:
-`kisak-ps4: build marker scaleform_swf_roots_v333`.
+`kisak-ps4: build marker scaleform_async_callbacks_v335`.
 
 The v3.35 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
-`bc715e29fb77946a4657e27d66474f40bc4fe33a21f67672824dabb38366c3c8`.
+`097a0e334c9f083438c9b5472455da4cc47d733844da0844926fe17cf7dbea69`.
 Host tests pass 11/11 and the PS4 link/package build completes. The next
 hardware run must show `scaleform element load finished` followed by a
 `scaleform drawable tree` breadcrumb, or an explicit element-load error.
