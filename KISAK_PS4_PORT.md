@@ -11,7 +11,7 @@ OpenGNM is the only graphics backend. Linux ToGL/OpenGL and PS3 shader binaries
 are not part of the PS4 runtime. The first acceptance target is menu navigation
 and a complete offline bot match.
 
-## Current status — 2026-07-11
+## Current status — 2026-07-12
 
 The OpenOrbis bootstrap is hardware validated. Title `KISK00001` starts on PS4,
 creates `/data/kisak-strike/startup.log`, and remains stable in a one-second
@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.46
-SHA-256: 51284bca97a1967c91430e3a0c6510335265d3e404d5545d6df5f18e9e660894
+Version: 2.91
+SHA-256: 995e5dfe1662371250995db3a4f6e9d6b31f28d6a914086659d7138a5dbdad9f
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -37,9 +37,15 @@ Current hardware baseline:
 - The presentation stress loop has reached at least frame 1200 with matching
   `before flip`/`flip complete` markers. The 1800-frame completion marker is the
   remaining confirmation for this bounded checkpoint.
-- The current frame is a CPU-cleared buffer. `shaderapiempty` is still active;
-  no Source draw call, PM4 draw packet, converted shader, texture, or world
-  geometry reaches the GPU yet.
+- The current frame is a four-band OpenGNM diagnostic with a textured,
+  navy-framed spinning 3D cube. It is hardware validated at 60 FPS with depth,
+  indexed drawing, texture sampling, shader constants, and EOP-gated two-frame
+  reuse.
+- `shaderapiempty` remains the delegated API surface, but PS4 overrides now
+  provide native Source vertex/index buffers, canonical vertex descriptions,
+  dynamic mesh locks, device bindings, and indexed draw-packet construction.
+  The next renderer boundary is Source-owned command emission inside a frame
+  opened before material/UI rendering.
 - External content mounting is hardware validated. A post-upload v1.80 launch
   read `gameinfo.txt`, the sound manifest, one VMT/VTF pair, and
   `maps/de_dust2.bsp` through the normal layered `GAME` search path. The sound
@@ -2310,12 +2316,14 @@ coverage while preserving the shader-triangle diagnostic introduced in v1.87.
    Two 1920x1080 direct-memory buffers open, flip, recycle, and close correctly.
    Repeated presentation is stable and reaches approximately 60 FPS. This
    validates presentation only; it is not the Source renderer.
-3. **Content filesystem and persistent engine loop — next.**
+3. **Content filesystem and persistent engine loop — complete for bootstrap.**
    Layer packaged `/app0` bootstrap content with writable/external
    `/data/kisak-strike` content, normalize Source paths, mount VPKs, and replace
    the finite diagnostic loop with a quit-aware engine loop. Exit gate: load
    `gameinfo.txt`, the sound manifest, one VMT/VTF pair, and one BSP through
-   normal `GAME` search paths, then shut down cleanly.
+   normal `GAME` search paths, then shut down cleanly. All listed reads and the
+   persistent quit-aware loop are hardware validated; real engine-driven map
+   loading remains under milestones 4 and 8.
 4. **Complete monolithic engine/client/server registration — in progress.**
    The supporting systems are linked, but the real engine, client, and server
    factories and lifecycles must replace the bootstrap launcher stand-in. Exit
@@ -2326,8 +2334,11 @@ coverage while preserving the shader-triangle diagnostic introduced in v1.87.
    the PS3 architecture. First implement aligned pools, two frame arenas, EOP
    labels, deferred destruction, vertex/index buffers, declarations, viewport,
    clear, indexed draw, depth, blend, texture sampling, render targets, copy,
-   and resolve. The standalone hardware clear and procedural triangle are now
-   validated at 60 FPS; migrate that command path into `CPs4GnmDevice` next.
+   and resolve. Pools, EOP recycling, native buffers, declarations, dynamic
+   Source mesh locks/bindings, shader constants, indexed texture/depth draws,
+   and immutable indexed draw-packet construction are validated. Next open the
+   GPU submission frame before Source material/UI rendering and emit a
+   Source-owned dynamic mesh through that command buffer.
    Exit gate: hardware clear, triangle, indexed texture, depth,
    blend, and render-to-texture tests pass without timeout or memory growth.
 6. **Offline shader conversion and manifest — pending.**
@@ -2335,16 +2346,16 @@ coverage while preserving the shader-triangle diagnostic introduced in v1.87.
    compile HLSL to SPIR-V and then PS4 `.sb`, preserve Source register numbers,
    and emit strict binding metadata. Missing referenced combinations fail the
    package; diagnostic builds display an error shader and log the combo key.
-7. **RocketUI plus DualShock 4 input — pending.**
+7. **Scaleform console UI plus DualShock 4 input — pending.**
    Replace the no-device PS4 input backend with `libScePad` sampling, button and
    analog mapping, dead zones, trigger normalization, controller slots,
    disconnect/reconnect handling, and rumble. Feed Source `KEY_XBUTTON_*` and
    analog events so existing gameplay code and the PS3-derived configuration
-   remain usable. Add RocketUI focus navigation for D-pad/left stick,
-   Cross/confirm, Circle/back, and Options/pause; switch prompts based on the
-   last-used input device; and provide PlayStation button glyphs derived at
-   packaging time from legally supplied content. Route RocketUI through the
-   real ShaderAPI. Exit gates: navigate every menu using only a DualShock 4,
+   remain usable. Route the supplied Scaleform console movies through the
+   OpenGNM-backed ShaderAPI and preserve RocketUI only as a diagnostic fallback.
+   Support D-pad/left-stick focus, Cross/confirm, Circle/back, Options/pause,
+   last-used-device prompt switching, and PlayStation button glyphs from
+   legally supplied content. Exit gates: navigate every menu using only a DualShock 4,
    verify gameplay movement/look/actions and rumble, pass disconnect/reconnect,
    and complete a 30-minute controller-only soak.
 8. **World and gameplay rendering — pending.**
@@ -2364,6 +2375,62 @@ coverage while preserving the shader-triangle diagnostic introduced in v1.87.
     sessions and optional ICE/TURN remain last. Steam login and Steam P2P are
     not PS4 runtime dependencies.
 
+## Milestone verification matrix
+
+Every renderer milestone must pass its host checks first, then produce a fresh
+hardware log with the new build marker and success breadcrumb. A stable FPS
+overlay alone is not evidence that the intended GPU path executed.
+
+1. **Source dynamic-mesh command emission — next.**
+   Begin the two-frame submission before `RunFrame`/UI rendering, expose the
+   active OpenGNM command buffer through the PS4 ShaderAPI, and make
+   `CEmptyMesh::Draw` emit the packet built from its native dynamic buffers.
+   Host tests must cover missing frame/scene, zero counts, first-index bounds,
+   base vertex, 16/32-bit indices, topology mapping, nested locks, and command
+   overflow. Hardware gate: a Source-created triangle is visually distinct
+   from the diagnostic cube; the log records lock, bind, packet, draw, EOP,
+   and flip once; the existing bars/cube remain correct for 1,200 frames.
+2. **ShaderAPI state and constants.**
+   Route viewport/scissor, blend, depth/stencil, cull, color mask, sRGB,
+   vertex declaration, shader handles, and vertex/pixel constants through the
+   dirty-state cache. Golden host tests compare D3D9-to-GNM mappings and
+   constant register offsets. Hardware gate: separate opaque, blended,
+   depth-occluded, scissored, and constant-animated Source meshes, with an
+   explicit error shader for an invalid handle.
+3. **Textures and render targets.**
+   Validate 2D/cube/volume layouts, mip offsets, uploads, sampler state,
+   compressed formats, render-target/depth binding, clear, copy, resolve, and
+   render-to-texture. Host tests cover alignment, format rejection, swizzles,
+   lifetime deferral, and pool exhaustion. Hardware gate: indexed textured
+   quad, BC texture, mip selection, render-to-texture, and resolve/copy pass
+   for 1,200 frames without EOP timeout or increasing memory usage.
+4. **Minimum UI shader package and Scaleform HAL.**
+   Compile every referenced UI combo through HLSL -> SPIR-V -> `.sb`; package
+   validation must reject missing combos or invalid binding metadata. Then
+   connect Scaleform Render/GFx/AS2 to the shared PS4 device façade rather than
+   duplicating PM4/resource logic. Hardware gate: load `fontlib.gfx`, then
+   `gameuirootmovie.gfx` and `mainmenu.gfx`, render readable text and images,
+   and navigate the menu using only DualShock 4. Run a 30-minute menu soak.
+5. **World-rendering progression.**
+   Add shader manifests and visible gates in this order: BSP/world surfaces,
+   static props, models/skinning, decals, particles, shadows, post-processing.
+   For each stage, package-time combo coverage must be complete and unsupported
+   formats/states must show the diagnostic shader instead of black output.
+   Record per-pool high-water marks, command usage, EOP latency, frame time,
+   and a 30-minute map soak before advancing.
+6. **Audio, gameplay, and acceptance.**
+   Test AudioOut ring wrap, underrun recovery, shutdown races, pad reconnect,
+   rumble, saves, UDP loopback, and listen-server lifecycle independently.
+   Acceptance requires a complete offline bot round and clean shutdown, then a
+   30-minute combined soak with no memory growth, command overflow, EOP
+   timeout, GPU hang, or audio starvation. Base PS4 correctness gate is stable
+   30 FPS; 60 FPS becomes the optimization gate after feature completeness.
+
+For every staged package record version, commit, SHA-256, marker, exact visual
+result, last relevant log lines, FPS range, and run duration. Preserve failed
+logs when they identify a new boundary; truncate or rotate `startup.log` for
+each launch so stale markers cannot be mistaken for current evidence.
+
 ## Immediate implementation slice
 
 1. **Complete:** add host-tested PS4 path normalization and root selection for
@@ -2372,14 +2439,17 @@ coverage while preserving the shader-triangle diagnostic introduced in v1.87.
    sound-manifest fallback with a successful normal asset load.
 3. **Complete:** validated representative VMT, VTF, and BSP reads through the
    normal `GAME` search path.
-4. **In progress:** the PS4 ShaderAPI target, static module selection, minimal
-   device object, and diagnostic `shaderapiempty` delegation are hardware
-   validated at 60 FPS. Next replace delegated device/resource interfaces
-   through clear and triangle.
+4. **In progress:** the PS4 ShaderAPI target, static module selection, device,
+   native resource interfaces, dynamic mesh locks/bindings, and indexed packet
+   construction are hardware validated at 60 FPS. Next move frame ownership
+   ahead of Source rendering and emit a Source-owned dynamic mesh command.
 5. **Complete:** two command/constant frame arenas submit real OpenGNM command
    buffers and gate reuse on GPU-written EOP labels; the three-submit hardware
-   test passed at 60 FPS. Next retain the arenas for the runtime GPU-clear path
-   instead of releasing the test pool.
+   test passed at 60 FPS and the arenas are retained by the shared runtime.
+6. **Next:** add host coverage for Source draw-command emission and a bounded
+   hardware draw that cannot be confused with the existing diagnostic cube.
+7. **Then:** finish blend/depth/scissor/constant state gates, followed by
+   texture/render-target gates, before starting the OpenGNM Scaleform HAL.
 
 Each slice must update this document with the package version, hash, hardware
 evidence, and the next unresolved boundary. Avoid broad renderer or gameplay
