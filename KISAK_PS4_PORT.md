@@ -3117,3 +3117,23 @@ load lifecycle (`OnLoadFinished`, `OnLoadProgress`, `OnLoadError`, `OnUnload`)
 and verify that a later capture contains shapes, meshes, or text. The build
 marker for this investigation remains
 `kisak-ps4: build marker scaleform_swf_roots_v333`.
+
+### v3.35: Bridge asynchronous Scaleform element callbacks
+
+The PS4 GFx manager now installs a retained `GameInterface` function table on
+both root movies. It covers the element lifecycle (`OnLoadFinished`,
+`OnLoadProgress`, `OnLoadError`, `OnUnload`), Source root helpers, and the small
+MainMenu API surface with deterministic no-op/default behavior. The first
+successful child load and first UI event emit bounded breadcrumbs. The HAL also
+logs a separate drawable-tree marker when a later capture contains shape, mesh,
+or text nodes, so asynchronous `MovieClipLoader` completion is not hidden by
+the first four-container snapshot. The diagnostic cube and clipped transparent
+triangle remain unchanged. Marker:
+`kisak-ps4: build marker scaleform_swf_roots_v333`.
+
+The v3.35 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`bc715e29fb77946a4657e27d66474f40bc4fe33a21f67672824dabb38366c3c8`.
+Host tests pass 11/11 and the PS4 link/package build completes. The next
+hardware run must show `scaleform element load finished` followed by a
+`scaleform drawable tree` breadcrumb, or an explicit element-load error.

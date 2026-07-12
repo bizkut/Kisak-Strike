@@ -11,7 +11,7 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 
 CPs4ScaleformHal::CPs4ScaleformHal()
     : m_frameOpen( false ), m_frame( 0 ), m_capturedTrees( 0 ), m_pendingBatches( 0 ),
-      m_treeStatsLoggedMask( 0 )
+      m_treeStatsLoggedMask( 0 ), m_treeDrawableLoggedMask( 0 )
 {
 }
 
@@ -124,6 +124,18 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
             m_lastTreeStats.meshNodes, m_lastTreeStats.textNodes,
             m_lastTreeStats.hasViewport ? 1u : 0u,
             m_lastTreeStats.truncated ? 1u : 0u );
+        KisakPs4StartupBreadcrumb( message );
+    }
+
+    if ( ( m_lastTreeStats.shapeNodes || m_lastTreeStats.meshNodes || m_lastTreeStats.textNodes ) &&
+         ( m_treeDrawableLoggedMask & statsBit ) == 0 )
+    {
+        m_treeDrawableLoggedMask |= statsBit;
+        char message[160];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: scaleform drawable tree phase=%s shapes=%u meshes=%u text=%u",
+            phase ? phase : "unknown", m_lastTreeStats.shapeNodes,
+            m_lastTreeStats.meshNodes, m_lastTreeStats.textNodes );
         KisakPs4StartupBreadcrumb( message );
     }
     (void)phase;

@@ -8,6 +8,7 @@
 #include "inputsystem/ButtonCode.h"
 #include "tier1/utlbuffer.h"
 
+#include <stdint.h>
 #include <string.h>
 
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
@@ -61,6 +62,183 @@ public:
             return g_pFullFileSystem->GetFileTime( url, "GAME" );
         return Scaleform::GFx::FileOpener::GetFileModifyTime( url );
     }
+};
+
+enum ScaleformCallbackId
+{
+    kCallbackOnLoadFinished = 1,
+    kCallbackOnLoadProgress,
+    kCallbackOnLoadError,
+    kCallbackOnUnload,
+    kCallbackAddInputConsumer,
+    kCallbackRemoveInputConsumer,
+    kCallbackSetCursorShape,
+    kCallbackShowCursor,
+    kCallbackHideCursor,
+    kCallbackLoadKVFile,
+    kCallbackSaveKVFile,
+    kCallbackSetConvar,
+    kCallbackGetConvarNumber,
+    kCallbackGetConvarNumberMin,
+    kCallbackGetConvarNumberMax,
+    kCallbackGetConvarString,
+    kCallbackGetConvarBoolean,
+    kCallbackGetPAXAvatarFromName,
+    kCallbackGetPlayerColorObject,
+    kCallbackTranslate,
+    kCallbackReplaceGlyphs,
+    kCallbackPlaySound,
+    kCallbackConsoleCommand,
+    kCallbackConsoleCommandExecute,
+    kCallbackDisableAnalogStickNavigation,
+    kCallbackDenyInputToGame,
+    kCallbackSendUIEvent,
+    kCallbackMakeStringSafe,
+    kCallbackGetClipboardText,
+    kCallbackSetClipboardText,
+    kCallbackBasePanelRunCommand,
+    kCallbackIsMultiplayerPrivilegeEnabled,
+    kCallbackLaunchTraining,
+    kCallbackViewMapInWorkshop,
+    kCallbackGetPreviousLevel
+};
+
+struct ScaleformCallbackDefinition
+{
+    const char *name;
+    ScaleformCallbackId id;
+};
+
+static const ScaleformCallbackDefinition kScaleformCallbackDefinitions[] =
+{
+    { "OnLoadFinished", kCallbackOnLoadFinished },
+    { "OnLoadProgress", kCallbackOnLoadProgress },
+    { "OnLoadError", kCallbackOnLoadError },
+    { "OnUnload", kCallbackOnUnload },
+    { "AddInputConsumer", kCallbackAddInputConsumer },
+    { "RemoveInputConsumer", kCallbackRemoveInputConsumer },
+    { "SetCursorShape", kCallbackSetCursorShape },
+    { "ShowCursor", kCallbackShowCursor },
+    { "HideCursor", kCallbackHideCursor },
+    { "LoadKVFile", kCallbackLoadKVFile },
+    { "SaveKVFile", kCallbackSaveKVFile },
+    { "SetConvar", kCallbackSetConvar },
+    { "GetConvarNumber", kCallbackGetConvarNumber },
+    { "GetConvarNumberMin", kCallbackGetConvarNumberMin },
+    { "GetConvarNumberMax", kCallbackGetConvarNumberMax },
+    { "GetConvarString", kCallbackGetConvarString },
+    { "GetConvarBoolean", kCallbackGetConvarBoolean },
+    { "GetPAXAvatarFromName", kCallbackGetPAXAvatarFromName },
+    { "GetPlayerColorObject", kCallbackGetPlayerColorObject },
+    { "Translate", kCallbackTranslate },
+    { "ReplaceGlyphs", kCallbackReplaceGlyphs },
+    { "PlaySound", kCallbackPlaySound },
+    { "ConsoleCommand", kCallbackConsoleCommand },
+    { "ConsoleCommandExecute", kCallbackConsoleCommandExecute },
+    { "DisableAnalogStickNavigation", kCallbackDisableAnalogStickNavigation },
+    { "DenyInputToGame", kCallbackDenyInputToGame },
+    { "SendUIEvent", kCallbackSendUIEvent },
+    { "MakeStringSafe", kCallbackMakeStringSafe },
+    { "GetClipboardText", kCallbackGetClipboardText },
+    { "SetClipboardText", kCallbackSetClipboardText },
+    { "BasePanelRunCommand", kCallbackBasePanelRunCommand },
+    { "IsMultiplayerPrivilegeEnabled", kCallbackIsMultiplayerPrivilegeEnabled },
+    { "LaunchTraining", kCallbackLaunchTraining },
+    { "ViewMapInWorkshop", kCallbackViewMapInWorkshop },
+    { "GetPreviousLevel", kCallbackGetPreviousLevel }
+};
+
+class KisakScaleformFunctionHandler final : public Scaleform::GFx::FunctionHandler
+{
+public:
+    KisakScaleformFunctionHandler()
+        : m_loadFinished( 0 ), m_loadErrors( 0 ), m_uiEvents( 0 )
+    {
+    }
+
+    void Call( const Params &params ) override
+    {
+        const ScaleformCallbackId id = static_cast< ScaleformCallbackId >(
+            reinterpret_cast< uintptr_t >( params.pUserData ) );
+        if ( params.pRetVal )
+            params.pRetVal->SetNull();
+
+        switch ( id )
+        {
+        case kCallbackOnLoadFinished:
+            if ( m_loadFinished++ == 0 )
+                KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform element load finished" );
+            break;
+        case kCallbackOnLoadError:
+            if ( m_loadErrors++ == 0 )
+                KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform element load error" );
+            break;
+        case kCallbackOnUnload:
+            if ( params.pRetVal )
+                params.pRetVal->SetBoolean( true );
+            break;
+        case kCallbackGetPlayerColorObject:
+        {
+            static const int colors[5][3] =
+            {
+                { 240, 243, 32 }, { 150, 34, 223 }, { 0, 165, 90 },
+                { 92, 168, 255 }, { 255, 155, 37 }
+            };
+            const int player = params.pArgs && params.ArgCount > 0
+                ? static_cast< int >( params.pArgs[0].GetNumber() ) : 0;
+            const int component = params.pArgs && params.ArgCount > 1
+                ? static_cast< int >( params.pArgs[1].GetNumber() ) : 0;
+            if ( params.pRetVal && player >= 0 && player < 5 && component >= 0 && component < 3 )
+                params.pRetVal->SetNumber( colors[player][component] );
+            break;
+        }
+        case kCallbackGetConvarNumber:
+        case kCallbackGetConvarNumberMin:
+        case kCallbackGetConvarNumberMax:
+            if ( params.pRetVal )
+                params.pRetVal->SetNumber( 0.0 );
+            break;
+        case kCallbackGetConvarBoolean:
+            if ( params.pRetVal )
+                params.pRetVal->SetBoolean( false );
+            break;
+        case kCallbackGetConvarString:
+        case kCallbackGetClipboardText:
+        case kCallbackGetPAXAvatarFromName:
+            if ( params.pRetVal )
+                params.pRetVal->SetString( "" );
+            break;
+        case kCallbackTranslate:
+        case kCallbackReplaceGlyphs:
+        case kCallbackMakeStringSafe:
+            if ( params.pRetVal )
+            {
+                const char *value = params.pArgs && params.ArgCount > 0
+                    ? params.pArgs[0].GetString() : "";
+                params.pRetVal->SetString( value ? value : "" );
+            }
+            break;
+        case kCallbackIsMultiplayerPrivilegeEnabled:
+            if ( params.pRetVal )
+                params.pRetVal->SetBoolean( true );
+            break;
+        case kCallbackGetPreviousLevel:
+            if ( params.pRetVal )
+                params.pRetVal->SetNumber( -1.0 );
+            break;
+        case kCallbackSendUIEvent:
+            if ( m_uiEvents++ == 0 )
+                KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform GameInterface event bridge active" );
+            break;
+        default:
+            break;
+        }
+    }
+
+private:
+    uint32_t m_loadFinished;
+    uint32_t m_loadErrors;
+    uint32_t m_uiEvents;
 };
 
 enum
@@ -167,6 +345,7 @@ public:
             return true;
 
         m_system = new Scaleform::System();
+        m_callbackHandler = *new KisakScaleformFunctionHandler();
         Scaleform::Ptr< KisakScaleformFileOpener > fileOpener =
             *new KisakScaleformFileOpener();
         m_fileOpener = fileOpener;
@@ -223,6 +402,7 @@ public:
             m_slots[i].ready = false;
             m_slots[i].captured = false;
         }
+        m_callbackHandler.Clear();
         delete m_loader;
         m_loader = NULL;
         m_fontLib.Clear();
@@ -329,6 +509,28 @@ public:
     }
 
 private:
+    void CreateGameInterface( Scaleform::GFx::Movie *movie,
+        Scaleform::GFx::Value *gameInterface )
+    {
+        if ( !movie || !gameInterface )
+            return;
+
+        movie->CreateObject( gameInterface );
+        if ( !gameInterface->IsObject() || !m_callbackHandler.GetPtr() )
+            return;
+
+        for ( unsigned int i = 0;
+              i < sizeof( kScaleformCallbackDefinitions ) / sizeof( kScaleformCallbackDefinitions[0] );
+              ++i )
+        {
+            Scaleform::GFx::Value function;
+            movie->CreateFunction( &function, m_callbackHandler.GetPtr(),
+                reinterpret_cast< void * >( static_cast< uintptr_t >(
+                    kScaleformCallbackDefinitions[i].id ) ) );
+            gameInterface->SetMember( kScaleformCallbackDefinitions[i].name, function );
+        }
+    }
+
     bool LoadSlot( int slot )
     {
         ScaleformMovieSlot &movieSlot = m_slots[slot];
@@ -347,6 +549,7 @@ private:
         movieSlot.movie->SetVisible( true );
 
         Scaleform::GFx::Value global;
+        Scaleform::GFx::Value gameInterface;
         const bool globalReady = movieSlot.movie->GetVariable( &global, "_global" );
         if ( globalReady )
         {
@@ -362,8 +565,7 @@ private:
             uiSlot.SetNumber( slot );
             global.SetMember( "UISlot", uiSlot );
 
-            Scaleform::GFx::Value gameInterface;
-            movieSlot.movie->CreateObject( &gameInterface );
+            CreateGameInterface( movieSlot.movie.GetPtr(), &gameInterface );
             if ( gameInterface.IsObject() )
                 global.SetMember( "GameInterface", gameInterface );
         }
@@ -397,7 +599,9 @@ private:
             {
                 Scaleform::GFx::Value args[2];
                 movieSlot.movie->CreateString( &args[0], movieSlot.element );
-                movieSlot.movie->CreateObject( &args[1] );
+                args[1] = gameInterface;
+                if ( !args[1].IsObject() )
+                    CreateGameInterface( movieSlot.movie.GetPtr(), &args[1] );
                 global.Invoke( "RequestElement", NULL, args, 2 );
             }
         }
@@ -416,6 +620,7 @@ private:
     Scaleform::GFx::Loader *m_loader;
     Scaleform::Ptr< KisakScaleformFileOpener > m_fileOpener;
     Scaleform::Ptr< Scaleform::GFx::FontLib > m_fontLib;
+    Scaleform::Ptr< KisakScaleformFunctionHandler > m_callbackHandler;
     ScaleformMovieSlot m_slots[kScaleformSlotCount];
     bool m_initialized;
     bool m_loggedCapture;
