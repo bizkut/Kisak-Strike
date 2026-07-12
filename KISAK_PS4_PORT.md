@@ -3295,6 +3295,31 @@ The v3.60 monolithic package is staged at
 `e87fe55fe6462c30bee10927393da1c22828f470c3a93aa50c5078f8149c3e43`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.61: Retain tessellated GFx geometry as bounded draw batches
+
+The v3.60 hardware run tessellated all 150 menu layers successfully into 2,256
+vertices and 1,954 triangles while preserving 60 FPS and the stable diagnostic
+fallback. The geometry comfortably fits a small transient UI arena.
+
+The OpenGNM adapter now copies each Scaleform tessellator mesh into persistent
+CPU-side vertex and 16-bit index arrays and records its index range, vertex
+range, fill color, and whether the fill is complex. Capture is bounded to
+65,535 vertices, 196,605 indices, and 4,096 batches; over-limit meshes are
+skipped instead of corrupting an upload. Storage is rebuilt only for the first
+menu capture and retained for the upcoming GPU emission step.
+
+The next gate is agreement between tessellated totals and retained geometry,
+with valid nonzero batch counts. The following slice will apply the accumulated
+GFx transforms, copy solid batches into the frame upload arena, and issue them
+through the existing solid OpenGNM shader before the diagnostic overlay.
+
+Marker: `kisak-ps4: build marker scaleform_geometry_retention_v361`.
+
+The v3.61 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`ce4c716a57f1c430e6103fc6540a45756f17b28d22a36470cc3b956e29bd50cd`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

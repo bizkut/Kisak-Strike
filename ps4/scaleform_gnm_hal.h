@@ -2,6 +2,7 @@
 #define KISAK_PS4_SCALEFORM_GNM_HAL_H
 
 #include <stdint.h>
+#include <vector>
 
 #include <gnm.h>
 
@@ -20,6 +21,22 @@ class TreeRoot;
 class CPs4ScaleformHal
 {
 public:
+    struct CapturedVertex
+    {
+        float x;
+        float y;
+    };
+
+    struct CapturedBatch
+    {
+        uint32_t firstVertex;
+        uint32_t vertexCount;
+        uint32_t firstIndex;
+        uint32_t indexCount;
+        uint32_t color;
+        bool complexFill;
+    };
+
     struct TreeStats
     {
         uint32_t totalNodes;
@@ -73,11 +90,14 @@ public:
     uint64_t CapturedTrees() const { return m_capturedTrees; }
     uint64_t PendingBatches() const { return m_pendingBatches; }
     const TreeStats &LastTreeStats() const { return m_lastTreeStats; }
+    uint32_t CapturedVertexCount() const { return m_capturedVertices.size(); }
+    uint32_t CapturedIndexCount() const { return m_capturedIndices.size(); }
+    uint32_t CapturedBatchCount() const { return m_capturedDraws.size(); }
 
 private:
     enum { kMaxTreeNodes = 4096 };
 
-    static void CollectTreeStats( const Scaleform::Render::TreeNode *node,
+    void CollectTreeStats( const Scaleform::Render::TreeNode *node,
         TreeStats *stats );
 
     bool m_frameOpen;
@@ -87,6 +107,9 @@ private:
     uint32_t m_treeStatsLoggedMask;
     uint32_t m_treeDrawableLoggedMask;
     TreeStats m_lastTreeStats;
+    std::vector< CapturedVertex > m_capturedVertices;
+    std::vector< uint16_t > m_capturedIndices;
+    std::vector< CapturedBatch > m_capturedDraws;
 };
 
 CPs4ScaleformHal &KisakPs4ScaleformHal();

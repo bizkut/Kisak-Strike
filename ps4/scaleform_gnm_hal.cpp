@@ -25,7 +25,10 @@ bool IsComplexFill( const Scaleform::Render::ShapeDataInterface *shape,
 }
 
 bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
-    unsigned layer, uint32_t *vertices, uint32_t *triangles )
+    unsigned layer, uint32_t *vertices, uint32_t *triangles,
+    std::vector< CPs4ScaleformHal::CapturedVertex > *capturedVertices,
+    std::vector< uint16_t > *capturedIndices,
+    std::vector< CPs4ScaleformHal::CapturedBatch > *capturedDraws )
 {
     if ( !provider || !vertices || !triangles )
         return false;
@@ -77,7 +80,55 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
     generator.mTess.Tessellate( false );
     *vertices += generator.mTess.GetVertexCount();
     for ( unsigned mesh = 0; mesh < generator.mTess.GetMeshCount(); ++mesh )
+    {
         *triangles += generator.mTess.GetMeshTriangleCount( mesh );
+        if ( !capturedVertices || !capturedIndices || !capturedDraws ||
+             capturedDraws->size() >= 4096 )
+            continue;
+
+        Scaleform::Render::TessMesh tessMesh;
+        generator.mTess.GetMesh( mesh, &tessMesh );
+        const unsigned triangleCount = generator.mTess.GetMeshTriangleCount( mesh );
+        if ( tessMesh.VertexCount == 0 || triangleCount == 0 ||
+             capturedVertices->size() + tessMesh.VertexCount > 65535 ||
+             capturedIndices->size() + triangleCount * 3 > 196605 )
+            continue;
+
+        const uint32_t firstVertex = capturedVertices->size();
+        std::vector< Scaleform::Render::TessVertex > meshVertices( tessMesh.VertexCount );
+        const unsigned copiedVertices = generator.mTess.GetVertices(
+            &tessMesh, &meshVertices[0], tessMesh.VertexCount );
+        if ( copiedVertices != tessMesh.VertexCount )
+            continue;
+        for ( unsigned vertex = 0; vertex < copiedVertices; ++vertex )
+        {
+            CPs4ScaleformHal::CapturedVertex captured;
+            captured.x = meshVertices[vertex].x;
+            captured.y = meshVertices[vertex].y;
+            capturedVertices->push_back( captured );
+        }
+
+        const uint32_t firstIndex = capturedIndices->size();
+        std::vector< Scaleform::UInt16 > meshIndices( triangleCount * 3 );
+        generator.mTess.GetTrianglesI16( mesh, &meshIndices[0], 0, triangleCount );
+        for ( unsigned index = 0; index < triangleCount * 3; ++index )
+            capturedIndices->push_back( static_cast< uint16_t >(
+                firstVertex + meshIndices[index] ) );
+
+        const unsigned style = tessMesh.Style1 ? tessMesh.Style1 : tessMesh.Style2;
+        Scaleform::Render::FillStyleType fillStyle;
+        fillStyle.Color = 0xffffffffu;
+        if ( style )
+            provider->GetFillStyle( style, &fillStyle, 0.0f );
+        CPs4ScaleformHal::CapturedBatch batch;
+        batch.firstVertex = firstVertex;
+        batch.vertexCount = copiedVertices;
+        batch.firstIndex = firstIndex;
+        batch.indexCount = triangleCount * 3;
+        batch.color = fillStyle.Color;
+        batch.complexFill = fillStyle.pFill.GetPtr() != NULL;
+        capturedDraws->push_back( batch );
+    }
     generator.Clear();
     return true;
 }
@@ -155,7 +206,8 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
                 for ( unsigned layer = 0; layer < layerCount; ++layer )
                 {
                     if ( stats->collectGeometry && TessellateShapeLayer( shape, layer,
-                            &stats->tessellatedVertices, &stats->tessellatedTriangles ) )
+                            &stats->tessellatedVertices, &stats->tessellatedTriangles,
+                            &m_capturedVertices, &m_capturedIndices, &m_capturedDraws ) )
                         ++stats->tessellatedLayers;
                     const unsigned fillCount = shape->GetFillCount( layer, 0 );
                     for ( unsigned fill = 0; fill < fillCount; ++fill )
@@ -215,6 +267,15 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
     const uint32_t statsBit = phase && phase[0] == 'h' ? 2u : 1u;
     m_lastTreeStats = TreeStats();
     m_lastTreeStats.collectGeometry = ( m_treeDrawableLoggedMask & statsBit ) == 0;
+    if ( m_lastTreeStats.collectGeometry && statsBit == 1u )
+    {
+        m_capturedVertices.clear();
+        m_capturedIndices.clear();
+        m_capturedDraws.clear();
+        m_capturedVertices.reserve( 4096 );
+        m_capturedIndices.reserve( 12288 );
+        m_capturedDraws.reserve( 256 );
+    }
     CollectTreeStats( root, &m_lastTreeStats );
     if ( m_lastTreeStats.totalNodes == 0 )
         return false;
@@ -243,15 +304,16 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
          ( m_treeDrawableLoggedMask & statsBit ) == 0 )
     {
         m_treeDrawableLoggedMask |= statsBit;
-        char message[288];
+        char message[352];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform drawable tree phase=%s shapes=%u meshes=%u text=%u layers=%u solid=%u image=%u gradient=%u tess_layers=%u vertices=%u triangles=%u",
+            "kisak-ps4: scaleform drawable tree phase=%s shapes=%u meshes=%u text=%u layers=%u solid=%u image=%u gradient=%u tess_layers=%u vertices=%u triangles=%u retained_vertices=%u retained_indices=%u retained_batches=%u",
             phase ? phase : "unknown", m_lastTreeStats.shapeNodes,
             m_lastTreeStats.meshNodes, m_lastTreeStats.textNodes,
             m_lastTreeStats.shapeLayers, m_lastTreeStats.solidFills,
             m_lastTreeStats.imageFills, m_lastTreeStats.gradientFills,
             m_lastTreeStats.tessellatedLayers, m_lastTreeStats.tessellatedVertices,
-            m_lastTreeStats.tessellatedTriangles );
+            m_lastTreeStats.tessellatedTriangles, CapturedVertexCount(),
+            CapturedIndexCount(), CapturedBatchCount() );
         KisakPs4StartupBreadcrumb( message );
     }
     (void)phase;
