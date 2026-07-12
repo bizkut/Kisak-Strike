@@ -903,7 +903,28 @@ private:
         if ( initSlot )
             global.Invoke( "InitSlot" );
 
-        movieSlot.movie->SetViewport( 1920, 1080, 0, 0, 1920, 1080 );
+        // Construct the GFx viewport explicitly.  The six-argument inline
+        // helper reached hardware with AspectRatio == 0 and Scale == 2/3,
+        // collapsing the root X transform to the screen center.  These fields
+        // are part of GFx::Viewport beyond the Render::Viewport base and must
+        // remain initialized for SM_NoScale.
+        Scaleform::GFx::Viewport movieViewport( 1920, 1080, 0, 0, 1920, 1080 );
+        movieViewport.Scale = 1.0f;
+        movieViewport.AspectRatio = 1.0f;
+        movieSlot.movie->SetViewport( movieViewport );
+        Scaleform::GFx::Viewport appliedViewport;
+        movieSlot.movie->GetViewport( &appliedViewport );
+        static bool loggedViewport = false;
+        if ( !loggedViewport )
+        {
+            char viewportMarker[192];
+            snprintf( viewportMarker, sizeof( viewportMarker ),
+                "kisak-ps4: scaleform viewport width=%d height=%d scale=%.4f ratio=%.4f",
+                appliedViewport.Width, appliedViewport.Height,
+                appliedViewport.Scale, appliedViewport.AspectRatio );
+            KisakPs4StartupBreadcrumb( viewportMarker );
+            loggedViewport = true;
+        }
         function.SetNull();
         const bool forceResize = globalReady && global.GetMember( "ForceResize", &function );
         if ( forceResize )

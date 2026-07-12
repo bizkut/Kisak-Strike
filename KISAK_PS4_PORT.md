@@ -3368,6 +3368,32 @@ The v3.63 monolithic package is staged at
 `bd800aa2e4df65f6e98e9ce3d97e55a9954f4f1879b66046484d013247aa77df`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.64: Initialize the complete GFx viewport state explicitly
+
+The v3.63 hardware trace isolated the collapse to the root viewport matrix.
+Raw geometry was correct at 25,600 by 14,400 twips, but the affine sample was
+`[0 0 960; 0 0.075 0]` and all 138 shape transforms were degenerate. The zero
+X scale and center translation are the exact result of a zero aspect ratio;
+the Y coefficient also shows a non-default viewport scale.
+
+The movie manager now constructs `GFx::Viewport` explicitly instead of relying
+on the six-argument inline helper, sets both GFx-only fields (`Scale` and
+`AspectRatio`) to 1.0, and passes that complete object to `SetViewport`. It
+reads the applied viewport back and logs width, height, scale, and ratio. This
+fixes the root render transform at its source so Stage sizing, ActionScript
+layout, rendering, and controller hit testing remain consistent.
+
+The next gate is an applied 1920x1080 viewport with scale/ratio 1.0, zero
+degenerate shape transforms, and finite two-dimensional bounds. Solid OpenGNM
+submission remains gated until those conditions hold.
+
+Marker: `kisak-ps4: build marker scaleform_viewport_fields_v364`.
+
+The v3.64 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`7416a09cb8fb1776486948412a879db80add06810d007a7f311c00d03d7856bc`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
