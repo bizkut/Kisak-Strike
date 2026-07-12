@@ -1567,6 +1567,18 @@ a bounded, one-shot scan of the submitted command stream for the final
 write counts. This separates a missing/overwritten PM4 packet from a deeper
 Liverpool blend-target requirement before changing more OpenGNM state. The
 build marker is `kisak-ps4: build marker blend_packet_trace_v305`.
+
+### v3.06: Preserve ROP3 during ordinary blending
+
+The v3.05 PM4 audit proved the requested blend equation, normal color control,
+and constant alpha all reached the final command stream without later
+overwrites. It also exposed `DISABLE_ROP3` in the blend-control word. Comparison
+with Mesa's GFX7/GFX8 render-state path showed that bit is not part of ordinary
+UNORM blending; Mesa uses it only when an enabled logic operation cannot apply
+to float or sRGB targets. OpenGNM incorrectly tied it directly to blend enable.
+v3.06 removes that coupling, adds a PM4 regression test expecting blend control
+`0x40011413`, and retains pixel readback as the hardware acceptance check. The
+build marker is `kisak-ps4: build marker blend_rop3_fix_v306`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.
