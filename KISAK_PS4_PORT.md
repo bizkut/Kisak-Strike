@@ -2889,11 +2889,20 @@ and tiled RGBA8 color-target blending are correct. The remaining limitation is
 the display-linear VideoOut render target. The renderer must draw blended scene
 content into a tiled intermediate and copy/resolve it into scanout memory.
 
-### v3.24: Add the tiled-scene presentation shader
+### v3.24: Add the scene presentation shader
 
 The presentation pass now has a dedicated pixel shader that samples varying UVs
-from a tiled scene texture and exports opaque RGB to the linear VideoOut target.
+from a scene texture and exports opaque RGB to the linear VideoOut target.
 It is compiled offline for base PS4, packaged as `kisak_present.frag.sb`, tracked
 in the strict shader manifest, and loaded through the native shader handle table.
 This prepares the opaque fullscreen resolve without altering Source material
 shader conventions or the validated v3.23 image.
+
+### v3.25: Allocate the full-resolution scene color target
+
+The proven 4x4 blend target and the VideoOut target both use
+`GNM_TM_DISPLAY_LINEAR_ALIGNED`, so the remaining difference is not simply tiled
+versus linear layout. v3.25 allocates a dedicated 16 MiB direct-memory pool and
+constructs a 1920x1080 RGBA8 aligned scene color target plus sampler table. It
+does not switch rendering yet; hardware must first validate its calculated byte
+size, color-info word, allocation, and cleanup while preserving the v3.23 image.

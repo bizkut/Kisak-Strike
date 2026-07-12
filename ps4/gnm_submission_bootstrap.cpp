@@ -56,10 +56,13 @@ const size_t kDirectMemorySize = 64 * 1024 * 1024;
 const size_t kDirectMemoryAlignment = 2 * 1024 * 1024;
 const size_t kCommandBufferSize = 64 * 1024;
 const size_t kPersistentMemorySize = 58 * 1024 * 1024;
+const size_t kSceneColorMemorySize = 16 * 1024 * 1024;
 const uint32_t kDiagnosticVertexCount = 24;
 const uint32_t kDiagnosticIndexCount = 36;
 off_t g_DirectMemory = 0;
 void *g_Mapped = 0;
+off_t g_SceneColorDirectMemory = 0;
+void *g_SceneColorMapped = 0;
 CPs4GnmDevice g_Device;
 CPs4GnmDrawState g_DrawState;
 uint64_t g_CompletedLabel = 0;
@@ -95,6 +98,7 @@ uint32_t g_DepthMemorySize = 0;
 CPs4GnmTexture g_DiagnosticTexture;
 CPs4GnmTexture g_DiagnosticCopyTexture;
 CPs4GnmTexture g_CubeEdgeTexture;
+CPs4GnmTexture g_SceneColorTexture;
 CPs4ShaderManifest g_ShaderManifest;
 void *g_TextureSamplerTable = 0;
 void *g_ReferenceCubeFetchShader = 0;
@@ -105,6 +109,8 @@ CPs4GnmBuffer g_CubeEdgeVertexBuffer;
 CPs4GnmVertexDeclaration g_ReferenceCubeVertexDeclaration;
 CPs4GnmConstants g_ReferenceCubeConstants;
 void *g_CubeEdgeSamplerTable = 0;
+void *g_SceneColorSamplerTable = 0;
+bool g_SceneColorReady = false;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
 bool g_ShadowStateApplyLogged = false;
@@ -197,6 +203,82 @@ bool WaitForLabel( volatile uint64_t *label, uint64_t expected )
         sceKernelUsleep( 50 );
     }
     return false;
+}
+
+void ReleaseSceneColorTarget()
+{
+    g_SceneColorTexture.Reset();
+    g_SceneColorSamplerTable = 0;
+    g_SceneColorReady = false;
+    if ( g_SceneColorMapped )
+        sceKernelMunmap( g_SceneColorMapped, kSceneColorMemorySize );
+    if ( g_SceneColorDirectMemory )
+        sceKernelReleaseDirectMemory(
+            g_SceneColorDirectMemory, kSceneColorMemorySize );
+    g_SceneColorMapped = 0;
+    g_SceneColorDirectMemory = 0;
+}
+
+bool InitializeSceneColorTarget()
+{
+    if ( g_SceneColorReady )
+        return true;
+    int result = sceKernelAllocateDirectMemory( 0,
+        static_cast< off_t >( sceKernelGetDirectMemorySize() ),
+        kSceneColorMemorySize, kDirectMemoryAlignment,
+        ORBIS_KERNEL_WC_GARLIC, &g_SceneColorDirectMemory );
+    if ( result < 0 )
+        return false;
+    const int protection = ORBIS_KERNEL_PROT_CPU_READ | ORBIS_KERNEL_PROT_CPU_RW |
+        ORBIS_KERNEL_PROT_GPU_READ | ORBIS_KERNEL_PROT_GPU_WRITE;
+    result = sceKernelMapDirectMemory( &g_SceneColorMapped,
+        kSceneColorMemorySize, protection, 0, g_SceneColorDirectMemory,
+        kDirectMemoryAlignment );
+    if ( result < 0 )
+    {
+        ReleaseSceneColorTarget();
+        return false;
+    }
+    if ( !g_SceneColorTexture.Initialize2D( g_SceneColorMapped,
+            kSceneColorMemorySize, GNM_FMT_R8G8B8A8_UNORM,
+            1920, 1080, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) ||
+        !g_SceneColorTexture.CreateColorTargetView( GNM_FMT_R8G8B8A8_UNORM,
+            1920, 1080, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) )
+    {
+        ReleaseSceneColorTarget();
+        return false;
+    }
+    uint8_t *table = static_cast< uint8_t * >( g_SceneColorMapped ) +
+        g_SceneColorTexture.Size();
+    table = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( table ) + 15 ) &
+        ~static_cast< uintptr_t >( 15 ) );
+    const size_t used = static_cast< size_t >(
+        table - static_cast< uint8_t * >( g_SceneColorMapped ) );
+    GnmSampler sampler = {};
+    sampler.clampx = sampler.clampy = sampler.clampz =
+        GNM_TEX_CLAMP_CLAMP_LAST_TEXEL;
+    sampler.depthcomparefunc = GNM_DEPTH_COMPARE_ALWAYS;
+    sampler.filtermode = GNM_FILTER_MODE_BLEND;
+    sampler.xymagfilter = sampler.xyminfilter = GNM_FILTER_POINT;
+    sampler.zfilter = GNM_ZFILTER_NONE;
+    sampler.mipfilter = GNM_MIPFILTER_NONE;
+    sampler.bordercolortype = GNM_BORDER_COLOR_OPAQUE_BLACK;
+    if ( used > kSceneColorMemorySize ||
+        !g_SceneColorTexture.BuildSamplerTable( sampler, table,
+            kSceneColorMemorySize - used, &g_SceneColorSamplerTable ) )
+    {
+        ReleaseSceneColorTarget();
+        return false;
+    }
+    g_SceneColorReady = true;
+    char message[160];
+    snprintf( message, sizeof( message ),
+        "kisak-ps4: scene color target ready bytes=%llu info=0x%08x",
+        static_cast< unsigned long long >( g_SceneColorTexture.Size() ),
+        g_SceneColorTexture.ColorTarget().info.asuint );
+    KisakPs4StartupBreadcrumb( message );
+    return true;
 }
 
 bool ReadShaderFile( const char *path, uint8_t **data, size_t *size )
@@ -1233,6 +1315,9 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
         static_cast< uint8_t * >( g_Mapped ) + kPersistentMemorySize,
         kDirectMemorySize - kPersistentMemorySize );
     g_ShadersReady = passed && LoadDiagnosticShaders();
+    if ( g_ShadersReady && !InitializeSceneColorTarget() )
+        KisakPs4StartupBreadcrumb(
+            "kisak-ps4: scene color target allocation failed" );
     {
         char message[208];
         snprintf( message, sizeof( message ), "kisak-ps4: diagnostic shader detail %s",
@@ -1295,6 +1380,7 @@ extern "C" bool KisakPs4GnmSubmissionSelfTest()
         : "kisak-ps4: gnm submission self-test failed; CPU clear retained" );
     if ( !passed )
     {
+        ReleaseSceneColorTarget();
         sceKernelMunmap( g_Mapped, kDirectMemorySize );
         sceKernelReleaseDirectMemory( g_DirectMemory, kDirectMemorySize );
         g_Mapped = 0;
@@ -1707,6 +1793,7 @@ extern "C" void KisakPs4GnmSubmissionShutdown()
 {
     if ( !g_Mapped )
         return;
+    ReleaseSceneColorTarget();
     sceKernelMunmap( g_Mapped, kDirectMemorySize );
     sceKernelReleaseDirectMemory( g_DirectMemory, kDirectMemorySize );
     g_Mapped = 0;
