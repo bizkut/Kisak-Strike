@@ -28,12 +28,18 @@ public:
         uint32_t shapeNodes;
         uint32_t meshNodes;
         uint32_t textNodes;
+        uint32_t shapeLayers;
+        uint32_t solidFills;
+        uint32_t imageFills;
+        uint32_t gradientFills;
         bool hasViewport;
         bool truncated;
 
         TreeStats()
             : totalNodes( 0 ), visibleNodes( 0 ), containerNodes( 0 ),
               shapeNodes( 0 ), meshNodes( 0 ), textNodes( 0 ),
+              shapeLayers( 0 ), solidFills( 0 ), imageFills( 0 ),
+              gradientFills( 0 ),
               hasViewport( false ), truncated( false )
         {
         }

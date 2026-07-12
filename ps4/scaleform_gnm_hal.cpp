@@ -2,6 +2,7 @@
 
 #if defined( KISAK_PS4_MONOLITHIC )
 #include "Render/Render_TreeNode.h"
+#include "Render/Render_TreeShape.h"
 #endif
 
 #include <algorithm>
@@ -70,6 +71,40 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
         break;
     case Scaleform::Render::Context::EntryData::ET_Shape:
         ++stats->shapeNodes;
+        {
+            const Scaleform::Render::TreeShape *shapeNode =
+                static_cast< const Scaleform::Render::TreeShape * >( node );
+            Scaleform::Render::ShapeMeshProvider *shape = shapeNode->GetShape();
+            if ( shape )
+            {
+                const unsigned layerCount = shape->GetLayerCount();
+                stats->shapeLayers += layerCount;
+                for ( unsigned layer = 0; layer < layerCount; ++layer )
+                {
+                    const unsigned fillCount = shape->GetFillCount( layer, 0 );
+                    for ( unsigned fill = 0; fill < fillCount; ++fill )
+                    {
+                        Scaleform::Render::FillData fillData;
+                        shape->GetFillData( &fillData, layer, fill, 0 );
+                        switch ( fillData.Type )
+                        {
+                        case Scaleform::Render::Fill_SolidColor:
+                        case Scaleform::Render::Fill_VColor:
+                            ++stats->solidFills;
+                            break;
+                        case Scaleform::Render::Fill_Image:
+                            ++stats->imageFills;
+                            break;
+                        case Scaleform::Render::Fill_Gradient:
+                            ++stats->gradientFills;
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                }
+            }
+        }
         break;
     case Scaleform::Render::Context::EntryData::ET_Mesh:
         ++stats->meshNodes;
@@ -131,11 +166,13 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
          ( m_treeDrawableLoggedMask & statsBit ) == 0 )
     {
         m_treeDrawableLoggedMask |= statsBit;
-        char message[160];
+        char message[224];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform drawable tree phase=%s shapes=%u meshes=%u text=%u",
+            "kisak-ps4: scaleform drawable tree phase=%s shapes=%u meshes=%u text=%u layers=%u solid=%u image=%u gradient=%u",
             phase ? phase : "unknown", m_lastTreeStats.shapeNodes,
-            m_lastTreeStats.meshNodes, m_lastTreeStats.textNodes );
+            m_lastTreeStats.meshNodes, m_lastTreeStats.textNodes,
+            m_lastTreeStats.shapeLayers, m_lastTreeStats.solidFills,
+            m_lastTreeStats.imageFills, m_lastTreeStats.gradientFills );
         KisakPs4StartupBreadcrumb( message );
     }
     (void)phase;

@@ -3242,6 +3242,32 @@ The v3.58 monolithic package is staged at
 `9aaa72fbbb6ab7f9ce24251bbc6c098ab0e7658ded2074eeaeffcda6e44b4680`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.59: Inventory GFx shape layers and fill resources
+
+The v3.58 hardware run validated the direct packaged-movie reader completely.
+Fontlib, both roots, colorlib, and sharedlib all matched their declared lengths;
+the former parser truncation disappeared. Both root hook sets executed,
+`MainMenu` completed its load callback, and its captured render tree contained
+456 nodes: 138 shapes and 48 text nodes. The stable diagnostic fallback remains
+visible because the current OpenGNM adapter only captures the tree and produces
+no Scaleform meshes.
+
+The capture traversal now inventories every shape provider by draw layer and
+fill type, reporting solid, image, and gradient fill counts. This establishes
+the exact primitive and resource mix the first OpenGNM mesh path must support,
+without guessing from node counts or changing the proven display fallback.
+
+The next hardware gate is a complete, stable shape inventory. The following
+implementation slice will tessellate the dominant fill path into transient
+OpenGNM vertex/index batches, then add texture and text-atlas resources.
+
+Marker: `kisak-ps4: build marker scaleform_shape_inventory_v359`.
+
+The v3.59 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`f036b230c8b61da005d4790dd275d22a32a1a287e4a08e16dae7c6bcde371592`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
