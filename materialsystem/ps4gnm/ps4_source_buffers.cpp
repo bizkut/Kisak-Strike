@@ -161,7 +161,8 @@ bool CPs4SourceIndexBuffer::Lock( int count, bool append, IndexDesc_t &desc )
     desc.m_pIndices = static_cast< unsigned short * >( data );
     desc.m_nOffset = static_cast< unsigned int >( m_lockStart * m_indexSize );
     desc.m_nFirstIndex = m_lockStart;
-    desc.m_nIndexSize = m_indexSize;
+    // Source expresses this field in 16-bit index units, not bytes.
+    desc.m_nIndexSize = m_indexSize >> 1;
     return true;
 }
 
@@ -195,7 +196,7 @@ void CPs4SourceIndexBuffer::ModifyBegin( bool, int firstIndex, int count,
     desc.m_pIndices = static_cast< unsigned short * >( data );
     desc.m_nOffset = static_cast< unsigned int >( firstIndex * m_indexSize );
     desc.m_nFirstIndex = firstIndex;
-    desc.m_nIndexSize = m_indexSize;
+    desc.m_nIndexSize = m_indexSize >> 1;
 }
 
 void CPs4SourceIndexBuffer::ModifyEnd( IndexDesc_t &desc )

@@ -1365,6 +1365,18 @@ The v2.88 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `86b25efc4eeb7242e52568d5f19e89f5dce4ec6e7c46362b85f8f199e3188905`.
 
+The v2.88 hardware run held 60 FPS but displayed black. Its log stopped the
+new live probe after `shader device dynamic buffers passed`; every submission
+was consequently cancelled and VideoOut used the black CPU fallback. The
+probe exposed that `CPs4SourceIndexBuffer` populated `m_nIndexSize` with byte
+counts, while Source defines that descriptor field in 16-bit index units
+(`IndexSize() >> 1`). Version 2.89 corrects both lock paths to report 1 for
+16-bit and 2 for 32-bit indices. Marker:
+`kisak-ps4: build marker source_index_units_v289`.
+The v2.89 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`61093e8326fd965cee51d7c7828ba9888eaf6cb51493418b92801c5d3d5b2f71`.
+
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
