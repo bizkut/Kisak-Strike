@@ -1223,6 +1223,19 @@ Marker: `kisak-ps4: build marker native_device_caps_v278`.
 The v2.78 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `d2928e3a8cb73f23fd0c6605552aff965246af7bb5356486a90398c7678aee37`.
+
+The v2.78 hardware run retained the spinning cube, navy contrast regions, and
+60 FPS after `IsUsingGraphics()` became native. Version 2.79 replaces the
+remaining fixed-console mode data delegated to shaderapiempty. Adapter 0 now
+reports one 1920x1080 BGRA8888 mode at 60/1 Hz; current-mode queries return the
+same deterministic record; invalid adapters/modes return an initialized empty
+record; adapter selection accepts only adapter 0. Adapter identity reports AMD
+vendor `0x1002`, `OpenGNM Liverpool`, and Source DX support range 90-95. The
+delegate remains only for the existing initialization lifecycle. Marker:
+`kisak-ps4: build marker native_display_mode_v279`.
+The v2.79 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`de6757f689c52446c16281151a3f476e57d4861336c9b54b039d2be3a32dd529`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

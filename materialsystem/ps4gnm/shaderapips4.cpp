@@ -37,16 +37,43 @@ public:
 
     int GetAdapterCount() const { return 1; }
     void GetAdapterInfo( int adapter, MaterialAdapterInfo_t &info ) const
-    { if ( m_delegate ) m_delegate->GetAdapterInfo( adapter, info ); }
+    {
+        memset( &info, 0, sizeof( info ) );
+        if ( adapter != 0 )
+            return;
+        strncpy( info.m_pDriverName, "OpenGNM Liverpool",
+            sizeof( info.m_pDriverName ) - 1 );
+        info.m_VendorID = 0x1002;
+        info.m_nDXSupportLevel = 95;
+        info.m_nMinDXSupportLevel = 90;
+        info.m_nMaxDXSupportLevel = 95;
+    }
     bool GetRecommendedConfigurationInfo( int adapter, int dxLevel, KeyValues *configuration )
     { return m_delegate && m_delegate->GetRecommendedConfigurationInfo( adapter, dxLevel, configuration ); }
-    int GetModeCount( int adapter ) const { return m_delegate ? m_delegate->GetModeCount( adapter ) : 0; }
+    int GetModeCount( int adapter ) const { return adapter == 0 ? 1 : 0; }
     void GetModeInfo( ShaderDisplayMode_t *info, int adapter, int mode ) const
-    { if ( m_delegate ) m_delegate->GetModeInfo( info, adapter, mode ); }
+    {
+        if ( !info )
+            return;
+        *info = ShaderDisplayMode_t();
+        if ( adapter != 0 || mode != 0 )
+            return;
+        info->m_nWidth = 1920;
+        info->m_nHeight = 1080;
+        info->m_Format = IMAGE_FORMAT_BGRA8888;
+        info->m_nRefreshRateNumerator = 60;
+        info->m_nRefreshRateDenominator = 1;
+    }
     void GetCurrentModeInfo( ShaderDisplayMode_t *info, int adapter ) const
-    { if ( m_delegate ) m_delegate->GetCurrentModeInfo( info, adapter ); }
+    { GetModeInfo( info, adapter, 0 ); }
     bool SetAdapter( int adapter, int flags )
-    { return m_delegate && m_delegate->SetAdapter( adapter, flags ); }
+    {
+        if ( adapter != 0 )
+            return false;
+        if ( m_delegate )
+            m_delegate->SetAdapter( adapter, flags );
+        return true;
+    }
     CreateInterfaceFn SetMode( void *window, int adapter, const ShaderDeviceInfo_t &mode )
     {
         return m_delegate && m_delegate->SetMode( window, adapter, mode )
