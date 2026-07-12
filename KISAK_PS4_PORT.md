@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.92
-SHA-256: 15d406c70972df1c4f93ab39dec034a5f27e4b9a36a612eadbc2ab5d740d9277
+Version: 2.93
+SHA-256: 66943859cfa30b9a3fe0c4099babd1e120c2459db3d87c1494e42ee5ab9b3e55
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -1419,6 +1419,19 @@ colors so it cannot be confused with the cube. Success logs
 The v2.92 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `15d406c70972df1c4f93ab39dec034a5f27e4b9a36a612eadbc2ab5d740d9277`.
+
+The v2.92 hardware run displayed the lower-left yellow/cyan/magenta triangle
+alongside the bars and spinning cube at 60 FPS, and logged
+`Source dynamic mesh command emitted`. Version 2.93 marks the PS4 empty
+ShaderAPI mesh as dynamic, preserves the format requested by
+`GetDynamicMeshEx`, and populates the visible triangle through the actual
+`IMesh::LockMesh`/`UnlockMesh` entry points. The lower-level native binding and
+draw packet remain unchanged, isolating this test to the real Source mesh API
+boundary. Success logs `ShaderAPI IMesh dynamic command emitted`. Marker:
+`kisak-ps4: build marker shaderapi_imesh_draw_v293`.
+The v2.93 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`66943859cfa30b9a3fe0c4099babd1e120c2459db3d87c1494e42ee5ab9b3e55`.
 
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.

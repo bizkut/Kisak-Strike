@@ -871,37 +871,8 @@ bool BuildSourceDynamicTriangle( CPs4GnmDevice::IndexedDrawPacket *packet,
 {
     if ( !packet || !descriptors )
         return false;
-    const VertexFormat_t format = VERTEX_POSITION | VERTEX_NORMAL |
-        VERTEX_FORMAT_PAD_POS_NORM;
-    VertexDesc_t vertices = {};
-    IndexDesc_t indices = {};
-    if ( !KisakPs4LockDynamicVertices( format, 3, false, &vertices ) ||
-        !vertices.m_pPosition || !vertices.m_pNormal ||
-        vertices.m_ActualVertexSize != 32 )
+    if ( !KisakPs4PopulateShaderApiDynamicTriangle() )
         return false;
-    const float positions[3][4] = {
-        { -0.90f, -0.78f, 0.0f, 1.0f },
-        { -0.52f, -0.78f, 0.0f, 1.0f },
-        { -0.71f, -0.40f, 0.0f, 1.0f }
-    };
-    const float colors[3][4] = {
-        { 1.0f, 0.9f, 0.1f, 1.0f },
-        { 0.1f, 1.0f, 0.9f, 1.0f },
-        { 0.9f, 0.1f, 1.0f, 1.0f }
-    };
-    for ( int vertex = 0; vertex < 3; ++vertex )
-    {
-        float *base = vertices.m_pPosition + vertex * 8;
-        memcpy( base, positions[vertex], sizeof( positions[vertex] ) );
-        memcpy( base + 4, colors[vertex], sizeof( colors[vertex] ) );
-    }
-    KisakPs4UnlockDynamicVertices( 3, &vertices );
-    if ( !KisakPs4LockDynamicIndices( 3, false, &indices ) || !indices.m_pIndices )
-        return false;
-    indices.m_pIndices[0] = 0;
-    indices.m_pIndices[1] = 1;
-    indices.m_pIndices[2] = 2;
-    KisakPs4UnlockDynamicIndices( 3, &indices );
     const CPs4GnmVertexDeclaration::Element elements[2] = {
         { 0, 0, GNM_FMT_R32G32B32A32_FLOAT },
         { 0, 16, GNM_FMT_R32G32B32A32_FLOAT }
@@ -1353,7 +1324,7 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         if ( !sourceDynamicDrawLogged )
         {
             KisakPs4StartupBreadcrumb(
-                "kisak-ps4: Source dynamic mesh command emitted" );
+                "kisak-ps4: ShaderAPI IMesh dynamic command emitted" );
             sourceDynamicDrawLogged = true;
         }
         static bool threeDimensionalDrawLogged = false;

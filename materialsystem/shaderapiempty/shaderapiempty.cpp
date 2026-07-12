@@ -53,6 +53,7 @@ public:
 	virtual void Spew( int nVertexCount, const VertexDesc_t &desc );
 	virtual void ValidateData( int nVertexCount, const VertexDesc_t & desc );
 	virtual bool IsDynamic() const { return m_bIsDynamic; }
+	void SetVertexFormat( VertexFormat_t format ) { m_VertexFormat = format; }
 	virtual void BeginCastBuffer( VertexFormat_t format ) {}
 	virtual void BeginCastBuffer( MaterialIndexFormat_t format ) {}
 	virtual void EndCastBuffer( ) {}
@@ -111,7 +112,7 @@ public:
 
 	virtual void MarkAsDrawn() {}
 
-	virtual VertexFormat_t GetVertexFormat() const { return VERTEX_POSITION; }
+	virtual VertexFormat_t GetVertexFormat() const { return m_VertexFormat; }
 
 	virtual IMesh *GetMesh()
 	{
@@ -133,6 +134,7 @@ private:
 
 	unsigned char* m_pVertexMemory;
 	bool m_bIsDynamic;
+	VertexFormat_t m_VertexFormat;
 };
 
 
@@ -1570,7 +1572,8 @@ IIndexBuffer *CShaderDeviceEmpty::GetDynamicIndexBuffer()
 // The empty mesh...
 //
 //-----------------------------------------------------------------------------
-CEmptyMesh::CEmptyMesh( bool bIsDynamic ) : m_bIsDynamic( bIsDynamic )
+CEmptyMesh::CEmptyMesh( bool bIsDynamic ) : m_bIsDynamic( bIsDynamic ),
+	m_VertexFormat( VERTEX_POSITION )
 {
 	m_pVertexMemory = new unsigned char[VERTEX_BUFFER_SIZE];
 }
@@ -1900,7 +1903,13 @@ void CShaderShadowEmpty::BlendFuncSeparateAlpha( ShaderBlendFactor_t srcFactor, 
 // Constructor, destructor
 //-----------------------------------------------------------------------------
 
-CShaderAPIEmpty::CShaderAPIEmpty()  : m_Mesh( false )
+CShaderAPIEmpty::CShaderAPIEmpty()  : m_Mesh(
+#if defined( PLATFORM_PS4 )
+	true
+#else
+	false
+#endif
+	)
 {
 }
 
@@ -2240,6 +2249,7 @@ IMesh* CShaderAPIEmpty::GetDynamicMesh( IMaterial* pMaterial, int nHWSkinBoneCou
 
 IMesh* CShaderAPIEmpty::GetDynamicMeshEx( IMaterial* pMaterial, VertexFormat_t fmt, int nHWSkinBoneCount, bool buffered, IMesh* pVertexOverride, IMesh* pIndexOverride )
 {
+	m_Mesh.SetVertexFormat( fmt );
 	return &m_Mesh;
 }
 

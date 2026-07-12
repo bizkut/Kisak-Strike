@@ -23,5 +23,6 @@ extern "C" void KisakPs4UnlockDynamicVertices( int count, VertexDesc_t *desc );
 extern "C" bool KisakPs4LockDynamicIndices( int count, bool append, IndexDesc_t *desc );
 extern "C" void KisakPs4UnlockDynamicIndices( int count, IndexDesc_t *desc );
 extern "C" bool KisakPs4DynamicMeshBridgeProbe();
+extern "C" bool KisakPs4PopulateShaderApiDynamicTriangle();
 
 #endif

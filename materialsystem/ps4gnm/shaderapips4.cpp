@@ -751,3 +751,43 @@ extern "C" bool KisakPs4DynamicMeshBridgeProbe()
         packet.primitiveType == GNM_PT_TRILIST;
     return device->EndScene() && packetValid;
 }
+
+extern "C" bool KisakPs4PopulateShaderApiDynamicTriangle()
+{
+    if ( !g_EmptyFactory )
+        return false;
+    IShaderAPI *shaderApi = static_cast< IShaderAPI * >(
+        g_EmptyFactory( SHADERAPI_INTERFACE_VERSION, 0 ) );
+    const VertexFormat_t format = VERTEX_POSITION | VERTEX_NORMAL |
+        VERTEX_FORMAT_PAD_POS_NORM;
+    IMesh *mesh = shaderApi ? shaderApi->GetDynamicMeshEx(
+        0, format, 0, true, 0, 0 ) : 0;
+    if ( !mesh || mesh->GetVertexFormat() != format )
+        return false;
+    MeshDesc_t desc = {};
+    mesh->LockMesh( 3, 3, desc );
+    if ( !desc.m_pPosition || !desc.m_pNormal || !desc.m_pIndices ||
+        desc.m_ActualVertexSize != 32 || desc.m_nIndexSize != 1 )
+        return false;
+    const float positions[3][4] = {
+        { -0.90f, -0.78f, 0.0f, 1.0f },
+        { -0.52f, -0.78f, 0.0f, 1.0f },
+        { -0.71f, -0.40f, 0.0f, 1.0f }
+    };
+    const float colors[3][4] = {
+        { 1.0f, 0.9f, 0.1f, 1.0f },
+        { 0.1f, 1.0f, 0.9f, 1.0f },
+        { 0.9f, 0.1f, 1.0f, 1.0f }
+    };
+    for ( int vertex = 0; vertex < 3; ++vertex )
+    {
+        float *base = desc.m_pPosition + vertex * 8;
+        memcpy( base, positions[vertex], sizeof( positions[vertex] ) );
+        memcpy( base + 4, colors[vertex], sizeof( colors[vertex] ) );
+    }
+    desc.m_pIndices[0] = 0;
+    desc.m_pIndices[1] = 1;
+    desc.m_pIndices[2] = 2;
+    mesh->UnlockMesh( 3, 3, desc );
+    return true;
+}
