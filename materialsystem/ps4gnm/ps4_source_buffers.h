@@ -12,6 +12,7 @@ public:
     bool Initialize( ShaderBufferType_t type, VertexFormat_t format, int count );
     int VertexCount() const { return m_count; }
     VertexFormat_t GetVertexFormat() const { return m_format; }
+    int Stride() const { return m_stride; }
     bool IsDynamic() const { return m_dynamic; }
     void BeginCastBuffer( VertexFormat_t format );
     void EndCastBuffer();

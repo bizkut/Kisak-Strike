@@ -691,7 +691,13 @@ extern "C" void KisakPs4UnlockDynamicVertices( int count, VertexDesc_t *desc )
 {
     if ( !g_LockedDynamicVertexBuffer || !desc )
         return;
+    CPs4SourceVertexBuffer *buffer = static_cast< CPs4SourceVertexBuffer * >(
+        g_LockedDynamicVertexBuffer );
     g_LockedDynamicVertexBuffer->Unlock( count, *desc );
+    CPs4GnmDevice *device = KisakPs4GnmRuntime().Device();
+    if ( device )
+        device->SetStreamSource( 0, &buffer->NativeBuffer(), 0,
+            static_cast< uint32_t >( buffer->Stride() ) );
     g_LockedDynamicVertexBuffer = 0;
 }
 
@@ -710,7 +716,12 @@ extern "C" void KisakPs4UnlockDynamicIndices( int count, IndexDesc_t *desc )
 {
     if ( !g_LockedDynamicIndexBuffer || !desc )
         return;
+    CPs4SourceIndexBuffer *buffer = static_cast< CPs4SourceIndexBuffer * >(
+        g_LockedDynamicIndexBuffer );
     g_LockedDynamicIndexBuffer->Unlock( count, *desc );
+    CPs4GnmDevice *device = KisakPs4GnmRuntime().Device();
+    if ( device )
+        device->SetIndices( &buffer->NativeBuffer() );
     g_LockedDynamicIndexBuffer = 0;
 }
 
@@ -727,5 +738,8 @@ extern "C" bool KisakPs4DynamicMeshBridgeProbe()
         return false;
     const bool indicesValid = indices.m_pIndices && indices.m_nIndexSize == 1;
     KisakPs4UnlockDynamicIndices( 3, &indices );
-    return indicesValid;
+    CPs4GnmDevice *device = KisakPs4GnmRuntime().Device();
+    return indicesValid && device && device->Stream( 0 ).resource &&
+        device->Stream( 0 ).stride == 12 && device->Indices().buffer &&
+        !device->Indices().index32;
 }

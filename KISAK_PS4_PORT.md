@@ -1377,6 +1377,18 @@ The v2.89 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `61093e8326fd965cee51d7c7828ba9888eaf6cb51493418b92801c5d3d5b2f71`.
 
+The v2.89 hardware run restored the four color bars, navy-framed spinning
+cube, and 60 FPS. Its log includes `ShaderAPI dynamic mesh bridge passed` and
+the normal indexed diagnostic draw markers. Version 2.90 binds the native
+dynamic vertex and index resources into `CPs4GnmDevice` when Source unlocks a
+mesh. The live bridge probe now also verifies stream 0 has the expected
+12-byte position stride and that the device sees a 16-bit index binding. This
+establishes the device-state boundary needed for Source draw packet emission.
+Marker: `kisak-ps4: build marker source_mesh_binding_v290`.
+The v2.90 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`63b65af349fb04563e8e0f65918a665551b319a2e241bfde446d30bd51c40a99`.
+
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
