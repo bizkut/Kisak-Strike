@@ -1612,6 +1612,18 @@ independent probe. This changes target info from `0x00008028` to `0x00908028`.
 An invisible triangle proves the automatic destination-read optimization was
 the bypass; continued red moves the audit to another target enable. The build
 marker is `kisak-ps4: build marker blend_opt_disable_v309`.
+
+### v3.10: Enable SIMPLE_FLOAT on OpenGNM color targets
+
+v3.09 remained red after both blend optimizations were forced off. Comparison
+of OpenGNM's color-target descriptor with Mesa's GFX6-GFX8 construction found
+that OpenGNM left `CB_COLOR_INFO.SIMPLE_FLOAT` (bit 17) unset and labeled the
+field unused, while Mesa enables it for every color target regardless of number
+type. v3.10 names and initializes that field in OpenGNM and adds a descriptor
+regression test. With the temporary optimization override retained, target info
+becomes `0x00928028`; the `ZERO / ONE` probe should finally disappear if this
+was the missing color-export/blend conversion enable. The build marker is
+`kisak-ps4: build marker simple_float_blend_v310`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.
