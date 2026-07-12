@@ -95,6 +95,12 @@ public:
     uint32_t CapturedVertexCount() const { return m_capturedVertices.size(); }
     uint32_t CapturedIndexCount() const { return m_capturedIndices.size(); }
     uint32_t CapturedBatchCount() const { return m_capturedDraws.size(); }
+    const std::vector< CapturedVertex > &CapturedVertices() const
+        { return m_capturedVertices; }
+    const std::vector< uint16_t > &CapturedIndices() const
+        { return m_capturedIndices; }
+    const std::vector< CapturedBatch > &CapturedDraws() const
+        { return m_capturedDraws; }
 
 private:
     enum { kMaxTreeNodes = 4096 };

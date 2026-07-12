@@ -9,6 +9,9 @@
 #include "materialsystem/ps4gnm/ps4_gnm_runtime.h"
 #include "materialsystem/ps4gnm/ps4_shadow_state_translate.h"
 #include "materialsystem/ps4gnm/shaderapips4.h"
+#include "ps4/scaleform_gnm_hal.h"
+
+#include "Render/Render_Color.h"
 
 #include <gnm_commandbuffer.h>
 #include <gnm_controls.h>
@@ -1136,6 +1139,129 @@ bool EmitScenePresentation( GnmCommandBuffer *command,
     return Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
 }
 
+bool EmitScaleformSolidBatches( GnmCommandBuffer *command )
+{
+    CPs4ScaleformHal &hal = KisakPs4ScaleformHal();
+    const std::vector< CPs4ScaleformHal::CapturedVertex > &sourceVertices =
+        hal.CapturedVertices();
+    const std::vector< uint16_t > &sourceIndices = hal.CapturedIndices();
+    const std::vector< CPs4ScaleformHal::CapturedBatch > &sourceBatches =
+        hal.CapturedDraws();
+    if ( !command || sourceVertices.empty() || sourceIndices.empty() ||
+         sourceBatches.empty() )
+        return false;
+
+    struct UiVertex
+    {
+        float position[4];
+        float color[4];
+    };
+    UiVertex *vertices = static_cast< UiVertex * >(
+        g_Device.FrameArena().Allocate( sourceVertices.size() * sizeof( UiVertex ), 16 ) );
+    uint16_t *indices = static_cast< uint16_t * >(
+        g_Device.FrameArena().Allocate( sourceIndices.size() * sizeof( uint16_t ), 8 ) );
+    GnmBuffer *descriptors = static_cast< GnmBuffer * >(
+        g_Device.FrameArena().Allocate( 2 * sizeof( GnmBuffer ), 16 ) );
+    if ( !vertices || !indices || !descriptors )
+        return false;
+
+    for ( size_t i = 0; i < sourceVertices.size(); ++i )
+    {
+        vertices[i].position[0] = sourceVertices[i].x / 960.0f - 1.0f;
+        vertices[i].position[1] = 1.0f - sourceVertices[i].y / 540.0f;
+        vertices[i].position[2] = 0.0f;
+        vertices[i].position[3] = 1.0f;
+        memset( vertices[i].color, 0, sizeof( vertices[i].color ) );
+    }
+
+    uint32_t indexCount = 0;
+    uint32_t solidBatchCount = 0;
+    for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
+    {
+        const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
+        if ( batch.complexFill || batch.firstVertex + batch.vertexCount > sourceVertices.size() ||
+             batch.firstIndex + batch.indexCount > sourceIndices.size() )
+            continue;
+        Scaleform::Render::Color color( batch.color );
+        const float rgba[4] = {
+            color.GetRed() / 255.0f, color.GetGreen() / 255.0f,
+            color.GetBlue() / 255.0f, color.GetAlpha() / 255.0f
+        };
+        for ( uint32_t vertex = 0; vertex < batch.vertexCount; ++vertex )
+            memcpy( vertices[batch.firstVertex + vertex].color, rgba, sizeof( rgba ) );
+        memcpy( indices + indexCount, &sourceIndices[batch.firstIndex],
+            batch.indexCount * sizeof( uint16_t ) );
+        indexCount += batch.indexCount;
+        ++solidBatchCount;
+    }
+    if ( indexCount == 0 )
+        return false;
+
+    CPs4GnmBuffer vertexBuffer;
+    CPs4GnmBuffer indexBuffer;
+    if ( !vertexBuffer.Initialize( vertices,
+            sourceVertices.size() * sizeof( UiVertex ), CPs4GnmBuffer::kVertexBuffer, true ) ||
+         !indexBuffer.Initialize( indices, indexCount * sizeof( uint16_t ),
+            CPs4GnmBuffer::kIndexBuffer, true ) ||
+         !g_Device.SetStreamSource( 0, &vertexBuffer, 0, sizeof( UiVertex ) ) ||
+         !g_Device.SetIndices( &indexBuffer ) )
+        return false;
+    const CPs4GnmVertexDeclaration::Element elements[2] = {
+        { 0, 0, GNM_FMT_R32G32B32A32_FLOAT },
+        { 0, 16, GNM_FMT_R32G32B32A32_FLOAT }
+    };
+    CPs4GnmVertexDeclaration declaration;
+    CPs4GnmDevice::IndexedDrawPacket packet = {};
+    if ( !declaration.Initialize( elements, 2 ) ||
+         !g_Device.BuildVertexDescriptorTable( declaration, 0,
+            sourceVertices.size(), descriptors, 2 ) ||
+         !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
+            0, indexCount, 0, sourceVertices.size(), &packet ) )
+        return false;
+
+    g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
+    g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
+    g_DrawState.SetPixelShader( g_PixelShader->registers );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, descriptors );
+    g_DrawState.SetScissor( 0, 0, 1920, 1080 );
+    g_DrawState.SetPsInputUsage(
+        sceGnmVsShaderExportSemanticTable( g_VertexShader ),
+        g_VertexShader->numexportsemantics,
+        sceGnmPsShaderInputSemanticTable( g_PixelShader ),
+        g_PixelShader->numinputsemantics );
+    GnmDepthStencilControl depth = {};
+    depth.zfunc = GNM_DEPTH_COMPARE_ALWAYS;
+    depth.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
+    depth.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
+    g_DrawState.SetDepthStencilControl( depth );
+    GnmBlendControl blend = {};
+    blend.blendenabled = true;
+    blend.colorfunc = GNM_COMB_DST_PLUS_SRC;
+    blend.colorsrcmult = GNM_BLEND_SRC_ALPHA;
+    blend.colordstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
+    blend.alphafunc = GNM_COMB_DST_PLUS_SRC;
+    blend.alphasrcmult = GNM_BLEND_ONE;
+    blend.alphadstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
+    g_DrawState.SetBlendControl( 0, blend );
+    g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil );
+    if ( !Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX ) )
+        return false;
+
+    static bool logged = false;
+    if ( !logged )
+    {
+        char message[160];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: scaleform solid draw batches=%u vertices=%u indices=%u",
+            solidBatchCount, static_cast< unsigned int >( sourceVertices.size() ),
+            indexCount );
+        KisakPs4StartupBreadcrumb( message );
+        logged = true;
+    }
+    return true;
+}
+
 void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     const CPs4GnmDevice::IndexedDrawPacket &packet,
     const CPs4GnmDevice::IndexedDrawPacket &sourcePacket,
@@ -1301,6 +1427,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     uint32_t sourceDirtyMask = 0;
     Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX,
         &sourceDirtyMask );
+    EmitScaleformSolidBatches( command );
     static bool sourceBlendStateLogged = false;
     if ( !sourceBlendStateLogged )
     {

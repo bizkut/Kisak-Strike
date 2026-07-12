@@ -3467,6 +3467,35 @@ The v3.67 monolithic package is staged at
 `ab1cc280175238a5e3c092653301ba9824a8df6fae6d2a59c71e59f053f70238`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.68: Submit the first retained Scaleform solid batches to OpenGNM
+
+The v3.67 hardware run validated the AS2 repair. The depth-3 container is now a
+uniform ~1.5 transform, the combined transform is ~0.075 on both axes, all 138
+shape matrices are nondegenerate, and retained geometry spans both screen axes.
+Off-screen X extents belong to menu layout/animation containers and are clipped
+by the viewport.
+
+The presentation path now consumes the retained Scaleform geometry. It filters
+out complex gradient fills, converts the remaining screen-space vertices to
+PS4 clip coordinates, uploads vertices and 16-bit indices through the current
+frame arena, assigns each mesh's solid RGBA color, and emits one indexed draw
+with normal alpha blending and a 1920x1080 scissor. The draw targets the tiled
+scene color surface before the existing opaque presentation resolve, so it is
+visible in the final VideoOut buffer. Gradients and text remain deliberately
+disabled for this first hardware submission.
+
+The next gate is the `scaleform solid draw` breadcrumb, continued EOP/flip
+stability, and visible menu-colored geometry over the diagnostic scene. The
+following slice will correct any channel/order issues, then preserve draw order
+per batch and add gradient resources.
+
+Marker: `kisak-ps4: build marker scaleform_solid_draw_v368`.
+
+The v3.68 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`805cae0ee977298d7de8b49b2556131c97323376b9104bfb182b22ca11c09714`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
