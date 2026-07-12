@@ -1307,6 +1307,20 @@ visible spinning cube. Marker:
 The v2.84 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `b943a1c720077d0ee0cef49155a660f403aa34c678a0e8298546c870725cd5ab`.
+
+The v2.84 hardware run recovered the spinning cube and navy edges at 60 FPS;
+the log contains `native Source buffer probe passed` and shader detail `ready`.
+Version 2.85 separates dynamic lifetime from static resources. Dynamic Source
+vertex/index objects reserve no persistent memory at creation; a non-append
+lock acquires fresh 256-byte-aligned backing from the active frame arena, and
+append locks reuse that frame's allocation. Thus reuse is gated by the same EOP
+labels as command/constant memory rather than leaking the monotonic persistent
+pool. A one-shot probe runs inside the first live submission and logs
+`dynamic Source buffer frame probe passed`. Static buffers remain persistent.
+Marker: `kisak-ps4: build marker frame_dynamic_buffers_v285`.
+The v2.85 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`86c827c23ef7c7787646b77116363546ca60fdd6917b91ba641967ef20a563ab`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

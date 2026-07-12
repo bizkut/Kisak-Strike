@@ -1133,6 +1133,18 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
     CPs4GnmDevice::SubmissionFrame submission = {};
     if ( !g_Device.BeginSubmission( g_CompletedLabel, kCommandBufferSize, 256, &submission ) )
         return false;
+    static bool dynamicBufferProbePassed = false;
+    if ( !dynamicBufferProbePassed )
+    {
+        if ( !KisakPs4DynamicSourceBufferProbe() )
+        {
+            g_Device.CancelFrame();
+            return false;
+        }
+        KisakPs4StartupBreadcrumb(
+            "kisak-ps4: dynamic Source buffer frame probe passed" );
+        dynamicBufferProbePassed = true;
+    }
 
     const uint32_t bandSize = size / 4;
     const uint32_t colors[4] = {

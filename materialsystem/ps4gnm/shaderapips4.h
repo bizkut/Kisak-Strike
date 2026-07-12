@@ -13,5 +13,6 @@ extern "C" void KisakPs4SetShaderShadowBlend( bool enabled,
     bool separateAlpha, int alphaSource, int alphaDestination, int alphaOperation );
 extern "C" int KisakPs4TextureMemoryUsed();
 extern "C" bool KisakPs4SourceBufferProbe();
+extern "C" bool KisakPs4DynamicSourceBufferProbe();
 
 #endif
