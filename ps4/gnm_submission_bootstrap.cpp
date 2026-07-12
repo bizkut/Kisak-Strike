@@ -51,10 +51,10 @@ extern "C" int32_t sceKernelReleaseDirectMemory( int64_t start, uint64_t size );
 
 namespace
 {
-const size_t kDirectMemorySize = 16 * 1024 * 1024;
+const size_t kDirectMemorySize = 64 * 1024 * 1024;
 const size_t kDirectMemoryAlignment = 2 * 1024 * 1024;
 const size_t kCommandBufferSize = 64 * 1024;
-const size_t kPersistentMemorySize = 10 * 1024 * 1024;
+const size_t kPersistentMemorySize = 58 * 1024 * 1024;
 const uint32_t kDiagnosticVertexCount = 24;
 const uint32_t kDiagnosticIndexCount = 36;
 off_t g_DirectMemory = 0;

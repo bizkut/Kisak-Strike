@@ -1262,6 +1262,19 @@ allocation. Runtime logs the exact available byte count. Marker:
 The v2.81 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `af9c2acdbf7090d92ea12efb0b3fab3b28970eabaaa2ee0fce2eff5fc4e2a816`.
+
+The v2.81 hardware run retained the spinning cube, navy contrast regions, and
+60 FPS. Its new breadcrumb measured only 912,896 bytes in the shared persistent
+arena after the 9,437,184-byte depth target and diagnostic resources. That is
+insufficient for real Source meshes and UI buffers. Version 2.82 expands the
+dedicated direct-memory pool from 16 MiB to 64 MiB and the persistent partition
+from 10 MiB to 58 MiB, preserving the validated 6 MiB two-frame command arena.
+Expected remaining persistent capacity is approximately 49 MiB; the existing
+runtime breadcrumb will provide the exact hardware value. Marker:
+`kisak-ps4: build marker expanded_gpu_pool_v282`.
+The v2.82 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`08df2748c23c63424ecbbc9c382f944e6d623abb5d1da0916cf3adbda116c2c3`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
