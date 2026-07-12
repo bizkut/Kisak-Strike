@@ -2974,9 +2974,11 @@ The implementation is split into four contracts:
    visible diagnostic quad, but it must never silently drop a movie draw.
 4. `CPs4ScaleformAssetManifest` packages the supplied `resource/flash/*.gfx`
    movies, font libraries, and external image/font dependencies under `/app0`;
-   loose `/data/kisak-strike` content remains an opt-in override. Package
-   validation rejects a missing movie, font, or manifest dependency before an
-   eboot is staged.
+   loose `/data/kisak-strike` content remains an opt-in override. The package
+   script's `closure` mode includes every `.gfx`/`.swf` dependency; `all` also
+   includes external image files, while `roots` is reserved for bring-up.
+   Package validation rejects a missing movie, font, or manifest dependency
+   before an eboot is staged.
 
 The first GFx migration slice loads `mainmenu.gfx` and `fontlib.gfx`, creates a
 live movie instance, advances/captures it in both existing frame phases, and

@@ -50,6 +50,7 @@ ASSET_DIR="${KISAK_PS4_ASSET_DIR:-$ROOT_DIR/../freegnm-examples/videoout-linear/
 ICON_PATH="${KISAK_PS4_ICON_PATH:-$ROOT_DIR/ps4/sce_sys/icon0.png}"
 SHADER_MANIFEST="${KISAK_PS4_SHADER_MANIFEST:-$ROOT_DIR/ps4/shaders/kisak_diagnostic.manifest}"
 SCALEFORM_ASSET_ROOT="${KISAK_PS4_SCALEFORM_ASSET_ROOT:-/Volumes/Untitled/CSGO/csgo}"
+SCALEFORM_ASSET_MODE="${KISAK_PS4_SCALEFORM_ASSET_MODE:-closure}"
 SCALEFORM_FLASH_FILES=(
     fontlib.gfx
     sharedlib.gfx
@@ -75,6 +76,21 @@ fi
 if [[ "$VARIANT" == "monolithic" ]]; then
     if [[ ! -d "$SCALEFORM_ASSET_ROOT/resource/flash" ]]; then
         echo "Missing Scaleform asset root: $SCALEFORM_ASSET_ROOT/resource/flash" >&2
+        exit 1
+    fi
+    if [[ "$SCALEFORM_ASSET_MODE" == "closure" || "$SCALEFORM_ASSET_MODE" == "all" ]]; then
+        SCALEFORM_FLASH_FILES=()
+        while IFS= read -r asset_path; do
+            SCALEFORM_FLASH_FILES+=( "${asset_path##*/}" )
+        done < <(
+            if [[ "$SCALEFORM_ASSET_MODE" == "all" ]]; then
+                find "$SCALEFORM_ASSET_ROOT/resource/flash" -maxdepth 1 -type f -print
+            else
+                find "$SCALEFORM_ASSET_ROOT/resource/flash" -maxdepth 1 -type f \( -name '*.gfx' -o -name '*.swf' \) -print
+            fi | sort
+        )
+    elif [[ "$SCALEFORM_ASSET_MODE" != "roots" ]]; then
+        echo "Unsupported Scaleform asset mode: $SCALEFORM_ASSET_MODE" >&2
         exit 1
     fi
     for flash in "${SCALEFORM_FLASH_FILES[@]}"; do
