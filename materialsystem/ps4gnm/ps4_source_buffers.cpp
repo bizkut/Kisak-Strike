@@ -250,3 +250,16 @@ extern "C" bool KisakPs4DynamicSourceBufferProbe()
     indexBuffer.Unlock( 3, indexDesc );
     return true;
 }
+
+extern "C" int KisakPs4SourceVertexFormatSize( VertexFormat_t format )
+{
+    VertexDesc_t desc = {};
+    return ComputeVertexDesc< true >( 0, format, desc );
+}
+
+extern "C" void KisakPs4ComputeSourceVertexDescription( unsigned char *buffer,
+    VertexFormat_t format, VertexDesc_t *desc )
+{
+    if ( desc )
+        ComputeVertexDesc< false >( buffer, format, *desc );
+}

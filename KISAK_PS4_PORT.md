@@ -1336,6 +1336,20 @@ device getters and logs `shader device dynamic buffers passed`. Marker:
 The v2.86 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `127b0ee9af8c5cf5375d8c3ae07d5daad12d7e9a40121cc79bec1d848b28d296`.
+
+The v2.86 hardware run retained the spinning cube and 60 FPS. Version 2.87
+bridges the two `ShaderApi029` vertex-layout calls that still returned empty
+results: PS4 `VertexFormatSize` and `ComputeVertexDescription` now call the
+same canonical Source layout implementation used by native buffers. This lets
+mesh builders calculate nonzero strides and populate `MeshDesc_t` against
+GPU-visible lock memory without duplicating the full `IShaderAPI` interface.
+A hardware probe queries the actual ShaderAPI factory, verifies
+`VERTEX_POSITION` is 12 bytes, and checks the returned position pointer and
+actual stride; success logs `ShaderAPI vertex format bridge passed`. Marker:
+`kisak-ps4: build marker shaderapi_vertex_format_v287`.
+The v2.87 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`4e6615f98c325c81d221c4170f280b814c4fd3430367443c5d18af66846b857b`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

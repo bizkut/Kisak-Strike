@@ -1,5 +1,6 @@
 #include "interface.h"
 #include "shaderapi/IShaderDevice.h"
+#include "shaderapi/ishaderapi.h"
 #include "shaderapi/ishadershadow.h"
 #include "materialsystem/idebugtextureinfo.h"
 #include "interfaces/interfaces.h"
@@ -655,4 +656,19 @@ extern "C" bool KisakPs4ShaderDeviceDynamicBufferProbe()
     indexDesc.m_pIndices[2] = 2;
     indexBuffer->Unlock( 3, indexDesc );
     return true;
+}
+
+extern "C" bool KisakPs4ShaderApiVertexFormatProbe()
+{
+    if ( !g_EmptyFactory )
+        return false;
+    IShaderAPI *shaderApi = static_cast< IShaderAPI * >(
+        g_EmptyFactory( SHADERAPI_INTERFACE_VERSION, 0 ) );
+    if ( !shaderApi || shaderApi->VertexFormatSize( VERTEX_POSITION ) != 12 )
+        return false;
+    unsigned char storage[36] = {};
+    MeshDesc_t desc = {};
+    shaderApi->ComputeVertexDescription( storage, VERTEX_POSITION, desc );
+    return desc.m_pPosition == reinterpret_cast< float * >( storage ) &&
+        desc.m_ActualVertexSize == 12;
 }

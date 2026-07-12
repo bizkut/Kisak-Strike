@@ -17,6 +17,12 @@
 #include "materialsystem/idebugtextureinfo.h"
 #include "materialsystem/deformations.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" int KisakPs4SourceVertexFormatSize( VertexFormat_t format );
+extern "C" void KisakPs4ComputeSourceVertexDescription(
+    unsigned char *buffer, VertexFormat_t format, VertexDesc_t *desc );
+#endif
+
 // NOTE: This has to be the last file included!
 #include "tier0/memdbgon.h"
 
@@ -1134,8 +1140,20 @@ public:
 	virtual void EndPIXEvent() {}
 	virtual void SetPIXMarker( unsigned long color, const char *szName ) {}
 
-	virtual void ComputeVertexDescription( unsigned char* pBuffer, VertexFormat_t vertexFormat, MeshDesc_t& desc ) const {}
-	virtual int VertexFormatSize( VertexFormat_t vertexFormat ) const { return 0; }
+	virtual void ComputeVertexDescription( unsigned char* pBuffer, VertexFormat_t vertexFormat, MeshDesc_t& desc ) const
+	{
+#if defined( PLATFORM_PS4 )
+		KisakPs4ComputeSourceVertexDescription( pBuffer, vertexFormat, &desc );
+#endif
+	}
+	virtual int VertexFormatSize( VertexFormat_t vertexFormat ) const
+	{
+#if defined( PLATFORM_PS4 )
+		return KisakPs4SourceVertexFormatSize( vertexFormat );
+#else
+		return 0;
+#endif
+	}
 
 	virtual bool SupportsShadowDepthTextures() { return false; }
 

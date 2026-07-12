@@ -808,6 +808,10 @@ bool LoadDiagnosticShaders()
     if ( !KisakPs4SourceBufferProbe() )
         return false;
     KisakPs4StartupBreadcrumb( "kisak-ps4: native Source buffer probe passed" );
+    if ( !KisakPs4ShaderApiVertexFormatProbe() )
+        return false;
+    KisakPs4StartupBreadcrumb(
+        "kisak-ps4: ShaderAPI vertex format bridge passed" );
     snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
         "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u depthbytes=%llu texturebytes=%llu",
         g_VertexShader->common.shadersize, g_PixelShader->common.shadersize,
