@@ -113,6 +113,8 @@ void *g_SourceFrameContext = 0;
 bool g_SourceFrameCallbackLogged = false;
 bool g_TextureMemoryLogged = false;
 bool g_ShaderManifestLogged = false;
+bool g_OffscreenBlendProbeAttempted = false;
+bool g_OffscreenBlendProbeReady = false;
 uint32_t g_PendingSamplerMask = 0;
 char g_ShaderDiagnostic[160] = "not attempted";
 
@@ -998,13 +1000,15 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     viewportControl.scalez = viewportControl.offsetz = 1;
     viewportControl.invertw = 1;
     g_DrawState.SetViewportTransform( viewportControl );
+    GnmDbRenderControl dbControl = {};
+    if ( !g_OffscreenBlendProbeReady )
+    {
     if ( !sceGnmDrawCmdFillMemory( command,
         static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticTexture.Data() ) ),
         static_cast< uint32_t >( g_DiagnosticTexture.Size() ), 0xff00a5ff ) )
         return;
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
     g_DrawState.ClearDepthRenderTarget();
-    GnmDbRenderControl dbControl = {};
     g_DrawState.SetDbRenderControl( dbControl );
     g_DrawState.SetRenderTarget( 0, g_DiagnosticTexture.ColorTarget() );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
@@ -1025,6 +1029,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
         static_cast< uint32_t >( g_DiagnosticTexture.Size() ) ) )
         return;
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
+    }
 
     g_DrawState.SetViewport( 0, viewport );
     g_DrawState.SetScissor( 0, 0, 1920, 1080 );
@@ -1331,10 +1336,124 @@ extern "C" void KisakPs4SetSourceFrameCallback(
     g_SourceFrameContext = context;
 }
 
+bool RunIsolatedOffscreenBlendProbe()
+{
+    if ( g_OffscreenBlendProbeReady )
+        return true;
+    if ( !g_ShadersReady || !g_DepthClearPixelShader )
+        return false;
+
+    CPs4GnmDevice::SubmissionFrame submission = {};
+    if ( !g_Device.BeginSubmission(
+        g_CompletedLabel, kCommandBufferSize, 256, &submission ) )
+        return false;
+
+    GnmCommandBuffer command = sceGnmCmdInit(
+        submission.commandMemory, kCommandBufferSize, 0, 0 );
+    sceGnmDrawCmdInitDefaultHardwareState( &command );
+    sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_CB0 );
+    if ( !sceGnmDrawCmdFillMemory( &command,
+        static_cast< uint64_t >( reinterpret_cast< uintptr_t >(
+            g_DiagnosticTexture.Data() ) ),
+        static_cast< uint32_t >( g_DiagnosticTexture.Size() ), 0 ) )
+    {
+        g_Device.CancelFrame();
+        return false;
+    }
+    sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_CB0 );
+
+    float *color = static_cast< float * >(
+        sceGnmCmdAllocInside( &command, 4 * sizeof( float ), 4 ) );
+    GnmBuffer *descriptor = static_cast< GnmBuffer * >(
+        sceGnmCmdAllocInside( &command, sizeof( GnmBuffer ), 4 ) );
+    if ( !color || !descriptor )
+    {
+        g_Device.CancelFrame();
+        return false;
+    }
+    const float halfRed[4] = { 1.0f, 0.0f, 0.0f, 0.5f };
+    memcpy( color, halfRed, sizeof( halfRed ) );
+    *descriptor = sceGnmCreateConstBuffer( color, sizeof( halfRed ) );
+
+    GnmDbRenderControl db = {};
+    GnmDepthStencilControl depth = {};
+    depth.zfunc = GNM_DEPTH_COMPARE_NEVER;
+    depth.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
+    depth.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
+    GnmBlendControl blend = {};
+    blend.blendenabled = true;
+    blend.colorfunc = GNM_COMB_DST_PLUS_SRC;
+    blend.colorsrcmult = GNM_BLEND_SRC_ALPHA;
+    blend.colordstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
+    blend.alphafunc = GNM_COMB_DST_PLUS_SRC;
+    blend.alphasrcmult = GNM_BLEND_ONE;
+    blend.alphadstmult = GNM_BLEND_ZERO;
+    const GnmSetViewportInfo viewport = {
+        0.0f, 1.0f, { 2.0f, -2.0f, 0.5f }, { 2.0f, 2.0f, 0.5f }
+    };
+    sceGnmDrawCmdSetDbRenderControl( &command, &db );
+    sceGnmDrawCmdSetDepthStencilControl( &command, &depth );
+    sceGnmDrawCmdSetBlendControl( &command, 0, &blend );
+    sceGnmDrawCmdSetRenderTarget(
+        &command, 0, &g_DiagnosticTexture.ColorTarget() );
+    sceGnmDrawCmdSetRenderTargetMask( &command, 0xf );
+    sceGnmDrawCmdSetEmbeddedVsShader(
+        &command, GNM_EMBEDDED_VSH_FULLSCREEN, 0 );
+    sceGnmDrawCmdSetPsShader( &command, &g_DepthClearPixelShader->registers );
+    sceGnmDrawCmdSetPointerUserData(
+        &command, GNM_STAGE_PS, 0, descriptor );
+    sceGnmDrawCmdSetViewport( &command, 0, &viewport );
+    sceGnmDrawCmdSetScreenScissor( &command, 0, 0, 4, 4 );
+    sceGnmDrawCmdSetPrimitiveType( &command, GNM_PT_RECTLIST );
+    sceGnmDrawCmdSetIndexSize( &command, GNM_INDEX_16, GNM_POLICY_LRU );
+    sceGnmDrawCmdDrawIndexAuto( &command, 3 );
+    sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_CB0 );
+    if ( !sceGnmDrawCmdCopyMemory( &command,
+        static_cast< uint64_t >( reinterpret_cast< uintptr_t >(
+            g_DiagnosticCopyTexture.Data() ) ),
+        static_cast< uint64_t >( reinterpret_cast< uintptr_t >(
+            g_DiagnosticTexture.Data() ) ),
+        static_cast< uint32_t >( g_DiagnosticTexture.Size() ) ) )
+    {
+        g_Device.CancelFrame();
+        return false;
+    }
+    sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_CB0 );
+    sceGnmDrawCmdEventWriteEop( &command, GNM_CACHE_FLUSH_AND_INV_TS_EVENT,
+        static_cast< uint64_t >( reinterpret_cast< uintptr_t >(
+            submission.completionLabel ) ), GNM_DATA_SEL_SEND_DATA64,
+        submission.submittedLabel );
+
+    void *dcbAddresses[1] = { command.beginptr };
+    uint32_t dcbSizes[1] = { static_cast< uint32_t >(
+        reinterpret_cast< uintptr_t >( command.cmdptr ) -
+        reinterpret_cast< uintptr_t >( command.beginptr ) ) };
+    if ( sceGnmSubmitCommandBuffers( 1, dcbAddresses, dcbSizes, 0, 0 ) < 0 ||
+        sceGnmSubmitDone() < 0 || !g_Device.CommitSubmission( submission ) ||
+        !WaitForLabel( submission.completionLabel, submission.submittedLabel ) )
+    {
+        g_Device.CancelFrame();
+        return false;
+    }
+    g_CompletedLabel = submission.submittedLabel;
+    g_OffscreenBlendProbeReady = true;
+    KisakPs4StartupBreadcrumb(
+        "kisak-ps4: isolated offscreen blend probe EOP passed" );
+    return true;
+}
+
 extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
 {
     if ( !g_Mapped || !destination || size < 16 || ( size & 15 ) )
         return false;
+
+    if ( g_ShadersReady && !g_OffscreenBlendProbeAttempted )
+    {
+        g_OffscreenBlendProbeAttempted = true;
+        if ( !RunIsolatedOffscreenBlendProbe() )
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: isolated offscreen blend probe failed" );
+    }
 
     CPs4GnmDevice::SubmissionFrame submission = {};
     if ( !g_Device.BeginSubmission( g_CompletedLabel, kCommandBufferSize, 256, &submission ) )

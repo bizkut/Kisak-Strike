@@ -2869,3 +2869,13 @@ red triangle. The clean log reached frame 10,800 with continuing successful
 VideoOut flips, confirming both visual recovery and long-run stability. This is
 the retained baseline while the blend probe is moved to an independent
 EOP-completed submission.
+
+### v3.23: Run the blend probe in an isolated submission
+
+v3.23 runs the fullscreen half-alpha red probe once before the normal display
+frame. It uses its own command buffer, submission label, and EOP wait, then
+copies the tiled result for the cube sampler. The normal frame starts afterward
+from its original command stream and does not overwrite the probe texture.
+The cube and clipped triangle must remain visible; dark red cube windows mean
+the tiled target blended, while bright red means it bypassed blending. The build
+marker is `kisak-ps4: build marker isolated_blend_submission_v323`.
