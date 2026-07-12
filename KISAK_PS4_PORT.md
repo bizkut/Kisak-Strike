@@ -3107,6 +3107,30 @@ and `Scaleform-GFx` (28,428 nodes/108,677 edges). These graphs cover the code
 currently being changed and the two implementation/reference backends used by
 the Scaleform port.
 
+### v3.43: Inflate external CWS movies at the Source filesystem boundary
+
+The v3.42 hardware log still reported compressed SWF flags and zero metadata
+even though the package contains validated FWS roots. Source's external GAME
+search path is therefore shadowing `/app0/resource/flash` with the uploaded CWS
+assets. `KisakScaleformFileOpener` now detects `CWS`, validates its declared
+uncompressed size, inflates the body through the already-linked bundled zlib,
+rewrites only the in-memory signature to `FWS`, and passes the owning memory
+file to GFx. Inputs larger than 64 MiB, malformed headers, decompression errors,
+and size mismatches fall back to the previous raw-file behavior with a bounded
+failure breadcrumb.
+
+This keeps both packaged and external content usable without modifying user
+files on disk. Root creation remains asynchronous for the stability gate. The
+next run must log `scaleform CWS inflated in file opener`, clear the compressed
+metadata flag, and expose one 1280x720 frame. Marker:
+`kisak-ps4: build marker scaleform_runtime_cws_v343`.
+
+The v3.43 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`36dc6495a7801c16cc01702bf576bc53a872c9fc52dd4f55e808a1da818a96f3`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.41: Install the compressed-SWF zlib state explicitly
 
 The v3.40 loader log shows that compressed SWF roots are not entering the zlib

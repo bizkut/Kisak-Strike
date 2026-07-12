@@ -7,6 +7,7 @@
 #include "filesystem.h"
 #include "inputsystem/ButtonCode.h"
 #include "tier1/utlbuffer.h"
+#include "zlib.h"
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -45,11 +46,57 @@ public:
             if ( g_pFullFileSystem->ReadFile( url, "GAME", sourceData ) )
             {
                 const int size = sourceData.TellPut();
+                const Scaleform::UByte *source =
+                    static_cast< const Scaleform::UByte * >( sourceData.Base() );
+                if ( size >= 8 && source != NULL &&
+                     source[0] == 'C' && source[1] == 'W' && source[2] == 'S' )
+                {
+                    const uint32_t declaredSize =
+                        static_cast< uint32_t >( source[4] ) |
+                        ( static_cast< uint32_t >( source[5] ) << 8 ) |
+                        ( static_cast< uint32_t >( source[6] ) << 16 ) |
+                        ( static_cast< uint32_t >( source[7] ) << 24 );
+                    if ( declaredSize >= 8 && declaredSize <= 64u * 1024u * 1024u )
+                    {
+                        Scaleform::UByte *inflated = static_cast< Scaleform::UByte * >(
+                            Scaleform::Memory::Alloc( declaredSize ) );
+                        if ( inflated != NULL )
+                        {
+                            memcpy( inflated, source, 8 );
+                            inflated[0] = 'F';
+                            uLongf bodySize = static_cast< uLongf >( declaredSize - 8 );
+                            const int inflateResult = ::uncompress(
+                                reinterpret_cast< Bytef * >( inflated + 8 ), &bodySize,
+                                reinterpret_cast< const Bytef * >( source + 8 ),
+                                static_cast< uLong >( size - 8 ) );
+                            if ( inflateResult == Z_OK && bodySize == declaredSize - 8 )
+                            {
+                                static bool loggedInflate = false;
+                                if ( !loggedInflate )
+                                {
+                                    KisakPs4StartupBreadcrumb(
+                                        "kisak-ps4: scaleform CWS inflated in file opener" );
+                                    loggedInflate = true;
+                                }
+                                return new KisakScaleformMemoryFile(
+                                    url, inflated, static_cast< int >( declaredSize ) );
+                            }
+                            Scaleform::Memory::Free( inflated );
+                            static bool loggedInflateFailure = false;
+                            if ( !loggedInflateFailure )
+                            {
+                                KisakPs4StartupBreadcrumb(
+                                    "kisak-ps4: scaleform CWS inflate failed in file opener" );
+                                loggedInflateFailure = true;
+                            }
+                        }
+                    }
+                }
                 Scaleform::UByte *data = static_cast< Scaleform::UByte * >(
                     Scaleform::Memory::Alloc( size ) );
                 if ( data != NULL )
                 {
-                    memcpy( data, sourceData.Base(), size );
+                    memcpy( data, source, size );
                     return new KisakScaleformMemoryFile( url, data, size );
                 }
             }
