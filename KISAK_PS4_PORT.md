@@ -1664,6 +1664,19 @@ shader, flushes that CB work, removes the temporary target-optimization override
 restores shader mask `0xf`, and restores `SRC_ALPHA / ONE_MINUS_SRC_ALPHA`.
 Successful blending produces purple over blue and pink over white. The build
 marker is `kisak-ps4: build marker cb_native_bars_blend_v313`.
+
+### v3.14: Make blend control the final pre-draw packet
+
+v3.13 retained four CB-rendered bars but the Source triangle was still opaque
+red, ruling out DMA/CB destination coherence. The cached state application
+emitted blend control before index size, depth-target, pointer-user-data,
+pixel-input, vertex-buffer, and primitive packets. v3.14 applies all cached
+Source state first, then re-emits `CB_BLEND0_CONTROL=0x40010504` immediately
+before `DRAW_INDEX_2`. If blending begins working, one of the intervening state
+packets or its context roll was restoring the disabled blend state. Continued
+red proves the final blend register write itself is ineffective and the next
+probe can use a firmware/reference command or alternate target format. The
+build marker is `kisak-ps4: build marker final_blend_write_v314`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.
