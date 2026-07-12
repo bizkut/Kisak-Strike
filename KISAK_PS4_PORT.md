@@ -2922,3 +2922,11 @@ and the screen showed the darker-red spinning cube with the clipped transparent
 triangle. VideoOut flips continued through frame 1200. This confirms the PS4
 renderer can retain Source alpha blending in the scene target while presenting
 opaque scanout pixels.
+
+### v3.27: Double-buffer the scene color target
+
+v3.27 reserves two 16 MiB scene-color slices and selects one from the OpenGNM
+frame index, including a matching sampler table. This gives the renderer two
+independent 1920x1080 targets for frame recycling while retaining EOP-gated
+submission ownership. The visible resolve path is unchanged; the build marker
+is `kisak-ps4: build marker scene_double_buffer_v327`.

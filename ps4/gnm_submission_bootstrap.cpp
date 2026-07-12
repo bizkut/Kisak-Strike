@@ -57,6 +57,7 @@ const size_t kDirectMemoryAlignment = 2 * 1024 * 1024;
 const size_t kCommandBufferSize = 64 * 1024;
 const size_t kPersistentMemorySize = 58 * 1024 * 1024;
 const size_t kSceneColorMemorySize = 16 * 1024 * 1024;
+const size_t kSceneColorMemoryTotal = 2 * kSceneColorMemorySize;
 const uint32_t kDiagnosticVertexCount = 24;
 const uint32_t kDiagnosticIndexCount = 36;
 off_t g_DirectMemory = 0;
@@ -98,7 +99,7 @@ uint32_t g_DepthMemorySize = 0;
 CPs4GnmTexture g_DiagnosticTexture;
 CPs4GnmTexture g_DiagnosticCopyTexture;
 CPs4GnmTexture g_CubeEdgeTexture;
-CPs4GnmTexture g_SceneColorTexture;
+CPs4GnmTexture g_SceneColorTextures[2];
 CPs4ShaderManifest g_ShaderManifest;
 void *g_TextureSamplerTable = 0;
 void *g_ReferenceCubeFetchShader = 0;
@@ -109,7 +110,7 @@ CPs4GnmBuffer g_CubeEdgeVertexBuffer;
 CPs4GnmVertexDeclaration g_ReferenceCubeVertexDeclaration;
 CPs4GnmConstants g_ReferenceCubeConstants;
 void *g_CubeEdgeSamplerTable = 0;
-void *g_SceneColorSamplerTable = 0;
+void *g_SceneColorSamplerTables[2] = {};
 bool g_SceneColorReady = false;
 bool g_ShadersReady = false;
 bool g_TriangleReadbackLogged = false;
@@ -207,14 +208,16 @@ bool WaitForLabel( volatile uint64_t *label, uint64_t expected )
 
 void ReleaseSceneColorTarget()
 {
-    g_SceneColorTexture.Reset();
-    g_SceneColorSamplerTable = 0;
+    g_SceneColorTextures[0].Reset();
+    g_SceneColorTextures[1].Reset();
+    g_SceneColorSamplerTables[0] = 0;
+    g_SceneColorSamplerTables[1] = 0;
     g_SceneColorReady = false;
     if ( g_SceneColorMapped )
-        sceKernelMunmap( g_SceneColorMapped, kSceneColorMemorySize );
+        sceKernelMunmap( g_SceneColorMapped, kSceneColorMemoryTotal );
     if ( g_SceneColorDirectMemory )
         sceKernelReleaseDirectMemory(
-            g_SceneColorDirectMemory, kSceneColorMemorySize );
+            g_SceneColorDirectMemory, kSceneColorMemoryTotal );
     g_SceneColorMapped = 0;
     g_SceneColorDirectMemory = 0;
 }
@@ -225,36 +228,20 @@ bool InitializeSceneColorTarget()
         return true;
     int result = sceKernelAllocateDirectMemory( 0,
         static_cast< off_t >( sceKernelGetDirectMemorySize() ),
-        kSceneColorMemorySize, kDirectMemoryAlignment,
+        kSceneColorMemoryTotal, kDirectMemoryAlignment,
         ORBIS_KERNEL_WC_GARLIC, &g_SceneColorDirectMemory );
     if ( result < 0 )
         return false;
     const int protection = ORBIS_KERNEL_PROT_CPU_READ | ORBIS_KERNEL_PROT_CPU_RW |
         ORBIS_KERNEL_PROT_GPU_READ | ORBIS_KERNEL_PROT_GPU_WRITE;
     result = sceKernelMapDirectMemory( &g_SceneColorMapped,
-        kSceneColorMemorySize, protection, 0, g_SceneColorDirectMemory,
+        kSceneColorMemoryTotal, protection, 0, g_SceneColorDirectMemory,
         kDirectMemoryAlignment );
     if ( result < 0 )
     {
         ReleaseSceneColorTarget();
         return false;
     }
-    if ( !g_SceneColorTexture.Initialize2D( g_SceneColorMapped,
-            kSceneColorMemorySize, GNM_FMT_R8G8B8A8_UNORM,
-            1920, 1080, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) ||
-        !g_SceneColorTexture.CreateColorTargetView( GNM_FMT_R8G8B8A8_UNORM,
-            1920, 1080, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) )
-    {
-        ReleaseSceneColorTarget();
-        return false;
-    }
-    uint8_t *table = static_cast< uint8_t * >( g_SceneColorMapped ) +
-        g_SceneColorTexture.Size();
-    table = reinterpret_cast< uint8_t * >(
-        ( reinterpret_cast< uintptr_t >( table ) + 15 ) &
-        ~static_cast< uintptr_t >( 15 ) );
-    const size_t used = static_cast< size_t >(
-        table - static_cast< uint8_t * >( g_SceneColorMapped ) );
     GnmSampler sampler = {};
     sampler.clampx = sampler.clampy = sampler.clampz =
         GNM_TEX_CLAMP_CLAMP_LAST_TEXEL;
@@ -264,19 +251,40 @@ bool InitializeSceneColorTarget()
     sampler.zfilter = GNM_ZFILTER_NONE;
     sampler.mipfilter = GNM_MIPFILTER_NONE;
     sampler.bordercolortype = GNM_BORDER_COLOR_OPAQUE_BLACK;
-    if ( used > kSceneColorMemorySize ||
-        !g_SceneColorTexture.BuildSamplerTable( sampler, table,
-            kSceneColorMemorySize - used, &g_SceneColorSamplerTable ) )
+    for ( unsigned int slot = 0; slot < 2; ++slot )
     {
-        ReleaseSceneColorTarget();
-        return false;
+        uint8_t *base = static_cast< uint8_t * >( g_SceneColorMapped ) +
+            slot * kSceneColorMemorySize;
+        if ( !g_SceneColorTextures[slot].Initialize2D( base,
+                kSceneColorMemorySize, GNM_FMT_R8G8B8A8_UNORM,
+                1920, 1080, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) ||
+            !g_SceneColorTextures[slot].CreateColorTargetView(
+                GNM_FMT_R8G8B8A8_UNORM, 1920, 1080,
+                GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) )
+        {
+            ReleaseSceneColorTarget();
+            return false;
+        }
+        uint8_t *table = base + g_SceneColorTextures[slot].Size();
+        table = reinterpret_cast< uint8_t * >(
+            ( reinterpret_cast< uintptr_t >( table ) + 15 ) &
+            ~static_cast< uintptr_t >( 15 ) );
+        const size_t used = static_cast< size_t >( table - base );
+        if ( used > kSceneColorMemorySize ||
+            !g_SceneColorTextures[slot].BuildSamplerTable( sampler, table,
+                kSceneColorMemorySize - used,
+                &g_SceneColorSamplerTables[slot] ) )
+        {
+            ReleaseSceneColorTarget();
+            return false;
+        }
     }
     g_SceneColorReady = true;
     char message[160];
     snprintf( message, sizeof( message ),
         "kisak-ps4: scene color target ready bytes=%llu info=0x%08x",
-        static_cast< unsigned long long >( g_SceneColorTexture.Size() ),
-        g_SceneColorTexture.ColorTarget().info.asuint );
+        static_cast< unsigned long long >( g_SceneColorTextures[0].Size() ),
+        g_SceneColorTextures[0].ColorTarget().info.asuint );
     KisakPs4StartupBreadcrumb( message );
     return true;
 }
@@ -1040,11 +1048,17 @@ bool BuildSourceDynamicTriangle( CPs4GnmDevice::IndexedDrawPacket *packet,
             static_cast< uint32_t >( indexCount ), 0, 3, packet );
 }
 
+unsigned int SceneColorSlot()
+{
+    return g_Device.CurrentFrame() & 1u;
+}
+
 bool EmitScenePresentation( GnmCommandBuffer *command,
     const GnmRenderTarget &displayTarget, const GnmSetViewportInfo &viewport )
 {
+    const unsigned int sceneSlot = SceneColorSlot();
     if ( !command || !g_SceneColorReady || !g_PresentPixelShader ||
-        !g_FetchShader || !g_SceneColorSamplerTable )
+        !g_FetchShader || !g_SceneColorSamplerTables[sceneSlot] )
         return false;
     struct PresentVertex
     {
@@ -1109,7 +1123,7 @@ bool EmitScenePresentation( GnmCommandBuffer *command,
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, descriptors );
     g_DrawState.SetPointerUserData(
-        GNM_STAGE_PS, 0, g_SceneColorSamplerTable );
+        GNM_STAGE_PS, 0, g_SceneColorSamplerTables[sceneSlot] );
     g_DrawState.SetPsInputUsage(
         sceGnmVsShaderExportSemanticTable( g_VertexShader ),
         g_VertexShader->numexportsemantics,
@@ -1135,8 +1149,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
         destination, 1920, 1080, 1920, &renderTarget ) )
         return;
     sceGnmDrawCmdInitDefaultHardwareState( command );
+    const unsigned int sceneSlot = SceneColorSlot();
     const GnmRenderTarget &sceneTarget = g_SceneColorReady
-        ? g_SceneColorTexture.ColorTarget() : renderTarget;
+        ? g_SceneColorTextures[sceneSlot].ColorTarget() : renderTarget;
     if ( !DrawDiagnosticColorBars( command, sceneTarget ) )
         return;
     KisakPs4SetShaderShadowCulling( false );
