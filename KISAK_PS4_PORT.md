@@ -1579,6 +1579,17 @@ to float or sRGB targets. OpenGNM incorrectly tied it directly to blend enable.
 v3.06 removes that coupling, adds a PM4 regression test expecting blend control
 `0x40011413`, and retains pixel readback as the hardware acceptance check. The
 build marker is `kisak-ps4: build marker blend_rop3_fix_v306`.
+
+### v3.07: Isolate the Source-alpha blend path
+
+The v3.06 hardware trace showed the corrected `0x40011413` blend-control word,
+but both readback samples remained opaque red. v3.07 removes the blend-constant
+dependency and uses the canonical Source UI equation `SRC_ALPHA /
+ONE_MINUS_SRC_ALPHA`. The dynamic vertices already carry uniform alpha `0.5`,
+so successful destination reads must produce a red/blue mix over the blue bar
+and pink over the white bar. The expected PM4 blend word is `0x40010504`; pixel
+readback remains the acceptance test. The build marker is
+`kisak-ps4: build marker source_alpha_blend_v307`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.

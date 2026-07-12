@@ -1041,13 +1041,12 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     GnmBlendControl sourceBlend = {};
     sourceBlend.blendenabled = true;
     sourceBlend.colorfunc = GNM_COMB_DST_PLUS_SRC;
-    sourceBlend.colorsrcmult = GNM_BLEND_CONSTANT_ALPHA;
-    sourceBlend.colordstmult = GNM_BLEND_ONE_MINUS_CONSTANT_ALPHA;
+    sourceBlend.colorsrcmult = GNM_BLEND_SRC_ALPHA;
+    sourceBlend.colordstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
     sourceBlend.alphafunc = GNM_COMB_DST_PLUS_SRC;
     sourceBlend.alphasrcmult = GNM_BLEND_ONE;
     sourceBlend.alphadstmult = GNM_BLEND_ZERO;
     g_DrawState.SetBlendControl( 0, sourceBlend );
-    sceGnmDrawCmdSetBlendColor( command, 0.0f, 0.0f, 0.0f, 0.5f );
     g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil );
     uint32_t sourceDirtyMask = 0;
     Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX,
