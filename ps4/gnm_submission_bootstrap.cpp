@@ -1019,16 +1019,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
         sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
     Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
-    if ( !sceGnmDrawCmdCopyMemory( command,
-        static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticCopyTexture.Data() ) ),
-        static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticTexture.Data() ) ),
-        static_cast< uint32_t >( g_DiagnosticTexture.Size() ) ) )
-        return;
-    sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
-
-    // Isolate blending from the display-linear VideoOut target. Preserve the
-    // original texture in the copy above for the cube, then clear this small
-    // ordinary RGBA8 target and run the same alpha-exporting pixel shader.
+    // Isolate blending from the display-linear VideoOut target. Clear this
+    // small ordinary RGBA8 target and run the same alpha-exporting shader.
     if ( !sceGnmDrawCmdFillMemory( command,
         static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticTexture.Data() ) ),
         static_cast< uint32_t >( g_DiagnosticTexture.Size() ), 0 ) )
@@ -1045,6 +1037,15 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetBlendControl( 0, offscreenBlend );
     g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyBlend );
     if ( !Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX ) )
+        return;
+    sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
+    // Preserve the tiled GPU layout and present the result through the already
+    // validated cube sampler. CPU-linear texel indices are not meaningful for
+    // this target layout.
+    if ( !sceGnmDrawCmdCopyMemory( command,
+        static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticCopyTexture.Data() ) ),
+        static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticTexture.Data() ) ),
+        static_cast< uint32_t >( g_DiagnosticTexture.Size() ) ) )
         return;
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
 

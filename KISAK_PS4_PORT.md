@@ -2822,3 +2822,12 @@ GPU-completed pixels. Half-intensity pixels isolate the remaining problem to the
 VideoOut target; full-intensity pixels prove the failure is general blend state
 or OpenGNM PM4 behavior. The build marker is
 `kisak-ps4: build marker offscreen_blend_isolation_v318`.
+
+### v3.19: Present the tiled offscreen blend through the cube sampler
+
+The v3.18 hardware run remained stable, but its four CPU-linear offscreen
+samples were zero and therefore inconclusive for a tiled render target. v3.19
+copies the post-blend target in its native tiled layout and presents it through
+the already validated cube texture sampler. This removes CPU layout assumptions:
+the cube windows now directly visualize the offscreen blend result. The build
+marker is `kisak-ps4: build marker sampled_offscreen_blend_v319`.
