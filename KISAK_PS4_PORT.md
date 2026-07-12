@@ -2863,3 +2863,9 @@ hardware-validated sequence: textured spinning cube plus clipped red Source
 triangle over four bars. Further offscreen experiments must use a separate,
 EOP-completed submission. The build marker is
 `kisak-ps4: build marker restore_visible_baseline_v322`.
+
+The v3.22 hardware run restored the expected orange spinning cube and clipped
+red triangle. The clean log reached frame 10,800 with continuing successful
+VideoOut flips, confirming both visual recovery and long-run stability. This is
+the retained baseline while the blend probe is moved to an independent
+EOP-completed submission.
