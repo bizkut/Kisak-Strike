@@ -29,11 +29,12 @@ public:
         uint32_t meshNodes;
         uint32_t textNodes;
         bool hasViewport;
+        bool truncated;
 
         TreeStats()
             : totalNodes( 0 ), visibleNodes( 0 ), containerNodes( 0 ),
               shapeNodes( 0 ), meshNodes( 0 ), textNodes( 0 ),
-              hasViewport( false )
+              hasViewport( false ), truncated( false )
         {
         }
     };
@@ -62,6 +63,8 @@ public:
     const TreeStats &LastTreeStats() const { return m_lastTreeStats; }
 
 private:
+    enum { kMaxTreeNodes = 4096 };
+
     static void CollectTreeStats( const Scaleform::Render::TreeNode *node,
         TreeStats *stats );
 

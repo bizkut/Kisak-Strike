@@ -46,6 +46,12 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
     if ( !node || !stats )
         return;
 
+    if ( stats->totalNodes >= kMaxTreeNodes )
+    {
+        stats->truncated = true;
+        return;
+    }
+
     ++stats->totalNodes;
     if ( node->IsVisible() )
         ++stats->visibleNodes;

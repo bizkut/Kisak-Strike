@@ -3018,6 +3018,8 @@ and an EOP-fenced quad submission.
 The next HAL slice now walks each captured `Render::TreeRoot` on the PS4 path
 and records bounded node statistics (total/visible/container/shape/mesh/text
 counts plus root viewport state) before the batch reaches the OpenGNM queue.
+The walk is capped at 4,096 nodes and marks truncation so unusually complex
+movies cannot turn the diagnostic into an unbounded per-frame traversal.
 This keeps the proven dark-red spinning cube and clipped transparent triangle
 diagnostic scene unchanged while proving that the live GFx tree is structurally
 non-empty. Host coverage rejects null roots, resets per-frame statistics, and
