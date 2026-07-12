@@ -3191,6 +3191,31 @@ The v3.56 monolithic package is staged at
 `80634bbdf6a9361bc79f17d42e79cbf1698ba16ffe3b337ad04346038f1019e8`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.57: Query packaged-file length through the kernel descriptor offset
+
+The v3.56 run proved descriptor `fstat()` shares the same incompatible size
+result as the path-based stat ABI: roots still reported 128 bytes and fontlib
+14,720 bytes. Host extraction of the exact uploaded package confirms the GP4
+is correct: fontlib is 7,496,222 bytes, the menu root is 36,676 bytes, and the
+HUD root is 36,841 bytes, with SHA-256 hashes identical to their staging files.
+The truncation is therefore entirely in the PS4 runtime size query.
+
+The PS4 stdio fallback now obtains the current and end offsets with `lseek()`
+on the opened descriptor, restores the original descriptor position, and
+clears the `FILE` error state before any buffered read occurs. This bypasses
+both the incompatible stat structure and the partial `fseek` end position.
+The old stdio seek path remains only if descriptor seeking itself fails.
+
+The next gate is unchanged: actual and declared file sizes must match before
+GFx parses the complete roots and exposes `InitSlot`/`RequestElement`.
+
+Marker: `kisak-ps4: build marker scaleform_app0_lseek_v357`.
+
+The v3.57 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`9bfe06dd4f1f0a017bba295f64c339280b2362c1af8ed5c4fdf3a4fc8e2bd0b0`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

@@ -1183,9 +1183,16 @@ CStdioFile *CStdioFile::FS_fopen( const char *filename, const char *options, int
 		else
 		{
 			const int descriptor = fileno( pFile );
-			if ( descriptor >= 0 && fstat( descriptor, &buf ) == 0 )
+			const off_t originalOffset = descriptor >= 0
+				? lseek( descriptor, 0, SEEK_CUR ) : static_cast< off_t >( -1 );
+			const off_t endOffset = descriptor >= 0
+				? lseek( descriptor, 0, SEEK_END ) : static_cast< off_t >( -1 );
+			if ( endOffset >= 0 )
 			{
-				*size = buf.st_size;
+				*size = static_cast< int64 >( endOffset );
+				if ( originalOffset >= 0 )
+					lseek( descriptor, originalOffset, SEEK_SET );
+				clearerr( pFile );
 			}
 			else
 			{
