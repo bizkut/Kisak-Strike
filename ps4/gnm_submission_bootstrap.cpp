@@ -1026,7 +1026,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_CubeEdgeSamplerTable );
     Ps4EmitPrimitiveDraw( command, &g_DrawState, edgePacket );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
-    g_DrawState.SetPixelShader( g_PixelShader->registers );
+    GnmPsStageRegisters sourcePixelRegisters = g_PixelShader->registers;
+    sourcePixelRegisters.cbshadermask = 0;
+    g_DrawState.SetPixelShader( sourcePixelRegisters );
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, sourceDescriptors );
     // Intentionally clip the right side of the Source triangle. This makes
@@ -1060,8 +1062,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     {
         char message[128];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: Source blend state dirty=0x%08x color_info=0x%08x",
-            sourceDirtyMask, renderTarget.info.asuint );
+            "kisak-ps4: Source blend state dirty=0x%08x color_info=0x%08x gpu_mode=%u",
+            sourceDirtyMask, renderTarget.info.asuint,
+            static_cast< unsigned int >( sceGnmGpuMode() ) );
         KisakPs4StartupBreadcrumb( message );
         sourceBlendStateLogged = true;
     }
@@ -1082,12 +1085,16 @@ static void LogBlendPm4State( const uint32_t *begin, const uint32_t *end )
     const uint32_t kBlendControl = 0x28780;
     const uint32_t kColorControl = 0x28808;
     const uint32_t kBlendAlpha = 0x28420;
+    const uint32_t kShaderMask = 0x2823c;
+    const uint32_t kShaderColorFormat = 0x28714;
     uint32_t blendControl = 0;
     uint32_t colorControl = 0;
     uint32_t blendAlpha = 0;
     uint32_t blendWrites = 0;
     uint32_t colorWrites = 0;
     uint32_t alphaWrites = 0;
+    uint32_t shaderMask = 0;
+    uint32_t shaderColorFormat = 0;
 
     for ( const uint32_t *word = begin; word + 2 < end; ++word )
     {
@@ -1116,6 +1123,10 @@ static void LogBlendPm4State( const uint32_t *begin, const uint32_t *end )
                 blendAlpha = word[2 + i];
                 ++alphaWrites;
             }
+            else if ( reg == kShaderMask )
+                shaderMask = word[2 + i];
+            else if ( reg == kShaderColorFormat )
+                shaderColorFormat = word[2 + i];
         }
     }
 
@@ -1123,6 +1134,10 @@ static void LogBlendPm4State( const uint32_t *begin, const uint32_t *end )
     snprintf( message, sizeof( message ),
         "kisak-ps4: PM4 blend=0x%08x writes=%u color=0x%08x writes=%u alpha=0x%08x writes=%u",
         blendControl, blendWrites, colorControl, colorWrites, blendAlpha, alphaWrites );
+    KisakPs4StartupBreadcrumb( message );
+    snprintf( message, sizeof( message ),
+        "kisak-ps4: PM4 source shader_mask=0x%08x color_format=0x%08x",
+        shaderMask, shaderColorFormat );
     KisakPs4StartupBreadcrumb( message );
     logged = true;
 }

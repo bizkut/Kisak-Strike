@@ -1637,6 +1637,20 @@ DMA fills and retains the post-DMA acquire. It also changes the diagnostic to
 `ZERO / ZERO` (`0x40010000`), which must produce zero/black independent of
 source alpha, destination contents, or destination-cache freshness. The build
 marker is `kisak-ps4: build marker cb_preflush_zero_probe_v311`.
+
+### v3.12: Disable the source draw's color export mask
+
+v3.11 emitted `ZERO / ZERO` (`0x40010000`) after pre-flushing the reused color
+buffer, yet the sampled footprint remained opaque red. The packaged shader was
+independently disassembled and confirmed to export FP16 RGBA with alpha `0.5`.
+v3.12 sets `CB_SHADER_MASK=0` only for the final Source triangle and logs the
+final shader mask, SPI color format, and `sceGnmGpuMode()`. If the triangle
+disappears, the draw consumes the traced pixel state and the remaining fault is
+strictly in CB blend state (including Neo/RB+ state if applicable). If red
+remains, it is stale destination data or another write rather than that pixel
+shader export, and the next test will split background and overlay into separate
+EOP-completed submissions. The build marker is
+`kisak-ps4: build marker source_mask_zero_v312`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.
