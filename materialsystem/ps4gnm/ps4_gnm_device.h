@@ -100,7 +100,7 @@ public:
     {
         return m_initialized && target &&
             ValidateDisplayRenderTarget( memory, width, height, pitch ) &&
-            sceGnmRtCreateColorTarget( target, memory, GNM_FMT_R8G8B8A8_SRGB,
+            sceGnmRtCreateColorTarget( target, memory, GNM_FMT_R8G8B8A8_UNORM,
                 width, height, 1, 1, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED,
                 GNM_GPU_BASE, 0, 0 ) == GNM_ERROR_OK;
     }

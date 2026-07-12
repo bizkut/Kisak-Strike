@@ -131,7 +131,7 @@ public:
     int Run() override
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-    KisakPs4StartupBreadcrumb( "kisak-ps4: build marker blend_disable_rop3_v302" );
+    KisakPs4StartupBreadcrumb( "kisak-ps4: build marker blend_unorm_target_v303" );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformSdkVersion() );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformKernelSelfTest()
 			? "kisak-ps4: scaleform kernel self-test passed"

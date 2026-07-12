@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.02
-SHA-256: c6cc1ad31957ea20c0ef3be4f2fbbd7925a00eaacba22007b48d6a6612e9758e
+Version: 3.03
+SHA-256: 07aa1464493cd97871753693423405161b191d1bff6630fcb93669228c4a908c
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -1537,6 +1537,18 @@ Marker: `kisak-ps4: build marker blend_disable_rop3_v302`.
 The v3.02 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `c6cc1ad31957ea20c0ef3be4f2fbbd7925a00eaacba22007b48d6a6612e9758e`.
+
+The v3.02 hardware run remained solid red. Review of the earlier colored
+triangle confirms that its apparent mixing was vertex-color interpolation
+between its own corners, not framebuffer alpha blending. Shader alpha,
+constant-alpha factors, blend enable, ROP3, and `BLEND_BYPASS` have now been
+isolated. Version 3.03 changes the VideoOut GPU render-target declaration from
+RGBA8 SRGB to RGBA8 UNORM without changing its memory layout or VideoOut
+registration. This tests whether Liverpool's SRGB target path is suppressing
+the blend unit. Marker: `kisak-ps4: build marker blend_unorm_target_v303`.
+The v3.03 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`07aa1464493cd97871753693423405161b191d1bff6630fcb93669228c4a908c`.
 
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
