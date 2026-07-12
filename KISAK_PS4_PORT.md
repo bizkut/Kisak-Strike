@@ -3442,6 +3442,31 @@ The v3.66 monolithic package is staged at
 `05c63830696612f71cbfbd9ef76a9a44ae62ddbf348bdd3b916e995b6254c8bb`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.67: Repair the malformed 1080p ResizeManager matrix at AS2 assignment
+
+The v3.66 ancestor trace found exactly one bad local transform. Shape and
+intermediate containers were identity, the root was a valid uniform 0.05 twip
+conversion, but depth 3 was `[0 0 19200; 0 1.5 0]`. This is the menu's intended
+uniform 1.5 ResizeManager scale with X collapsed and a compensating 960-pixel
+center offset.
+
+The Orbis AS2 transform setter now recognizes only the exact malformed
+axis-aligned bootstrap matrix `[0,0,0,1.5,960,0]`, restores X scale from Y, and
+removes the false center offset before converting translation to twips. Other
+zero-scale matrices, including animation states, are unchanged. The Scaleform
+runtime emits a diagnostic when the repair is applied.
+
+The next gate is that repair marker, a depth-3 uniform 1.5 matrix, zero
+degenerate transforms, and bounds spanning both screen axes. Solid OpenGNM
+submission follows once those conditions are proven.
+
+Marker: `kisak-ps4: build marker scaleform_resize_matrix_v367`.
+
+The v3.67 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`ab1cc280175238a5e3c092653301ba9824a8df6fae6d2a59c71e59f053f70238`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
