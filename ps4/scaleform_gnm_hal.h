@@ -25,6 +25,7 @@ public:
     {
         float x;
         float y;
+        uint32_t color;
     };
 
     struct CapturedBatch

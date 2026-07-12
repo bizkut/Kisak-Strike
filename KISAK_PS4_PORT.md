@@ -3496,6 +3496,33 @@ The v3.68 monolithic package is staged at
 `805cae0ee977298d7de8b49b2556131c97323376b9104bfb182b22ca11c09714`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.69: Preserve Scaleform's per-vertex tessellated colors
+
+The v3.68 hardware run submitted 68 solid batches and 2,070 indices at a stable
+60 FPS, proving the upload, indexed draw, blending, resolve, EOP, and flip path.
+The screen became fully white because batch color lookup incorrectly treated
+the tessellator's internal mesh style IDs as shape fill-style IDs; invalid or
+zero IDs fell back to opaque white.
+
+Retained vertices now carry color selected with Scaleform's own
+`TessVertex::Styles` and flag rules. Simple vertices use the active style,
+mixed-color vertices average both styles exactly as `acquireTessMeshes()` does,
+and complex vertices remain excluded from the solid pass. Batch complexity is
+also taken from tessellator flags instead of the invalid direct style lookup.
+The GPU upload consumes these retained per-vertex RGBA values without replacing
+them at batch level.
+
+The next gate is restoration of the underlying diagnostic scene with visible
+menu-colored solid geometry instead of an opaque white frame. Draw ordering and
+gradient/text support follow after color correctness is proven.
+
+Marker: `kisak-ps4: build marker scaleform_vertex_colors_v369`.
+
+The v3.69 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`c751458d27ad6a3898cdfdc7f651daa6915e6e57d16b703b23839604015556e9`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

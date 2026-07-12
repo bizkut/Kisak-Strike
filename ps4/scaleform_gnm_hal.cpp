@@ -129,6 +129,23 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             CPs4ScaleformHal::CapturedVertex captured;
             captured.x = meshVertices[vertex].x;
             captured.y = meshVertices[vertex].y;
+            captured.color = 0;
+            const Scaleform::Render::TessVertex &tessVertex = meshVertices[vertex];
+            if ( !Scaleform::Render::TessStyleIsComplex( tessVertex.Flags ) )
+            {
+                const unsigned usedStyle = Scaleform::Render::TessGetUsedStyle(
+                    tessVertex.Flags );
+                Scaleform::Render::FillStyleType fill0;
+                provider->GetFillStyle( tessVertex.Styles[usedStyle], &fill0, 0.0f );
+                captured.color = fill0.Color;
+                if ( Scaleform::Render::TessStyleMixesColors( tessVertex.Flags ) )
+                {
+                    Scaleform::Render::FillStyleType fill1;
+                    provider->GetFillStyle( tessVertex.Styles[1], &fill1, 0.0f );
+                    captured.color = ( ( fill0.Color & 0xfefefefeu ) >> 1 ) |
+                        ( ( fill1.Color & 0xfefefefeu ) >> 1 );
+                }
+            }
             viewMatrix.Transform( &captured.x, &captured.y );
             capturedVertices->push_back( captured );
         }
@@ -140,18 +157,15 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             capturedIndices->push_back( static_cast< uint16_t >(
                 firstVertex + meshIndices[index] ) );
 
-        const unsigned style = tessMesh.Style1 ? tessMesh.Style1 : tessMesh.Style2;
-        Scaleform::Render::FillStyleType fillStyle;
-        fillStyle.Color = 0xffffffffu;
-        if ( style )
-            provider->GetFillStyle( style, &fillStyle, 0.0f );
         CPs4ScaleformHal::CapturedBatch batch;
         batch.firstVertex = firstVertex;
         batch.vertexCount = copiedVertices;
         batch.firstIndex = firstIndex;
         batch.indexCount = triangleCount * 3;
-        batch.color = fillStyle.Color;
-        batch.complexFill = fillStyle.pFill.GetPtr() != NULL;
+        batch.color = 0;
+        batch.complexFill =
+            Scaleform::Render::TessStyleIsComplex( tessMesh.Flags1 ) ||
+            Scaleform::Render::TessStyleIsComplex( tessMesh.Flags2 );
         capturedDraws->push_back( batch );
     }
     generator.Clear();

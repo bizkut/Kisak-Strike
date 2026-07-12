@@ -1171,7 +1171,11 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command )
         vertices[i].position[1] = 1.0f - sourceVertices[i].y / 540.0f;
         vertices[i].position[2] = 0.0f;
         vertices[i].position[3] = 1.0f;
-        memset( vertices[i].color, 0, sizeof( vertices[i].color ) );
+        Scaleform::Render::Color color( sourceVertices[i].color );
+        vertices[i].color[0] = color.GetRed() / 255.0f;
+        vertices[i].color[1] = color.GetGreen() / 255.0f;
+        vertices[i].color[2] = color.GetBlue() / 255.0f;
+        vertices[i].color[3] = color.GetAlpha() / 255.0f;
     }
 
     uint32_t indexCount = 0;
@@ -1182,13 +1186,6 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command )
         if ( batch.complexFill || batch.firstVertex + batch.vertexCount > sourceVertices.size() ||
              batch.firstIndex + batch.indexCount > sourceIndices.size() )
             continue;
-        Scaleform::Render::Color color( batch.color );
-        const float rgba[4] = {
-            color.GetRed() / 255.0f, color.GetGreen() / 255.0f,
-            color.GetBlue() / 255.0f, color.GetAlpha() / 255.0f
-        };
-        for ( uint32_t vertex = 0; vertex < batch.vertexCount; ++vertex )
-            memcpy( vertices[batch.firstVertex + vertex].color, rgba, sizeof( rgba ) );
         memcpy( indices + indexCount, &sourceIndices[batch.firstIndex],
             batch.indexCount * sizeof( uint16_t ) );
         indexCount += batch.indexCount;
