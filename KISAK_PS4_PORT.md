@@ -2930,3 +2930,8 @@ frame index, including a matching sampler table. This gives the renderer two
 independent 1920x1080 targets for frame recycling while retaining EOP-gated
 submission ownership. The visible resolve path is unchanged; the build marker
 is `kisak-ps4: build marker scene_double_buffer_v327`.
+
+The v3.27 hardware run preserved the darker-red spinning cube and transparent
+clipped triangle, reached frame 1020 in the captured window, and continued the
+opaque resolve path with EOP synchronization. The two-slice allocation and
+frame-index selection are therefore compatible with the validated presentation.
