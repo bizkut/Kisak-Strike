@@ -1019,65 +1019,12 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
         sceGnmPsShaderInputSemanticTable( g_PixelShader ), g_PixelShader->numinputsemantics );
     Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
-    // Isolate blending from the display-linear VideoOut target. Clear this
-    // small ordinary RGBA8 target and run the same alpha-exporting shader.
-    if ( !sceGnmDrawCmdFillMemory( command,
-        static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticTexture.Data() ) ),
-        static_cast< uint32_t >( g_DiagnosticTexture.Size() ), 0 ) )
-        return;
-    sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
-    GnmDbRenderControl offscreenDb = {};
-    GnmDepthStencilControl offscreenDepth = {};
-    offscreenDepth.zfunc = GNM_DEPTH_COMPARE_NEVER;
-    offscreenDepth.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
-    offscreenDepth.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
-    GnmBlendControl offscreenBlend = {};
-    offscreenBlend.blendenabled = true;
-    offscreenBlend.colorfunc = GNM_COMB_DST_PLUS_SRC;
-    offscreenBlend.colorsrcmult = GNM_BLEND_SRC_ALPHA;
-    offscreenBlend.colordstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
-    offscreenBlend.alphafunc = GNM_COMB_DST_PLUS_SRC;
-    offscreenBlend.alphasrcmult = GNM_BLEND_ONE;
-    offscreenBlend.alphadstmult = GNM_BLEND_ZERO;
-    float *offscreenColor = static_cast< float * >(
-        sceGnmCmdAllocInside( command, 4 * sizeof( float ), 4 ) );
-    GnmBuffer *offscreenColorDescriptor = static_cast< GnmBuffer * >(
-        sceGnmCmdAllocInside( command, sizeof( GnmBuffer ), 4 ) );
-    if ( !offscreenColor || !offscreenColorDescriptor )
-        return;
-    const float halfRed[4] = { 1.0f, 0.0f, 0.0f, 0.5f };
-    memcpy( offscreenColor, halfRed, sizeof( halfRed ) );
-    *offscreenColorDescriptor = sceGnmCreateConstBuffer(
-        offscreenColor, sizeof( halfRed ) );
-    sceGnmDrawCmdSetDbRenderControl( command, &offscreenDb );
-    sceGnmDrawCmdSetDepthStencilControl( command, &offscreenDepth );
-    sceGnmDrawCmdSetBlendControl( command, 0, &offscreenBlend );
-    sceGnmDrawCmdSetRenderTarget( command, 0, &g_DiagnosticTexture.ColorTarget() );
-    sceGnmDrawCmdSetRenderTargetMask( command, 0xf );
-    sceGnmDrawCmdSetEmbeddedVsShader( command, GNM_EMBEDDED_VSH_FULLSCREEN, 0 );
-    sceGnmDrawCmdSetPsShader( command, &g_DepthClearPixelShader->registers );
-    sceGnmDrawCmdSetPointerUserData(
-        command, GNM_STAGE_PS, 0, offscreenColorDescriptor );
-    sceGnmDrawCmdSetViewport( command, 0, &offscreenViewport );
-    sceGnmDrawCmdSetScreenScissor( command, 0, 0, 4, 4 );
-    sceGnmDrawCmdSetPrimitiveType( command, GNM_PT_RECTLIST );
-    sceGnmDrawCmdSetIndexSize( command, GNM_INDEX_16, GNM_POLICY_LRU );
-    sceGnmDrawCmdDrawIndexAuto( command, 3 );
-    sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
-    // Preserve the tiled GPU layout and present the result through the already
-    // validated cube sampler. CPU-linear texel indices are not meaningful for
-    // this target layout.
     if ( !sceGnmDrawCmdCopyMemory( command,
         static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticCopyTexture.Data() ) ),
         static_cast< uint64_t >( reinterpret_cast< uintptr_t >( g_DiagnosticTexture.Data() ) ),
         static_cast< uint32_t >( g_DiagnosticTexture.Size() ) ) )
         return;
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
-    // The embedded fullscreen path changes implicit shader/primitive state that
-    // is not represented by every cached Source field. Start the display pass
-    // from a complete known hardware state, then force the cache to re-emit.
-    sceGnmDrawCmdInitDefaultHardwareState( command );
-    g_DrawState.BeginCommand();
 
     g_DrawState.SetViewport( 0, viewport );
     g_DrawState.SetScissor( 0, 0, 1920, 1080 );
@@ -1608,13 +1555,6 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         char message[96];
         snprintf( message, sizeof( message ),
             "kisak-ps4: diagnostic center pixel 0x%08x", centerPixel );
-        KisakPs4StartupBreadcrumb( message );
-        const volatile uint32_t *offscreenPixels =
-            static_cast< const volatile uint32_t * >( g_DiagnosticTexture.Data() );
-        snprintf( message, sizeof( message ),
-            "kisak-ps4: offscreen blend pixels %08x %08x %08x %08x",
-            offscreenPixels[5], offscreenPixels[6],
-            offscreenPixels[9], offscreenPixels[10] );
         KisakPs4StartupBreadcrumb( message );
         g_TriangleReadbackLogged = true;
     }

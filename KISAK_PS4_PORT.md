@@ -2853,3 +2853,13 @@ begins a fresh cached command, forcing the display pass to re-emit its complete
 state. The cube should return with probe-colored windows and the direct Source
 triangle should return red. The build marker is
 `kisak-ps4: build marker restore_after_blend_probe_v321`.
+
+### v3.22: Restore the visible renderer baseline
+
+v3.21 still suppressed the cube and Source triangle despite re-emitting the
+expected packets. The fullscreen blend probe therefore cannot safely share the
+display command stream. v3.22 removes that inline probe and restores the last
+hardware-validated sequence: textured spinning cube plus clipped red Source
+triangle over four bars. Further offscreen experiments must use a separate,
+EOP-completed submission. The build marker is
+`kisak-ps4: build marker restore_visible_baseline_v322`.
