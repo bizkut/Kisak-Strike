@@ -2879,3 +2879,12 @@ from its original command stream and does not overwrite the probe texture.
 The cube and clipped triangle must remain visible; dark red cube windows mean
 the tiled target blended, while bright red means it bypassed blending. The build
 marker is `kisak-ps4: build marker isolated_blend_submission_v323`.
+
+The v3.23 hardware run passed the isolated EOP submission and displayed a solid
+dark-red spinning cube alongside the still-opaque clipped red VideoOut triangle.
+GPU readback reported `0xff000080` for the sampled tiled result, exactly the
+half-red output expected from alpha 0.5 over black, while both direct scanout
+samples remained `0xffff0000`. This proves OpenGNM blend state, shader alpha,
+and tiled RGBA8 color-target blending are correct. The remaining limitation is
+the display-linear VideoOut render target. The renderer must draw blended scene
+content into a tiled intermediate and copy/resolve it into scanout memory.
