@@ -357,8 +357,7 @@ public:
         m_loader->SetFontLib( m_fontLib );
         Scaleform::Ptr< Scaleform::GFx::MovieDef > fontDefinition =
             *m_loader->CreateMovie( "resource/flash/fontlib.gfx",
-                Scaleform::GFx::Loader::LoadAll |
-                Scaleform::GFx::Loader::LoadWaitCompletion );
+                Scaleform::GFx::Loader::LoadAll );
         if ( fontDefinition.GetPtr() )
         {
             m_fontLib->AddFontsFrom( fontDefinition, true );
@@ -368,6 +367,7 @@ public:
         {
             KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform font library unavailable" );
         }
+        fontDefinition.Clear();
 
         const bool menu = LoadSlot( kScaleformMenuSlot );
         const bool hud = LoadSlot( kScaleformHudSlot );
@@ -380,6 +380,7 @@ public:
             : "kisak-ps4: scaleform HUD movie unavailable" );
         if ( !m_initialized )
         {
+            m_callbackHandler.Clear();
             delete m_loader;
             m_loader = NULL;
             m_fontLib.Clear();
@@ -510,6 +511,20 @@ public:
     }
 
 private:
+    void LogMovieInfoProbe( int slot, const char *kind, const char *url )
+    {
+        Scaleform::GFx::MovieInfo info;
+        info.Clear();
+        const bool available = m_loader->GetMovieInfo( url, &info, false,
+            Scaleform::GFx::Loader::LoadKeepBindData );
+        char marker[256];
+        snprintf( marker, sizeof( marker ),
+            "kisak-ps4: scaleform %s %s info ok=%u url=%s version=%u flags=0x%x frames=%u size=%dx%d",
+            ScaleformSlotLabel( slot ), kind, available ? 1u : 0u, url,
+            info.Version, info.Flags, info.FrameCount, info.Width, info.Height );
+        KisakPs4StartupBreadcrumb( marker );
+    }
+
     void CreateGameInterface( Scaleform::GFx::Movie *movie,
         Scaleform::GFx::Value *gameInterface )
     {
@@ -535,9 +550,13 @@ private:
     bool LoadSlot( int slot )
     {
         ScaleformMovieSlot &movieSlot = m_slots[slot];
+        const char *gfxRoot = slot == kScaleformMenuSlot
+            ? "resource/flash/mainuirootmovie.gfx"
+            : "resource/flash/gameuirootmovie.gfx";
+        LogMovieInfoProbe( slot, "swf", movieSlot.name );
+        LogMovieInfoProbe( slot, "gfx", gfxRoot );
         movieSlot.definition = *m_loader->CreateMovie( movieSlot.name,
-            Scaleform::GFx::Loader::LoadAll |
-            Scaleform::GFx::Loader::LoadWaitCompletion );
+            Scaleform::GFx::Loader::LoadAll );
         if ( !movieSlot.definition.GetPtr() )
             return false;
 

@@ -3096,6 +3096,32 @@ The v3.37 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.38: Recover from synchronous SWF failure and compare root formats
+
+The v3.37 hardware run reached the new marker, initialized `fontlib.gfx`, then
+reported both root movies unavailable and crashed before the first diagnostic
+frame. This disproves the assumption that the zero metadata was only an
+asynchronous timing artifact: forcing `LoadWaitCompletion` exposes a full-parse
+failure for the compressed SWF roots. The manager restores the stable
+asynchronous root/font behavior and hardens the all-roots-failed cleanup by
+releasing the local font definition and retained callback handler before the
+Scaleform system is destroyed.
+
+Each slot now performs bounded, read-only `GetMovieInfo` probes for both its
+`.swf` and `.gfx` root before creating the existing SWF instance. The probe
+records success, version, flags, frame count, and dimensions. If GFX succeeds
+while SWF fails, the next slice switches roots and validates its ActionScript;
+if both fail, the next slice repairs the Scaleform file/decompression path.
+The stable solid dark-red spinning cube and clipped transparent triangle remain
+the expected image. Marker:
+`kisak-ps4: build marker scaleform_root_info_probe_v338`.
+
+The v3.38 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`76ddec3b1f3841d8dcbc76adea8cabb11d1a2b04076e037d188c5a38ce5b2ac7`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.33: Use Source's SWF root movies
 
 The v3.32 capture proved that the `.gfx` root files load but expose no
