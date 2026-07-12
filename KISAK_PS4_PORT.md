@@ -1292,6 +1292,21 @@ Marker: `kisak-ps4: build marker native_source_buffers_v283`.
 The v2.83 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `a0aee3e36dfa1573b67a27c0e5b5598fde7aa6be7f0811596f4e5a1b06fc2dfa`.
+
+The v2.83 hardware run remained stable at 60 FPS but showed only the four DMA
+bars. Its log reached runtime registration and then reported `diagnostic shader
+detail not attempted`, isolating the early return to the Source buffer probe.
+The probe's first static lock incorrectly requested discard semantics;
+`CPs4GnmBuffer` correctly restricts discard to a full dynamic-buffer lock.
+Version 2.84 requests discard only for full non-append dynamic replacement,
+while static and partial overwrite locks retain their storage. The same fix
+applies to vertex and index wrappers. Expected recovery markers are
+`native Source buffer probe passed`, `diagnostic shader detail ready`, and the
+visible spinning cube. Marker:
+`kisak-ps4: build marker static_buffer_lock_v284`.
+The v2.84 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`b943a1c720077d0ee0cef49155a660f403aa34c678a0e8298546c870725cd5ab`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

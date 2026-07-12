@@ -52,7 +52,8 @@ bool CPs4SourceVertexBuffer::Lock( int count, bool append, VertexDesc_t &desc )
     m_lockCapacity = count;
     void *data = 0;
     if ( !m_buffer.Lock( static_cast< size_t >( m_lockStart ) * m_stride,
-            static_cast< size_t >( count ) * m_stride, !append, &data ) )
+            static_cast< size_t >( count ) * m_stride,
+            m_dynamic && !append && count == m_count, &data ) )
         return false;
     memset( &desc, 0, sizeof( desc ) );
     ComputeVertexDesc< false >( static_cast< unsigned char * >( data ), m_format, desc );
@@ -117,7 +118,8 @@ bool CPs4SourceIndexBuffer::Lock( int count, bool append, IndexDesc_t &desc )
     m_lockCapacity = count;
     void *data = 0;
     if ( !m_buffer.Lock( static_cast< size_t >( m_lockStart ) * m_indexSize,
-            static_cast< size_t >( count ) * m_indexSize, !append, &data ) )
+            static_cast< size_t >( count ) * m_indexSize,
+            m_dynamic && !append && count == m_count, &data ) )
         return false;
     desc.m_pIndices = static_cast< unsigned short * >( data );
     desc.m_nOffset = static_cast< unsigned int >( m_lockStart * m_indexSize );
