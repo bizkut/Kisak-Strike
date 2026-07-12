@@ -1556,6 +1556,17 @@ logs the dirty mask emitted by the Source draw, the raw render-target
 `CB_COLOR_INFO` word, and GPU-completed framebuffer pixels sampled from the
 triangle over the blue and white bands. Marker:
 `kisak-ps4: build marker blend_pm4_audit_v304`.
+
+### v3.05: Trace final blend PM4 packets
+
+The v3.04 hardware readback returned opaque red (`0xffff0000`) over both the
+blue and white bars even though the cached draw state included the blend dirty
+bit and the render target had blending enabled rather than bypassed. v3.05 adds
+a bounded, one-shot scan of the submitted command stream for the final
+`CB_BLEND0_CONTROL`, `CB_COLOR_CONTROL`, and `CB_BLEND_ALPHA` writes, including
+write counts. This separates a missing/overwritten PM4 packet from a deeper
+Liverpool blend-target requirement before changing more OpenGNM state. The
+build marker is `kisak-ps4: build marker blend_packet_trace_v305`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.

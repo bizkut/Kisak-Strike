@@ -1065,6 +1065,65 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
 }
 }
 
+static void LogBlendPm4State( const uint32_t *begin, const uint32_t *end )
+{
+    static bool logged = false;
+    if ( logged || !begin || !end || begin >= end )
+        return;
+
+    // SET_CONTEXT_REG stores a dword register offset from 0x28000 followed by
+    // one or more values. Scan all candidate packets instead of walking packet
+    // lengths so header-only padding packets cannot hide the diagnostic state.
+    const uint32_t kSetContextRegOpcode = 0x69;
+    const uint32_t kContextRegBase = 0x28000;
+    const uint32_t kBlendControl = 0x28780;
+    const uint32_t kColorControl = 0x28808;
+    const uint32_t kBlendAlpha = 0x28420;
+    uint32_t blendControl = 0;
+    uint32_t colorControl = 0;
+    uint32_t blendAlpha = 0;
+    uint32_t blendWrites = 0;
+    uint32_t colorWrites = 0;
+    uint32_t alphaWrites = 0;
+
+    for ( const uint32_t *word = begin; word + 2 < end; ++word )
+    {
+        const uint32_t header = word[0];
+        if ( ( header >> 30 ) != 3 || ( ( header >> 8 ) & 0xff ) != kSetContextRegOpcode )
+            continue;
+        const uint32_t valueCount = ( header >> 16 ) & 0x3fff;
+        if ( valueCount == 0 || word + 2 + valueCount > end )
+            continue;
+        const uint32_t firstRegister = kContextRegBase + ( word[1] << 2 );
+        for ( uint32_t i = 0; i < valueCount; ++i )
+        {
+            const uint32_t reg = firstRegister + i * sizeof( uint32_t );
+            if ( reg == kBlendControl )
+            {
+                blendControl = word[2 + i];
+                ++blendWrites;
+            }
+            else if ( reg == kColorControl )
+            {
+                colorControl = word[2 + i];
+                ++colorWrites;
+            }
+            else if ( reg == kBlendAlpha )
+            {
+                blendAlpha = word[2 + i];
+                ++alphaWrites;
+            }
+        }
+    }
+
+    char message[192];
+    snprintf( message, sizeof( message ),
+        "kisak-ps4: PM4 blend=0x%08x writes=%u color=0x%08x writes=%u alpha=0x%08x writes=%u",
+        blendControl, blendWrites, colorControl, colorWrites, blendAlpha, alphaWrites );
+    KisakPs4StartupBreadcrumb( message );
+    logged = true;
+}
+
 extern "C" bool KisakPs4GnmSubmissionSelfTest()
 {
     if ( g_Mapped )
@@ -1366,6 +1425,7 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             g_Device.CancelFrame();
             return false;
         }
+        LogBlendPm4State( command.beginptr, command.cmdptr );
         if ( !g_FacadeDrawLogged )
         {
             KisakPs4StartupBreadcrumb(
