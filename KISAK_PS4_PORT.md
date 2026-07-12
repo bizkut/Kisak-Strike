@@ -3095,3 +3095,25 @@ The v3.33 monolithic package is staged at
 `f5e5aad816f21abc23babb3752fa6ca21e6e81aad34a5bdc3a7fb2063ced57fc`.
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
+
+### v3.34: Use the decompiled ActionScript contract as the GFx gate
+
+The supplied analysis at `/Volumes/Untitled/Counter Strike Global Offensive`
+confirms the runtime contract without adding proprietary sources to the
+repository. `gfx_decompiled` contains converted SWF structure and
+`gfx_scripts` contains 3,519 extracted ActionScript files; `gfx_export` is a
+5.3 GiB visual export with 53,814 files and is not a package input. The root
+scripts define `_global.InitSlot`, `_global.ForceResize`, and
+`_global.RequestElement`. `RequestElement("MainMenu", gameAPI)` starts
+asynchronous `Background.swf` and `MainMenu.swf` loads through
+`MovieClipLoader`; therefore the capture gate must run after subsequent
+`Advance` calls, not only immediately after the request.
+
+The layout analysis also identifies the required console behavior: inject
+`PlatformCode=2`, preserve `wantControllerShown`, honor the 0.85 safezone, and
+retain the complete root `.gfx`/`.swf` closure plus font libraries. Before real
+OpenGNM primitive emission, add bounded no-op/API callbacks for the element
+load lifecycle (`OnLoadFinished`, `OnLoadProgress`, `OnLoadError`, `OnUnload`)
+and verify that a later capture contains shapes, meshes, or text. The build
+marker for this investigation remains
+`kisak-ps4: build marker scaleform_swf_roots_v333`.
