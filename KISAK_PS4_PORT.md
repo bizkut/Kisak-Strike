@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.03
-SHA-256: 07aa1464493cd97871753693423405161b191d1bff6630fcb93669228c4a908c
+Version: 3.04
+SHA-256: e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -1549,6 +1549,16 @@ the blend unit. Marker: `kisak-ps4: build marker blend_unorm_target_v303`.
 The v3.03 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `07aa1464493cd97871753693423405161b191d1bff6630fcb93669228c4a908c`.
+
+The v3.03 UNORM target remained solid red, eliminating SRGB target mode.
+Version 3.04 replaces visual inference with a bounded PM4/readback audit. It
+logs the dirty mask emitted by the Source draw, the raw render-target
+`CB_COLOR_INFO` word, and GPU-completed framebuffer pixels sampled from the
+triangle over the blue and white bands. Marker:
+`kisak-ps4: build marker blend_pm4_audit_v304`.
+The v3.04 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.
 
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.

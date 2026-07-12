@@ -1049,7 +1049,19 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetBlendControl( 0, sourceBlend );
     sceGnmDrawCmdSetBlendColor( command, 0.0f, 0.0f, 0.0f, 0.5f );
     g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil );
-    Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX );
+    uint32_t sourceDirtyMask = 0;
+    Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX,
+        &sourceDirtyMask );
+    static bool sourceBlendStateLogged = false;
+    if ( !sourceBlendStateLogged )
+    {
+        char message[128];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: Source blend state dirty=0x%08x color_info=0x%08x",
+            sourceDirtyMask, renderTarget.info.asuint );
+        KisakPs4StartupBreadcrumb( message );
+        sourceBlendStateLogged = true;
+    }
 }
 }
 
@@ -1416,6 +1428,18 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             "kisak-ps4: diagnostic center pixel 0x%08x", centerPixel );
         KisakPs4StartupBreadcrumb( message );
         g_TriangleReadbackLogged = true;
+    }
+    static bool sourceBlendReadbackLogged = false;
+    if ( g_ShadersReady && !sourceBlendReadbackLogged )
+    {
+        const volatile uint32_t *pixels =
+            static_cast< const volatile uint32_t * >( destination );
+        char message[128];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: Source blend pixels blue=0x%08x white=0x%08x",
+            pixels[570 * 1920 + 200], pixels[650 * 1920 + 200] );
+        KisakPs4StartupBreadcrumb( message );
+        sourceBlendReadbackLogged = true;
     }
     return true;
 }
