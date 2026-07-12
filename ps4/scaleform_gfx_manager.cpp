@@ -43,8 +43,26 @@ public:
         if ( g_pFullFileSystem != NULL )
         {
             CUtlBuffer sourceData;
-            if ( g_pFullFileSystem->ReadFile( url, "GAME", sourceData ) )
+            bool loadedFromApp0 = false;
+            if ( url != NULL && strncmp( url, "resource/flash/", 15 ) == 0 )
             {
+                char packagedPath[512];
+                snprintf( packagedPath, sizeof( packagedPath ), "/app0/%s", url );
+                loadedFromApp0 = g_pFullFileSystem->ReadFile(
+                    packagedPath, NULL, sourceData );
+                if ( !loadedFromApp0 )
+                    sourceData.Purge();
+            }
+            if ( loadedFromApp0 ||
+                 g_pFullFileSystem->ReadFile( url, "GAME", sourceData ) )
+            {
+                static bool loggedApp0 = false;
+                if ( loadedFromApp0 && !loggedApp0 )
+                {
+                    KisakPs4StartupBreadcrumb(
+                        "kisak-ps4: scaleform reading validated app0 movie" );
+                    loggedApp0 = true;
+                }
                 const int size = sourceData.TellPut();
                 const Scaleform::UByte *source =
                     static_cast< const Scaleform::UByte * >( sourceData.Base() );
@@ -85,8 +103,12 @@ public:
                             static bool loggedInflateFailure = false;
                             if ( !loggedInflateFailure )
                             {
-                                KisakPs4StartupBreadcrumb(
-                                    "kisak-ps4: scaleform CWS inflate failed in file opener" );
+                                char failureMarker[192];
+                                snprintf( failureMarker, sizeof( failureMarker ),
+                                    "kisak-ps4: scaleform CWS inflate failed result=%d input=%d declared=%u output=%lu",
+                                    inflateResult, size, declaredSize,
+                                    static_cast< unsigned long >( bodySize ) );
+                                KisakPs4StartupBreadcrumb( failureMarker );
                                 loggedInflateFailure = true;
                             }
                         }

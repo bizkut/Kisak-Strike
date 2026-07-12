@@ -3075,6 +3075,30 @@ The v3.32 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.44: Prefer the validated app0 FWS movie closure
+
+The v3.43 hardware run reached the runtime CWS path but direct bundled-zlib
+`uncompress` failed before GFx, confirming an OpenOrbis zlib ABI/runtime problem
+rather than missing loader state. The Scaleform file opener now tries the
+validated `/app0/resource/flash` movie first for every `resource/flash/...`
+request and falls back to the external GAME search path only when the packaged
+asset is absent. This prevents uploaded compressed files from shadowing the
+package-time FWS conversion while leaving the rest of Source's external content
+layering unchanged.
+
+The CWS fallback remains available and now logs the exact zlib result plus
+input, declared, and produced sizes for later repair. Root loading remains
+asynchronous. The next run must log `scaleform reading validated app0 movie`,
+report an uncompressed SWF with one 1280x720 frame, and stop emitting premature
+stream-end warnings for the roots. Marker:
+`kisak-ps4: build marker scaleform_app0_fws_v344`.
+
+The v3.44 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`53e17b8280695ef88b241089d3c284ba7d2e015b07fb80591d326b424d093bb7`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.42: Convert packaged compressed SWFs to uncompressed FWS
 
 The v3.41 hardware run confirms that an explicitly retained `GFx::ZlibSupport`
