@@ -2915,3 +2915,10 @@ v3.26 routes the diagnostic bars, cube, and Source triangle into the validated
 blending, so the scanout surface is only written with final opaque RGB. The
 previous direct path remains available when scene-target allocation fails. The
 build marker is `kisak-ps4: build marker tiled_scene_resolve_v326`.
+
+The v3.26 hardware run completed the first end-to-end resolve: the scene target
+reported `bytes=8294400 info=0x00028028`, the opaque resolve breadcrumb appeared,
+and the screen showed the darker-red spinning cube with the clipped transparent
+triangle. VideoOut flips continued through frame 1200. This confirms the PS4
+renderer can retain Source alpha blending in the scene target while presenting
+opaque scanout pixels.
