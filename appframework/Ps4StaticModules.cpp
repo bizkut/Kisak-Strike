@@ -4,6 +4,15 @@ extern CreateInterfaceFn Sys_GetFactoryThis();
 
 namespace
 {
+#if defined( KISAK_PS4_STATIC_FACTORY_STUB )
+void *ScaleformUIUnavailableFactory( const char *, int *pReturnCode )
+{
+    if ( pReturnCode )
+        *pReturnCode = 1;
+    return nullptr;
+}
+#endif
+
 void *Tier0CreateInterface( const char *pName, int *pReturnCode )
 {
     return Sys_GetFactoryThis()( pName, pReturnCode );
@@ -35,6 +44,13 @@ CreateInterfaceFn KisakLauncherFactory()
     return LauncherCreateInterface;
 }
 
+#if defined( KISAK_PS4_STATIC_FACTORY_STUB )
+CreateInterfaceFn KisakPs4ScaleformUIBootstrapFactory()
+{
+    return ScaleformUIUnavailableFactory;
+}
+#endif
+
 extern "C" int KisakRegisterStaticModules()
 {
     const bool tier0 = RegisterStaticModule( "tier0", KisakTier0Factory() );
@@ -42,7 +58,7 @@ extern "C" int KisakRegisterStaticModules()
     const bool launcher = RegisterStaticModule( "launcher", KisakLauncherFactory() );
     const bool filesystem = RegisterStaticModule( "filesystem_stdio", KisakFilesystemFactory() );
     const bool engine = RegisterStaticModule( "engine", KisakEngineBootstrapFactory() );
-    const bool rocketui = RegisterStaticModule( "rocketui", KisakRocketUIBootstrapFactory() );
+    const bool scaleformui = RegisterStaticModule( "scaleformui", KisakPs4ScaleformUIBootstrapFactory() );
     const bool inputsystem = RegisterStaticModule( "inputsystem", KisakInputSystemFactory() );
     const bool vphysics = RegisterStaticModule( "kisakvphysics", KisakVPhysicsFactory() );
     const bool shaderapiempty = RegisterStaticModule( "shaderapiempty", KisakShaderApiEmptyFactory() );
@@ -55,5 +71,5 @@ extern "C" int KisakRegisterStaticModules()
     const bool vgui2 = RegisterStaticModule( "vgui2", KisakVGuiFactory() );
     const bool localize = RegisterStaticModule( "localize", KisakLocalizeFactory() );
     const bool vguimatsurface = RegisterStaticModule( "vguimatsurface", KisakVGuiMatSurfaceFactory() );
-    return tier0 && vstdlib && launcher && filesystem && engine && rocketui && inputsystem && vphysics && shaderapiempty && shaderapips4 && materialsystem && datacache && studiorender && soundemittersystem && vscript && vgui2 && localize && vguimatsurface ? 0 : -1;
+    return tier0 && vstdlib && launcher && filesystem && engine && scaleformui && inputsystem && vphysics && shaderapiempty && shaderapips4 && materialsystem && datacache && studiorender && soundemittersystem && vscript && vgui2 && localize && vguimatsurface ? 0 : -1;
 }

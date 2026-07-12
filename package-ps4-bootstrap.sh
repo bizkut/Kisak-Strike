@@ -9,8 +9,8 @@ CLEAR_SHADER="${KISAK_PS4_CLEAR_SHADER:-$ROOT_DIR/../freegnm-examples/cube/asset
 CUBE_SHADER_DIR="${KISAK_PS4_CUBE_SHADER_DIR:-$ROOT_DIR/../freegnm-examples/cube/assets/misc}"
 if [[ "$VARIANT" == "monolithic" ]]; then
     BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
-    TITLE="Kisak-Strike PS4 Monolithic"
-VERSION="3.04"
+TITLE="Kisak-Strike PS4 Monolithic"
+VERSION="3.05"
     TITLE_ID="KISK00002"
     CONTENT_ID="IV0000-KISK00002_00-KISAKMONOLITHIC0"
     EBOOT_INPUT="$BUILD_DIR/kisak_ps4_monolithic.bin"
@@ -49,6 +49,16 @@ RUNTIME_MODULE_DIR="${RUNTIME_MODULE_DIR:-$OO_PS4_TOOLCHAIN/src/modules}"
 ASSET_DIR="${KISAK_PS4_ASSET_DIR:-$ROOT_DIR/../freegnm-examples/videoout-linear/sce_sys}"
 ICON_PATH="${KISAK_PS4_ICON_PATH:-$ROOT_DIR/ps4/sce_sys/icon0.png}"
 SHADER_MANIFEST="${KISAK_PS4_SHADER_MANIFEST:-$ROOT_DIR/ps4/shaders/kisak_diagnostic.manifest}"
+SCALEFORM_ASSET_ROOT="${KISAK_PS4_SCALEFORM_ASSET_ROOT:-/Volumes/Untitled/CSGO/csgo}"
+SCALEFORM_FLASH_FILES=(
+    fontlib.gfx
+    sharedlib.gfx
+    colorlib.gfx
+    mainmenu.gfx
+    mainuirootmovie.gfx
+    pausemenu.gfx
+    scoreboard.gfx
+)
 
 for required in "$CREATE_GP4" "$PKGTOOL" "$RUNTIME_MODULE_DIR/libc.prx" \
     "$RUNTIME_MODULE_DIR/libSceFios2.prx" "$ICON_PATH" \
@@ -61,6 +71,18 @@ done
 if [[ "$VARIANT" == "monolithic" && ! -f "$CONTENT_PROBE" ]]; then
     echo "Missing PS4 package input: $CONTENT_PROBE" >&2
     exit 1
+fi
+if [[ "$VARIANT" == "monolithic" ]]; then
+    if [[ ! -d "$SCALEFORM_ASSET_ROOT/resource/flash" ]]; then
+        echo "Missing Scaleform asset root: $SCALEFORM_ASSET_ROOT/resource/flash" >&2
+        exit 1
+    fi
+    for flash in "${SCALEFORM_FLASH_FILES[@]}"; do
+        if [[ ! -f "$SCALEFORM_ASSET_ROOT/resource/flash/$flash" ]]; then
+            echo "Missing Scaleform movie asset: $SCALEFORM_ASSET_ROOT/resource/flash/$flash" >&2
+            exit 1
+        fi
+    done
 fi
 if [[ "$VARIANT" == "monolithic" ]]; then
     for shader in tri.vert.sb tri.frag.sb texture_sample.frag.sb present.frag.sb; do
@@ -90,6 +112,10 @@ cp "$ICON_PATH" "$PACKAGE_DIR/sce_sys/icon0.png"
 cp "$ASSET_DIR/about/right.sprx" "$PACKAGE_DIR/sce_sys/about/right.sprx"
 if [[ "$VARIANT" == "monolithic" ]]; then
     cp "$CONTENT_PROBE" "$PACKAGE_DIR/kisak_ps4_content_probe.txt"
+    mkdir -p "$PACKAGE_DIR/resource/flash"
+    for flash in "${SCALEFORM_FLASH_FILES[@]}"; do
+        cp "$SCALEFORM_ASSET_ROOT/resource/flash/$flash" "$PACKAGE_DIR/resource/flash/$flash"
+    done
     cp "$DIAGNOSTIC_SHADER_DIR/tri.vert.sb" "$PACKAGE_DIR/kisak_diagnostic.vert.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/tri.frag.sb" "$PACKAGE_DIR/kisak_diagnostic.frag.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/texture_sample.frag.sb" "$PACKAGE_DIR/kisak_texture_sample.frag.sb"
@@ -147,8 +173,17 @@ pushd "$PACKAGE_DIR" >/dev/null
 PACKAGE_FILES="eboot.bin sce_sys/about/right.sprx sce_sys/param.sfo sce_sys/icon0.png sce_module/libc.prx sce_module/libSceFios2.prx"
 if [[ "$VARIANT" == "monolithic" ]]; then
     PACKAGE_FILES="$PACKAGE_FILES kisak_ps4_content_probe.txt kisak_diagnostic.vert.sb kisak_diagnostic.frag.sb kisak_texture_sample.frag.sb kisak_present.frag.sb kisak_depth_clear.frag.sb kisak_reference_cube.vert.sb kisak_reference_cube.frag.sb kisak_diagnostic.manifest"
+    for flash in "${SCALEFORM_FLASH_FILES[@]}"; do
+        PACKAGE_FILES="$PACKAGE_FILES resource/flash/$flash"
+    done
 fi
 "$CREATE_GP4" -out=pkg.gp4 -content-id="$CONTENT_ID" -files "$PACKAGE_FILES"
+# create-gp4 knows the standard PS4 roots but does not emit arbitrary Source
+# content directories. Keep the Scaleform tree in the GP4 root explicitly so
+# PkgTool can resolve resource/flash while building the package.
+if [[ "$VARIANT" == "monolithic" ]] && ! grep -q '<dir targ_name="resource">' pkg.gp4; then
+    perl -0pi -e 's#(\s*<dir targ_name="sce_module" />)#$1\n\t\t<dir targ_name="resource"><dir targ_name="flash" /></dir>#' pkg.gp4
+fi
 "$PKGTOOL" pkg_build pkg.gp4 .
 "$PKGTOOL" pkg_validate --verbose "$PACKAGE"
 popd >/dev/null

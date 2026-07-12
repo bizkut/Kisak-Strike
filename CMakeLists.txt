@@ -153,8 +153,12 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
             kisak_scaleform_render kisak_scaleform_zlib)
         target_link_libraries(kisak_scaleform_as2 PUBLIC kisak_scaleform_gfx)
     endif()
+    # The legacy Source ScaleformUI app-system has a very large D3D9/GL
+    # surface and is not the PS4 entry point yet. The focused PS4 GFx manager
+    # below links the SDK directly while the full interface is migrated to the
+    # OpenGNM HAL.
     set(USE_SCALEFORM OFF CACHE BOOL "" FORCE)
-    set(USE_ROCKETUI ON CACHE BOOL "" FORCE)
+    set(USE_ROCKETUI OFF CACHE BOOL "" FORCE)
     set(USE_KISAK_PHYSICS ON CACHE BOOL "" FORCE)
 
     set(KISAK_OPENGNM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../opengnm" CACHE PATH "OpenGNM PS4 source/build root")
@@ -207,7 +211,9 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         ps4/engine_bootstrap.cpp
         ps4/gnm_submission_bootstrap.cpp
         ps4/videoout_bootstrap.cpp
-        ps4/rocketui_bootstrap.cpp
+        ps4/scaleformui_bootstrap.cpp
+        ps4/scaleform_gfx_manager.cpp
+        ps4/scaleform_gnm_hal.cpp
     )
     if(KISAK_PS4_ENABLE_SCALEFORM)
         target_sources(kisak_ps4_monolithic PRIVATE ps4/scaleform_sdk_probe.cpp)

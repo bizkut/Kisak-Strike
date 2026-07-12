@@ -1,7 +1,7 @@
 #include "icvar.h"
 #include "common/engine_launcher_api.h"
 #include "inputsystem/iinputsystem.h"
-#include "rocketui/rocketui.h"
+#include "scaleformui/ps4_scaleformui.h"
 #include "tier1/convar.h"
 
 #include <chrono>
@@ -28,21 +28,21 @@ namespace
 {
 struct Ps4SourceFrameContext
 {
-    IRocketUI *rocketUI;
+    IPs4ScaleformUI *scaleformUI;
     uint64_t frame;
 };
 
 void RunPs4SourceFrame( void *opaque )
 {
     Ps4SourceFrameContext *context = static_cast< Ps4SourceFrameContext * >( opaque );
-    if ( !context || !context->rocketUI )
+    if ( !context || !context->scaleformUI )
         return;
     if ( context->frame == 0 )
         KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame begin" );
-    context->rocketUI->RunFrame(
+    context->scaleformUI->RunFrame(
         static_cast< float >( context->frame ) * ( 1.0f / 60.0f ) );
-    context->rocketUI->RenderMenuFrame();
-    context->rocketUI->RenderHUDFrame();
+    context->scaleformUI->RenderMenuFrame();
+    context->scaleformUI->RenderHUDFrame();
     if ( context->frame == 0 )
         KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame complete" );
 }
@@ -132,7 +132,7 @@ public:
     int Run() override
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker rocketui_frame_phases_v328" );
+		KisakPs4StartupBreadcrumb( "kisak-ps4: build marker scaleform_gfx_primary_v329" );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformSdkVersion() );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformKernelSelfTest()
 			? "kisak-ps4: scaleform kernel self-test passed"
@@ -143,10 +143,10 @@ public:
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformMovieInstanceProbe()
 			? "kisak-ps4: scaleform render-tree handle probe passed"
 			: "kisak-ps4: scaleform render-tree handle probe failed" );
-		IRocketUI *rocketUI = RocketUI();
+		IPs4ScaleformUI *scaleformUI = Ps4ScaleformUI();
 		const bool videoOutReady = KisakPs4VideoOutInitialize();
 		KisakPs4GnmSubmissionSelfTest();
-		Ps4SourceFrameContext sourceFrame = { rocketUI, 0 };
+		Ps4SourceFrameContext sourceFrame = { scaleformUI, 0 };
 		KisakPs4SetSourceFrameCallback( RunPs4SourceFrame, &sourceFrame );
 		m_QuitRequested.store( false );
 		uint64_t frame = 0;

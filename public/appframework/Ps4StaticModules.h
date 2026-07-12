@@ -8,7 +8,7 @@ CreateInterfaceFn KisakVstdlibFactory();
 CreateInterfaceFn KisakLauncherFactory();
 CreateInterfaceFn KisakFilesystemFactory();
 CreateInterfaceFn KisakEngineBootstrapFactory();
-CreateInterfaceFn KisakRocketUIBootstrapFactory();
+CreateInterfaceFn KisakPs4ScaleformUIBootstrapFactory();
 CreateInterfaceFn KisakInputSystemFactory();
 CreateInterfaceFn KisakVPhysicsFactory();
 CreateInterfaceFn KisakShaderApiEmptyFactory();

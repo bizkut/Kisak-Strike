@@ -2945,3 +2945,66 @@ inside the same source-frame callback that feeds the tiled scene resolve. The
 current bootstrap UI implementation remains a no-op renderer; Scaleform/Rocket
 GPU draw emission remains the next UI implementation step. The build marker is
 `kisak-ps4: build marker rocketui_frame_phases_v328`.
+
+### v3.29: Make Scaleform/GFx the production console UI
+
+The PS4 client now treats the supplied Scaleform/GFx movies as the production
+UI path. RocketUI/Rml remains only as a source-compatibility boundary while the
+old module name is removed from the console launch graph. The existing
+`RunFrame()`, menu, and HUD phase boundaries stay unchanged so engine timing,
+input ownership, and presentation ordering do not move while the renderer is
+being replaced.
+
+The implementation is split into four contracts:
+
+1. `CPs4ScaleformMovieManager` owns one `Scaleform::System`, a GFx `Loader`
+   with the Source filesystem `FileOpener`, the font library, and menu/HUD
+   `MovieDef`/`Movie` instances. It advances and captures movies on the source
+   thread, sets a 1920x1080 viewport, and exposes only bounded lifecycle and
+   load-state diagnostics to the bootstrap.
+2. `CPs4ScaleformInputBridge` maps `InputEvent_t` button/analog/controller
+   events to GFx `KeyEvent`, `CharEvent`, and `GamePadAnalogEvent` values. The
+   bridge preserves Source's consume/deny-input decision and supports
+   DualShock 4 disconnect/reconnect without touching ActionScript directly.
+3. `CPs4ScaleformHal` is the OpenGNM backend boundary. It receives captured
+   GFx display trees and translates their batches into OpenGNM vertex/index
+   buffers, texture uploads, blend modes, scissor rectangles, and EOP-fenced
+   submissions. No GL, ToGL, D3D9 runtime, PS3 GCM, or RSX binary is allowed in
+   this path. The first implementation may reject unsupported filters with a
+   visible diagnostic quad, but it must never silently drop a movie draw.
+4. `CPs4ScaleformAssetManifest` packages the supplied `resource/flash/*.gfx`
+   movies, font libraries, and external image/font dependencies under `/app0`;
+   loose `/data/kisak-strike` content remains an opt-in override. Package
+   validation rejects a missing movie, font, or manifest dependency before an
+   eboot is staged.
+
+The first GFx migration slice loads `mainmenu.gfx` and `fontlib.gfx`, creates a
+live movie instance, advances/captures it in both existing frame phases, and
+routes controller events into ActionScript. It deliberately keeps the
+diagnostic OpenGNM scene visible until the HAL emits its first real GFx batch.
+That gate is considered passed only when a captured GFx batch produces a
+non-empty OpenGNM submission and an EOP completion marker. Subsequent slices
+add texture swizzles/compression, masks and scissor, blend variants, text/font
+atlases, ActionScript callbacks, and HUD/menu slot composition.
+
+Required host gates are a movie/file-opener test, input mapping test, asset
+manifest closure test, HAL blend/scissor translation test, and deterministic
+captured-tree-to-command-buffer test. The PS4 gate is: load `fontlib.gfx` and
+`mainmenu.gfx`, navigate one menu screen with DualShock 4, render one HUD slot,
+and hold 60 FPS for 30 seconds with no EOP timeout, missing-asset marker, or
+Scaleform allocation growth.
+
+The v3.29 build marker is
+`kisak-ps4: build marker scaleform_gfx_primary_v329`.
+
+The first v3.29 implementation slice is now present. The PS4 monolithic target
+uses `CPs4ScaleformMovieManager` instead of the RocketUI bootstrap, loads the
+two supplied root movies through `IFileSystem::ReadFile("GAME")`, maps keyboard
+and controller button events to GFx key/pad events, and captures both display
+trees at the existing menu/HUD phase boundaries. The legacy full
+`INCLUDE_SCALEFORM` app-system remains disabled until its large public
+`IScaleformUI` surface is backed by the OpenGNM HAL; this avoids presenting a
+GL/D3D9 implementation as a PS4 renderer. The current capture bridge is
+intentionally diagnostic: it proves that GFx produces a live render tree, but
+does not yet submit that tree as OpenGNM geometry. The next code slice is the
+`CPs4ScaleformHal` command translator and its first textured/blended quad gate.
