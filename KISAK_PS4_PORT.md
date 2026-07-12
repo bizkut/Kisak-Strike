@@ -3074,3 +3074,24 @@ The v3.32 monolithic package is staged at
 `231ea437fdc51ae51017087acea5d6fedd3c56f865adbf87ab28d69ef26de1a6`.
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
+
+### v3.33: Use Source's SWF root movies
+
+The v3.32 capture proved that the `.gfx` root files load but expose no
+ActionScript slot hooks: `InitSlot`, `ForceResize`, and `RequestElement` were
+all absent and both trees remained four empty containers. Source's own
+`g_szDefaultScaleformMovieName` and `g_szDefaultScaleformClientMovieName`
+identify the `.swf` roots, which are packaged alongside the console `.gfx`
+assets. The manager now loads `mainuirootmovie.swf` and `gameuirootmovie.swf`
+while retaining the Source root-slot/`MainMenu` request sequence. The build
+marker is `kisak-ps4: build marker scaleform_swf_roots_v333`.
+
+The next hardware gate is non-zero drawable tree statistics or a precise SWF
+loader failure; the diagnostic cube and clipped transparent triangle remain
+the regression image.
+
+The v3.33 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`f5e5aad816f21abc23babb3752fa6ca21e6e81aad34a5bdc3a7fb2063ced57fc`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.

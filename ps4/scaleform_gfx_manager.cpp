@@ -151,9 +151,9 @@ public:
         // is an element requested from MainUIRootMovie; GameUIRootMovie is
         // the client/HUD root and receives its level HUD elements later.
         m_slots[kScaleformMenuSlot] = {
-            "resource/flash/mainuirootmovie.gfx", "MainMenu", NULL, NULL, false, false };
+            "resource/flash/mainuirootmovie.swf", "MainMenu", NULL, NULL, false, false };
         m_slots[kScaleformHudSlot] = {
-            "resource/flash/gameuirootmovie.gfx", NULL, NULL, NULL, false, false };
+            "resource/flash/gameuirootmovie.swf", NULL, NULL, NULL, false, false };
     }
 
     ~CPs4ScaleformMovieManager()
