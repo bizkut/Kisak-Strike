@@ -1,4 +1,5 @@
 #include "ps4_gnm_device.h"
+#include "ps4_gnm_runtime.h"
 
 #include <assert.h>
 #include <stdint.h>
@@ -18,6 +19,13 @@ int main()
     CPs4GnmDevice device;
     assert( !device.Initialize( 0, sizeof( storage ) ) );
     assert( device.Initialize( storage, sizeof( storage ) ) );
+    alignas( 256 ) uint8_t persistentStorage[512] = {};
+    CPs4GnmRuntime &runtime = KisakPs4GnmRuntime();
+    assert( !runtime.Register( 0, persistentStorage, sizeof( persistentStorage ) ) );
+    assert( runtime.Register( &device, persistentStorage, sizeof( persistentStorage ) ) );
+    assert( runtime.IsReady() && runtime.Device() == &device );
+    assert( runtime.PersistentArena().Capacity() == sizeof( persistentStorage ) );
+    assert( runtime.PersistentArena().Allocate( 64, 64 ) == persistentStorage );
     assert( device.BeginFrame( 0 ) );
 
     void *constantData = device.FrameArena().Allocate( 64, 64 );

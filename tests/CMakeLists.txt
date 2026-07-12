@@ -44,6 +44,7 @@ add_executable(ps4_gnm_device_test
     ../materialsystem/ps4gnm/ps4_gnm_buffer.cpp
     ../materialsystem/ps4gnm/ps4_gnm_device.cpp
     ../materialsystem/ps4gnm/ps4_gnm_memory.cpp
+    ../materialsystem/ps4gnm/ps4_gnm_runtime.cpp
     ../materialsystem/ps4gnm/ps4_gnm_vertex_declaration.cpp
     ../../opengnm/src/dataformat.c
     ../../opengnm/src/error.c

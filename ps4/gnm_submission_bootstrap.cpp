@@ -6,6 +6,7 @@
 #include "materialsystem/ps4gnm/ps4_gnm_shader_handles.h"
 #include "materialsystem/ps4gnm/ps4_shader_manifest.h"
 #include "materialsystem/ps4gnm/ps4_gnm_constants.h"
+#include "materialsystem/ps4gnm/ps4_gnm_runtime.h"
 #include "materialsystem/ps4gnm/shaderapips4.h"
 
 #include <gnm_commandbuffer.h>
@@ -786,6 +787,24 @@ bool LoadDiagnosticShaders()
     g_ReferenceCubeFetchShader = referenceCursor;
     sceGnmVsRegsSetFetchShaderModifier( &g_ReferenceCubeVertexShader->registers,
         &referenceFetchResults );
+    referenceCursor += referenceFetchSize;
+    referenceCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( referenceCursor ) + 255 ) & ~static_cast< uintptr_t >( 255 ) );
+    if ( referenceCursor >= gpuEnd || !KisakPs4GnmRuntime().Register(
+        &g_Device, referenceCursor, static_cast< size_t >( gpuEnd - referenceCursor ) ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "native runtime arena registration failed" );
+        return false;
+    }
+    {
+        char message[128];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: native runtime persistent arena bytes=%llu",
+            static_cast< unsigned long long >(
+                KisakPs4GnmRuntime().PersistentArena().Capacity() ) );
+        KisakPs4StartupBreadcrumb( message );
+    }
     snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
         "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u depthbytes=%llu texturebytes=%llu",
         g_VertexShader->common.shadersize, g_PixelShader->common.shadersize,

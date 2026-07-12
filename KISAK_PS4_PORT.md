@@ -1248,6 +1248,20 @@ desktop configuration. Marker:
 The v2.80 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `57fd5739b394b00dc4a274a78f52bfaba9bdd3fe57cc969a91a0c9e6331b45d2`.
+
+The v2.80 hardware run retained the spinning cube, navy contrast regions, and
+60 FPS with native recommended video settings. The next resource blocker was
+ownership: real Source `IVertexBuffer`/`IIndexBuffer` objects cannot use normal
+heap memory on PS4. Version 2.81 adds `CPs4GnmRuntime`, a shared context that
+publishes the initialized device and registers the aligned remainder of the
+persistent GPU-visible pool after bootstrap shaders, depth, textures, fetch
+shader, and diagnostics. Registration rejects uninitialized devices and
+invalid pools; host tests cover registration, identity, capacity, and aligned
+allocation. Runtime logs the exact available byte count. Marker:
+`kisak-ps4: build marker shared_gpu_runtime_v281`.
+The v2.81 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`af9c2acdbf7090d92ea12efb0b3fab3b28970eabaaa2ee0fce2eff5fc4e2a816`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

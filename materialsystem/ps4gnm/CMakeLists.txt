@@ -21,6 +21,7 @@ target_sources(${OUTBINNAME} PRIVATE
     ps4_gnm_draw_packet.cpp
     ps4_gnm_draw_state.cpp
     ps4_gnm_memory.cpp
+    ps4_gnm_runtime.cpp
     ps4_gnm_shader.cpp
     ps4_gnm_shader_handles.cpp
     ps4_shader_manifest.cpp
