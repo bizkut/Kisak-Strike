@@ -119,6 +119,9 @@ public:
     {
         memset( m_nativeVertexBuffers, 0, sizeof( m_nativeVertexBuffers ) );
         memset( m_nativeIndexBuffers, 0, sizeof( m_nativeIndexBuffers ) );
+        memset( m_dynamicVertexBuffers, 0, sizeof( m_dynamicVertexBuffers ) );
+        memset( m_dynamicVertexFormats, 0, sizeof( m_dynamicVertexFormats ) );
+        m_dynamicIndexBuffer = 0;
     }
     void SetDelegate( IShaderDevice *delegate ) { m_delegate = delegate; }
 
@@ -207,9 +210,47 @@ public:
             m_delegate->DestroyIndexBuffer( buffer );
     }
     IVertexBuffer *GetDynamicVertexBuffer( int stream, VertexFormat_t format, bool buffered = true )
-    { return m_delegate ? m_delegate->GetDynamicVertexBuffer( stream, format, buffered ) : 0; }
+    {
+        if ( !KisakPs4GnmRuntime().IsReady() || stream < 0 || stream >= 8 )
+            return m_delegate ? m_delegate->GetDynamicVertexBuffer(
+                stream, format, buffered ) : 0;
+        if ( m_dynamicVertexBuffers[stream] &&
+            m_dynamicVertexFormats[stream] != format )
+        {
+            delete m_dynamicVertexBuffers[stream];
+            m_dynamicVertexBuffers[stream] = 0;
+        }
+        if ( !m_dynamicVertexBuffers[stream] )
+        {
+            CPs4SourceVertexBuffer *buffer = new CPs4SourceVertexBuffer;
+            if ( !buffer || !buffer->Initialize(
+                    SHADER_BUFFER_TYPE_DYNAMIC, format, 16384 ) )
+            {
+                delete buffer;
+                return 0;
+            }
+            m_dynamicVertexBuffers[stream] = buffer;
+            m_dynamicVertexFormats[stream] = format;
+        }
+        return m_dynamicVertexBuffers[stream];
+    }
     IIndexBuffer *GetDynamicIndexBuffer()
-    { return m_delegate ? m_delegate->GetDynamicIndexBuffer() : 0; }
+    {
+        if ( !KisakPs4GnmRuntime().IsReady() )
+            return m_delegate ? m_delegate->GetDynamicIndexBuffer() : 0;
+        if ( !m_dynamicIndexBuffer )
+        {
+            CPs4SourceIndexBuffer *buffer = new CPs4SourceIndexBuffer;
+            if ( !buffer || !buffer->Initialize( SHADER_BUFFER_TYPE_DYNAMIC,
+                    MATERIAL_INDEX_FORMAT_16BIT, 131072 ) )
+            {
+                delete buffer;
+                return 0;
+            }
+            m_dynamicIndexBuffer = buffer;
+        }
+        return m_dynamicIndexBuffer;
+    }
     void EnableNonInteractiveMode( MaterialNonInteractiveMode_t mode, ShaderNonInteractiveInfo_t *info = 0 )
     { if ( m_delegate ) m_delegate->EnableNonInteractiveMode( mode, info ); }
     void RefreshFrontBufferNonInteractive()
@@ -245,6 +286,9 @@ private:
     IShaderDevice *m_delegate;
     CPs4SourceVertexBuffer *m_nativeVertexBuffers[256];
     CPs4SourceIndexBuffer *m_nativeIndexBuffers[256];
+    CPs4SourceVertexBuffer *m_dynamicVertexBuffers[8];
+    VertexFormat_t m_dynamicVertexFormats[8];
+    CPs4SourceIndexBuffer *m_dynamicIndexBuffer;
 };
 
 CShaderDevicePs4 g_DevicePs4;
@@ -589,4 +633,26 @@ extern "C" int KisakPs4TextureMemoryUsed()
 {
     return g_DebugTextureInfoPs4.GetTextureMemoryUsed(
         IDebugTextureInfo::MEMORY_TOTAL_LOADED );
+}
+
+extern "C" bool KisakPs4ShaderDeviceDynamicBufferProbe()
+{
+    IVertexBuffer *vertexBuffer = g_DevicePs4.GetDynamicVertexBuffer(
+        0, VERTEX_POSITION, true );
+    IIndexBuffer *indexBuffer = g_DevicePs4.GetDynamicIndexBuffer();
+    if ( !vertexBuffer || !indexBuffer )
+        return false;
+    VertexDesc_t vertexDesc = {};
+    IndexDesc_t indexDesc = {};
+    if ( !vertexBuffer->Lock( 3, false, vertexDesc ) || !vertexDesc.m_pPosition )
+        return false;
+    memset( vertexDesc.m_pPosition, 0, 3 * vertexDesc.m_ActualVertexSize );
+    vertexBuffer->Unlock( 3, vertexDesc );
+    if ( !indexBuffer->Lock( 3, false, indexDesc ) || !indexDesc.m_pIndices )
+        return false;
+    indexDesc.m_pIndices[0] = 0;
+    indexDesc.m_pIndices[1] = 1;
+    indexDesc.m_pIndices[2] = 2;
+    indexBuffer->Unlock( 3, indexDesc );
+    return true;
 }

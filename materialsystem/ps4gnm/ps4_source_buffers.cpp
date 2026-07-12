@@ -7,7 +7,7 @@
 
 CPs4SourceVertexBuffer::CPs4SourceVertexBuffer()
     : m_format( 0 ), m_count( 0 ), m_stride( 0 ), m_written( 0 ),
-      m_lockStart( 0 ), m_lockCapacity( 0 ), m_dynamic( false )
+      m_lockStart( 0 ), m_lockCapacity( 0 ), m_frameIndex( 0 ), m_dynamic( false )
 {
 }
 
@@ -50,11 +50,14 @@ bool CPs4SourceVertexBuffer::Lock( int count, bool append, VertexDesc_t &desc )
 {
     if ( count <= 0 || count > m_count || ( append && count > GetRoomRemaining() ) )
         return false;
+    CPs4GnmDevice *device = KisakPs4GnmRuntime().Device();
+    if ( m_dynamic && append && ( !device || !device->IsFrameOpen() ||
+        device->CurrentFrame() != m_frameIndex ) )
+        return false;
     m_lockStart = append ? m_written : 0;
     m_lockCapacity = count;
     if ( m_dynamic && !append )
     {
-        CPs4GnmDevice *device = KisakPs4GnmRuntime().Device();
         if ( !device || !device->IsFrameOpen() )
             return false;
         const size_t bytes = static_cast< size_t >( m_count ) * m_stride;
@@ -63,6 +66,7 @@ bool CPs4SourceVertexBuffer::Lock( int count, bool append, VertexDesc_t &desc )
                 CPs4GnmBuffer::kVertexBuffer, true ) )
             return false;
         m_written = 0;
+        m_frameIndex = device->CurrentFrame();
     }
     void *data = 0;
     if ( !m_buffer.Lock( static_cast< size_t >( m_lockStart ) * m_stride,
@@ -88,7 +92,8 @@ void CPs4SourceVertexBuffer::Unlock( int count, VertexDesc_t &desc )
 
 CPs4SourceIndexBuffer::CPs4SourceIndexBuffer()
     : m_format( MATERIAL_INDEX_FORMAT_UNKNOWN ), m_count( 0 ), m_indexSize( 0 ),
-      m_written( 0 ), m_lockStart( 0 ), m_lockCapacity( 0 ), m_dynamic( false )
+      m_written( 0 ), m_lockStart( 0 ), m_lockCapacity( 0 ), m_frameIndex( 0 ),
+      m_dynamic( false )
 {
 }
 
@@ -130,11 +135,14 @@ bool CPs4SourceIndexBuffer::Lock( int count, bool append, IndexDesc_t &desc )
 {
     if ( count <= 0 || count > m_count || ( append && count > GetRoomRemaining() ) )
         return false;
+    CPs4GnmDevice *device = KisakPs4GnmRuntime().Device();
+    if ( m_dynamic && append && ( !device || !device->IsFrameOpen() ||
+        device->CurrentFrame() != m_frameIndex ) )
+        return false;
     m_lockStart = append ? m_written : 0;
     m_lockCapacity = count;
     if ( m_dynamic && !append )
     {
-        CPs4GnmDevice *device = KisakPs4GnmRuntime().Device();
         if ( !device || !device->IsFrameOpen() )
             return false;
         const size_t bytes = static_cast< size_t >( m_count ) * m_indexSize;
@@ -143,6 +151,7 @@ bool CPs4SourceIndexBuffer::Lock( int count, bool append, IndexDesc_t &desc )
                 CPs4GnmBuffer::kIndexBuffer, true, m_indexSize == 4 ) )
             return false;
         m_written = 0;
+        m_frameIndex = device->CurrentFrame();
     }
     void *data = 0;
     if ( !m_buffer.Lock( static_cast< size_t >( m_lockStart ) * m_indexSize,

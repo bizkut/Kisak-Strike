@@ -30,6 +30,7 @@ private:
     int m_written;
     int m_lockStart;
     int m_lockCapacity;
+    unsigned int m_frameIndex;
     bool m_dynamic;
 };
 
@@ -62,6 +63,7 @@ private:
     int m_written;
     int m_lockStart;
     int m_lockCapacity;
+    unsigned int m_frameIndex;
     bool m_dynamic;
 };
 

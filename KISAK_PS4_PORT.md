@@ -1321,6 +1321,21 @@ Marker: `kisak-ps4: build marker frame_dynamic_buffers_v285`.
 The v2.85 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `86c827c23ef7c7787646b77116363546ca60fdd6917b91ba641967ef20a563ab`.
+
+The v2.85 hardware log contains `dynamic Source buffer frame probe passed` and
+continued through frame 1200 with the spinning cube at 60 FPS. Version 2.86
+wires the normal `CShaderDevicePs4::GetDynamicVertexBuffer` and
+`GetDynamicIndexBuffer` entry points to native wrappers. Eight vertex streams
+cache one wrapper per current Source format; a format change recreates only the
+CPU wrapper because backing is acquired on lock. The reusable index wrapper
+provides 131,072 16-bit indices. Vertex capacity is 16,384 per stream. Append
+locks validate that the active device frame still matches the allocation frame,
+preventing stale cross-frame reuse. The live probe now calls these exact shader
+device getters and logs `shader device dynamic buffers passed`. Marker:
+`kisak-ps4: build marker shader_device_dynamic_v286`.
+The v2.86 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`127b0ee9af8c5cf5375d8c3ae07d5daad12d7e9a40121cc79bec1d848b28d296`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

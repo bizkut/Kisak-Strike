@@ -1136,13 +1136,13 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
     static bool dynamicBufferProbePassed = false;
     if ( !dynamicBufferProbePassed )
     {
-        if ( !KisakPs4DynamicSourceBufferProbe() )
+        if ( !KisakPs4ShaderDeviceDynamicBufferProbe() )
         {
             g_Device.CancelFrame();
             return false;
         }
         KisakPs4StartupBreadcrumb(
-            "kisak-ps4: dynamic Source buffer frame probe passed" );
+            "kisak-ps4: shader device dynamic buffers passed" );
         dynamicBufferProbePassed = true;
     }
 
