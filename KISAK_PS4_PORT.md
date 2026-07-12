@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.98
-SHA-256: 2d40215a1dfcd858d7fd8d3ea43deff55ed7947ec37161a24730b3a46d5a7271
+Version: 2.99
+SHA-256: 7575439de676ddacef4713aa045da95c6524c13ee8b76dd53eb740b1a8c68591
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -1490,6 +1490,17 @@ place. Marker: `kisak-ps4: build marker source_blend_visible_v298`.
 The v2.98 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `2d40215a1dfcd858d7fd8d3ea43deff55ed7947ec37161a24730b3a46d5a7271`.
+
+The v2.98 screenshot made the blue/white alpha mix clear, but moving the
+triangle upward also crossed the diagnostic scissor's upper boundary and
+flattened its top. That was not part of the intended gate. Version 2.99 expands
+the Source scissor vertically to the full 1080-line framebuffer while retaining
+the right boundary at x=330. The triangle should regain its pointed top while
+remaining clipped only on the right. Marker:
+`kisak-ps4: build marker source_scissor_vertical_v299`.
+The v2.99 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`7575439de676ddacef4713aa045da95c6524c13ee8b76dd53eb740b1a8c68591`.
 
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
