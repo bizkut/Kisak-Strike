@@ -1651,6 +1651,19 @@ remains, it is stale destination data or another write rather than that pixel
 shader export, and the next test will split background and overlay into separate
 EOP-completed submissions. The build marker is
 `kisak-ps4: build marker source_mask_zero_v312`.
+
+### v3.13: Produce blend destinations through CB
+
+v3.12 removed the triangle when its `CB_SHADER_MASK` was zero. The trace also
+reported base GPU mode, excluding Neo/RB+ `SX_MRT_BLEND_OPT` state. This proves
+the final Source draw and FP16 pixel export are consumed correctly and leaves
+the destination path as the major difference from working freegnm UI passes:
+Kisak's bars were produced by `DMA_DATA`, whereas blending reads through CB.
+v3.13 redraws the same four bars through CB using the existing fullscreen clear
+shader, flushes that CB work, removes the temporary target-optimization override,
+restores shader mask `0xf`, and restores `SRC_ALPHA / ONE_MINUS_SRC_ALPHA`.
+Successful blending produces purple over blue and pink over white. The build
+marker is `kisak-ps4: build marker cb_native_bars_blend_v313`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.

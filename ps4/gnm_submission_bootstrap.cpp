@@ -871,6 +871,57 @@ bool ClearDiagnosticDepth( GnmCommandBuffer *command )
     return true;
 }
 
+bool DrawDiagnosticColorBars( GnmCommandBuffer *command,
+    const GnmRenderTarget &renderTarget )
+{
+    if ( !command || !g_DepthClearPixelShader )
+        return false;
+
+    GnmDbRenderControl db = {};
+    GnmDepthStencilControl depth = {};
+    depth.zfunc = GNM_DEPTH_COMPARE_NEVER;
+    depth.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
+    depth.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
+    GnmBlendControl blend = {};
+    sceGnmDrawCmdSetDbRenderControl( command, &db );
+    sceGnmDrawCmdSetDepthStencilControl( command, &depth );
+    sceGnmDrawCmdSetBlendControl( command, 0, &blend );
+    sceGnmDrawCmdSetRenderTarget( command, 0, &renderTarget );
+    sceGnmDrawCmdSetRenderTargetMask( command, 0xf );
+    sceGnmDrawCmdSetEmbeddedVsShader( command, GNM_EMBEDDED_VSH_FULLSCREEN, 0 );
+    sceGnmDrawCmdSetPsShader( command, &g_DepthClearPixelShader->registers );
+    const GnmSetViewportInfo viewport = {
+        0.0f, 1.0f, { 960.0f, -540.0f, 0.5f }, { 960.0f, 540.0f, 0.5f }
+    };
+    sceGnmDrawCmdSetViewport( command, 0, &viewport );
+    sceGnmDrawCmdSetPrimitiveType( command, GNM_PT_RECTLIST );
+    sceGnmDrawCmdSetIndexSize( command, GNM_INDEX_16, GNM_POLICY_LRU );
+
+    const float colors[4][4] = {
+        { 1.0f, 0.0f, 0.0f, 1.0f },
+        { 0.0f, 1.0f, 0.0f, 1.0f },
+        { 0.0f, 0.0f, 1.0f, 1.0f },
+        { 1.0f, 1.0f, 1.0f, 1.0f }
+    };
+    for ( uint32_t band = 0; band < 4; ++band )
+    {
+        float *color = static_cast< float * >(
+            sceGnmCmdAllocInside( command, 4 * sizeof( float ), 4 ) );
+        GnmBuffer *descriptor = static_cast< GnmBuffer * >(
+            sceGnmCmdAllocInside( command, sizeof( GnmBuffer ), 4 ) );
+        if ( !color || !descriptor )
+            return false;
+        memcpy( color, colors[band], sizeof( colors[band] ) );
+        *descriptor = sceGnmCreateConstBuffer( color, 4 * sizeof( float ) );
+        sceGnmDrawCmdSetPointerUserData( command, GNM_STAGE_PS, 0, descriptor );
+        const int32_t top = static_cast< int32_t >( band * 270 );
+        sceGnmDrawCmdSetScreenScissor( command, 0, top, 1920, top + 270 );
+        sceGnmDrawCmdDrawIndexAuto( command, 3 );
+    }
+    sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
+    return true;
+}
+
 bool BuildSourceDynamicTriangle( CPs4GnmDevice::IndexedDrawPacket *packet,
     GnmBuffer *descriptors )
 {
@@ -906,11 +957,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     if ( !g_Device.BuildDisplayRenderTarget(
         destination, 1920, 1080, 1920, &renderTarget ) )
         return;
-    // Force Liverpool's two CB_COLOR blend optimizations off while validating
-    // destination reads on a display-linear target. Value 1 is FORCE_DISABLE
-    // for both BLEND_OPT_DONT_RD_DST and BLEND_OPT_DISCARD_PIXEL.
-    renderTarget.info.asuint |= ( 1u << 20 ) | ( 1u << 23 );
     sceGnmDrawCmdInitDefaultHardwareState( command );
+    if ( !DrawDiagnosticColorBars( command, renderTarget ) )
+        return;
     KisakPs4SetShaderShadowCulling( false );
     KisakPs4SetShaderShadowDepth( false, false, 3 );
     KisakPs4SetShaderShadowBlend( false, 1, 0, 0, false, 1, 0, 0 );
@@ -1026,9 +1075,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_CubeEdgeSamplerTable );
     Ps4EmitPrimitiveDraw( command, &g_DrawState, edgePacket );
     g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
-    GnmPsStageRegisters sourcePixelRegisters = g_PixelShader->registers;
-    sourcePixelRegisters.cbshadermask = 0;
-    g_DrawState.SetPixelShader( sourcePixelRegisters );
+    g_DrawState.SetPixelShader( g_PixelShader->registers );
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, sourceDescriptors );
     // Intentionally clip the right side of the Source triangle. This makes
@@ -1047,8 +1094,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     GnmBlendControl sourceBlend = {};
     sourceBlend.blendenabled = true;
     sourceBlend.colorfunc = GNM_COMB_DST_PLUS_SRC;
-    sourceBlend.colorsrcmult = GNM_BLEND_ZERO;
-    sourceBlend.colordstmult = GNM_BLEND_ZERO;
+    sourceBlend.colorsrcmult = GNM_BLEND_SRC_ALPHA;
+    sourceBlend.colordstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
     sourceBlend.alphafunc = GNM_COMB_DST_PLUS_SRC;
     sourceBlend.alphasrcmult = GNM_BLEND_ONE;
     sourceBlend.alphadstmult = GNM_BLEND_ZERO;
