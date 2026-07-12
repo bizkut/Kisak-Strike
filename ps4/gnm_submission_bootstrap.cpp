@@ -1046,7 +1046,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     sourceBlend.blendenabled = true;
     sourceBlend.colorfunc = GNM_COMB_DST_PLUS_SRC;
     sourceBlend.colorsrcmult = GNM_BLEND_ZERO;
-    sourceBlend.colordstmult = GNM_BLEND_ONE;
+    sourceBlend.colordstmult = GNM_BLEND_ZERO;
     sourceBlend.alphafunc = GNM_COMB_DST_PLUS_SRC;
     sourceBlend.alphasrcmult = GNM_BLEND_ONE;
     sourceBlend.alphadstmult = GNM_BLEND_ZERO;
@@ -1320,6 +1320,10 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         0xffffffff  // white
     };
     GnmCommandBuffer command = sceGnmCmdInit( submission.commandMemory, kCommandBufferSize, 0, 0 );
+    // Retired frames can leave dirty CB lines for this reused VideoOut address.
+    // Flush them before DMA_DATA writes the new bars, otherwise a later CB
+    // acquire can write the previous triangle back over the fresh destination.
+    sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_CB0 );
     for ( unsigned int band = 0; band < 4; ++band )
     {
         const uintptr_t address = reinterpret_cast< uintptr_t >( destination ) + band * bandSize;

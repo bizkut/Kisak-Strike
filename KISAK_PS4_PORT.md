@@ -1624,6 +1624,19 @@ regression test. With the temporary optimization override retained, target info
 becomes `0x00928028`; the `ZERO / ONE` probe should finally disappear if this
 was the missing color-export/blend conversion enable. The build marker is
 `kisak-ps4: build marker simple_float_blend_v310`.
+
+### v3.11: Flush reused CB storage before DMA and use ZERO/ZERO
+
+The v3.10 target contained `SIMPLE_FLOAT` but `ZERO / ONE` remained red. A
+packet-order audit found that this did not prove blend bypass: `ONE` preserves
+the destination, and reused VideoOut buffers already contain the prior red
+triangle. More importantly, the frame wrote fresh bars with `DMA_DATA` before
+issuing the color-buffer flush/invalidate, allowing dirty CB lines from the
+previous use to be written back over the new bars. v3.11 flushes CB0 before the
+DMA fills and retains the post-DMA acquire. It also changes the diagnostic to
+`ZERO / ZERO` (`0x40010000`), which must produce zero/black independent of
+source alpha, destination contents, or destination-cache freshness. The build
+marker is `kisak-ps4: build marker cb_preflush_zero_probe_v311`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.
