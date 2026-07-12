@@ -2809,3 +2809,16 @@ b8f56b31 ps4: keep the bootstrap alive after startup
   committed or redistributed.
 - Commit generated build products, PKGs, FSELF files, runtime PRXs, and copied
   package assets only as external artifacts, never as source-controlled files.
+
+### v3.18: Isolate blending on an ordinary offscreen target
+
+v3.17 reproduced the final pre-draw blend reassertion through the reusable draw
+packet helpers, but hardware still returned opaque red over both display bands.
+The earlier multicolor triangle was vertex interpolation, not framebuffer
+blending, so no historical run has yet proven the blend unit on this path.
+v3.18 preserves the cube texture, clears its ordinary 4x4 RGBA8 render target to
+zero, redraws the alpha-0.5 diagnostic through the same D3D facade, and logs four
+GPU-completed pixels. Half-intensity pixels isolate the remaining problem to the
+VideoOut target; full-intensity pixels prove the failure is general blend state
+or OpenGNM PM4 behavior. The build marker is
+`kisak-ps4: build marker offscreen_blend_isolation_v318`.
