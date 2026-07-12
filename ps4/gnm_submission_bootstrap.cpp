@@ -1040,6 +1040,88 @@ bool BuildSourceDynamicTriangle( CPs4GnmDevice::IndexedDrawPacket *packet,
             static_cast< uint32_t >( indexCount ), 0, 3, packet );
 }
 
+bool EmitScenePresentation( GnmCommandBuffer *command,
+    const GnmRenderTarget &displayTarget, const GnmSetViewportInfo &viewport )
+{
+    if ( !command || !g_SceneColorReady || !g_PresentPixelShader ||
+        !g_FetchShader || !g_SceneColorSamplerTable )
+        return false;
+    struct PresentVertex
+    {
+        float position[4];
+        float uv[4];
+    };
+    PresentVertex *vertices = static_cast< PresentVertex * >(
+        g_Device.FrameArena().Allocate( 4 * sizeof( PresentVertex ), 16 ) );
+    uint16_t *indices = static_cast< uint16_t * >(
+        g_Device.FrameArena().Allocate( 6 * sizeof( uint16_t ), 8 ) );
+    GnmBuffer *descriptors = static_cast< GnmBuffer * >(
+        g_Device.FrameArena().Allocate( 2 * sizeof( GnmBuffer ), 16 ) );
+    if ( !vertices || !indices || !descriptors )
+        return false;
+    const PresentVertex quad[4] = {
+        { { -1.0f, -1.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+        { {  1.0f, -1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 0.0f, 1.0f } },
+        { {  1.0f,  1.0f, 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+        { { -1.0f,  1.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, 0.0f, 1.0f } }
+    };
+    memcpy( vertices, quad, sizeof( quad ) );
+    const uint16_t quadIndices[6] = { 0, 1, 2, 0, 2, 3 };
+    memcpy( indices, quadIndices, sizeof( quadIndices ) );
+    CPs4GnmBuffer vertexBuffer;
+    CPs4GnmBuffer indexBuffer;
+    if ( !vertexBuffer.Initialize( vertices, sizeof( quad ),
+            CPs4GnmBuffer::kVertexBuffer, true ) ||
+        !indexBuffer.Initialize( indices, sizeof( quadIndices ),
+            CPs4GnmBuffer::kIndexBuffer, true ) ||
+        !g_Device.SetStreamSource( 0, &vertexBuffer, 0, sizeof( PresentVertex ) ) ||
+        !g_Device.SetIndices( &indexBuffer ) )
+        return false;
+    const CPs4GnmVertexDeclaration::Element elements[2] = {
+        { 0, 0, GNM_FMT_R32G32B32A32_FLOAT },
+        { 0, 16, GNM_FMT_R32G32B32A32_FLOAT }
+    };
+    CPs4GnmVertexDeclaration declaration;
+    if ( !declaration.Initialize( elements, 2 ) ||
+        !g_Device.BuildVertexDescriptorTable( declaration, 0, 4,
+            descriptors, 2 ) )
+        return false;
+    g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
+    CPs4GnmDevice::IndexedDrawPacket packet = {};
+    if ( !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
+            0, 6, 0, 4, &packet ) )
+        return false;
+    GnmDbRenderControl db = {};
+    GnmDepthStencilControl depth = {};
+    depth.zfunc = GNM_DEPTH_COMPARE_NEVER;
+    depth.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
+    depth.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
+    GnmBlendControl blend = {};
+    g_DrawState.SetRenderTarget( 0, displayTarget );
+    g_DrawState.ClearDepthRenderTarget();
+    g_DrawState.SetDbRenderControl( db );
+    g_DrawState.SetDepthStencilControl( depth );
+    g_DrawState.SetBlendControl( 0, blend );
+    g_DrawState.SetViewport( 0, viewport );
+    g_DrawState.SetScissor( 0, 0, 1920, 1080 );
+    g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
+    g_DrawState.SetPixelShader( g_PresentPixelShader->registers );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, descriptors );
+    g_DrawState.SetPointerUserData(
+        GNM_STAGE_PS, 0, g_SceneColorSamplerTable );
+    g_DrawState.SetPsInputUsage(
+        sceGnmVsShaderExportSemanticTable( g_VertexShader ),
+        g_VertexShader->numexportsemantics,
+        sceGnmPsShaderInputSemanticTable( g_PresentPixelShader ),
+        g_PresentPixelShader->numinputsemantics );
+    sceGnmDrawCmdSetHwScreenOffset( command, 60, 32 );
+    sceGnmDrawCmdSetGuardBands( command, 33.0f, 59.0f, 1.0f, 1.0f );
+    g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil |
+        CPs4GnmDrawState::kDirtyBlend );
+    return Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
+}
+
 void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     const CPs4GnmDevice::IndexedDrawPacket &packet,
     const CPs4GnmDevice::IndexedDrawPacket &sourcePacket,
@@ -1053,7 +1135,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
         destination, 1920, 1080, 1920, &renderTarget ) )
         return;
     sceGnmDrawCmdInitDefaultHardwareState( command );
-    if ( !DrawDiagnosticColorBars( command, renderTarget ) )
+    const GnmRenderTarget &sceneTarget = g_SceneColorReady
+        ? g_SceneColorTexture.ColorTarget() : renderTarget;
+    if ( !DrawDiagnosticColorBars( command, sceneTarget ) )
         return;
     KisakPs4SetShaderShadowCulling( false );
     KisakPs4SetShaderShadowDepth( false, false, 3 );
@@ -1144,7 +1228,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     else
         g_DrawState.ClearDepthRenderTarget();
     g_DrawState.SetDbRenderControl( dbControl );
-    g_DrawState.SetRenderTarget( 0, renderTarget );
+    g_DrawState.SetRenderTarget( 0, sceneTarget );
     g_DrawState.SetVertexShader( g_ReferenceCubeVertexShader->registers, 0 );
     g_DrawState.SetPixelShader( g_ReferenceCubePixelShader->registers );
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_ReferenceCubeFetchShader );
@@ -1212,6 +1296,18 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
             static_cast< unsigned int >( sceGnmGpuMode() ) );
         KisakPs4StartupBreadcrumb( message );
         sourceBlendStateLogged = true;
+    }
+    if ( g_SceneColorReady )
+    {
+        EmitScenePresentation( command, renderTarget, viewport );
+        sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
+        static bool scenePresentationLogged = false;
+        if ( !scenePresentationLogged )
+        {
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: tiled scene presented through opaque resolve" );
+            scenePresentationLogged = true;
+        }
     }
 }
 }

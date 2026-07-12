@@ -2906,3 +2906,12 @@ versus linear layout. v3.25 allocates a dedicated 16 MiB direct-memory pool and
 constructs a 1920x1080 RGBA8 aligned scene color target plus sampler table. It
 does not switch rendering yet; hardware must first validate its calculated byte
 size, color-info word, allocation, and cleanup while preserving the v3.23 image.
+
+### v3.26: Render scene into the target and resolve to VideoOut
+
+v3.26 routes the diagnostic bars, cube, and Source triangle into the validated
+1920x1080 scene target, then emits an opaque fullscreen quad using
+`present_pixel` into the linear VideoOut render target. The resolve disables
+blending, so the scanout surface is only written with final opaque RGB. The
+previous direct path remains available when scene-target allocation fails. The
+build marker is `kisak-ps4: build marker tiled_scene_resolve_v326`.
