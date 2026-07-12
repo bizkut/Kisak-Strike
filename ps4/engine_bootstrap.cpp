@@ -42,6 +42,7 @@ void RunPs4SourceFrame( void *opaque )
     context->rocketUI->RunFrame(
         static_cast< float >( context->frame ) * ( 1.0f / 60.0f ) );
     context->rocketUI->RenderMenuFrame();
+    context->rocketUI->RenderHUDFrame();
     if ( context->frame == 0 )
         KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher first frame complete" );
 }
@@ -131,7 +132,7 @@ public:
     int Run() override
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker scene_double_buffer_v327" );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker rocketui_frame_phases_v328" );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformSdkVersion() );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformKernelSelfTest()
 			? "kisak-ps4: scaleform kernel self-test passed"

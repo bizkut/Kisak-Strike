@@ -2935,3 +2935,13 @@ The v3.27 hardware run preserved the darker-red spinning cube and transparent
 clipped triangle, reached frame 1020 in the captured window, and continued the
 opaque resolve path with EOP synchronization. The two-slice allocation and
 frame-index selection are therefore compatible with the validated presentation.
+
+### v3.28: Run console RocketUI menu and HUD phases in the frame loop
+
+v3.28 invokes both `RenderMenuFrame()` and `RenderHUDFrame()` after each
+RocketUI `RunFrame()` update. The PS4 bootstrap records bounded first-use
+markers for the RunFrame, menu, and HUD phases, keeping console UI scheduling
+inside the same source-frame callback that feeds the tiled scene resolve. The
+current bootstrap UI implementation remains a no-op renderer; Scaleform/Rocket
+GPU draw emission remains the next UI implementation step. The build marker is
+`kisak-ps4: build marker rocketui_frame_phases_v328`.

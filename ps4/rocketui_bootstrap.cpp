@@ -37,7 +37,13 @@ public:
         KisakPs4StartupBreadcrumb( "kisak-ps4: rocketui bootstrap shutdown" );
     }
 
-    void RunFrame( float ) override {}
+    void RunFrame( float ) override
+    {
+        static unsigned int frameCount = 0;
+        ++frameCount;
+        if ( frameCount == 1 )
+            KisakPs4StartupBreadcrumb( "kisak-ps4: rocketui run frame begin" );
+    }
     bool ReloadDocuments() override { return false; }
     bool HandleInputEvent( const InputEvent_t & ) override { return false; }
     void DenyInputToGame( bool value, const char * ) override { m_bConsumesInput = value; }
@@ -49,8 +55,24 @@ public:
         return NULL;
     }
 
-    void RenderHUDFrame() override {}
-    void RenderMenuFrame() override {}
+    void RenderHUDFrame() override
+    {
+        static bool logged = false;
+        if ( !logged )
+        {
+            KisakPs4StartupBreadcrumb( "kisak-ps4: rocketui HUD phase active" );
+            logged = true;
+        }
+    }
+    void RenderMenuFrame() override
+    {
+        static bool logged = false;
+        if ( !logged )
+        {
+            KisakPs4StartupBreadcrumb( "kisak-ps4: rocketui menu phase active" );
+            logged = true;
+        }
+    }
     Rml::Context *AccessHudContext() override { return NULL; }
     Rml::Context *AccessMenuContext() override { return NULL; }
     void RegisterPauseMenu( TogglePauseMenuFn ) override {}
