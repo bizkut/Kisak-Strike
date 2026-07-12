@@ -25,7 +25,8 @@ bool IsComplexFill( const Scaleform::Render::ShapeDataInterface *shape,
 }
 
 bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
-    unsigned layer, uint32_t *vertices, uint32_t *triangles,
+    unsigned layer, const Scaleform::Render::Matrix2F &viewMatrix,
+    uint32_t *vertices, uint32_t *triangles,
     std::vector< CPs4ScaleformHal::CapturedVertex > *capturedVertices,
     std::vector< uint16_t > *capturedIndices,
     std::vector< CPs4ScaleformHal::CapturedBatch > *capturedDraws )
@@ -105,6 +106,7 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             CPs4ScaleformHal::CapturedVertex captured;
             captured.x = meshVertices[vertex].x;
             captured.y = meshVertices[vertex].y;
+            viewMatrix.Transform( &captured.x, &captured.y );
             capturedVertices->push_back( captured );
         }
 
@@ -201,11 +203,14 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
             Scaleform::Render::ShapeMeshProvider *shape = shapeNode->GetShape();
             if ( shape )
             {
+                Scaleform::Render::Matrix2F viewMatrix;
+                shapeNode->CalcViewMatrix( &viewMatrix );
                 const unsigned layerCount = shape->GetLayerCount();
                 stats->shapeLayers += layerCount;
                 for ( unsigned layer = 0; layer < layerCount; ++layer )
                 {
                     if ( stats->collectGeometry && TessellateShapeLayer( shape, layer,
+                            viewMatrix,
                             &stats->tessellatedVertices, &stats->tessellatedTriangles,
                             &m_capturedVertices, &m_capturedIndices, &m_capturedDraws ) )
                         ++stats->tessellatedLayers;
@@ -298,6 +303,26 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
             m_lastTreeStats.hasViewport ? 1u : 0u,
             m_lastTreeStats.truncated ? 1u : 0u );
         KisakPs4StartupBreadcrumb( message );
+
+        if ( !m_capturedVertices.empty() && statsBit == 1u )
+        {
+            float minX = m_capturedVertices[0].x;
+            float minY = m_capturedVertices[0].y;
+            float maxX = minX;
+            float maxY = minY;
+            for ( size_t i = 1; i < m_capturedVertices.size(); ++i )
+            {
+                minX = std::min( minX, m_capturedVertices[i].x );
+                minY = std::min( minY, m_capturedVertices[i].y );
+                maxX = std::max( maxX, m_capturedVertices[i].x );
+                maxY = std::max( maxY, m_capturedVertices[i].y );
+            }
+            char boundsMessage[192];
+            snprintf( boundsMessage, sizeof( boundsMessage ),
+                "kisak-ps4: scaleform transformed bounds min=%.2f,%.2f max=%.2f,%.2f",
+                minX, minY, maxX, maxY );
+            KisakPs4StartupBreadcrumb( boundsMessage );
+        }
     }
 
     if ( ( m_lastTreeStats.shapeNodes || m_lastTreeStats.meshNodes || m_lastTreeStats.textNodes ) &&

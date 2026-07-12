@@ -3320,6 +3320,31 @@ The v3.61 monolithic package is staged at
 `ce4c716a57f1c430e6103fc6540a45756f17b28d22a36470cc3b956e29bd50cd`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.62: Apply accumulated GFx view transforms to retained geometry
+
+The v3.61 hardware run retained all 1,954 triangles as 5,862 indices across
+exactly 150 batches. Its 1,504 retained vertices are Scaleform's deduplicated
+per-mesh representation and are consistent with the full tessellator totals.
+
+Each shape capture now obtains Scaleform's accumulated `CalcViewMatrix()` and
+applies it to every retained tessellator vertex. This includes the nested root,
+element, and movie-clip transforms that local shape coordinates lacked. A
+bounded marker reports the resulting minimum and maximum coordinates so the
+next run can validate the GFx coordinate domain before viewport-to-clip-space
+conversion and GPU submission.
+
+The next gate is finite transformed bounds consistent with the 1280x720 movie
+viewport. Once validated, the adapter will scale those coordinates to the PS4
+viewport, upload solid batches, and issue the first menu geometry through the
+existing OpenGNM solid shader.
+
+Marker: `kisak-ps4: build marker scaleform_view_transform_v362`.
+
+The v3.62 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`598f8dcc088f5c350de20e1394e890cb01eb31dda1cf605b15a64f267da2dcc0`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
