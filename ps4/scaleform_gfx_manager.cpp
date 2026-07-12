@@ -329,9 +329,9 @@ public:
         // is an element requested from MainUIRootMovie; GameUIRootMovie is
         // the client/HUD root and receives its level HUD elements later.
         m_slots[kScaleformMenuSlot] = {
-            "resource/flash/mainuirootmovie.swf", "MainMenu", NULL, NULL, false, false };
+            "resource/flash/mainuirootmovie.gfx", "MainMenu", NULL, NULL, false, false };
         m_slots[kScaleformHudSlot] = {
-            "resource/flash/gameuirootmovie.swf", NULL, NULL, NULL, false, false };
+            "resource/flash/gameuirootmovie.gfx", NULL, NULL, NULL, false, false };
     }
 
     ~CPs4ScaleformMovieManager()
@@ -550,13 +550,17 @@ private:
     bool LoadSlot( int slot )
     {
         ScaleformMovieSlot &movieSlot = m_slots[slot];
+        const char *swfRoot = slot == kScaleformMenuSlot
+            ? "resource/flash/mainuirootmovie.swf"
+            : "resource/flash/gameuirootmovie.swf";
         const char *gfxRoot = slot == kScaleformMenuSlot
             ? "resource/flash/mainuirootmovie.gfx"
             : "resource/flash/gameuirootmovie.gfx";
-        LogMovieInfoProbe( slot, "swf", movieSlot.name );
+        LogMovieInfoProbe( slot, "swf", swfRoot );
         LogMovieInfoProbe( slot, "gfx", gfxRoot );
         movieSlot.definition = *m_loader->CreateMovie( movieSlot.name,
-            Scaleform::GFx::Loader::LoadAll );
+            Scaleform::GFx::Loader::LoadAll |
+            Scaleform::GFx::Loader::LoadWaitCompletion );
         if ( !movieSlot.definition.GetPtr() )
             return false;
 

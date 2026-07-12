@@ -3075,6 +3075,29 @@ The v3.32 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.39: Load the validated stripped GFX roots synchronously
+
+The v3.38 hardware probe separated the two asset formats. Both compressed SWF
+roots returned `ok=1` but retained the compressed flag, zero frames, and zero
+dimensions. Both stripped GFX roots returned the stripped flag, one frame, and
+the expected 1280x720 dimensions. The live menu/HUD slots therefore switch to
+`mainuirootmovie.gfx` and `gameuirootmovie.gfx`, and `LoadWaitCompletion` is
+applied only to these validated stripped roots. The side-by-side probe remains
+bounded so the log continues to expose the compressed-SWF limitation.
+
+The next hardware gate is non-zero GFX metadata plus available `InitSlot` and
+`RequestElement` hooks. Child movies requested by those hooks may still expose
+the compressed-SWF decompression defect; that is deliberately isolated as the
+following gate. The solid dark-red spinning cube and clipped transparent
+triangle remain the fallback regression image. Marker:
+`kisak-ps4: build marker scaleform_gfx_roots_v339`.
+
+The v3.39 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`8be669ca28df6bf5743c58fff4a28c9e48ad77f47c6839ce2069127448c82751`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.37: Wait for root movie payloads before invoking ActionScript
 
 The v3.36 hardware log identified a loader-state issue rather than an invalid
