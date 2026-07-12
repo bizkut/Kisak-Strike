@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.99
-SHA-256: 7575439de676ddacef4713aa045da95c6524c13ee8b76dd53eb740b1a8c68591
+Version: 3.00
+SHA-256: d5063e85aa4c28e1c661a912be3098da4e8ef926a5dbfaa99b31afaac20237a9
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -1501,6 +1501,18 @@ remaining clipped only on the right. Marker:
 The v2.99 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `7575439de676ddacef4713aa045da95c6524c13ee8b76dd53eb740b1a8c68591`.
+
+The v2.99 screenshot restored the pointed top and isolated the right-side
+scissor, but the interpolated yellow/cyan/magenta colors still made the blend
+result difficult to distinguish from the triangle's own gradient. Version
+3.00 uses uniform red at alpha 0.50 for all three Source vertices. Correct
+SRC_ALPHA blending must therefore produce purple over the blue band and pink
+over the white band, with no vertex-color gradient to confuse the result. The
+right-side scissor remains. Marker:
+`kisak-ps4: build marker source_blend_red_v300`.
+The v3.00 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`d5063e85aa4c28e1c661a912be3098da4e8ef926a5dbfaa99b31afaac20237a9`.
 
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
