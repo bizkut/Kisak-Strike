@@ -3,6 +3,7 @@
 
 #include <gnm_commandbuffer.h>
 #include <stdint.h>
+#include "materialsystem/imesh.h"
 
 extern "C" uint32_t KisakPs4ApplyShaderShadowState( GnmCommandBuffer *command );
 extern "C" void KisakPs4SetShaderShadowCulling( bool enabled );
@@ -16,5 +17,11 @@ extern "C" bool KisakPs4SourceBufferProbe();
 extern "C" bool KisakPs4DynamicSourceBufferProbe();
 extern "C" bool KisakPs4ShaderDeviceDynamicBufferProbe();
 extern "C" bool KisakPs4ShaderApiVertexFormatProbe();
+extern "C" bool KisakPs4LockDynamicVertices( VertexFormat_t format, int count,
+    bool append, VertexDesc_t *desc );
+extern "C" void KisakPs4UnlockDynamicVertices( int count, VertexDesc_t *desc );
+extern "C" bool KisakPs4LockDynamicIndices( int count, bool append, IndexDesc_t *desc );
+extern "C" void KisakPs4UnlockDynamicIndices( int count, IndexDesc_t *desc );
+extern "C" bool KisakPs4DynamicMeshBridgeProbe();
 
 #endif

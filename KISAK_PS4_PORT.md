@@ -1350,6 +1350,21 @@ actual stride; success logs `ShaderAPI vertex format bridge passed`. Marker:
 The v2.87 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `4e6615f98c325c81d221c4170f280b814c4fd3430367443c5d18af66846b857b`.
+
+The v2.87 hardware run retained the navy-framed spinning cube and stable
+60 FPS. Version 2.88 bridges dynamic `CEmptyMesh` locks to the native PS4
+shader-device vertex and index buffers. Matching unlock calls now release the
+active frame allocation instead of remaining empty, while initialization and
+other periods without an active GPU frame retain the original dummy-memory
+fallback. The bridge rejects nested locks and uses the same Source vertex
+description produced by the v2.87 layout work. A live-frame probe validates a
+three-position vertex lock and a three-index 16-bit lock, logging
+`ShaderAPI dynamic mesh bridge passed`. Marker:
+`kisak-ps4: build marker shaderapi_dynamic_mesh_v288`.
+The v2.88 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`86b25efc4eeb7242e52568d5f19e89f5dce4ec6e7c46362b85f8f199e3188905`.
+
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

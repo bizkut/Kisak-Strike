@@ -21,6 +21,8 @@ namespace
 {
 CreateInterfaceFn g_EmptyFactory = 0;
 void *Ps4CreateInterface( const char *interfaceName, int *returnCode );
+IVertexBuffer *g_LockedDynamicVertexBuffer = 0;
+IIndexBuffer *g_LockedDynamicIndexBuffer = 0;
 
 class CShaderDeviceMgrPs4 : public IShaderDeviceMgr
 {
@@ -671,4 +673,59 @@ extern "C" bool KisakPs4ShaderApiVertexFormatProbe()
     shaderApi->ComputeVertexDescription( storage, VERTEX_POSITION, desc );
     return desc.m_pPosition == reinterpret_cast< float * >( storage ) &&
         desc.m_ActualVertexSize == 12;
+}
+
+extern "C" bool KisakPs4LockDynamicVertices( VertexFormat_t format, int count,
+    bool append, VertexDesc_t *desc )
+{
+    if ( !desc || count < 0 || g_LockedDynamicVertexBuffer )
+        return false;
+    IVertexBuffer *buffer = g_DevicePs4.GetDynamicVertexBuffer( 0, format, true );
+    if ( !buffer || !buffer->Lock( count, append, *desc ) )
+        return false;
+    g_LockedDynamicVertexBuffer = buffer;
+    return true;
+}
+
+extern "C" void KisakPs4UnlockDynamicVertices( int count, VertexDesc_t *desc )
+{
+    if ( !g_LockedDynamicVertexBuffer || !desc )
+        return;
+    g_LockedDynamicVertexBuffer->Unlock( count, *desc );
+    g_LockedDynamicVertexBuffer = 0;
+}
+
+extern "C" bool KisakPs4LockDynamicIndices( int count, bool append, IndexDesc_t *desc )
+{
+    if ( !desc || count < 0 || g_LockedDynamicIndexBuffer )
+        return false;
+    IIndexBuffer *buffer = g_DevicePs4.GetDynamicIndexBuffer();
+    if ( !buffer || !buffer->Lock( count, append, *desc ) )
+        return false;
+    g_LockedDynamicIndexBuffer = buffer;
+    return true;
+}
+
+extern "C" void KisakPs4UnlockDynamicIndices( int count, IndexDesc_t *desc )
+{
+    if ( !g_LockedDynamicIndexBuffer || !desc )
+        return;
+    g_LockedDynamicIndexBuffer->Unlock( count, *desc );
+    g_LockedDynamicIndexBuffer = 0;
+}
+
+extern "C" bool KisakPs4DynamicMeshBridgeProbe()
+{
+    VertexDesc_t vertices = {};
+    IndexDesc_t indices = {};
+    if ( !KisakPs4LockDynamicVertices( VERTEX_POSITION, 3, false, &vertices ) )
+        return false;
+    const bool verticesValid = vertices.m_pPosition &&
+        vertices.m_ActualVertexSize == 12;
+    KisakPs4UnlockDynamicVertices( 3, &vertices );
+    if ( !verticesValid || !KisakPs4LockDynamicIndices( 3, false, &indices ) )
+        return false;
+    const bool indicesValid = indices.m_pIndices && indices.m_nIndexSize == 1;
+    KisakPs4UnlockDynamicIndices( 3, &indices );
+    return indicesValid;
 }

@@ -1149,6 +1149,18 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             "kisak-ps4: shader device dynamic buffers passed" );
         dynamicBufferProbePassed = true;
     }
+    static bool dynamicMeshBridgeProbePassed = false;
+    if ( !dynamicMeshBridgeProbePassed )
+    {
+        if ( !KisakPs4DynamicMeshBridgeProbe() )
+        {
+            g_Device.CancelFrame();
+            return false;
+        }
+        KisakPs4StartupBreadcrumb(
+            "kisak-ps4: ShaderAPI dynamic mesh bridge passed" );
+        dynamicMeshBridgeProbePassed = true;
+    }
 
     const uint32_t bandSize = size / 4;
     const uint32_t colors[4] = {

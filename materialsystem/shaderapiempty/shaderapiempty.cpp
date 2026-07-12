@@ -21,6 +21,11 @@
 extern "C" int KisakPs4SourceVertexFormatSize( VertexFormat_t format );
 extern "C" void KisakPs4ComputeSourceVertexDescription(
     unsigned char *buffer, VertexFormat_t format, VertexDesc_t *desc );
+extern "C" bool KisakPs4LockDynamicVertices( VertexFormat_t format, int count,
+    bool append, VertexDesc_t *desc );
+extern "C" void KisakPs4UnlockDynamicVertices( int count, VertexDesc_t *desc );
+extern "C" bool KisakPs4LockDynamicIndices( int count, bool append, IndexDesc_t *desc );
+extern "C" void KisakPs4UnlockDynamicIndices( int count, IndexDesc_t *desc );
 #endif
 
 // NOTE: This has to be the last file included!
@@ -1577,6 +1582,11 @@ CEmptyMesh::~CEmptyMesh()
 
 bool CEmptyMesh::Lock( int nMaxIndexCount, bool bAppend, IndexDesc_t& desc )
 {
+#if defined( PLATFORM_PS4 )
+	if ( m_bIsDynamic && KisakPs4LockDynamicIndices(
+		nMaxIndexCount, bAppend, &desc ) )
+		return true;
+#endif
 	static int s_BogusIndex;
 	desc.m_pIndices = (unsigned short*)&s_BogusIndex;
 	desc.m_nIndexSize = 0;
@@ -1587,6 +1597,10 @@ bool CEmptyMesh::Lock( int nMaxIndexCount, bool bAppend, IndexDesc_t& desc )
 
 void CEmptyMesh::Unlock( int nWrittenIndexCount, IndexDesc_t& desc )
 {
+#if defined( PLATFORM_PS4 )
+	if ( m_bIsDynamic && desc.m_nIndexSize != 0 )
+		KisakPs4UnlockDynamicIndices( nWrittenIndexCount, &desc );
+#endif
 }
 
 void CEmptyMesh::ModifyBegin( bool bReadOnly, int nFirstIndex, int nIndexCount, IndexDesc_t& desc )
@@ -1608,6 +1622,11 @@ void CEmptyMesh::ValidateData( int nIndexCount, const IndexDesc_t &desc )
 
 bool CEmptyMesh::Lock( int nVertexCount, bool bAppend, VertexDesc_t &desc )
 {
+#if defined( PLATFORM_PS4 )
+	if ( m_bIsDynamic && KisakPs4LockDynamicVertices(
+		GetVertexFormat(), nVertexCount, bAppend, &desc ) )
+		return true;
+#endif
 	// Who cares about the data?
 	desc.m_pPosition = (float*)m_pVertexMemory;
 	desc.m_pNormal = (float*)m_pVertexMemory;
@@ -1651,6 +1670,10 @@ bool CEmptyMesh::Lock( int nVertexCount, bool bAppend, VertexDesc_t &desc )
 
 void CEmptyMesh::Unlock( int nVertexCount, VertexDesc_t &desc )
 {
+#if defined( PLATFORM_PS4 )
+	if ( m_bIsDynamic && desc.m_ActualVertexSize != 0 )
+		KisakPs4UnlockDynamicVertices( nVertexCount, &desc );
+#endif
 }
 
 void CEmptyMesh::Spew( int nVertexCount, const VertexDesc_t &desc ) 
@@ -1669,6 +1692,8 @@ void CEmptyMesh::LockMesh( int numVerts, int numIndices, MeshDesc_t& desc, MeshB
 
 void CEmptyMesh::UnlockMesh( int numVerts, int numIndices, MeshDesc_t& desc )
 {
+	Unlock( numVerts, *static_cast<VertexDesc_t*>( &desc ) );
+	Unlock( numIndices, *static_cast<IndexDesc_t*>( &desc ) );
 }
 
 void CEmptyMesh::ModifyBeginEx( bool bReadOnly, int firstVertex, int numVerts, int firstIndex, int numIndices, MeshDesc_t& desc )
@@ -1684,6 +1709,7 @@ void CEmptyMesh::ModifyBegin( int firstVertex, int numVerts, int firstIndex, int
 
 void CEmptyMesh::ModifyEnd( MeshDesc_t& desc )
 {
+	UnlockMesh( 0, 0, desc );
 }
 
 // returns the # of vertices (static meshes only)
