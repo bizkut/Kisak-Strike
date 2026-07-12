@@ -1677,6 +1677,20 @@ packets or its context roll was restoring the disabled blend state. Continued
 red proves the final blend register write itself is ineffective and the next
 probe can use a firmware/reference command or alternate target format. The
 build marker is `kisak-ps4: build marker final_blend_write_v314`.
+
+### v3.15: Make blend-last ordering part of DrawState
+
+v3.14 visually validated alpha blending when `CB_BLEND0_CONTROL` was re-emitted
+immediately before the indexed draw. This isolates the failure to a later
+Source state packet/context roll restoring disabled color-buffer state. v3.15
+moves blend emission to the end of `CPs4GnmDrawState::Apply`, after depth-target,
+shader-I/O, descriptor, primitive, and vertex-buffer packets, then restores the
+normal `Ps4EmitIndexedDraw` path. This converts the successful diagnostic
+workaround into the renderer-wide ordering rule used by every Source draw. The
+CPU-side framebuffer samples can remain stale without a post-EOP CPU cache
+invalidation, so visual hardware output remains the acceptance signal for this
+gate. The build marker is
+`kisak-ps4: build marker drawstate_blend_last_v315`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.

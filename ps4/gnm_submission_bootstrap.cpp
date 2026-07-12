@@ -1101,15 +1101,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     sourceBlend.alphadstmult = GNM_BLEND_ZERO;
     g_DrawState.SetBlendControl( 0, sourceBlend );
     g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil );
-    g_DrawState.SetIndexSize( sourcePacket.indexSize, GNM_POLICY_LRU );
-    g_DrawState.SetPrimitiveType( sourcePacket.primitiveType );
-    const uint32_t sourceDirtyMask = g_DrawState.Apply( command );
-    // Re-emit blend control after every other Source draw packet. This tests
-    // whether a later depth/descriptor/semantic/context-roll packet was
-    // restoring the disabled blend state before DRAW_INDEX_2 executed.
-    sceGnmDrawCmdSetBlendControl( command, 0, &sourceBlend );
-    sceGnmDrawCmdDrawIndex( command, sourcePacket.indexCount,
-        sourcePacket.indexAddress );
+    uint32_t sourceDirtyMask = 0;
+    Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX,
+        &sourceDirtyMask );
     static bool sourceBlendStateLogged = false;
     if ( !sourceBlendStateLogged )
     {
