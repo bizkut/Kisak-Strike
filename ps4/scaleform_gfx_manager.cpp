@@ -729,15 +729,17 @@ private:
         if ( slot == kScaleformMenuSlot )
             movieSlot.movie->HandleEvent( Scaleform::GFx::Event::SetFocus );
 
-        movieSlot.movie->Advance( 0.0f );
+        movieSlot.movie->Advance( 1.0f / 60.0f );
 
-        char scriptMarker[192];
+        char scriptMarker[224];
         snprintf( scriptMarker, sizeof( scriptMarker ),
-            "kisak-ps4: scaleform %s script avm=%d current=%u init=%u request=%u",
+            "kisak-ps4: scaleform %s script avm=%d current=%u init=%u request=%u globalInit=%u globalRequest=%u",
             ScaleformSlotLabel( slot ), movieSlot.movie->GetAVMVersion(),
             movieSlot.movie->GetCurrentFrame(),
             movieSlot.movie->IsAvailable( "InitSlot" ) ? 1u : 0u,
-            movieSlot.movie->IsAvailable( "RequestElement" ) ? 1u : 0u );
+            movieSlot.movie->IsAvailable( "RequestElement" ) ? 1u : 0u,
+            movieSlot.movie->IsAvailable( "_global.InitSlot" ) ? 1u : 0u,
+            movieSlot.movie->IsAvailable( "_global.RequestElement" ) ? 1u : 0u );
         KisakPs4StartupBreadcrumb( scriptMarker );
 
         // BaseSlot::Init invokes these methods on _global, not on Movie.

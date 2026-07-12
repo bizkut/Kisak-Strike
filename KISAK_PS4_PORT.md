@@ -3075,6 +3075,27 @@ The v3.32 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.46: Execute the first root timeline tick before querying hooks
+
+The v3.45 hardware run shows that `LoadWaitFrame1` succeeds without using the
+fallback, but the root globals remain absent and no AS2 error is emitted.
+`CreateInstance(true)` guarantees frame-one display objects, not necessarily
+execution of queued frame actions, and a zero-time advance can leave those
+actions pending. Each root now advances by one 60 Hz tick after the console
+globals and GameInterface are installed, then queries both the legacy short
+paths and fully qualified `_global.InitSlot`/`_global.RequestElement` paths.
+
+The movie remains a single frame, so this does not skip timeline content. The
+next gate is a qualified global hook becoming available or a new AS2 loader
+error that isolates the first failed action. Marker:
+`kisak-ps4: build marker scaleform_first_tick_v346`.
+
+The v3.46 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`233572e8560e24c9cb0652fb665871d7f74578dbc7fde92b499e5e34c116be88`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.45: Wait only for root frame one with a stable fallback
 
 The v3.44 hardware run is the first clean root-movie parse: the file opener
