@@ -739,7 +739,15 @@ extern "C" bool KisakPs4DynamicMeshBridgeProbe()
     const bool indicesValid = indices.m_pIndices && indices.m_nIndexSize == 1;
     KisakPs4UnlockDynamicIndices( 3, &indices );
     CPs4GnmDevice *device = KisakPs4GnmRuntime().Device();
-    return indicesValid && device && device->Stream( 0 ).resource &&
-        device->Stream( 0 ).stride == 12 && device->Indices().buffer &&
-        !device->Indices().index32;
+    if ( !indicesValid || !device || !device->Stream( 0 ).resource ||
+        device->Stream( 0 ).stride != 12 || !device->Indices().buffer ||
+        device->Indices().index32 || !device->BeginScene() )
+        return false;
+    device->SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
+    CPs4GnmDevice::IndexedDrawPacket packet = {};
+    const bool packetValid = device->BuildIndexedDrawPacket(
+        GNM_FMT_R32G32B32_FLOAT, 0, 3, 0, 3, &packet ) &&
+        packet.indexCount == 3 && packet.indexSize == GNM_INDEX_16 &&
+        packet.primitiveType == GNM_PT_TRILIST;
+    return device->EndScene() && packetValid;
 }

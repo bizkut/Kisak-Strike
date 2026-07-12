@@ -1389,6 +1389,17 @@ The v2.90 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `63b65af349fb04563e8e0f65918a665551b319a2e241bfde446d30bd51c40a99`.
 
+The v2.90 hardware run retained the expected spinning cube and 60 FPS, with
+the dynamic mesh bridge and indexed diagnostic draw both passing. Version
+2.91 advances the live Source mesh probe through `BeginScene`, triangle-list
+topology selection, and `BuildIndexedDrawPacket`. It validates the resulting
+three-index, 16-bit OpenGNM draw packet before ending the scene, covering the
+last device-side boundary before emitting Source-owned mesh commands. Marker:
+`kisak-ps4: build marker source_draw_packet_v291`.
+The v2.91 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`995e5dfe1662371250995db3a4f6e9d6b31f28d6a914086659d7138a5dbdad9f`.
+
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 
