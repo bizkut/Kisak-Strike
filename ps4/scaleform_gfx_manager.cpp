@@ -543,6 +543,17 @@ private:
         if ( !movieSlot.movie.GetPtr() )
             return false;
 
+        const char *movieUrl = movieSlot.definition->GetFileURL();
+        char metadataMarker[256];
+        snprintf( metadataMarker, sizeof( metadataMarker ),
+            "kisak-ps4: scaleform %s metadata url=%s version=%u frames=%u size=%ux%u avm=%d current=%u",
+            ScaleformSlotLabel( slot ), movieUrl ? movieUrl : "",
+            movieSlot.definition->GetVersion(), movieSlot.definition->GetFrameCount(),
+            static_cast< unsigned int >( movieSlot.definition->GetWidth() ),
+            static_cast< unsigned int >( movieSlot.definition->GetHeight() ),
+            movieSlot.movie->GetAVMVersion(), movieSlot.movie->GetCurrentFrame() );
+        KisakPs4StartupBreadcrumb( metadataMarker );
+
         movieSlot.movie->SetViewAlignment( Scaleform::GFx::Movie::Align_TopLeft );
         movieSlot.movie->SetViewScaleMode( Scaleform::GFx::Movie::SM_ExactFit );
         movieSlot.movie->SetBackgroundAlpha( 0.0f );
@@ -574,6 +585,15 @@ private:
             movieSlot.movie->HandleEvent( Scaleform::GFx::Event::SetFocus );
 
         movieSlot.movie->Advance( 0.0f );
+
+        char scriptMarker[192];
+        snprintf( scriptMarker, sizeof( scriptMarker ),
+            "kisak-ps4: scaleform %s script avm=%d current=%u init=%u request=%u",
+            ScaleformSlotLabel( slot ), movieSlot.movie->GetAVMVersion(),
+            movieSlot.movie->GetCurrentFrame(),
+            movieSlot.movie->IsAvailable( "InitSlot" ) ? 1u : 0u,
+            movieSlot.movie->IsAvailable( "RequestElement" ) ? 1u : 0u );
+        KisakPs4StartupBreadcrumb( scriptMarker );
 
         // BaseSlot::Init invokes these methods on _global, not on Movie.
         // Calling Movie::Invoke skips the ActionScript global object and made

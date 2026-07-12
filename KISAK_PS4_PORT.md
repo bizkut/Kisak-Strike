@@ -3137,3 +3137,25 @@ The v3.35 package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes. The next
 hardware run must show `scaleform element load finished` followed by a
 `scaleform drawable tree` breadcrumb, or an explicit element-load error.
+
+### v3.36: Record GFx movie metadata before changing the stable scene
+
+The next Scaleform gate adds one bounded breadcrumb per menu/HUD root with its
+resolved URL, SWF version, frame count, dimensions, AVM version, and current
+frame. A second breadcrumb records whether `InitSlot` and `RequestElement` are
+available through the movie's ActionScript namespace immediately after the
+initial zero-time advance. This separates a wrong/unsupported asset or AVM
+format from a global-object lookup problem without enabling primitive emission
+or perturbing the validated solid dark-red spinning cube and clipped
+transparent triangle. The marker is
+`kisak-ps4: build marker scaleform_movie_metadata_v336`.
+
+The next hardware run must include the two metadata/script lines for each root;
+they determine whether to keep the SWF roots, fall back to the console GFX
+files, or repair AS2 execution before the asynchronous element callback gate.
+
+The v3.36 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`1a93a1e279fc82e9d7b0d60a9f50fa18aebc922c862330c1c6b1ba94635d41ec`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
