@@ -3418,6 +3418,30 @@ The v3.65 monolithic package is staged at
 `5717ce5c3ff8af424d99045c846373e10148dace56f6eb795225cf45c1e0fe5f`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.66: Locate the degenerate ActionScript container transform
+
+The v3.65 run confirmed every viewport-matrix input is valid: 1920x1080,
+scale/aspect 1.0, `SM_NoScale`, and a visible frame of 0,0..1920,1080. The
+zero X axis is therefore introduced below the root by a shared display-tree
+container, most likely a ResizeManager matrix assignment.
+
+The first captured shape now emits a bounded chain of local `M2D()` matrices
+from the shape through at most twelve parents, including node types. Comparing
+these local matrices with the already logged combined transform identifies the
+first degenerate container without changing ActionScript execution or the
+render path.
+
+The next gate is the exact ancestor depth with zero X determinant. The fix will
+be applied at that node's AS2 matrix construction/property boundary rather than
+masking the invalid transform in OpenGNM geometry.
+
+Marker: `kisak-ps4: build marker scaleform_ancestor_chain_v366`.
+
+The v3.66 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`05c63830696612f71cbfbd9ef76a9a44ae62ddbf348bdd3b916e995b6254c8bb`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

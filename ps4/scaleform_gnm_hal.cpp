@@ -226,6 +226,28 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
             Scaleform::Render::ShapeMeshProvider *shape = shapeNode->GetShape();
             if ( shape )
             {
+                static bool loggedAncestorChain = false;
+                if ( !loggedAncestorChain )
+                {
+                    const Scaleform::Render::TreeNode *ancestor = shapeNode;
+                    unsigned depth = 0;
+                    while ( ancestor && depth < 12 )
+                    {
+                        const Scaleform::Render::Matrix2F &matrix = ancestor->M2D();
+                        char chainMessage[256];
+                        snprintf( chainMessage, sizeof( chainMessage ),
+                            "kisak-ps4: scaleform ancestor depth=%u type=%u m=[%.5f %.5f %.2f; %.5f %.5f %.2f]",
+                            depth,
+                            static_cast< unsigned int >(
+                                ancestor->GetReadOnlyData()->GetType() ),
+                            matrix.M[0][0], matrix.M[0][1], matrix.M[0][3],
+                            matrix.M[1][0], matrix.M[1][1], matrix.M[1][3] );
+                        KisakPs4StartupBreadcrumb( chainMessage );
+                        ancestor = ancestor->GetParent();
+                        ++depth;
+                    }
+                    loggedAncestorChain = true;
+                }
                 Scaleform::Render::Matrix2F viewMatrix;
                 shapeNode->CalcViewMatrix( &viewMatrix );
                 const float determinant = viewMatrix.M[0][0] * viewMatrix.M[1][1] -
