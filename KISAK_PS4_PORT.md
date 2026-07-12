@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.01
-SHA-256: b7a68d893b77ee0c79f5f577a783a36d56a7120fc25f8e5b1321b43b07232288
+Version: 3.02
+SHA-256: c6cc1ad31957ea20c0ef3be4f2fbbd7925a00eaacba22007b48d6a6612e9758e
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -1526,6 +1526,17 @@ PM4/render-target state. Marker:
 The v3.01 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `b7a68d893b77ee0c79f5f577a783a36d56a7120fc25f8e5b1321b43b07232288`.
+
+The v3.01 constant-alpha hardware test remained solid red. This rules out
+shader alpha export and confirms that the color blend result is bypassed later
+in the target pipeline. The display target's `BLEND_BYPASS` bit is clear.
+Version 3.02 updates OpenGNM's generic `SetBlendControl` PM4 encoding to set
+`DISABLE_ROP3` whenever blending is enabled, preventing the configured COPY
+ROP from replacing the blended value. Constant 0.50 remains the test factor.
+Marker: `kisak-ps4: build marker blend_disable_rop3_v302`.
+The v3.02 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`c6cc1ad31957ea20c0ef3be4f2fbbd7925a00eaacba22007b48d6a6612e9758e`.
 
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
