@@ -3130,6 +3130,41 @@ The PS4 link/package build completes and all 11 host tests pass. Hardware
 validation should retain the v3.53 fallback while adding `PS4 AS2 trace:`
 lines before the root-global probes.
 
+### v3.55: Recover packaged-file sizes from the opened PS4 stream
+
+The v3.54 hardware trace crossed AS2 support capture, `DoAction` dispatch,
+playlist insertion, and interpreter entry. It also exposed the real parser
+boundary: the menu and HUD streams reported EOF at byte 6,389 and 6,554,
+exactly where their first `DoAction` blocks end, even though their GFX headers
+declare 36,676 and 36,841 bytes. Fontlib was similarly truncated to 60,812
+bytes while declaring 7,496,222 bytes. GFx therefore received zero-filled tag
+headers at the first `DefineSprite`; it never loaded the exported classes,
+`DoInitAction` blocks, root `ShowFrame`, or final `End`.
+
+The truncation originated in Kisak's stdio filesystem. `CStdioFile::FS_fopen`
+opened `/app0` successfully, but when path-based `_stat()` failed it left the
+output length uninitialized. `CFileHandle::Size()` then propagated that bogus
+value into `ReadFile`, and the Scaleform memory file used it as a hard EOF.
+The PS4 path now initializes the length deterministically and, when `_stat()`
+fails, obtains the length by seeking the already-open stream to its end and
+restoring the original position. This keeps non-PS4 behavior unchanged and
+works for packaged paths that are readable through stdio but not stat-able by
+name. Bounded file-opener diagnostics record actual versus header-declared
+movie sizes for the next run.
+
+The next gate is equal `scaleform file bytes=` and `declared=` values, no
+premature stream-end warning, then non-zero root globals and the first
+`MainMenu` element request. The stable diagnostic scene remains the fallback.
+
+Marker: `kisak-ps4: build marker scaleform_app0_size_fallback_v355`.
+
+The v3.55 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`71d9967f057247466d150e1aaf9abe9df1103be85424060cfc6e1b887588ad36`.
+The PS4 link/package build completes and all 11 host tests pass. Hardware
+validation should first confirm full movie sizes before evaluating the root
+globals or Scaleform render tree.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

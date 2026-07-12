@@ -1168,6 +1168,10 @@ CStdioFile *CStdioFile::FS_fopen( const char *filename, const char *options, int
 	pFile = fopen(filename, options);
 	if (pFile && size)
 	{
+		// Never expose an indeterminate length when the path-based stat fails.
+		// OpenOrbis can open packaged /app0 files even when _stat() rejects the
+		// same path, so recover the size from the already-open stream on PS4.
+		*size = 0;
 		// todo: replace with filelength()? 
 		struct _stat buf;
 		int rt = _stat( filename, &buf );
@@ -1175,6 +1179,19 @@ CStdioFile *CStdioFile::FS_fopen( const char *filename, const char *options, int
 		{
 			*size = buf.st_size;
 		}
+#if defined( PLATFORM_PS4 )
+		else
+		{
+			const long originalPosition = ftell( pFile );
+			if ( originalPosition >= 0 && fseek( pFile, 0, SEEK_END ) == 0 )
+			{
+				const long endPosition = ftell( pFile );
+				if ( endPosition >= 0 )
+					*size = static_cast< int64 >( endPosition );
+				fseek( pFile, originalPosition, SEEK_SET );
+			}
+		}
+#endif
 	}
 
 #if defined( LINUX )

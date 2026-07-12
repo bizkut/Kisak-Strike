@@ -67,6 +67,26 @@ public:
                 const Scaleform::UByte *source =
                     static_cast< const Scaleform::UByte * >( sourceData.Base() );
                 if ( size >= 8 && source != NULL &&
+                     ( source[0] == 'F' || source[0] == 'C' || source[0] == 'G' ) &&
+                     ( source[1] == 'W' || source[1] == 'F' ) &&
+                     ( source[2] == 'S' || source[2] == 'X' ) )
+                {
+                    static unsigned int loggedMovieSizes = 0;
+                    if ( loggedMovieSizes++ < 8 )
+                    {
+                        const uint32_t declaredSize =
+                            static_cast< uint32_t >( source[4] ) |
+                            ( static_cast< uint32_t >( source[5] ) << 8 ) |
+                            ( static_cast< uint32_t >( source[6] ) << 16 ) |
+                            ( static_cast< uint32_t >( source[7] ) << 24 );
+                        char sizeMarker[256];
+                        snprintf( sizeMarker, sizeof( sizeMarker ),
+                            "kisak-ps4: scaleform file bytes=%d declared=%u url=%s",
+                            size, declaredSize, url ? url : "" );
+                        KisakPs4StartupBreadcrumb( sizeMarker );
+                    }
+                }
+                if ( size >= 8 && source != NULL &&
                      source[0] == 'C' && source[1] == 'W' && source[2] == 'S' )
                 {
                     const uint32_t declaredSize =
