@@ -259,6 +259,11 @@ uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
         sceGnmDrawCmdSetVsShader( command, &m_vertexShader, m_vertexShaderModifier );
     if ( emitted & kDirtyPixelShader )
         sceGnmDrawCmdSetPsShader( command, &m_pixelShader );
+    // Establish the blend equation before the remaining draw state. Liverpool
+    // also needs it reasserted after those packets below because they can roll
+    // color-buffer context.
+    if ( emitted & kDirtyBlend )
+        sceGnmDrawCmdSetBlendControl( command, m_blendIndex, &m_blendControl );
     if ( emitted & kDirtyIndexSize )
         sceGnmDrawCmdSetIndexSize( command, m_indexSize, m_indexCachePolicy );
     if ( emitted & kDirtyDepthTarget )
@@ -282,7 +287,7 @@ uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
         sceGnmDrawCmdSetVsharpUserData( command, m_vertexBufferStage,
             m_vertexBufferSlot, &m_vertexBuffer );
     // Liverpool can restore color-buffer state during later context rolls.
-    // Keep blend control after depth targets, shader I/O, descriptors, and
+    // Reassert blend control after depth targets, shader I/O, descriptors, and
     // primitive state so the requested equation is active at the draw packet.
     if ( emitted & kDirtyBlend )
         sceGnmDrawCmdSetBlendControl( command, m_blendIndex, &m_blendControl );

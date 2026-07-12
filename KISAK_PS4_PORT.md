@@ -1691,6 +1691,18 @@ CPU-side framebuffer samples can remain stale without a post-EOP CPU cache
 invalidation, so visual hardware output remains the acceptance signal for this
 gate. The build marker is
 `kisak-ps4: build marker drawstate_blend_last_v315`.
+
+### v3.16: Establish and reassert blend state around context rolls
+
+v3.15 regressed to opaque red. Its PM4 trace contained three blend writes per
+frame, while the visually successful v3.14 contained four: the Source draw had
+both its normal cached blend write and a final identical reassertion. Moving the
+single write to the end was therefore not equivalent. v3.16 makes the proven
+two-phase sequence renderer-wide: `CPs4GnmDrawState::Apply` establishes blend
+control after pixel-shader state, emits the remaining depth/I/O/descriptor/
+primitive state, then reasserts blend control at the end. The normal indexed
+draw path remains in use. The expected trace returns to four writes and the
+build marker is `kisak-ps4: build marker drawstate_blend_reassert_v316`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.
