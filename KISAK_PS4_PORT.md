@@ -3075,6 +3075,24 @@ The v3.32 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.53: Roll back unsafe nested-end continuation
+
+The v3.52 hardware log stopped after the Scaleform kernel self-test, before the
+fontlib probe, VideoOut initialization, or the first engine frame. Continuing
+past zero tags at the top-level loader therefore hangs the earliest GFX parse;
+those tags cannot safely be reinterpreted without repairing the corresponding
+sprite-loader stream position. The SDK parser is restored to its original
+bounded safety break. The console GFX root selection and all non-parser
+diagnostics remain enabled, restoring the v3.51 stable fallback baseline.
+
+Marker: `kisak-ps4: build marker scaleform_nested_end_rollback_v353`.
+
+The v3.53 recovery package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`db76e7e60168d8359ded4a2419a29e8d0be668541a8d0d89503ef8fbcf7d9e2b`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware should
+return to the v3.51 60 FPS diagnostic scene.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
