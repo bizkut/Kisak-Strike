@@ -1041,8 +1041,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     GnmBlendControl sourceBlend = {};
     sourceBlend.blendenabled = true;
     sourceBlend.colorfunc = GNM_COMB_DST_PLUS_SRC;
-    sourceBlend.colorsrcmult = GNM_BLEND_SRC_ALPHA;
-    sourceBlend.colordstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
+    sourceBlend.colorsrcmult = GNM_BLEND_ZERO;
+    sourceBlend.colordstmult = GNM_BLEND_ONE;
     sourceBlend.alphafunc = GNM_COMB_DST_PLUS_SRC;
     sourceBlend.alphasrcmult = GNM_BLEND_ONE;
     sourceBlend.alphadstmult = GNM_BLEND_ZERO;

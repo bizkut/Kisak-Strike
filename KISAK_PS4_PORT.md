@@ -1590,6 +1590,17 @@ so successful destination reads must produce a red/blue mix over the blue bar
 and pink over the white bar. The expected PM4 blend word is `0x40010504`; pixel
 readback remains the acceptance test. The build marker is
 `kisak-ps4: build marker source_alpha_blend_v307`.
+
+### v3.08: Prove or reject blend-unit execution
+
+v3.07 emitted the expected Source-alpha PM4 word but still produced opaque red
+with alpha `0xff`, which is inconsistent with the programmed equation. v3.08
+uses a factor-independent `ZERO / ONE` color equation. If blending executes,
+the source contributes nothing and the triangle is invisible while both pixel
+samples retain their bar colors. If it remains red, Liverpool is bypassing the
+blend control and investigation moves to render-target/register enable state.
+The expected PM4 word is `0x40010100`; the build marker is
+`kisak-ps4: build marker blend_bypass_probe_v308`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.
