@@ -5,6 +5,7 @@
 #endif
 
 #include <algorithm>
+#include <stdio.h>
 
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 
@@ -107,7 +108,18 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
     ++m_capturedTrees;
     ++m_pendingBatches;
     if ( m_capturedTrees == 1 )
+    {
         KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform OpenGNM HAL tree batch queued" );
+        char message[192];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: scaleform tree stats total=%u visible=%u containers=%u shapes=%u meshes=%u text=%u viewport=%u truncated=%u",
+            m_lastTreeStats.totalNodes, m_lastTreeStats.visibleNodes,
+            m_lastTreeStats.containerNodes, m_lastTreeStats.shapeNodes,
+            m_lastTreeStats.meshNodes, m_lastTreeStats.textNodes,
+            m_lastTreeStats.hasViewport ? 1u : 0u,
+            m_lastTreeStats.truncated ? 1u : 0u );
+        KisakPs4StartupBreadcrumb( message );
+    }
     (void)phase;
     return true;
 }

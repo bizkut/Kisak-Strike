@@ -3025,7 +3025,9 @@ diagnostic scene unchanged while proving that the live GFx tree is structurally
 non-empty. Host coverage rejects null roots, resets per-frame statistics, and
 retains the existing blend/scissor checks. The tree walker is excluded from
 the standalone host HAL binary, so the 11-test host suite stays independent of
-Scaleform runtime linkage. The build marker is
+Scaleform runtime linkage. The first captured tree emits a bounded
+`scaleform tree stats total=...` breadcrumb so hardware logs distinguish a
+real GFx tree from a handle-only capture. The build marker is
 `kisak-ps4: build marker scaleform_tree_capture_v330`.
 
 The remaining UI gate is still real batch emission: convert the captured tree's
