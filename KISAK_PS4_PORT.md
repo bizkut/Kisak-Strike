@@ -3133,6 +3133,26 @@ The v3.51 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.52: Continue through optimized-root nested end tags
+
+The v3.51 hardware run confirmed that the optimized GFX roots still stopped at
+the first internal zero tag before any root ActionScript global was created.
+The Scaleform loader now treats a non-terminal zero tag as an empty nested
+sprite terminator only while the declared root frames are incomplete. It keeps
+the original safety stop after all declared frames load, so malformed trailing
+data is not accepted. This allows the root class `DoInitAction` blocks and final
+`ShowFrame` to load before the first movie advance.
+
+The next gate is `gfx=1`, followed by `elements=1`, `init=1`, and the initial
+`MainMenu` request. Marker:
+`kisak-ps4: build marker scaleform_nested_end_v352`.
+
+The v3.52 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`509bc5b87e2873e05415d2c4b3540ac0b0c977c32faccb2988c2f6a5ff5647a8`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.46: Execute the first root timeline tick before querying hooks
 
 The v3.45 hardware run shows that `LoadWaitFrame1` succeeds without using the
