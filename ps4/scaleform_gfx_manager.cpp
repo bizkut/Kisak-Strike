@@ -429,11 +429,12 @@ public:
     {
         // Source creates these two root movies as Scaleform slots.  MainMenu
         // is an element requested from MainUIRootMovie; GameUIRootMovie is
-        // the client/HUD root and receives its level HUD elements later.
+        // the client/HUD root and receives its level HUD elements later.  The
+        // console runtime consumes Scaleform's optimized GFX versions.
         m_slots[kScaleformMenuSlot] = {
-            "resource/flash/mainuirootmovie.swf", "MainMenu", NULL, NULL, false, false };
+            "resource/flash/mainuirootmovie.gfx", "MainMenu", NULL, NULL, false, false };
         m_slots[kScaleformHudSlot] = {
-            "resource/flash/gameuirootmovie.swf", NULL, NULL, NULL, false, false };
+            "resource/flash/gameuirootmovie.gfx", NULL, NULL, NULL, false, false };
     }
 
     ~CPs4ScaleformMovieManager()

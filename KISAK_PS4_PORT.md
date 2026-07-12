@@ -3110,6 +3110,29 @@ The v3.50 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.51: Load the console-optimized GFX roots with the corrected bootstrap
+
+The v3.50 hardware run reported `loading=1` but none of the earliest root
+globals, proving that timeline actions never became executable. Host inspection
+showed the SWF parser stopping on the first nested sprite end before the root
+`ShowFrame`, while the supplied optimized `.gfx` roots contain the expected
+`gfxExtensions`, `ResizeManager`, `ElementLoaders`, `RequestElement`, and
+`InitSlot` symbols. The live slots now load `mainuirootmovie.gfx` and
+`gameuirootmovie.gfx`, retaining the deferred first advance, console globals,
+per-element callback object, `SM_NoScale`, and bounded AS2 diagnostics.
+
+The next hardware gate is non-zero script-global probes and a successful
+`MainMenu` request. The dark-red cube and clipped transparent triangle remain
+the fallback until the captured GFx tree contains drawable nodes.
+
+Marker: `kisak-ps4: build marker scaleform_console_gfx_roots_v351`.
+
+The v3.51 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`018d827e94c8febb677633c6eba93775cf22af032eacfe9641ffa55371a44557`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.46: Execute the first root timeline tick before querying hooks
 
 The v3.45 hardware run shows that `LoadWaitFrame1` succeeds without using the
