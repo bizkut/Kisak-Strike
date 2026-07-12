@@ -1073,7 +1073,11 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
         static_cast< uint32_t >( g_DiagnosticTexture.Size() ) ) )
         return;
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
-    g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyAll );
+    // The embedded fullscreen path changes implicit shader/primitive state that
+    // is not represented by every cached Source field. Start the display pass
+    // from a complete known hardware state, then force the cache to re-emit.
+    sceGnmDrawCmdInitDefaultHardwareState( command );
+    g_DrawState.BeginCommand();
 
     g_DrawState.SetViewport( 0, viewport );
     g_DrawState.SetScissor( 0, 0, 1920, 1080 );

@@ -2842,3 +2842,14 @@ to black, draws red at alpha 0.5 with `SRC_ALPHA / ONE_MINUS_SRC_ALPHA`, copies
 the native tiled result, and displays it on the cube. Dark red cube windows prove
 offscreen blending; bright red proves blend bypass. The build marker is
 `kisak-ps4: build marker fullscreen_offscreen_blend_v320`.
+
+### v3.21: Restore complete hardware state after the fullscreen probe
+
+The v3.20 log proved that cube and Source draw packets were emitted, but neither
+appeared. The isolated embedded fullscreen shader and RECTLIST path changes
+implicit hardware state beyond the fields represented by the Source cache.
+v3.21 initializes default GNM hardware state after copying the probe result and
+begins a fresh cached command, forcing the display pass to re-emit its complete
+state. The cube should return with probe-colored windows and the direct Source
+triangle should return red. The build marker is
+`kisak-ps4: build marker restore_after_blend_probe_v321`.
