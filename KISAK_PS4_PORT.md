@@ -1236,6 +1236,18 @@ delegate remains only for the existing initialization lifecycle. Marker:
 The v2.79 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `de6757f689c52446c16281151a3f476e57d4861336c9b54b039d2be3a32dd529`.
+
+The v2.79 hardware run retained the spinning cube, navy contrast regions, and
+60 FPS with native fixed-mode enumeration. Version 2.80 supplies native
+recommended configuration KeyValues for adapter 0 and DX levels 90-95:
+1920x1080 fullscreen, VSYNC enabled, triple buffering disabled, MSAA disabled,
+and high GPU memory level. The default recommendation is DX95. Invalid adapter,
+null output, or out-of-range DX requests fail instead of inheriting empty
+desktop configuration. Marker:
+`kisak-ps4: build marker native_video_config_v280`.
+The v2.80 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`57fd5739b394b00dc4a274a78f52bfaba9bdd3fe57cc969a91a0c9e6331b45d2`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

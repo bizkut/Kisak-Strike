@@ -3,6 +3,7 @@
 #include "shaderapi/ishadershadow.h"
 #include "materialsystem/idebugtextureinfo.h"
 #include "interfaces/interfaces.h"
+#include "tier1/keyvalues.h"
 #include "ps4_gnm_draw_state.h"
 #include "ps4_gnm_texture.h"
 #include "ps4_shadow_state_translate.h"
@@ -49,7 +50,20 @@ public:
         info.m_nMaxDXSupportLevel = 95;
     }
     bool GetRecommendedConfigurationInfo( int adapter, int dxLevel, KeyValues *configuration )
-    { return m_delegate && m_delegate->GetRecommendedConfigurationInfo( adapter, dxLevel, configuration ); }
+    {
+        if ( adapter != 0 || !configuration || dxLevel < 90 || dxLevel > 95 )
+            return false;
+        configuration->SetInt( "setting.dxlevel", dxLevel );
+        configuration->SetInt( "setting.defaultres", 1920 );
+        configuration->SetInt( "setting.defaultresheight", 1080 );
+        configuration->SetInt( "setting.fullscreen", 1 );
+        configuration->SetInt( "setting.nowindowborder", 0 );
+        configuration->SetInt( "setting.mat_vsync", 1 );
+        configuration->SetInt( "setting.mat_triplebuffered", 0 );
+        configuration->SetInt( "setting.mat_antialias", 0 );
+        configuration->SetInt( "setting.gpu_mem_level", 2 );
+        return true;
+    }
     int GetModeCount( int adapter ) const { return adapter == 0 ? 1 : 0; }
     void GetModeInfo( ShaderDisplayMode_t *info, int adapter, int mode ) const
     {
@@ -84,7 +98,7 @@ public:
     void RemoveModeChangeCallback( ShaderModeChangeCallbackFunc_t callback )
     { if ( m_delegate ) m_delegate->RemoveModeChangeCallback( callback ); }
     bool GetRecommendedVideoConfig( int adapter, KeyValues *configuration )
-    { return m_delegate && m_delegate->GetRecommendedVideoConfig( adapter, configuration ); }
+    { return GetRecommendedConfigurationInfo( adapter, 95, configuration ); }
     void AddDeviceDependentObject( IShaderDeviceDependentObject *object )
     { if ( m_delegate ) m_delegate->AddDeviceDependentObject( object ); }
     void RemoveDeviceDependentObject( IShaderDeviceDependentObject *object )
