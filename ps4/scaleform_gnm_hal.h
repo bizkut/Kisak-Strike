@@ -32,6 +32,10 @@ public:
         uint32_t solidFills;
         uint32_t imageFills;
         uint32_t gradientFills;
+        uint32_t tessellatedLayers;
+        uint32_t tessellatedVertices;
+        uint32_t tessellatedTriangles;
+        bool collectGeometry;
         bool hasViewport;
         bool truncated;
 
@@ -39,7 +43,9 @@ public:
             : totalNodes( 0 ), visibleNodes( 0 ), containerNodes( 0 ),
               shapeNodes( 0 ), meshNodes( 0 ), textNodes( 0 ),
               shapeLayers( 0 ), solidFills( 0 ), imageFills( 0 ),
-              gradientFills( 0 ),
+              gradientFills( 0 ), tessellatedLayers( 0 ),
+              tessellatedVertices( 0 ), tessellatedTriangles( 0 ),
+              collectGeometry( false ),
               hasViewport( false ), truncated( false )
         {
         }

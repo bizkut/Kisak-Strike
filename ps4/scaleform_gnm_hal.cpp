@@ -3,12 +3,85 @@
 #if defined( KISAK_PS4_MONOLITHIC )
 #include "Render/Render_TreeNode.h"
 #include "Render/Render_TreeShape.h"
+#include "Render/Render_TessCurves.h"
+#include "Render/Render_TessGen.h"
 #endif
 
 #include <algorithm>
 #include <stdio.h>
 
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+
+namespace
+{
+bool IsComplexFill( const Scaleform::Render::ShapeDataInterface *shape,
+    unsigned style )
+{
+    if ( !shape || style == 0 )
+        return false;
+    Scaleform::Render::FillStyleType fill;
+    shape->GetFillStyle( style, &fill );
+    return fill.pFill.GetPtr() != NULL;
+}
+
+bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
+    unsigned layer, uint32_t *vertices, uint32_t *triangles )
+{
+    if ( !provider || !vertices || !triangles )
+        return false;
+    const Scaleform::Render::ShapeDataInterface *shape = provider->GetShapeData();
+    if ( !shape )
+        return false;
+
+    Scaleform::Render::MeshGenerator generator( Scaleform::Memory::GetGlobalHeap() );
+    Scaleform::Render::ToleranceParams tolerance;
+    generator.mTess.SetFillRule( Scaleform::Render::Tessellator::FillEvenOdd );
+    generator.mTess.SetToleranceParam( tolerance );
+
+    Scaleform::Render::ShapePosInfo position( provider->GetLayerStartPos( layer ) );
+    bool firstPath = true;
+    float coordinates[Scaleform::Render::Edge_MaxCoord];
+    unsigned styles[3];
+    Scaleform::Render::ShapePathType pathType;
+    while ( ( pathType = shape->ReadPathInfo( &position, coordinates, styles ) ) !=
+            Scaleform::Render::Shape_EndShape )
+    {
+        if ( !firstPath && pathType == Scaleform::Render::Shape_NewLayer )
+            break;
+        firstPath = false;
+        if ( styles[0] == styles[1] )
+        {
+            shape->SkipPathData( &position );
+            continue;
+        }
+
+        generator.mTess.AddVertex( coordinates[0], coordinates[1] );
+        Scaleform::Render::PathEdgeType edge;
+        while ( ( edge = shape->ReadEdge( &position, coordinates ) ) !=
+                Scaleform::Render::Edge_EndPath )
+        {
+            if ( edge == Scaleform::Render::Edge_LineTo )
+                generator.mTess.AddVertex( coordinates[0], coordinates[1] );
+            else if ( edge == Scaleform::Render::Edge_QuadTo )
+                Scaleform::Render::TessellateQuadCurve( &generator.mTess, tolerance,
+                    coordinates[0], coordinates[1], coordinates[2], coordinates[3] );
+            else if ( edge == Scaleform::Render::Edge_CubicTo )
+                Scaleform::Render::TessellateCubicCurve( &generator.mTess, tolerance,
+                    coordinates[0], coordinates[1], coordinates[2], coordinates[3],
+                    coordinates[4], coordinates[5] );
+        }
+        generator.mTess.FinalizePath( styles[0], styles[1],
+            IsComplexFill( shape, styles[0] ), IsComplexFill( shape, styles[1] ) );
+    }
+
+    generator.mTess.Tessellate( false );
+    *vertices += generator.mTess.GetVertexCount();
+    for ( unsigned mesh = 0; mesh < generator.mTess.GetMeshCount(); ++mesh )
+        *triangles += generator.mTess.GetMeshTriangleCount( mesh );
+    generator.Clear();
+    return true;
+}
+}
 
 CPs4ScaleformHal::CPs4ScaleformHal()
     : m_frameOpen( false ), m_frame( 0 ), m_capturedTrees( 0 ), m_pendingBatches( 0 ),
@@ -81,6 +154,9 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
                 stats->shapeLayers += layerCount;
                 for ( unsigned layer = 0; layer < layerCount; ++layer )
                 {
+                    if ( stats->collectGeometry && TessellateShapeLayer( shape, layer,
+                            &stats->tessellatedVertices, &stats->tessellatedTriangles ) )
+                        ++stats->tessellatedLayers;
                     const unsigned fillCount = shape->GetFillCount( layer, 0 );
                     for ( unsigned fill = 0; fill < fillCount; ++fill )
                     {
@@ -136,7 +212,9 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
     if ( !m_frameOpen || !root )
         return false;
 
+    const uint32_t statsBit = phase && phase[0] == 'h' ? 2u : 1u;
     m_lastTreeStats = TreeStats();
+    m_lastTreeStats.collectGeometry = ( m_treeDrawableLoggedMask & statsBit ) == 0;
     CollectTreeStats( root, &m_lastTreeStats );
     if ( m_lastTreeStats.totalNodes == 0 )
         return false;
@@ -146,7 +224,6 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
     if ( m_capturedTrees == 1 )
         KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform OpenGNM HAL tree batch queued" );
 
-    const uint32_t statsBit = phase && phase[0] == 'h' ? 2u : 1u;
     if ( ( m_treeStatsLoggedMask & statsBit ) == 0 )
     {
         m_treeStatsLoggedMask |= statsBit;
@@ -166,13 +243,15 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
          ( m_treeDrawableLoggedMask & statsBit ) == 0 )
     {
         m_treeDrawableLoggedMask |= statsBit;
-        char message[224];
+        char message[288];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform drawable tree phase=%s shapes=%u meshes=%u text=%u layers=%u solid=%u image=%u gradient=%u",
+            "kisak-ps4: scaleform drawable tree phase=%s shapes=%u meshes=%u text=%u layers=%u solid=%u image=%u gradient=%u tess_layers=%u vertices=%u triangles=%u",
             phase ? phase : "unknown", m_lastTreeStats.shapeNodes,
             m_lastTreeStats.meshNodes, m_lastTreeStats.textNodes,
             m_lastTreeStats.shapeLayers, m_lastTreeStats.solidFills,
-            m_lastTreeStats.imageFills, m_lastTreeStats.gradientFills );
+            m_lastTreeStats.imageFills, m_lastTreeStats.gradientFills,
+            m_lastTreeStats.tessellatedLayers, m_lastTreeStats.tessellatedVertices,
+            m_lastTreeStats.tessellatedTriangles );
         KisakPs4StartupBreadcrumb( message );
     }
     (void)phase;

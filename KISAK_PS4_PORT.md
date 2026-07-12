@@ -3268,6 +3268,33 @@ The v3.59 monolithic package is staged at
 `f036b230c8b61da005d4790dd275d22a32a1a287e4a08e16dae7c6bcde371592`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.60: Tessellate captured GFx shape layers on PS4
+
+The v3.59 hardware inventory remained stable at 60 FPS and identified 150 menu
+shape layers: 68 solid fills, 82 gradients, and no image fills. This makes a
+shared geometry path followed by solid and gradient binding the shortest route
+to the first real Scaleform pixels.
+
+The OpenGNM adapter now walks each captured `ShapeDataInterface` path from its
+layer start, preserves left/right fill styles, flattens quadratic and cubic
+curves with Scaleform's tolerance rules, and submits the result to Scaleform's
+native even-odd tessellator. The first menu and HUD captures report successful
+layers plus generated vertex and triangle totals. Geometry collection is gated
+to the first drawable capture per phase, avoiding recurring CPU tessellation in
+the 60 FPS presentation loop.
+
+The next gate is successful tessellation of all 150 menu layers without a crash
+or oversized mesh. Those vertices and indices will then be retained in the
+per-frame OpenGNM upload arena and emitted first through the solid-color shader;
+gradient layers will reuse the same geometry with an atlas/UV binding.
+
+Marker: `kisak-ps4: build marker scaleform_cpu_tessellation_v360`.
+
+The v3.60 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`e87fe55fe6462c30bee10927393da1c22828f470c3a93aa50c5078f8149c3e43`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
