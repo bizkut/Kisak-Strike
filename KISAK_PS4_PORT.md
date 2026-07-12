@@ -3008,5 +3008,7 @@ trees at the existing menu/HUD phase boundaries. The legacy full
 `IScaleformUI` surface is backed by the OpenGNM HAL; this avoids presenting a
 GL/D3D9 implementation as a PS4 renderer. The current capture bridge is
 intentionally diagnostic: it proves that GFx produces a live render tree, but
-does not yet submit that tree as OpenGNM geometry. The next code slice is the
-`CPs4ScaleformHal` command translator and its first textured/blended quad gate.
+does not yet submit that tree as OpenGNM geometry. `CPs4ScaleformHal` now owns
+the first OpenGNM blend/scissor translation and capture queue boundary; the
+next code slice connects captured GFx batches to vertex/index/texture emission
+and an EOP-fenced quad submission.
