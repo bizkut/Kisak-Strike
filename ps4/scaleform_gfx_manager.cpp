@@ -79,6 +79,11 @@ struct ScaleformMovieSlot
     bool captured;
 };
 
+const char *ScaleformSlotLabel( int slot )
+{
+    return slot == kScaleformMenuSlot ? "menu" : "hud";
+}
+
 Scaleform::Key::Code MapButtonCode( ButtonCode_t code )
 {
     if ( code >= KEY_A && code <= KEY_Z )
@@ -163,6 +168,21 @@ public:
         m_loader->SetAS2Support( Scaleform::Ptr< Scaleform::GFx::AS2Support >(
             *new Scaleform::GFx::AS2Support() ) );
 
+        m_fontLib = *new Scaleform::GFx::FontLib();
+        m_loader->SetFontLib( m_fontLib );
+        Scaleform::Ptr< Scaleform::GFx::MovieDef > fontDefinition =
+            *m_loader->CreateMovie( "resource/flash/fontlib.gfx",
+                Scaleform::GFx::Loader::LoadAll );
+        if ( fontDefinition.GetPtr() )
+        {
+            m_fontLib->AddFontsFrom( fontDefinition, true );
+            KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform font library initialized" );
+        }
+        else
+        {
+            KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform font library unavailable" );
+        }
+
         const bool menu = LoadSlot( kScaleformMenuSlot );
         const bool hud = LoadSlot( kScaleformHudSlot );
         m_initialized = menu || hud;
@@ -176,6 +196,7 @@ public:
         {
             delete m_loader;
             m_loader = NULL;
+            m_fontLib.Clear();
             m_fileOpener.Clear();
             delete m_system;
             m_system = NULL;
@@ -198,6 +219,7 @@ public:
         }
         delete m_loader;
         m_loader = NULL;
+        m_fontLib.Clear();
         m_fileOpener.Clear();
         delete m_system;
         m_system = NULL;
@@ -313,9 +335,50 @@ private:
         if ( !movieSlot.movie.GetPtr() )
             return false;
 
-        movieSlot.movie->SetViewport( 1920, 1080, 0, 0, 1920, 1080 );
+        movieSlot.movie->SetViewAlignment( Scaleform::GFx::Movie::Align_TopLeft );
         movieSlot.movie->SetViewScaleMode( Scaleform::GFx::Movie::SM_ExactFit );
         movieSlot.movie->SetBackgroundAlpha( 0.0f );
+        movieSlot.movie->SetVisible( true );
+
+        Scaleform::GFx::Value global;
+        const bool globalReady = movieSlot.movie->GetVariable( &global, "_global" );
+        if ( globalReady )
+        {
+            Scaleform::GFx::Value platformCode;
+            platformCode.SetNumber( 2 ); // PS3/PS4 console ActionScript convention.
+            global.SetMember( "PlatformCode", platformCode );
+
+            Scaleform::GFx::Value controllerUI;
+            controllerUI.SetBoolean( true );
+            global.SetMember( "wantControllerShown", controllerUI );
+
+            Scaleform::GFx::Value uiSlot;
+            uiSlot.SetNumber( slot );
+            global.SetMember( "UISlot", uiSlot );
+
+            Scaleform::GFx::Value gameInterface;
+            movieSlot.movie->CreateObject( &gameInterface );
+            if ( gameInterface.IsObject() )
+                global.SetMember( "GameInterface", gameInterface );
+        }
+
+        if ( slot == kScaleformMenuSlot )
+            movieSlot.movie->HandleEvent( Scaleform::GFx::Event::SetFocus );
+
+        movieSlot.movie->Advance( 0.0f );
+        const bool initSlot = movieSlot.movie->Invoke(
+            "InitSlot", static_cast< Scaleform::GFx::Value * >( NULL ),
+            static_cast< const Scaleform::GFx::Value * >( NULL ), 0 );
+        movieSlot.movie->SetViewport( 1920, 1080, 0, 0, 1920, 1080 );
+        const bool forceResize = movieSlot.movie->Invoke(
+            "ForceResize", static_cast< Scaleform::GFx::Value * >( NULL ),
+            static_cast< const Scaleform::GFx::Value * >( NULL ), 0 );
+        char marker[160];
+        snprintf( marker, sizeof( marker ),
+            "kisak-ps4: scaleform %s init global=%u InitSlot=%u ForceResize=%u",
+            ScaleformSlotLabel( slot ), globalReady ? 1u : 0u,
+            initSlot ? 1u : 0u, forceResize ? 1u : 0u );
+        KisakPs4StartupBreadcrumb( marker );
         movieSlot.ready = true;
         return true;
     }
@@ -323,6 +386,7 @@ private:
     Scaleform::System *m_system;
     Scaleform::GFx::Loader *m_loader;
     Scaleform::Ptr< KisakScaleformFileOpener > m_fileOpener;
+    Scaleform::Ptr< Scaleform::GFx::FontLib > m_fontLib;
     ScaleformMovieSlot m_slots[kScaleformSlotCount];
     bool m_initialized;
     bool m_loggedCapture;

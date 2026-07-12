@@ -3036,3 +3036,19 @@ primitive fills into OpenGNM vertex/index/texture packets, submit them behind
 the existing scene resolve, and wait for an EOP label before recycling their
 frame storage. Until that gate passes, the diagnostic scene remains the
 expected hardware image rather than a claim that the `.gfx` movies are visible.
+
+### v3.31: Initialize the supplied movies like the Source console UI
+
+The GFx manager now installs a shared `FontLib`, loads `fontlib.gfx` before the
+root movies, sets the PS4 console `PlatformCode`/controller globals and slot
+number, creates the `GameInterface` object, sends focus to the full-screen slot,
+and invokes the legacy `InitSlot`/`ForceResize` ActionScript hooks after the
+initial zero-time advance. These hooks are the missing Source-side setup that
+turns an otherwise valid four-container handle into drawable movie content.
+The manager logs the result for each menu/HUD slot while retaining the existing
+tree-count and 4,096-node cap. The build marker is
+`kisak-ps4: build marker scaleform_movie_init_v331`.
+
+The hardware gate remains unchanged: the next run must show non-zero shape,
+mesh, or text nodes in at least one slot before the OpenGNM batch emitter is
+enabled.
