@@ -460,7 +460,6 @@ public:
         m_actionControl->SetActionErrorSuppress( false );
         m_actionControl->SetVerboseAction( false );
         m_loader->SetActionControl( m_actionControl );
-        KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform AS2 action diagnostics installed" );
         m_zlibSupport = *new Scaleform::GFx::ZlibSupport();
         m_loader->SetZlibSupport( m_zlibSupport );
         KisakPs4StartupBreadcrumb( m_loader->GetZlibSupport().GetPtr()
@@ -468,6 +467,9 @@ public:
             : "kisak-ps4: scaleform zlib support unavailable" );
         m_loader->SetAS2Support( Scaleform::Ptr< Scaleform::GFx::AS2Support >(
             *new Scaleform::GFx::AS2Support() ) );
+        KisakPs4StartupBreadcrumb( m_loader->GetAS2Support().GetPtr()
+            ? "kisak-ps4: scaleform AS2 support and action diagnostics installed"
+            : "kisak-ps4: scaleform AS2 support unavailable" );
 
         m_fontLib = *new Scaleform::GFx::FontLib();
         m_loader->SetFontLib( m_fontLib );

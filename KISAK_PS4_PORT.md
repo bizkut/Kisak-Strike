@@ -3093,6 +3093,43 @@ The v3.53 recovery package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware should
 return to the v3.51 60 FPS diagnostic scene.
 
+### v3.54: Trace the AS2 tag-to-interpreter pipeline without parser changes
+
+The v3.53 hardware run restored the stable 60 FPS fallback through at least
+frame 10,800: four color bars, the dark-red spinning cube, and the clipped
+transparent triangle all remain correct. Both optimized root movies still load
+one frame and capture a five-container display tree, but none of the root AS2
+globals (`gfxExtensions`, `ElementLoaders`, `InitSlot`, or `RequestElement`)
+exist after the bootstrap advances.
+
+A byte-accurate host walk corrected the earlier v3.51/v3.52 diagnosis. Both
+GFX roots contain 27 well-formed top-level tags; every empty `DefineSprite`
+has a six-byte body containing its own nested `End`, and the root `ShowFrame`
+and final `End` land exactly at the declared file length. AS2 tag registration
+is also static and complete: tag 12 dispatches through `GFx_DoActionLoader` and
+tag 59 through `GFx_DoInitActionLoader` whenever the loader snapshots a valid
+`AS2Support` state. Continuing past a non-terminal root `End` was therefore
+unsafe and is not part of this revision.
+
+The PS4 Scaleform build now emits a bounded trace at four non-mutating
+boundaries: `DoAction` dispatch, insertion into the frame playlist, timeline
+execution/`ActionBuffer` queueing, and interpreter entry. The existing
+stream-end safety warning also reports the actual stream position, declared
+file end, tag offset, frame, and tag count. The next hardware log will identify
+the first missing boundary without enabling full ActionScript disassembly or
+changing parser control flow. Loader startup now confirms that AS2 support was
+actually installed instead of logging the diagnostics marker before that
+state assignment.
+
+Marker: `kisak-ps4: build marker scaleform_as2_pipeline_trace_v354`.
+
+The v3.54 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`fb9ab566404bf15ef0e48c27d79ad33ddc2db1c232d96c6d0884327488a37c41`.
+The PS4 link/package build completes and all 11 host tests pass. Hardware
+validation should retain the v3.53 fallback while adding `PS4 AS2 trace:`
+lines before the root-global probes.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
