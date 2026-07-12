@@ -3052,3 +3052,19 @@ tree-count and 4,096-node cap. The build marker is
 The hardware gate remains unchanged: the next run must show non-zero shape,
 mesh, or text nodes in at least one slot before the OpenGNM batch emitter is
 enabled.
+
+### v3.32: Match Source root-slot and element loading
+
+The GFx bootstrap now follows Kisak's `BaseSlot::Init` topology. The menu slot
+loads `resource/flash/mainuirootmovie.gfx` and requests the `MainMenu` element;
+the HUD slot loads `resource/flash/gameuirootmovie.gfx` as its independent root.
+`InitSlot`, `ForceResize`, and `RequestElement` are queried and invoked through
+the movie's `_global` object, matching the Source implementation instead of
+calling `Movie::Invoke` on the wrapper. This keeps the existing diagnostic scene
+visible while making the captured tree reflect the actual console UI roots.
+The build marker is `kisak-ps4: build marker scaleform_root_slots_v332`.
+
+The next hardware gate is a non-zero shape, mesh, or text count after the
+`MainMenu` request. If the roots remain container-only, add the minimal Source
+`GameInterface` callback table and request the first HUD element before enabling
+OpenGNM primitive emission.

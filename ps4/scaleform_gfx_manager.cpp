@@ -73,6 +73,7 @@ enum
 struct ScaleformMovieSlot
 {
     const char *name;
+    const char *element;
     Scaleform::Ptr< Scaleform::GFx::MovieDef > definition;
     Scaleform::Ptr< Scaleform::GFx::Movie > movie;
     bool ready;
@@ -146,8 +147,13 @@ public:
         : m_system( NULL ), m_loader( NULL ), m_initialized( false ),
           m_loggedCapture( false ), m_lastTime( -1.0f ), m_frame( 0 )
     {
-        m_slots[kScaleformMenuSlot] = { "resource/flash/mainmenu.gfx", NULL, NULL, false, false };
-        m_slots[kScaleformHudSlot] = { "resource/flash/mainuirootmovie.gfx", NULL, NULL, false, false };
+        // Source creates these two root movies as Scaleform slots.  MainMenu
+        // is an element requested from MainUIRootMovie; GameUIRootMovie is
+        // the client/HUD root and receives its level HUD elements later.
+        m_slots[kScaleformMenuSlot] = {
+            "resource/flash/mainuirootmovie.gfx", "MainMenu", NULL, NULL, false, false };
+        m_slots[kScaleformHudSlot] = {
+            "resource/flash/gameuirootmovie.gfx", NULL, NULL, NULL, false, false };
     }
 
     ~CPs4ScaleformMovieManager()
@@ -366,18 +372,41 @@ private:
             movieSlot.movie->HandleEvent( Scaleform::GFx::Event::SetFocus );
 
         movieSlot.movie->Advance( 0.0f );
-        const bool initSlot = movieSlot.movie->Invoke(
-            "InitSlot", static_cast< Scaleform::GFx::Value * >( NULL ),
-            static_cast< const Scaleform::GFx::Value * >( NULL ), 0 );
+
+        // BaseSlot::Init invokes these methods on _global, not on Movie.
+        // Calling Movie::Invoke skips the ActionScript global object and made
+        // the old direct movie bootstrap report false for both hooks.
+        Scaleform::GFx::Value function;
+        function.SetNull();
+        const bool initSlot = globalReady && global.GetMember( "InitSlot", &function );
+        if ( initSlot )
+            global.Invoke( "InitSlot" );
+
         movieSlot.movie->SetViewport( 1920, 1080, 0, 0, 1920, 1080 );
-        const bool forceResize = movieSlot.movie->Invoke(
-            "ForceResize", static_cast< Scaleform::GFx::Value * >( NULL ),
-            static_cast< const Scaleform::GFx::Value * >( NULL ), 0 );
+        function.SetNull();
+        const bool forceResize = globalReady && global.GetMember( "ForceResize", &function );
+        if ( forceResize )
+            global.Invoke( "ForceResize" );
+
+        bool requestElement = false;
+        if ( globalReady && movieSlot.element != NULL )
+        {
+            function.SetNull();
+            requestElement = global.GetMember( "RequestElement", &function );
+            if ( requestElement )
+            {
+                Scaleform::GFx::Value args[2];
+                movieSlot.movie->CreateString( &args[0], movieSlot.element );
+                movieSlot.movie->CreateObject( &args[1] );
+                global.Invoke( "RequestElement", NULL, args, 2 );
+            }
+        }
         char marker[160];
         snprintf( marker, sizeof( marker ),
-            "kisak-ps4: scaleform %s init global=%u InitSlot=%u ForceResize=%u",
+            "kisak-ps4: scaleform %s init global=%u InitSlot=%u ForceResize=%u RequestElement=%u",
             ScaleformSlotLabel( slot ), globalReady ? 1u : 0u,
-            initSlot ? 1u : 0u, forceResize ? 1u : 0u );
+            initSlot ? 1u : 0u, forceResize ? 1u : 0u,
+            requestElement ? 1u : 0u );
         KisakPs4StartupBreadcrumb( marker );
         movieSlot.ready = true;
         return true;
