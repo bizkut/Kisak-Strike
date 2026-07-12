@@ -23,6 +23,9 @@ CreateInterfaceFn g_EmptyFactory = 0;
 void *Ps4CreateInterface( const char *interfaceName, int *returnCode );
 IVertexBuffer *g_LockedDynamicVertexBuffer = 0;
 IIndexBuffer *g_LockedDynamicIndexBuffer = 0;
+int g_QueuedDynamicFirstIndex = 0;
+int g_QueuedDynamicIndexCount = 0;
+bool g_DynamicMeshDrawQueued = false;
 
 class CShaderDeviceMgrPs4 : public IShaderDeviceMgr
 {
@@ -789,5 +792,45 @@ extern "C" bool KisakPs4PopulateShaderApiDynamicTriangle()
     desc.m_pIndices[1] = 1;
     desc.m_pIndices[2] = 2;
     mesh->UnlockMesh( 3, 3, desc );
+    mesh->SetPrimitiveType( MATERIAL_TRIANGLES );
+    mesh->Draw( 0, 3 );
+    return g_DynamicMeshDrawQueued;
+}
+
+extern "C" void KisakPs4QueueDynamicMeshDraw( int primitiveType,
+    int firstIndex, int indexCount )
+{
+    CPs4GnmDevice *device = KisakPs4GnmRuntime().Device();
+    if ( !device || !device->IsFrameOpen() || firstIndex < 0 || indexCount <= 0 )
+        return;
+    switch ( static_cast< MaterialPrimitiveType_t >( primitiveType ) )
+    {
+    case MATERIAL_TRIANGLES:
+        device->SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
+        break;
+    case MATERIAL_TRIANGLE_STRIP:
+        device->SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangleStrip );
+        break;
+    case MATERIAL_LINES:
+        device->SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveLines );
+        break;
+    case MATERIAL_POINTS:
+        device->SetPrimitiveTopology( CPs4GnmDevice::kPrimitivePoints );
+        break;
+    default:
+        return;
+    }
+    g_QueuedDynamicFirstIndex = firstIndex;
+    g_QueuedDynamicIndexCount = indexCount;
+    g_DynamicMeshDrawQueued = true;
+}
+
+extern "C" bool KisakPs4TakeDynamicMeshDraw( int *firstIndex, int *indexCount )
+{
+    if ( !g_DynamicMeshDrawQueued || !firstIndex || !indexCount )
+        return false;
+    *firstIndex = g_QueuedDynamicFirstIndex;
+    *indexCount = g_QueuedDynamicIndexCount;
+    g_DynamicMeshDrawQueued = false;
     return true;
 }

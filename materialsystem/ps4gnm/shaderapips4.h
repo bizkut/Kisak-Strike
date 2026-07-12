@@ -24,5 +24,8 @@ extern "C" bool KisakPs4LockDynamicIndices( int count, bool append, IndexDesc_t 
 extern "C" void KisakPs4UnlockDynamicIndices( int count, IndexDesc_t *desc );
 extern "C" bool KisakPs4DynamicMeshBridgeProbe();
 extern "C" bool KisakPs4PopulateShaderApiDynamicTriangle();
+extern "C" void KisakPs4QueueDynamicMeshDraw( int primitiveType,
+    int firstIndex, int indexCount );
+extern "C" bool KisakPs4TakeDynamicMeshDraw( int *firstIndex, int *indexCount );
 
 #endif

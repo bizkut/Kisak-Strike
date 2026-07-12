@@ -873,6 +873,10 @@ bool BuildSourceDynamicTriangle( CPs4GnmDevice::IndexedDrawPacket *packet,
         return false;
     if ( !KisakPs4PopulateShaderApiDynamicTriangle() )
         return false;
+    int firstIndex = 0;
+    int indexCount = 0;
+    if ( !KisakPs4TakeDynamicMeshDraw( &firstIndex, &indexCount ) )
+        return false;
     const CPs4GnmVertexDeclaration::Element elements[2] = {
         { 0, 0, GNM_FMT_R32G32B32A32_FLOAT },
         { 0, 16, GNM_FMT_R32G32B32A32_FLOAT }
@@ -881,7 +885,8 @@ bool BuildSourceDynamicTriangle( CPs4GnmDevice::IndexedDrawPacket *packet,
     return declaration.Initialize( elements, 2 ) &&
         g_Device.BuildVertexDescriptorTable( declaration, 0, 3, descriptors, 2 ) &&
         g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
-            0, 3, 0, 3, packet );
+            static_cast< uint32_t >( firstIndex ),
+            static_cast< uint32_t >( indexCount ), 0, 3, packet );
 }
 
 void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
@@ -1324,7 +1329,7 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         if ( !sourceDynamicDrawLogged )
         {
             KisakPs4StartupBreadcrumb(
-                "kisak-ps4: ShaderAPI IMesh dynamic command emitted" );
+                "kisak-ps4: IMesh Draw command emitted" );
             sourceDynamicDrawLogged = true;
         }
         static bool threeDimensionalDrawLogged = false;

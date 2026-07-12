@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.93
-SHA-256: 66943859cfa30b9a3fe0c4099babd1e120c2459db3d87c1494e42ee5ab9b3e55
+Version: 2.94
+SHA-256: 5623cb398ea8cc41e7311438c759861ce664adba45cac3d73f15c27d29208d73
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -1432,6 +1432,18 @@ boundary. Success logs `ShaderAPI IMesh dynamic command emitted`. Marker:
 The v2.93 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `66943859cfa30b9a3fe0c4099babd1e120c2459db3d87c1494e42ee5ab9b3e55`.
+
+The v2.93 hardware run preserved the full diagnostic scene at 60 FPS and
+logged `ShaderAPI IMesh dynamic command emitted`. Version 2.94 implements the
+PS4 `CEmptyMesh::SetPrimitiveType` and `Draw` boundary. The actual `IMesh`
+call now queues validated first-index/count data, maps Source triangle, strip,
+line, and point topology to `CPs4GnmDevice`, and the submission path consumes
+that queued request when building the packet. Invalid topology or draw ranges
+remain unqueued. Success logs `IMesh Draw command emitted`. Marker:
+`kisak-ps4: build marker imesh_draw_entry_v294`.
+The v2.94 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`5623cb398ea8cc41e7311438c759861ce664adba45cac3d73f15c27d29208d73`.
 
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.

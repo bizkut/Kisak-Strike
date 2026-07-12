@@ -26,6 +26,8 @@ extern "C" bool KisakPs4LockDynamicVertices( VertexFormat_t format, int count,
 extern "C" void KisakPs4UnlockDynamicVertices( int count, VertexDesc_t *desc );
 extern "C" bool KisakPs4LockDynamicIndices( int count, bool append, IndexDesc_t *desc );
 extern "C" void KisakPs4UnlockDynamicIndices( int count, IndexDesc_t *desc );
+extern "C" void KisakPs4QueueDynamicMeshDraw( int primitiveType,
+    int firstIndex, int indexCount );
 #endif
 
 // NOTE: This has to be the last file included!
@@ -135,6 +137,7 @@ private:
 	unsigned char* m_pVertexMemory;
 	bool m_bIsDynamic;
 	VertexFormat_t m_VertexFormat;
+	MaterialPrimitiveType_t m_PrimitiveType;
 };
 
 
@@ -1573,7 +1576,7 @@ IIndexBuffer *CShaderDeviceEmpty::GetDynamicIndexBuffer()
 //
 //-----------------------------------------------------------------------------
 CEmptyMesh::CEmptyMesh( bool bIsDynamic ) : m_bIsDynamic( bIsDynamic ),
-	m_VertexFormat( VERTEX_POSITION )
+	m_VertexFormat( VERTEX_POSITION ), m_PrimitiveType( MATERIAL_TRIANGLES )
 {
 	m_pVertexMemory = new unsigned char[VERTEX_BUFFER_SIZE];
 }
@@ -1724,11 +1727,17 @@ int CEmptyMesh::VertexCount() const
 // Sets the primitive type
 void CEmptyMesh::SetPrimitiveType( MaterialPrimitiveType_t type )
 {
+	m_PrimitiveType = type;
 }
 
 // Draws the entire mesh
 void CEmptyMesh::Draw( int firstIndex, int numIndices )
 {
+#if defined( PLATFORM_PS4 )
+	if ( m_bIsDynamic )
+		KisakPs4QueueDynamicMeshDraw( static_cast<int>( m_PrimitiveType ),
+			firstIndex, numIndices );
+#endif
 }
 
 void CEmptyMesh::Draw(CPrimList *pPrims, int nPrims)
