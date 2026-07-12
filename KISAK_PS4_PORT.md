@@ -3125,6 +3125,26 @@ validation is pending the next launch; inspect `scaleform log type=` lines
 after the v347 marker, then look for the first element-load callback or a
 bounded ActionScript error.
 
+### v3.48: Defer the first root advance until console globals are installed
+
+The v3.47 hardware run proved the diagnostic control is attached, but both
+root movies still exposed no hooks and emitted no ActionScript error. With
+`LoadWaitFrame1`, frame one is already resident when `CreateInstance` is
+called; `CreateInstance(true)` can therefore execute the root `DoAction` before
+`PlatformCode` and `GameInterface` exist. The manager now creates the instance
+with `initFirstFrame=false`, installs the console globals and callback object,
+then performs the original single `Advance(0)` bootstrap. This preserves the
+Source ordering while avoiding an early script abort. The stable dark-red cube
+and clipped transparent triangle remain the fallback image.
+
+Marker: `kisak-ps4: build marker scaleform_deferred_first_advance_v348`.
+
+The v3.48 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`6b18ec26c2b01fc642261ee33a8cd713e06544c54f358964b556e4c404270b17`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.45: Wait only for root frame one with a stable fallback
 
 The v3.44 hardware run is the first clean root-movie parse: the file opener

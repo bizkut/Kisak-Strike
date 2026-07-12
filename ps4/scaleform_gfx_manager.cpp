@@ -719,8 +719,11 @@ private:
             return false;
         movieSlot.definition = *loadedDefinition;
 
+        // LoadWaitFrame1 has already made frame one available.  Defer the
+        // instance's implicit first advance until after PlatformCode and the
+        // GameInterface object are installed below.
         movieSlot.movie = *movieSlot.definition->CreateInstance(
-            true, 0, m_actionControl.GetPtr() );
+            false, 0, m_actionControl.GetPtr() );
         if ( !movieSlot.movie.GetPtr() )
             return false;
 
