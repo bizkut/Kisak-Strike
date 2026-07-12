@@ -906,6 +906,10 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     if ( !g_Device.BuildDisplayRenderTarget(
         destination, 1920, 1080, 1920, &renderTarget ) )
         return;
+    // Force Liverpool's two CB_COLOR blend optimizations off while validating
+    // destination reads on a display-linear target. Value 1 is FORCE_DISABLE
+    // for both BLEND_OPT_DONT_RD_DST and BLEND_OPT_DISCARD_PIXEL.
+    renderTarget.info.asuint |= ( 1u << 20 ) | ( 1u << 23 );
     sceGnmDrawCmdInitDefaultHardwareState( command );
     KisakPs4SetShaderShadowCulling( false );
     KisakPs4SetShaderShadowDepth( false, false, 3 );

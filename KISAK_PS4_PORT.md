@@ -1601,6 +1601,17 @@ samples retain their bar colors. If it remains red, Liverpool is bypassing the
 blend control and investigation moves to render-target/register enable state.
 The expected PM4 word is `0x40010100`; the build marker is
 `kisak-ps4: build marker blend_bypass_probe_v308`.
+
+### v3.09: Disable render-target blend optimizations
+
+v3.08 remained red with `ZERO / ONE`, proving Liverpool bypassed the programmed
+blend equation. The display-linear target left both `CB_COLOR0_INFO` blend
+optimization controls at automatic. v3.09 forces `BLEND_OPT_DONT_RD_DST` and
+`BLEND_OPT_DISCARD_PIXEL` to `FORCE_DISABLE` while retaining the factor-
+independent probe. This changes target info from `0x00008028` to `0x00908028`.
+An invisible triangle proves the automatic destination-read optimization was
+the bypass; continued red moves the audit to another target enable. The build
+marker is `kisak-ps4: build marker blend_opt_disable_v309`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.
