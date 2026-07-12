@@ -1275,6 +1275,23 @@ runtime breadcrumb will provide the exact hardware value. Marker:
 The v2.82 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `08df2748c23c63424ecbbc9c382f944e6d623abb5d1da0916cf3adbda116c2c3`.
+
+The v2.82 hardware run retained the spinning cube, navy contrast regions, and
+60 FPS through frame 1200. The measured persistent arena is 51,244,544 bytes
+(48.9 MiB), confirming the expanded pool. Version 2.83 adds native
+`CPs4SourceVertexBuffer` and `CPs4SourceIndexBuffer` implementations over
+GPU-visible `CPs4GnmBuffer` allocations. Vertex locks use Source's canonical
+vertex-format layout to populate `VertexDesc_t`; index buffers support 16/32-bit
+formats, append locks, and modify ranges. `CShaderDevicePs4` creates/tracks/
+destroys these native objects once the runtime is ready, retaining the empty
+delegate only before GPU registration or on bounded allocation failure. A
+hardware probe creates, locks, writes, and unlocks one static triangle and
+reports `native Source buffer probe passed`. The persistent pool is currently
+monotonic; deferred reclamation remains required before map-reload soaks.
+Marker: `kisak-ps4: build marker native_source_buffers_v283`.
+The v2.83 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`a0aee3e36dfa1573b67a27c0e5b5598fde7aa6be7f0811596f4e5a1b06fc2dfa`.
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
 

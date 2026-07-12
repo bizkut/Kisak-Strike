@@ -6,6 +6,8 @@
 #include "tier1/keyvalues.h"
 #include "ps4_gnm_draw_state.h"
 #include "ps4_gnm_texture.h"
+#include "ps4_gnm_runtime.h"
+#include "ps4_source_buffers.h"
 #include "ps4_shadow_state_translate.h"
 #include "shaderapips4.h"
 
@@ -113,7 +115,11 @@ CShaderDeviceMgrPs4 g_DeviceMgrPs4;
 class CShaderDevicePs4 : public IShaderDevice
 {
 public:
-    CShaderDevicePs4() : m_delegate( 0 ) {}
+    CShaderDevicePs4() : m_delegate( 0 )
+    {
+        memset( m_nativeVertexBuffers, 0, sizeof( m_nativeVertexBuffers ) );
+        memset( m_nativeIndexBuffers, 0, sizeof( m_nativeIndexBuffers ) );
+    }
     void SetDelegate( IShaderDevice *delegate ) { m_delegate = delegate; }
 
     void ReleaseResources( bool releaseManagedResources = true )
@@ -160,14 +166,46 @@ public:
     void DestroyStaticMesh( IMesh *mesh ) { if ( m_delegate ) m_delegate->DestroyStaticMesh( mesh ); }
     IVertexBuffer *CreateVertexBuffer( ShaderBufferType_t type, VertexFormat_t format, int count,
                                       const char *budgetGroup )
-    { return m_delegate ? m_delegate->CreateVertexBuffer( type, format, count, budgetGroup ) : 0; }
+    {
+        if ( KisakPs4GnmRuntime().IsReady() )
+        {
+            CPs4SourceVertexBuffer *buffer = new CPs4SourceVertexBuffer;
+            if ( buffer && buffer->Initialize( type, format, count ) &&
+                AddNativePointer( m_nativeVertexBuffers, buffer ) )
+                return buffer;
+            delete buffer;
+        }
+        return m_delegate ? m_delegate->CreateVertexBuffer(
+            type, format, count, budgetGroup ) : 0;
+    }
     void DestroyVertexBuffer( IVertexBuffer *buffer )
-    { if ( m_delegate ) m_delegate->DestroyVertexBuffer( buffer ); }
+    {
+        if ( RemoveNativePointer( m_nativeVertexBuffers, buffer ) )
+            delete static_cast< CPs4SourceVertexBuffer * >( buffer );
+        else if ( m_delegate )
+            m_delegate->DestroyVertexBuffer( buffer );
+    }
     IIndexBuffer *CreateIndexBuffer( ShaderBufferType_t type, MaterialIndexFormat_t format, int count,
                                     const char *budgetGroup )
-    { return m_delegate ? m_delegate->CreateIndexBuffer( type, format, count, budgetGroup ) : 0; }
+    {
+        if ( KisakPs4GnmRuntime().IsReady() )
+        {
+            CPs4SourceIndexBuffer *buffer = new CPs4SourceIndexBuffer;
+            if ( buffer && buffer->Initialize( type, format, count ) &&
+                AddNativePointer( m_nativeIndexBuffers, buffer ) )
+                return buffer;
+            delete buffer;
+        }
+        return m_delegate ? m_delegate->CreateIndexBuffer(
+            type, format, count, budgetGroup ) : 0;
+    }
     void DestroyIndexBuffer( IIndexBuffer *buffer )
-    { if ( m_delegate ) m_delegate->DestroyIndexBuffer( buffer ); }
+    {
+        if ( RemoveNativePointer( m_nativeIndexBuffers, buffer ) )
+            delete static_cast< CPs4SourceIndexBuffer * >( buffer );
+        else if ( m_delegate )
+            m_delegate->DestroyIndexBuffer( buffer );
+    }
     IVertexBuffer *GetDynamicVertexBuffer( int stream, VertexFormat_t format, bool buffered = true )
     { return m_delegate ? m_delegate->GetDynamicVertexBuffer( stream, format, buffered ) : 0; }
     IIndexBuffer *GetDynamicIndexBuffer()
@@ -180,7 +218,33 @@ public:
     { if ( m_delegate ) m_delegate->HandleThreadEvent( event ); }
 
 private:
+    template < typename T, size_t N >
+    static bool AddNativePointer( T *( &pointers )[N], T *pointer )
+    {
+        for ( size_t i = 0; i < N; ++i )
+            if ( !pointers[i] )
+            {
+                pointers[i] = pointer;
+                return true;
+            }
+        return false;
+    }
+
+    template < typename T, size_t N, typename U >
+    static bool RemoveNativePointer( T *( &pointers )[N], U *pointer )
+    {
+        for ( size_t i = 0; i < N; ++i )
+            if ( pointers[i] == pointer )
+            {
+                pointers[i] = 0;
+                return true;
+            }
+        return false;
+    }
+
     IShaderDevice *m_delegate;
+    CPs4SourceVertexBuffer *m_nativeVertexBuffers[256];
+    CPs4SourceIndexBuffer *m_nativeIndexBuffers[256];
 };
 
 CShaderDevicePs4 g_DevicePs4;

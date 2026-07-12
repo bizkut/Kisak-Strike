@@ -805,6 +805,9 @@ bool LoadDiagnosticShaders()
                 KisakPs4GnmRuntime().PersistentArena().Capacity() ) );
         KisakPs4StartupBreadcrumb( message );
     }
+    if ( !KisakPs4SourceBufferProbe() )
+        return false;
+    KisakPs4StartupBreadcrumb( "kisak-ps4: native Source buffer probe passed" );
     snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
         "ready vsbytes=%u psbytes=%u fetchbytes=%u vertexinputs=%u depthbytes=%llu texturebytes=%llu",
         g_VertexShader->common.shadersize, g_PixelShader->common.shadersize,
