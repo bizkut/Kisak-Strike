@@ -3068,3 +3068,9 @@ The next hardware gate is a non-zero shape, mesh, or text count after the
 `MainMenu` request. If the roots remain container-only, add the minimal Source
 `GameInterface` callback table and request the first HUD element before enabling
 OpenGNM primitive emission.
+
+The v3.32 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`231ea437fdc51ae51017087acea5d6fedd3c56f865adbf87ab28d69ef26de1a6`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
