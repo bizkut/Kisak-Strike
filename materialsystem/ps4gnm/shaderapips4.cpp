@@ -773,14 +773,14 @@ extern "C" bool KisakPs4PopulateShaderApiDynamicTriangle()
         desc.m_ActualVertexSize != 32 || desc.m_nIndexSize != 1 )
         return false;
     const float positions[3][4] = {
-        { -0.90f, -0.78f, 0.0f, 1.0f },
-        { -0.52f, -0.78f, 0.0f, 1.0f },
-        { -0.71f, -0.40f, 0.0f, 1.0f }
+        { -0.90f, -0.66f, 0.0f, 1.0f },
+        { -0.52f, -0.66f, 0.0f, 1.0f },
+        { -0.71f, -0.28f, 0.0f, 1.0f }
     };
     const float colors[3][4] = {
-        { 1.0f, 0.9f, 0.1f, 0.55f },
-        { 0.1f, 1.0f, 0.9f, 0.55f },
-        { 0.9f, 0.1f, 1.0f, 0.55f }
+        { 1.0f, 0.9f, 0.1f, 0.45f },
+        { 0.1f, 1.0f, 0.9f, 0.45f },
+        { 0.9f, 0.1f, 1.0f, 0.45f }
     };
     for ( int vertex = 0; vertex < 3; ++vertex )
     {

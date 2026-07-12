@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.97
-SHA-256: a917edc0b7dc48e8e7b6bfe6b835301ba9684e7c0bfcc0bf3069a3c14caf7bff
+Version: 2.98
+SHA-256: 2d40215a1dfcd858d7fd8d3ea43deff55ed7947ec37161a24730b3a46d5a7271
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -1480,6 +1480,16 @@ triangle. Success logs `Source dynamic mesh alpha blend emitted`. Marker:
 The v2.97 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `a917edc0b7dc48e8e7b6bfe6b835301ba9684e7c0bfcc0bf3069a3c14caf7bff`.
+
+The v2.97 screenshot confirmed blend-state emission, but only a narrow apex
+overlapped the blue band, making the visual evidence unnecessarily subtle.
+Version 2.98 moves the triangle upward by 0.12 clip-space units so a much
+larger region spans the blue/white boundary and lowers alpha from 0.55 to 0.45
+so the background contribution is clearer. The right-side scissor remains in
+place. Marker: `kisak-ps4: build marker source_blend_visible_v298`.
+The v2.98 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`2d40215a1dfcd858d7fd8d3ea43deff55ed7947ec37161a24730b3a46d5a7271`.
 
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
