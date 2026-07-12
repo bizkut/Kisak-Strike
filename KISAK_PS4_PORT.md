@@ -3075,6 +3075,24 @@ The v3.32 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
+
+The v3.48 run still exposed no root hooks, but also no ActionScript error. The
+shared Scaleform release configuration undefines `GFX_AS2_VERBOSE_ERRORS`, so
+the retained non-suppressing `ActionControl` could not report a failed root
+`DoAction`. The PS4 config now re-enables runtime error reporting after the
+shared release header while leaving opcode tracing disabled. The next capture
+should identify the first unsupported/missing AS2 dependency; the stable dark-
+red spinning cube and clipped transparent triangle remain the fallback.
+
+Marker: `kisak-ps4: build marker scaleform_as2_errors_v349`.
+
+The v3.49 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`ec622c4863c4bd6db01ef7ffeb2d0f7c48059904f27606a6b9a86c39e8e30e39`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.46: Execute the first root timeline tick before querying hooks
 
 The v3.45 hardware run shows that `LoadWaitFrame1` succeeds without using the

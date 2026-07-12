@@ -14,3 +14,8 @@
 // External codec libraries enter after the core player can construct and link.
 #undef SF_ENABLE_LIBJPEG
 #undef SF_ENABLE_LIBPNG
+
+// Keep runtime ActionScript failures visible in the PS4 bring-up build even
+// though the shared SDK release configuration undefines this diagnostic macro.
+// Opcode tracing remains disabled; KisakScaleformLog bounds the error stream.
+#define GFX_AS2_VERBOSE_ERRORS
