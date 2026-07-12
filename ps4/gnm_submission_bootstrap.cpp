@@ -866,8 +866,57 @@ bool ClearDiagnosticDepth( GnmCommandBuffer *command )
     return true;
 }
 
+bool BuildSourceDynamicTriangle( CPs4GnmDevice::IndexedDrawPacket *packet,
+    GnmBuffer *descriptors )
+{
+    if ( !packet || !descriptors )
+        return false;
+    const VertexFormat_t format = VERTEX_POSITION | VERTEX_NORMAL |
+        VERTEX_FORMAT_PAD_POS_NORM;
+    VertexDesc_t vertices = {};
+    IndexDesc_t indices = {};
+    if ( !KisakPs4LockDynamicVertices( format, 3, false, &vertices ) ||
+        !vertices.m_pPosition || !vertices.m_pNormal ||
+        vertices.m_ActualVertexSize != 32 )
+        return false;
+    const float positions[3][4] = {
+        { -0.90f, -0.78f, 0.0f, 1.0f },
+        { -0.52f, -0.78f, 0.0f, 1.0f },
+        { -0.71f, -0.40f, 0.0f, 1.0f }
+    };
+    const float colors[3][4] = {
+        { 1.0f, 0.9f, 0.1f, 1.0f },
+        { 0.1f, 1.0f, 0.9f, 1.0f },
+        { 0.9f, 0.1f, 1.0f, 1.0f }
+    };
+    for ( int vertex = 0; vertex < 3; ++vertex )
+    {
+        float *base = vertices.m_pPosition + vertex * 8;
+        memcpy( base, positions[vertex], sizeof( positions[vertex] ) );
+        memcpy( base + 4, colors[vertex], sizeof( colors[vertex] ) );
+    }
+    KisakPs4UnlockDynamicVertices( 3, &vertices );
+    if ( !KisakPs4LockDynamicIndices( 3, false, &indices ) || !indices.m_pIndices )
+        return false;
+    indices.m_pIndices[0] = 0;
+    indices.m_pIndices[1] = 1;
+    indices.m_pIndices[2] = 2;
+    KisakPs4UnlockDynamicIndices( 3, &indices );
+    const CPs4GnmVertexDeclaration::Element elements[2] = {
+        { 0, 0, GNM_FMT_R32G32B32A32_FLOAT },
+        { 0, 16, GNM_FMT_R32G32B32A32_FLOAT }
+    };
+    CPs4GnmVertexDeclaration declaration;
+    return declaration.Initialize( elements, 2 ) &&
+        g_Device.BuildVertexDescriptorTable( declaration, 0, 3, descriptors, 2 ) &&
+        g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
+            0, 3, 0, 3, packet );
+}
+
 void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     const CPs4GnmDevice::IndexedDrawPacket &packet,
+    const CPs4GnmDevice::IndexedDrawPacket &sourcePacket,
+    GnmBuffer *sourceDescriptors,
     const CPs4GnmDevice::PrimitiveDrawPacket &cubePacket,
     const CPs4GnmDevice::PrimitiveDrawPacket &edgePacket,
     GnmBuffer *cubeVsDescriptor )
@@ -991,6 +1040,22 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_CubeEdgeVertexBuffers );
     g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_CubeEdgeSamplerTable );
     Ps4EmitPrimitiveDraw( command, &g_DrawState, edgePacket );
+    g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
+    g_DrawState.SetPixelShader( g_PixelShader->registers );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, sourceDescriptors );
+    g_DrawState.SetPsInputUsage(
+        sceGnmVsShaderExportSemanticTable( g_VertexShader ),
+        g_VertexShader->numexportsemantics,
+        sceGnmPsShaderInputSemanticTable( g_PixelShader ),
+        g_PixelShader->numinputsemantics );
+    GnmDepthStencilControl sourceDepth = {};
+    sourceDepth.zfunc = GNM_DEPTH_COMPARE_ALWAYS;
+    sourceDepth.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
+    sourceDepth.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
+    g_DrawState.SetDepthStencilControl( sourceDepth );
+    g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil );
+    Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX );
 }
 }
 
@@ -1234,8 +1299,11 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
         }
         g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
         CPs4GnmDevice::IndexedDrawPacket packet = {};
+        CPs4GnmDevice::IndexedDrawPacket sourcePacket = {};
         CPs4GnmDevice::PrimitiveDrawPacket cubePacket = {};
         CPs4GnmDevice::PrimitiveDrawPacket edgePacket = {};
+        GnmBuffer *sourceDescriptors = static_cast< GnmBuffer * >(
+            g_Device.FrameArena().Allocate( 2 * sizeof( GnmBuffer ), 16 ) );
         if ( !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
                 0, kDiagnosticIndexCount, 0, kDiagnosticVertexCount, &packet ) ||
             !g_Device.SetStreamSource( 0, &g_ReferenceCubeVertexBuffer, 0,
@@ -1259,9 +1327,17 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             g_Device.CancelFrame();
             return false;
         }
+        g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
+        if ( !sourceDescriptors ||
+            !BuildSourceDynamicTriangle( &sourcePacket, sourceDescriptors ) )
+        {
+            g_Device.EndScene();
+            g_Device.CancelFrame();
+            return false;
+        }
         sceGnmDrawCmdWaitGraphicsWrite( &command, GNM_ACQUIRE_TARGET_CB0 );
-        EmitDiagnosticTriangle( &command, destination, packet, cubePacket, edgePacket,
-            cubeVsDescriptor );
+        EmitDiagnosticTriangle( &command, destination, packet, sourcePacket,
+            sourceDescriptors, cubePacket, edgePacket, cubeVsDescriptor );
         if ( !g_Device.EndScene() )
         {
             g_Device.CancelFrame();
@@ -1272,6 +1348,13 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             KisakPs4StartupBreadcrumb(
                 "kisak-ps4: D3D9 facade indexed diagnostic draw emitted" );
             g_FacadeDrawLogged = true;
+        }
+        static bool sourceDynamicDrawLogged = false;
+        if ( !sourceDynamicDrawLogged )
+        {
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: Source dynamic mesh command emitted" );
+            sourceDynamicDrawLogged = true;
         }
         static bool threeDimensionalDrawLogged = false;
         if ( !threeDimensionalDrawLogged )

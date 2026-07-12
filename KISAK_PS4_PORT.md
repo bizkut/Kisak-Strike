@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.91
-SHA-256: 995e5dfe1662371250995db3a4f6e9d6b31f28d6a914086659d7138a5dbdad9f
+Version: 2.92
+SHA-256: 15d406c70972df1c4f93ab39dec034a5f27e4b9a36a612eadbc2ab5d740d9277
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -1405,6 +1405,20 @@ last device-side boundary before emitting Source-owned mesh commands. Marker:
 The v2.91 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `995e5dfe1662371250995db3a4f6e9d6b31f28d6a914086659d7138a5dbdad9f`.
+
+The v2.91 hardware run retained the four bars and spinning navy-framed cube at
+60 FPS through frame 7200, validating the Source draw-packet gate. Version
+2.92 creates a second triangle through the Source dynamic vertex/index lock
+bridge using a canonical 32-byte position/normal layout, binds those resources,
+builds its vertex descriptors and indexed packet, and emits it through the
+shared draw-state cache into the live command buffer. The triangle occupies
+the lower-left portion of the screen and uses yellow, cyan, and magenta vertex
+colors so it cannot be confused with the cube. Success logs
+`Source dynamic mesh command emitted`. Marker:
+`kisak-ps4: build marker source_dynamic_draw_v292`.
+The v2.92 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`15d406c70972df1c4f93ab39dec034a5f27e4b9a36a612eadbc2ab5d740d9277`.
 
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
