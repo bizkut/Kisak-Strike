@@ -357,7 +357,8 @@ public:
         m_loader->SetFontLib( m_fontLib );
         Scaleform::Ptr< Scaleform::GFx::MovieDef > fontDefinition =
             *m_loader->CreateMovie( "resource/flash/fontlib.gfx",
-                Scaleform::GFx::Loader::LoadAll );
+                Scaleform::GFx::Loader::LoadAll |
+                Scaleform::GFx::Loader::LoadWaitCompletion );
         if ( fontDefinition.GetPtr() )
         {
             m_fontLib->AddFontsFrom( fontDefinition, true );
@@ -535,7 +536,8 @@ private:
     {
         ScaleformMovieSlot &movieSlot = m_slots[slot];
         movieSlot.definition = *m_loader->CreateMovie( movieSlot.name,
-            Scaleform::GFx::Loader::LoadAll );
+            Scaleform::GFx::Loader::LoadAll |
+            Scaleform::GFx::Loader::LoadWaitCompletion );
         if ( !movieSlot.definition.GetPtr() )
             return false;
 

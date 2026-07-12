@@ -3075,6 +3075,27 @@ The v3.32 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.37: Wait for root movie payloads before invoking ActionScript
+
+The v3.36 hardware log identified a loader-state issue rather than an invalid
+root file: both SWF roots reported `avm=1` and the expected URLs, but zero
+frames and zero dimensions. GFx's `LoadAll` value is the default asynchronous
+mode; the manager now ORs `LoadWaitCompletion` into the font and root movie
+loads so frame metadata, timeline scripts, and imported element bindings are
+ready before `CreateInstance`, `Advance`, and the Source slot hooks run. The
+diagnostic scene remains the solid dark-red spinning cube and clipped
+transparent triangle. Marker:
+`kisak-ps4: build marker scaleform_wait_completion_v337`.
+
+The next hardware run should show non-zero frame/dimension metadata and either
+`InitSlot`/`RequestElement` availability or an explicit GFx load error.
+
+The v3.37 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`507e4e446fa2364dc16b77e7fd79ab300623f6a3612661d485c77e9c66c4ca85`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.33: Use Source's SWF root movies
 
 The v3.32 capture proved that the `.gfx` root files load but expose no
