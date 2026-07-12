@@ -1024,6 +1024,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     g_DrawState.SetPixelShader( g_PixelShader->registers );
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
     g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, sourceDescriptors );
+    // Intentionally clip the right side of the Source triangle. This makes
+    // hardware validation of per-draw scissor emission visually unambiguous.
+    g_DrawState.SetScissor( 80, 730, 330, 990 );
     g_DrawState.SetPsInputUsage(
         sceGnmVsShaderExportSemanticTable( g_VertexShader ),
         g_VertexShader->numexportsemantics,
@@ -1352,6 +1355,13 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             KisakPs4StartupBreadcrumb(
                 "kisak-ps4: IMesh Draw command emitted" );
             sourceDynamicDrawLogged = true;
+        }
+        static bool sourceScissorLogged = false;
+        if ( !sourceScissorLogged )
+        {
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: Source dynamic mesh scissor emitted" );
+            sourceScissorLogged = true;
         }
         static bool threeDimensionalDrawLogged = false;
         if ( !threeDimensionalDrawLogged )

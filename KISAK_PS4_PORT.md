@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 2.95
-SHA-256: 481abbf4eee2ae5f9e133e4f84b1ab6984d8000d6871fa730f7cbd6b706eaa99
+Version: 2.96
+SHA-256: 2d6fc5110a11ecd99bc6744f100bbfb2b73c115ab515c5792ee5fa448a76398b
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -1457,6 +1457,18 @@ consumption remains the next boundary. Marker:
 The v2.95 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `481abbf4eee2ae5f9e133e4f84b1ab6984d8000d6871fa730f7cbd6b706eaa99`.
+
+The v2.95 hardware run preserved the scene at 60 FPS and logged
+`Source frame callback ran inside GPU frame` before the native buffer probes.
+Version 2.96 applies a bounded screen scissor through `CPs4GnmDrawState` only
+for the lower-left Source triangle. The right side is intentionally clipped,
+providing visible evidence that per-draw scissor state is marked dirty and
+emitted with the Source mesh packet. Success logs
+`Source dynamic mesh scissor emitted`. Marker:
+`kisak-ps4: build marker source_scissor_v296`.
+The v2.96 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`2d6fc5110a11ecd99bc6744f100bbfb2b73c115ab515c5792ee5fa448a76398b`.
 
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.
