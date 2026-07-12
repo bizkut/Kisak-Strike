@@ -286,11 +286,12 @@ uint32_t CPs4GnmDrawState::Apply( GnmCommandBuffer *command )
     if ( ( emitted & kDirtyVertexBuffer ) && m_vertexBufferBound )
         sceGnmDrawCmdSetVsharpUserData( command, m_vertexBufferStage,
             m_vertexBufferSlot, &m_vertexBuffer );
-    // Liverpool can restore color-buffer state during later context rolls.
-    // Reassert blend control after depth targets, shader I/O, descriptors, and
-    // primitive state so the requested equation is active at the draw packet.
-    if ( emitted & kDirtyBlend )
-        sceGnmDrawCmdSetBlendControl( command, m_blendIndex, &m_blendControl );
     m_dirtyMask = 0;
     return emitted;
+}
+
+void CPs4GnmDrawState::ReassertBlendControl( GnmCommandBuffer *command ) const
+{
+    if ( command )
+        sceGnmDrawCmdSetBlendControl( command, m_blendIndex, &m_blendControl );
 }

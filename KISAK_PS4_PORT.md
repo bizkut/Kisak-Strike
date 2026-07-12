@@ -1703,6 +1703,18 @@ control after pixel-shader state, emits the remaining depth/I/O/descriptor/
 primitive state, then reasserts blend control at the end. The normal indexed
 draw path remains in use. The expected trace returns to four writes and the
 build marker is `kisak-ps4: build marker drawstate_blend_reassert_v316`.
+
+### v3.17: Reassert blend state at the draw-packet boundary
+
+v3.16 remained opaque red and logged five blend writes, showing that duplicating
+the write inside `CPs4GnmDrawState::Apply` did not reproduce v3.14's successful
+sequence. The meaningful boundary in v3.14 was after `Apply()` returned and
+immediately before the hardware draw helper. v3.17 keeps the normal cached blend
+write in `Apply`, exposes a narrow `ReassertBlendControl`, and calls it from both
+`Ps4EmitIndexedDraw` and `Ps4EmitPrimitiveDraw` after state application and just
+before `DRAW_INDEX_2`/`DRAW_INDEX_AUTO`. This makes the exact proven sequencing
+generic without diagnostic-specific draw code. The build marker is
+`kisak-ps4: build marker drawpacket_blend_reassert_v317`.
 The v3.04 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066`.

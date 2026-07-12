@@ -55,6 +55,7 @@ public:
     void SetVertexBuffer( GnmShaderStage stage, uint32_t startSlot,
         const GnmBuffer &buffer );
     uint32_t Apply( GnmCommandBuffer *command );
+    void ReassertBlendControl( GnmCommandBuffer *command ) const;
     void RetainDirtyMask( uint32_t mask ) { m_dirtyMask &= mask; }
     void Invalidate( uint32_t mask ) { m_dirtyMask |= mask & kDirtyAll; }
 
