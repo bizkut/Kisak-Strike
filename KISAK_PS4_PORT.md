@@ -3394,6 +3394,30 @@ The v3.64 monolithic package is staged at
 `7416a09cb8fb1776486948412a879db80add06810d007a7f311c00d03d7856bc`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.65: Trace the visible-frame inputs to the GFx root matrix
+
+The v3.64 run proved the explicit viewport is applied as 1920x1080 with scale
+1.0 and aspect ratio 1.0, yet the captured root remains
+`[0 0 960; 0 0.075 0]`. The constructor fields are therefore correct and the
+collapse occurs later in GFx viewport-matrix calculation.
+
+The applied-viewport marker now includes the active scale mode and the movie's
+pixel-space `GetVisibleFrameRect()`. Those values directly determine the X/Y
+divisors in `MovieImpl::ResetViewportMatrix()`. This splits a corrupt/empty
+visible width from a matrix append/ABI failure without modifying geometry or
+input state.
+
+The next gate is a finite nonzero visible width and height under `SM_NoScale`.
+If the visible width is wrong, viewport update is corrected; if it is valid,
+the matrix scaling implementation/configuration becomes the isolated fault.
+
+Marker: `kisak-ps4: build marker scaleform_visible_frame_v365`.
+
+The v3.65 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`5717ce5c3ff8af424d99045c846373e10148dace56f6eb795225cf45c1e0fe5f`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

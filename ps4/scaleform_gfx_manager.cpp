@@ -917,11 +917,16 @@ private:
         static bool loggedViewport = false;
         if ( !loggedViewport )
         {
-            char viewportMarker[192];
+            const Scaleform::Render::RectF visibleFrame =
+                movieSlot.movie->GetVisibleFrameRect();
+            char viewportMarker[320];
             snprintf( viewportMarker, sizeof( viewportMarker ),
-                "kisak-ps4: scaleform viewport width=%d height=%d scale=%.4f ratio=%.4f",
+                "kisak-ps4: scaleform viewport width=%d height=%d scale=%.4f ratio=%.4f mode=%u visible=%.2f,%.2f..%.2f,%.2f",
                 appliedViewport.Width, appliedViewport.Height,
-                appliedViewport.Scale, appliedViewport.AspectRatio );
+                appliedViewport.Scale, appliedViewport.AspectRatio,
+                static_cast< unsigned int >( movieSlot.movie->GetViewScaleMode() ),
+                visibleFrame.x1, visibleFrame.y1,
+                visibleFrame.x2, visibleFrame.y2 );
             KisakPs4StartupBreadcrumb( viewportMarker );
             loggedViewport = true;
         }
