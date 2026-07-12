@@ -8,7 +8,9 @@
 #include "inputsystem/ButtonCode.h"
 #include "tier1/utlbuffer.h"
 
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
@@ -62,6 +64,37 @@ public:
             return g_pFullFileSystem->GetFileTime( url, "GAME" );
         return Scaleform::GFx::FileOpener::GetFileModifyTime( url );
     }
+};
+
+class KisakScaleformLog final : public Scaleform::GFx::Log
+{
+public:
+    KisakScaleformLog() : m_messages( 0 )
+    {
+    }
+
+    void LogMessageVarg( Scaleform::LogMessageId messageId, const char *format,
+        va_list arguments ) override
+    {
+        if ( m_messages++ >= 24 )
+            return;
+
+        char text[512];
+        vsnprintf( text, sizeof( text ), format ? format : "", arguments );
+        text[sizeof( text ) - 1] = '\0';
+        size_t length = strlen( text );
+        while ( length > 0 && ( text[length - 1] == '\n' || text[length - 1] == '\r' ) )
+            text[--length] = '\0';
+
+        char marker[640];
+        snprintf( marker, sizeof( marker ),
+            "kisak-ps4: scaleform log type=%u %s",
+            static_cast< unsigned int >( messageId.GetMessageType() ), text );
+        KisakPs4StartupBreadcrumb( marker );
+    }
+
+private:
+    uint32_t m_messages;
 };
 
 enum ScaleformCallbackId
@@ -329,9 +362,9 @@ public:
         // is an element requested from MainUIRootMovie; GameUIRootMovie is
         // the client/HUD root and receives its level HUD elements later.
         m_slots[kScaleformMenuSlot] = {
-            "resource/flash/mainuirootmovie.gfx", "MainMenu", NULL, NULL, false, false };
+            "resource/flash/mainuirootmovie.swf", "MainMenu", NULL, NULL, false, false };
         m_slots[kScaleformHudSlot] = {
-            "resource/flash/gameuirootmovie.gfx", NULL, NULL, NULL, false, false };
+            "resource/flash/gameuirootmovie.swf", NULL, NULL, NULL, false, false };
     }
 
     ~CPs4ScaleformMovieManager()
@@ -350,6 +383,8 @@ public:
             *new KisakScaleformFileOpener();
         m_fileOpener = fileOpener;
         m_loader = new Scaleform::GFx::Loader( fileOpener );
+        m_log = *new KisakScaleformLog();
+        m_loader->SetLog( m_log );
         m_loader->SetAS2Support( Scaleform::Ptr< Scaleform::GFx::AS2Support >(
             *new Scaleform::GFx::AS2Support() ) );
 
@@ -385,6 +420,7 @@ public:
             m_loader = NULL;
             m_fontLib.Clear();
             m_fileOpener.Clear();
+            m_log.Clear();
             delete m_system;
             m_system = NULL;
         }
@@ -409,6 +445,7 @@ public:
         m_loader = NULL;
         m_fontLib.Clear();
         m_fileOpener.Clear();
+        m_log.Clear();
         delete m_system;
         m_system = NULL;
         m_initialized = false;
@@ -559,8 +596,7 @@ private:
         LogMovieInfoProbe( slot, "swf", swfRoot );
         LogMovieInfoProbe( slot, "gfx", gfxRoot );
         movieSlot.definition = *m_loader->CreateMovie( movieSlot.name,
-            Scaleform::GFx::Loader::LoadAll |
-            Scaleform::GFx::Loader::LoadWaitCompletion );
+            Scaleform::GFx::Loader::LoadAll );
         if ( !movieSlot.definition.GetPtr() )
             return false;
 
@@ -664,6 +700,7 @@ private:
     Scaleform::System *m_system;
     Scaleform::GFx::Loader *m_loader;
     Scaleform::Ptr< KisakScaleformFileOpener > m_fileOpener;
+    Scaleform::Ptr< KisakScaleformLog > m_log;
     Scaleform::Ptr< Scaleform::GFx::FontLib > m_fontLib;
     Scaleform::Ptr< KisakScaleformFunctionHandler > m_callbackHandler;
     ScaleformMovieSlot m_slots[kScaleformSlotCount];

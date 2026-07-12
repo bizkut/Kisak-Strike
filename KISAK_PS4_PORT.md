@@ -3075,6 +3075,27 @@ The v3.32 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.40: Restore the stable roots and capture bounded GFx loader errors
+
+The v3.39 hardware run proved that valid GFX header metadata does not guarantee
+a loadable movie definition. Synchronous `CreateMovie` returned null for both
+stripped roots, the manager reported both movies unavailable, and the process
+crashed before its first frame. The live slots return to the v3.38 stable SWF
+asynchronous path while retaining the SWF/GFX header probes.
+
+A retained loader-local `GFx::Log` now captures at most 24 formatted Scaleform
+messages into startup breadcrumbs. Failed-initialization and normal shutdown
+release that logger before destroying `Scaleform::System`. This should expose
+the exact parser, import, decompression, or bind error behind synchronous root
+failure without perturbing the established diagnostic scene. Marker:
+`kisak-ps4: build marker scaleform_loader_log_v340`.
+
+The v3.40 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`2bedf42e7454fe943857fd77803022680aecbee4e3aedb4bb8ed93ebeca0132f`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.39: Load the validated stripped GFX roots synchronously
 
 The v3.38 hardware probe separated the two asset formats. Both compressed SWF
