@@ -3096,6 +3096,35 @@ The v3.46 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.47: Match BaseSlot scaling and isolate per-element callback state
+
+The v3.46 capture kept both root movies stable but still reported no
+`InitSlot`/`RequestElement` members. The bootstrap now attaches a retained
+`GFx::ActionControl` with ActionScript errors unsuppressed before creating a
+movie, so the next capture can identify an early `DoAction` failure instead of
+silently falling back to the diagnostic scene. Root initialization also uses
+the original `BaseSlot::Init` zero-delta `Advance(0)` after console globals and
+`GameInterface` are installed.
+
+The view scale mode is now `SM_NoScale`, matching Source's console slot. This
+leaves authored 1280x720 coordinates intact so the ActionScript
+`ResizeManager` owns the 1920x1080 safe-zone calculation. The new
+`KisakPs4ScaleformUiRequestElement` entry point creates a fresh callback object
+for every requested element before invoking `_global.RequestElement`, instead
+of reusing the root `GameInterface`; this preserves per-panel callback state as
+the menu starts requesting child movies. The solid dark-red spinning cube and
+clipped transparent triangle remain the fallback regression image.
+
+Marker: `kisak-ps4: build marker scaleform_hook_diagnostics_v347`.
+
+The v3.47 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`517428e61ce043a307074ffdcc28825e0f46a812f1cbe0a33868b1982c6976b1`.
+Host tests pass 11/11 and the PS4 link/package build completes. Hardware
+validation is pending the next launch; inspect `scaleform log type=` lines
+after the v347 marker, then look for the first element-load callback or a
+bounded ActionScript error.
+
 ### v3.45: Wait only for root frame one with a stable fallback
 
 The v3.44 hardware run is the first clean root-movie parse: the file opener

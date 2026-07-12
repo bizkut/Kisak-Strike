@@ -454,6 +454,12 @@ public:
         m_loader = new Scaleform::GFx::Loader( fileOpener );
         m_log = *new KisakScaleformLog();
         m_loader->SetLog( m_log );
+        m_actionControl = *new Scaleform::GFx::ActionControl(
+            Scaleform::GFx::ActionControl::Action_LogAllFilenames );
+        m_actionControl->SetActionErrorSuppress( false );
+        m_actionControl->SetVerboseAction( false );
+        m_loader->SetActionControl( m_actionControl );
+        KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform AS2 action diagnostics installed" );
         m_zlibSupport = *new Scaleform::GFx::ZlibSupport();
         m_loader->SetZlibSupport( m_zlibSupport );
         KisakPs4StartupBreadcrumb( m_loader->GetZlibSupport().GetPtr()
@@ -495,6 +501,7 @@ public:
             m_fontLib.Clear();
             m_fileOpener.Clear();
             m_log.Clear();
+            m_actionControl.Clear();
             m_zlibSupport.Clear();
             delete m_system;
             m_system = NULL;
@@ -521,6 +528,7 @@ public:
         m_fontLib.Clear();
         m_fileOpener.Clear();
         m_log.Clear();
+        m_actionControl.Clear();
         m_zlibSupport.Clear();
         delete m_system;
         m_system = NULL;
@@ -623,6 +631,33 @@ public:
         return slot >= 0 && slot < kScaleformSlotCount && m_slots[slot].ready;
     }
 
+    bool RequestElement( int slot, const char *elementName )
+    {
+        if ( slot < 0 || slot >= kScaleformSlotCount || elementName == NULL ||
+             !m_slots[slot].movie.GetPtr() )
+            return false;
+
+        Scaleform::GFx::Movie *movie = m_slots[slot].movie.GetPtr();
+        Scaleform::GFx::Value global;
+        if ( !movie->GetVariable( &global, "_global" ) )
+            return false;
+
+        Scaleform::GFx::Value function;
+        function.SetNull();
+        if ( !global.GetMember( "RequestElement", &function ) )
+            return false;
+
+        // Source creates a new callback object for every element.  Reusing the
+        // root GameInterface lets one panel overwrite another panel's state.
+        Scaleform::GFx::Value args[2];
+        movie->CreateString( &args[0], elementName );
+        CreateGameInterface( movie, &args[1] );
+        if ( !args[1].IsObject() )
+            return false;
+        global.Invoke( "RequestElement", NULL, args, 2 );
+        return true;
+    }
+
 private:
     void LogMovieInfoProbe( int slot, const char *kind, const char *url )
     {
@@ -684,7 +719,8 @@ private:
             return false;
         movieSlot.definition = *loadedDefinition;
 
-        movieSlot.movie = *movieSlot.definition->CreateInstance( true );
+        movieSlot.movie = *movieSlot.definition->CreateInstance(
+            true, 0, m_actionControl.GetPtr() );
         if ( !movieSlot.movie.GetPtr() )
             return false;
 
@@ -700,7 +736,9 @@ private:
         KisakPs4StartupBreadcrumb( metadataMarker );
 
         movieSlot.movie->SetViewAlignment( Scaleform::GFx::Movie::Align_TopLeft );
-        movieSlot.movie->SetViewScaleMode( Scaleform::GFx::Movie::SM_ExactFit );
+        // Keep authored coordinates intact; ResizeManager applies the console
+        // resolution/safe-zone scale in ActionScript, matching BaseSlot::Init.
+        movieSlot.movie->SetViewScaleMode( Scaleform::GFx::Movie::SM_NoScale );
         movieSlot.movie->SetBackgroundAlpha( 0.0f );
         movieSlot.movie->SetVisible( true );
 
@@ -729,7 +767,9 @@ private:
         if ( slot == kScaleformMenuSlot )
             movieSlot.movie->HandleEvent( Scaleform::GFx::Event::SetFocus );
 
-        movieSlot.movie->Advance( 1.0f / 60.0f );
+        // Match the original BaseSlot::Init bootstrap: a zero-delta advance
+        // flushes frame-0 actions after PlatformCode/GameInterface are set.
+        movieSlot.movie->Advance( 0.0f );
 
         char scriptMarker[224];
         snprintf( scriptMarker, sizeof( scriptMarker ),
@@ -757,21 +797,8 @@ private:
         if ( forceResize )
             global.Invoke( "ForceResize" );
 
-        bool requestElement = false;
-        if ( globalReady && movieSlot.element != NULL )
-        {
-            function.SetNull();
-            requestElement = global.GetMember( "RequestElement", &function );
-            if ( requestElement )
-            {
-                Scaleform::GFx::Value args[2];
-                movieSlot.movie->CreateString( &args[0], movieSlot.element );
-                args[1] = gameInterface;
-                if ( !args[1].IsObject() )
-                    CreateGameInterface( movieSlot.movie.GetPtr(), &args[1] );
-                global.Invoke( "RequestElement", NULL, args, 2 );
-            }
-        }
+        const bool requestElement = movieSlot.element != NULL &&
+            RequestElement( slot, movieSlot.element );
         char marker[160];
         snprintf( marker, sizeof( marker ),
             "kisak-ps4: scaleform %s init global=%u InitSlot=%u ForceResize=%u RequestElement=%u",
@@ -787,6 +814,7 @@ private:
     Scaleform::GFx::Loader *m_loader;
     Scaleform::Ptr< KisakScaleformFileOpener > m_fileOpener;
     Scaleform::Ptr< KisakScaleformLog > m_log;
+    Scaleform::Ptr< Scaleform::GFx::ActionControl > m_actionControl;
     Scaleform::Ptr< Scaleform::GFx::ZlibSupportBase > m_zlibSupport;
     Scaleform::Ptr< Scaleform::GFx::FontLib > m_fontLib;
     Scaleform::Ptr< KisakScaleformFunctionHandler > m_callbackHandler;
@@ -833,4 +861,9 @@ bool KisakPs4ScaleformUiHandleInput( const InputEvent_t &event )
 bool KisakPs4ScaleformUiMovieReady( int slot )
 {
     return g_scaleformMovieManager.IsReady( slot );
+}
+
+bool KisakPs4ScaleformUiRequestElement( int slot, const char *elementName )
+{
+    return g_scaleformMovieManager.RequestElement( slot, elementName );
 }
