@@ -778,9 +778,9 @@ extern "C" bool KisakPs4PopulateShaderApiDynamicTriangle()
         { -0.71f, -0.40f, 0.0f, 1.0f }
     };
     const float colors[3][4] = {
-        { 1.0f, 0.9f, 0.1f, 1.0f },
-        { 0.1f, 1.0f, 0.9f, 1.0f },
-        { 0.9f, 0.1f, 1.0f, 1.0f }
+        { 1.0f, 0.9f, 0.1f, 0.55f },
+        { 0.1f, 1.0f, 0.9f, 0.55f },
+        { 0.9f, 0.1f, 1.0f, 0.55f }
     };
     for ( int vertex = 0; vertex < 3; ++vertex )
     {

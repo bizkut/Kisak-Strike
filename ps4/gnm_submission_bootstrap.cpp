@@ -7,6 +7,7 @@
 #include "materialsystem/ps4gnm/ps4_shader_manifest.h"
 #include "materialsystem/ps4gnm/ps4_gnm_constants.h"
 #include "materialsystem/ps4gnm/ps4_gnm_runtime.h"
+#include "materialsystem/ps4gnm/ps4_shadow_state_translate.h"
 #include "materialsystem/ps4gnm/shaderapips4.h"
 
 #include <gnm_commandbuffer.h>
@@ -1037,6 +1038,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     sourceDepth.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
     sourceDepth.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
     g_DrawState.SetDepthStencilControl( sourceDepth );
+    g_DrawState.SetBlendControl( 0, Ps4BuildBlendControl(
+        true, 4, 5, 0, false, 1, 0, 0 ) );
     g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil );
     Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX );
 }
@@ -1362,6 +1365,13 @@ extern "C" bool KisakPs4GnmColorBarsAndWait( void *destination, uint32_t size )
             KisakPs4StartupBreadcrumb(
                 "kisak-ps4: Source dynamic mesh scissor emitted" );
             sourceScissorLogged = true;
+        }
+        static bool sourceBlendLogged = false;
+        if ( !sourceBlendLogged )
+        {
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: Source dynamic mesh alpha blend emitted" );
+            sourceBlendLogged = true;
         }
         static bool threeDimensionalDrawLogged = false;
         if ( !threeDimensionalDrawLogged )
