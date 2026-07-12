@@ -671,10 +671,18 @@ private:
             : "resource/flash/gameuirootmovie.gfx";
         LogMovieInfoProbe( slot, "swf", swfRoot );
         LogMovieInfoProbe( slot, "gfx", gfxRoot );
-        movieSlot.definition = *m_loader->CreateMovie( movieSlot.name,
-            Scaleform::GFx::Loader::LoadAll );
-        if ( !movieSlot.definition.GetPtr() )
+        Scaleform::GFx::MovieDef *loadedDefinition = m_loader->CreateMovie(
+            movieSlot.name, Scaleform::GFx::Loader::LoadWaitFrame1 );
+        if ( loadedDefinition == NULL )
+        {
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: scaleform wait-frame1 failed; using async fallback" );
+            loadedDefinition = m_loader->CreateMovie( movieSlot.name,
+                Scaleform::GFx::Loader::LoadAll );
+        }
+        if ( loadedDefinition == NULL )
             return false;
+        movieSlot.definition = *loadedDefinition;
 
         movieSlot.movie = *movieSlot.definition->CreateInstance( true );
         if ( !movieSlot.movie.GetPtr() )

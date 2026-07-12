@@ -3075,6 +3075,28 @@ The v3.32 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.45: Wait only for root frame one with a stable fallback
+
+The v3.44 hardware run is the first clean root-movie parse: the file opener
+selected `/app0`, both SWFs have the compressed flag cleared, and both report
+one 1280x720 frame. The definitions still expose no ActionScript hooks because
+the default `LoadAll` value returns before frame one is ready. Root creation now
+uses `LoadWaitFrame1`, which is narrower than the previously crashing
+`LoadWaitCompletion` path and is sufficient for the single-frame root scripts.
+
+If GFx rejects the wait-frame-one load, the manager logs one breadcrumb and
+automatically retries the proven asynchronous path instead of losing the
+diagnostic frame. The next gate is `InitSlot`, `ForceResize`, and
+`RequestElement` becoming available, followed by the first element-load or
+drawable-tree marker. Marker:
+`kisak-ps4: build marker scaleform_wait_frame1_v345`.
+
+The v3.45 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`bf7c78d0cf01614cbcffcea4dc1470c157b90cb28f23bd8e0362f1b4fe9cd4a0`.
+Host tests pass 11/11 and the PS4 link/package build completes; hardware
+validation is pending the next launch.
+
 ### v3.44: Prefer the validated app0 FWS movie closure
 
 The v3.43 hardware run reached the runtime CWS path but direct bundled-zlib
