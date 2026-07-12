@@ -23,8 +23,8 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.00
-SHA-256: d5063e85aa4c28e1c661a912be3098da4e8ef926a5dbfaa99b31afaac20237a9
+Version: 3.01
+SHA-256: b7a68d893b77ee0c79f5f577a783a36d56a7120fc25f8e5b1321b43b07232288
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -1513,6 +1513,19 @@ right-side scissor remains. Marker:
 The v3.00 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `d5063e85aa4c28e1c661a912be3098da4e8ef926a5dbfaa99b31afaac20237a9`.
+
+The v3.00 hardware run rendered uniform solid red, proving the earlier pastel
+appearance was not framebuffer blending. The cached blend-enable marker alone
+was therefore insufficient. Version 3.01 adds the missing generic OpenGNM
+blend-constant command and tests the blend unit independently of shader alpha:
+the Source triangle uses CONSTANT_ALPHA / INV_CONSTANT_ALPHA with constant
+0.50. Correct output remains purple over blue and pink over white. If it stays
+red, the remaining defect is below shader export and blend factors in OpenGNM
+PM4/render-target state. Marker:
+`kisak-ps4: build marker blend_constant_v301`.
+The v3.01 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`b7a68d893b77ee0c79f5f577a783a36d56a7120fc25f8e5b1321b43b07232288`.
 
    Validate D-pad/left-stick focus, Cross confirm, Circle back, Options pause,
    disconnect/reconnect, and Sony button glyphs.

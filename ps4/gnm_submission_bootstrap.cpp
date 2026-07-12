@@ -1038,8 +1038,16 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     sourceDepth.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
     sourceDepth.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
     g_DrawState.SetDepthStencilControl( sourceDepth );
-    g_DrawState.SetBlendControl( 0, Ps4BuildBlendControl(
-        true, 4, 5, 0, false, 1, 0, 0 ) );
+    GnmBlendControl sourceBlend = {};
+    sourceBlend.blendenabled = true;
+    sourceBlend.colorfunc = GNM_COMB_DST_PLUS_SRC;
+    sourceBlend.colorsrcmult = GNM_BLEND_CONSTANT_ALPHA;
+    sourceBlend.colordstmult = GNM_BLEND_ONE_MINUS_CONSTANT_ALPHA;
+    sourceBlend.alphafunc = GNM_COMB_DST_PLUS_SRC;
+    sourceBlend.alphasrcmult = GNM_BLEND_ONE;
+    sourceBlend.alphadstmult = GNM_BLEND_ZERO;
+    g_DrawState.SetBlendControl( 0, sourceBlend );
+    sceGnmDrawCmdSetBlendColor( command, 0.0f, 0.0f, 0.0f, 0.5f );
     g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil );
     Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX );
 }
