@@ -72,6 +72,7 @@ private:
     uint64_t m_frame;
     uint64_t m_capturedTrees;
     uint64_t m_pendingBatches;
+    uint32_t m_treeStatsLoggedMask;
     TreeStats m_lastTreeStats;
 };
 

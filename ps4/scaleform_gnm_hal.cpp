@@ -10,7 +10,8 @@
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 
 CPs4ScaleformHal::CPs4ScaleformHal()
-    : m_frameOpen( false ), m_frame( 0 ), m_capturedTrees( 0 ), m_pendingBatches( 0 )
+    : m_frameOpen( false ), m_frame( 0 ), m_capturedTrees( 0 ), m_pendingBatches( 0 ),
+      m_treeStatsLoggedMask( 0 )
 {
 }
 
@@ -108,11 +109,16 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
     ++m_capturedTrees;
     ++m_pendingBatches;
     if ( m_capturedTrees == 1 )
-    {
         KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform OpenGNM HAL tree batch queued" );
+
+    const uint32_t statsBit = phase && phase[0] == 'h' ? 2u : 1u;
+    if ( ( m_treeStatsLoggedMask & statsBit ) == 0 )
+    {
+        m_treeStatsLoggedMask |= statsBit;
         char message[192];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform tree stats total=%u visible=%u containers=%u shapes=%u meshes=%u text=%u viewport=%u truncated=%u",
+            "kisak-ps4: scaleform tree stats phase=%s total=%u visible=%u containers=%u shapes=%u meshes=%u text=%u viewport=%u truncated=%u",
+            phase ? phase : "unknown",
             m_lastTreeStats.totalNodes, m_lastTreeStats.visibleNodes,
             m_lastTreeStats.containerNodes, m_lastTreeStats.shapeNodes,
             m_lastTreeStats.meshNodes, m_lastTreeStats.textNodes,
