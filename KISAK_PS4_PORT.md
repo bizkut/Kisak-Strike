@@ -2831,3 +2831,14 @@ copies the post-blend target in its native tiled layout and presents it through
 the already validated cube texture sampler. This removes CPU layout assumptions:
 the cube windows now directly visualize the offscreen blend result. The build
 marker is `kisak-ps4: build marker sampled_offscreen_blend_v319`.
+
+### v3.20: Guarantee offscreen blend coverage with a fullscreen primitive
+
+The v3.19 cube became black. This proved that it sampled the post-probe target,
+but the reused indexed geometry did not guarantee coverage of the 4x4 viewport.
+v3.20 uses OpenGNM's embedded fullscreen vertex shader, constant-color pixel
+shader, RECTLIST primitive, and a full 4x4 scissor. It clears the ordinary target
+to black, draws red at alpha 0.5 with `SRC_ALPHA / ONE_MINUS_SRC_ALPHA`, copies
+the native tiled result, and displays it on the cube. Dark red cube windows prove
+offscreen blending; bright red proves blend bypass. The build marker is
+`kisak-ps4: build marker fullscreen_offscreen_blend_v320`.
