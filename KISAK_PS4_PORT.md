@@ -3075,6 +3075,38 @@ The v3.32 monolithic package is staged at
 Host tests pass 11/11 and the PS4 link/package build completes; hardware
 validation is pending the next launch.
 
+### v3.42: Convert packaged compressed SWFs to uncompressed FWS
+
+The v3.41 hardware run confirms that an explicitly retained `GFx::ZlibSupport`
+state is present, but compressed roots still reach a premature stream-end tag
+and expose zero frames/dimensions. Runtime zlib loading is therefore removed
+from the UI critical path. A packaging helper now converts every user-supplied
+`CWS` movie in the staged `resource/flash` closure to an equivalent `FWS`
+movie in place, preserving its filename, SWF version, declared uncompressed
+length, and body bytes. Existing `FWS` files are left unchanged and malformed
+or unsupported inputs fail packaging.
+
+Only the converter is committed; proprietary movie assets remain external and
+are transformed solely inside the package staging directory. The next hardware
+gate is SWF metadata with the compressed flag cleared, one 1280x720 frame, and
+available root ActionScript hooks. Marker:
+`kisak-ps4: build marker scaleform_fws_package_v342`.
+
+The v3.42 package conversion validated and converted all 114 staged compressed
+SWFs. `mainuirootmovie.swf` now begins with `FWS`, retains version 8 and declared
+size 47,033 bytes, and contains the original decompressed body. The monolithic
+package is staged at `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with
+SHA-256
+`92688d4cc39dc78e2ceea5f87eec8e72da9af4325094c2f6b3a3e546e0bfb50a`.
+Host tests pass 11/11 and the PS4 link/package build completes.
+
+The umbrella graph index exceeded the worker's memory/file tolerance, so the
+active port was indexed as three bounded codebase-memory projects:
+`Kisak-Strike-PS4` (269 nodes/629 edges), OpenGNM (12,190 nodes/14,734 edges),
+and `Scaleform-GFx` (28,428 nodes/108,677 edges). These graphs cover the code
+currently being changed and the two implementation/reference backends used by
+the Scaleform port.
+
 ### v3.41: Install the compressed-SWF zlib state explicitly
 
 The v3.40 loader log shows that compressed SWF roots are not entering the zlib

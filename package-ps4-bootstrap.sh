@@ -51,6 +51,7 @@ ICON_PATH="${KISAK_PS4_ICON_PATH:-$ROOT_DIR/ps4/sce_sys/icon0.png}"
 SHADER_MANIFEST="${KISAK_PS4_SHADER_MANIFEST:-$ROOT_DIR/ps4/shaders/kisak_diagnostic.manifest}"
 SCALEFORM_ASSET_ROOT="${KISAK_PS4_SCALEFORM_ASSET_ROOT:-/Volumes/Untitled/CSGO/csgo}"
 SCALEFORM_ASSET_MODE="${KISAK_PS4_SCALEFORM_ASSET_MODE:-closure}"
+PYTHON3="${PYTHON3:-python3}"
 SCALEFORM_FLASH_FILES=(
     fontlib.gfx
     sharedlib.gfx
@@ -99,6 +100,10 @@ if [[ "$VARIANT" == "monolithic" ]]; then
             exit 1
         fi
     done
+    if ! command -v "$PYTHON3" >/dev/null 2>&1; then
+        echo "Missing Python 3 interpreter for Scaleform SWF preparation: $PYTHON3" >&2
+        exit 1
+    fi
 fi
 if [[ "$VARIANT" == "monolithic" ]]; then
     for shader in tri.vert.sb tri.frag.sb texture_sample.frag.sb present.frag.sb; do
@@ -132,6 +137,7 @@ if [[ "$VARIANT" == "monolithic" ]]; then
     for flash in "${SCALEFORM_FLASH_FILES[@]}"; do
         cp "$SCALEFORM_ASSET_ROOT/resource/flash/$flash" "$PACKAGE_DIR/resource/flash/$flash"
     done
+    "$PYTHON3" "$ROOT_DIR/ps4/prepare_scaleform_swf.py" "$PACKAGE_DIR/resource/flash"
     cp "$DIAGNOSTIC_SHADER_DIR/tri.vert.sb" "$PACKAGE_DIR/kisak_diagnostic.vert.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/tri.frag.sb" "$PACKAGE_DIR/kisak_diagnostic.frag.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/texture_sample.frag.sb" "$PACKAGE_DIR/kisak_texture_sample.frag.sb"
