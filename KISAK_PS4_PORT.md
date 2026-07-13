@@ -5011,6 +5011,40 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `b5e87bc8c32ff901618a951fffa6bdf0a0bb43b12507e184ff55e83ba6a42eda`.
 
+The v4.11 probes establish that `legals.gfx` advances at 20 FPS on the PS4
+runtime. Ratings progresses from frame 22 at elapsed display frame 60 to frame
+82 at elapsed 240. Its frame-90 action successfully starts Panel: Panel then
+progresses from frame 14 at elapsed 300 to frame 94 at elapsed 540. Both clips
+remain visible with container alpha 100. The 660-frame fallback therefore
+still removes Legals well before Panel frame 180. The hardware screenshot also
+shows legal image geometry leaking into MainMenu after removal.
+
+### v4.12: Complete the measured Legals timeline and purge outgoing draws
+
+The fallback timeout is raised to 900 display frames, beyond the approximately
+810 frames required for the measured 270-frame sequence at 20 FPS. This should
+allow Panel frame 180 to call `finishAnimation()` and return through
+`AnimationCompleted()` naturally.
+
+Boot teardown now reapplies `_visible=false` after the AS2 `RemoveElement`
+hook, because `unloadMovie` may be deferred to a later advance. It also
+invalidates retained vertices, indices, batches, gradient/font atlases, and
+tree signatures immediately. Captured image identities remain cached so their
+persistent GPU image indices stay stable. The next element must rebuild its
+own draw tree and cannot inherit the outgoing ESRB/Hidden Path geometry.
+
+Marker: `kisak-ps4: build marker scaleform_legals_cleanup_v412`.
+
+The v4.12 hardware gate is: ratings fades, the legal Panel appears, Legals
+reports `animation completed` rather than timeout, StartScreen waits for Cross,
+and MainMenu contains no ratings/legal overlays. Continuous snow remains the
+animation correctness gate; steady-performance optimization follows after the
+boot layers are clean.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`7a421ac542e874ea2e3a66b560771916bfe772f69f63dc8cc8de49cb407b0d5b`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

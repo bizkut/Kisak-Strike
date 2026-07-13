@@ -876,6 +876,21 @@ void CPs4ScaleformHal::RequestDynamicRefresh( uint32_t frames )
         m_dynamicRefreshUntilFrame = requested;
 }
 
+void CPs4ScaleformHal::InvalidateCapturedTree()
+{
+    m_capturedVertices.clear();
+    m_capturedIndices.clear();
+    m_capturedDraws.clear();
+    m_gradientPixels.clear();
+    m_gradientTileCount = 0;
+    m_fontAtlasPixels.clear();
+    m_fontGlyphKeys.clear();
+    m_fontGlyphColors.clear();
+    m_menuVisibilityValid = false;
+    m_menuTopologyValid = false;
+    m_lastGeometryCaptureFrame = 0;
+}
+
 bool CPs4ScaleformHal::QueueCapturedTree( bool captured, const char *phase )
 {
     if ( !m_frameOpen || !captured )

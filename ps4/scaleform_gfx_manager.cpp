@@ -1236,6 +1236,13 @@ private:
         hidden.SetBoolean( false );
         element.SetMember( "_visible", hidden );
         const bool removed = global.Invoke( "RemoveElement", NULL, &element, 1 );
+        // RemoveElement can defer unloadMovie until the next AS2 advance. Keep
+        // the outgoing display object hidden after the hook as well, and drop
+        // the retained draw immediately so it cannot contaminate the next
+        // boot element while that deferred unload settles.
+        element.SetMember( "_visible", hidden );
+        KisakPs4ScaleformHal().InvalidateCapturedTree();
+        KisakPs4ScaleformHal().RequestDynamicRefresh( 4 );
         char marker[176];
         snprintf( marker, sizeof( marker ),
             "kisak-ps4: scaleform boot remove member=%s invoked=%u",
@@ -1305,7 +1312,7 @@ private:
                 LogLegalsTimelineProbe( elapsed );
             if ( m_callbackHandler->IsLegalsComplete() )
                 RequestStartScreen( "Legals completed" );
-            else if ( elapsed >= 660 )
+            else if ( elapsed >= 900 )
                 RequestStartScreen( "Legals animation timeout" );
             break;
         case kBootStartScreenLoading:
