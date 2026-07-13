@@ -541,6 +541,48 @@ Scaleform::GFx::FontMap::MapFontFlags FontMapFlagsForStyle( const char *style )
     return Scaleform::GFx::FontMap::MFF_Original;
 }
 
+bool LoadPackagedFontMappings( KeyValues *config )
+{
+    if ( !config )
+        return false;
+
+    const char *path = "/app0/resource/flash/fontmapping.cfg";
+    FILE *file = fopen( path, "rb" );
+    if ( !file )
+        return false;
+
+    const size_t maxConfigBytes = 256u * 1024u;
+    CUtlBuffer contents( 0, 4096, CUtlBuffer::TEXT_BUFFER );
+    char chunk[4096];
+    size_t totalBytes = 0;
+    bool valid = true;
+    for ( ;; )
+    {
+        const size_t bytesRead = fread( chunk, 1, sizeof( chunk ), file );
+        if ( bytesRead > 0 )
+        {
+            if ( totalBytes + bytesRead > maxConfigBytes )
+            {
+                valid = false;
+                break;
+            }
+            contents.Put( chunk, static_cast< int >( bytesRead ) );
+            totalBytes += bytesRead;
+        }
+        if ( bytesRead < sizeof( chunk ) )
+        {
+            valid = ferror( file ) == 0;
+            break;
+        }
+    }
+    fclose( file );
+
+    if ( !valid || totalBytes == 0 )
+        return false;
+    contents.PutChar( '\0' );
+    return config->LoadFromBuffer( path, contents, g_pFullFileSystem );
+}
+
 unsigned InstallFontMappings( Scaleform::GFx::FontMap *fontMap, KeyValues *config )
 {
     if ( !fontMap )
@@ -562,15 +604,15 @@ unsigned InstallFontMappings( Scaleform::GFx::FontMap *fontMap, KeyValues *confi
         }
     }
 
-    if ( mapped == 0 )
+    for ( unsigned i = 0; i < sizeof( kFallbackFontMap ) / sizeof( kFallbackFontMap[0] );
+          ++i )
     {
-        for ( unsigned i = 0; i < sizeof( kFallbackFontMap ) / sizeof( kFallbackFontMap[0] );
-              ++i )
-        {
-            if ( fontMap->MapFont( kFallbackFontMap[i].exportedName,
-                    kFallbackFontMap[i].fontName, kFallbackFontMap[i].flags ) )
-                ++mapped;
-        }
+        Scaleform::GFx::FontMap::MapEntry existing;
+        if ( fontMap->GetFontMapping( &existing, kFallbackFontMap[i].exportedName ) )
+            continue;
+        if ( fontMap->MapFont( kFallbackFontMap[i].exportedName,
+                kFallbackFontMap[i].fontName, kFallbackFontMap[i].flags ) )
+            ++mapped;
     }
     return mapped;
 }
@@ -660,11 +702,10 @@ public:
 
         KeyValues *fontConfig = new KeyValues( "english" );
         KeyValues::AutoDelete fontConfigDelete( fontConfig );
-        const bool loadedFontConfig = fontConfig && g_pFullFileSystem &&
-            ( fontConfig->LoadFromFile( g_pFullFileSystem,
-                  "/app0/resource/flash/fontmapping.cfg" ) ||
-              fontConfig->LoadFromFile( g_pFullFileSystem,
-                  "resource/flash/fontmapping.cfg", "GAME" ) );
+        const bool loadedFontConfig = fontConfig &&
+            ( LoadPackagedFontMappings( fontConfig ) ||
+              ( g_pFullFileSystem && fontConfig->LoadFromFile( g_pFullFileSystem,
+                  "resource/flash/fontmapping.cfg", "GAME" ) ) );
         m_fontMap = *new Scaleform::GFx::FontMap();
         const unsigned mappedFonts = InstallFontMappings(
             m_fontMap.GetPtr(), loadedFontConfig ? fontConfig : NULL );

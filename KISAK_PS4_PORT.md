@@ -3784,14 +3784,15 @@ the library for the literal alias, fails, and substitutes a nameless empty font
 with no outlines. That exactly accounts for the 848 character records and zero
 renderable glyphs.
 
-The PS4 manager now loads the packaged `fontmapping.cfg`, installs its exported
-alias-to-face/style mappings before loading either root movie, and registers
-`fontlib_extra.swf` alongside `fontlib.gfx`. The package closure now includes
-the mapping file. A built-in copy of the nine English aliases is used only when
-the user-supplied configuration cannot be read, keeping the bootstrap
-diagnosable without redistributing font assets. Bounded per-font diagnostics
-report the resolved face, flags, outline/texture capabilities, and an explicit
-`empty` classification.
+The PS4 manager now reads packaged `fontmapping.cfg` sequentially, avoiding the
+known truncated `/app0` size-query path, installs its exported alias-to-face/
+style mappings before loading either root movie, and registers
+`fontlib_extra.swf` alongside `fontlib.gfx`. Closure and roots-only packages now
+include both required files. A built-in copy of the nine English aliases fills
+any missing entries when the user-supplied configuration is unavailable or
+partial, keeping the bootstrap diagnosable without redistributing font assets.
+Bounded per-font diagnostics report the resolved face, flags, outline/texture
+capabilities, and an explicit `empty` classification.
 
 The next hardware gate is `scaleform font map config=1 aliases=9`, a real
 `Stratum2` font with `empty=0`, non-zero temporary vector glyph shapes and text
@@ -3803,7 +3804,7 @@ Marker: `kisak-ps4: build marker scaleform_font_map_v379`.
 
 The v3.79 monolithic package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
-`0a7cca8d02328d8b2929d6f0a49194448f024500605db79821c4553161e6d16f`.
+`7afe94adf5c4699c4bd594d91f5f2219ce23d39dbfd6b5a18897aa4bbb376a5b`.
 The PS4 link/package build completes and all 11 host tests pass.
 
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config

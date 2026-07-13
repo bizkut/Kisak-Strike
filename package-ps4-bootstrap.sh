@@ -56,6 +56,7 @@ PYTHON3="${PYTHON3:-python3}"
 SCALEFORM_FLASH_FILES=(
     fontmapping.cfg
     fontlib.gfx
+    fontlib_extra.swf
     sharedlib.gfx
     colorlib.gfx
     mainmenu.gfx
