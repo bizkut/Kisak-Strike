@@ -901,7 +901,9 @@ public:
             return false;
 
         Scaleform::GFx::Movie *movie = m_slots[slot].movie.GetPtr();
-        movie->Capture( false );
+        // Advance() captures modified trees. Forcing Capture(false) here clones
+        // an unchanged snapshot for both slots every frame and serializes work
+        // that the retained OpenGNM geometry does not consume.
         Scaleform::GFx::MovieDisplayHandle displayHandle = movie->GetDisplayHandle();
         m_slots[slot].captured = displayHandle.NextCapture( NULL );
         Scaleform::Render::TreeRoot *root = displayHandle.GetRenderEntry();

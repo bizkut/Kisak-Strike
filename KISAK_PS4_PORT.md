@@ -3996,6 +3996,44 @@ The v3.84 monolithic package is staged at
 `01b9f5b317cd3c3db027d89e6d2622bf5016f3f93ca7be3344b621fc99ff7ba1`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.85: Prune hidden GFx trees and preserve authored alpha
+
+The v3.84 hardware run passes the complete localization gate. Its clean log
+reports `probe=PLAY` and translator hits for `BACK`, `PLAY`, and `LOCAL PLAY`.
+The screenshot shows those English labels, and the shorter strings cut retained
+text from 799 to 344 batches, vertices from 33,740 to 13,100, and indices from
+148,326 to 57,570. Presentation recovered from roughly 29 FPS to 58.81 FPS and
+remained stable beyond frame 3,600.
+
+The remaining screenshot overlap is renderer state rather than asset or
+localization failure. The custom tree walker counted `TreeNode::IsVisible()`
+but tessellated every node and recursively entered invisible containers. It
+also used the diagnostic fragment shader that hard-coded output alpha to 0.5,
+so authored alpha-zero shapes and text could never disappear.
+
+The capture HAL now treats an invisible node as an invisible subtree and omits
+its descendants from retained geometry. A structure-and-visibility signature
+is evaluated on each captured menu snapshot; geometry is rebuilt only when
+that signature changes, allowing menu visibility transitions without restoring
+per-frame tessellation. Up to eight rebuilds are logged for hardware diagnosis.
+The packaged solid/text fragment shader is now the validated pass-through RGBA
+shader instead of the fixed-alpha diagnostic variant. GFx `Advance()` already
+captures modified trees, so the redundant forced menu and HUD snapshots were
+also removed from the render phase.
+
+The next hardware gate is a non-zero `hidden_subtrees` count, a materially
+smaller visible shape/text set, one coherent menu state instead of overlapping
+hidden panels, authored transparency, stable text/gradient/solid draws, and a
+steady 60 Hz frame rate. Cumulative color transforms, masks, clip boxes, and
+authored interleaved draw order remain subsequent HAL milestones.
+
+Marker: `kisak-ps4: build marker scaleform_visibility_alpha_v385`.
+
+The v3.85 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`77f29768d7380b474292614aaf07bf7ccd543e1ab0411178f12fb1355a9e7ce3`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

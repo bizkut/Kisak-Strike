@@ -64,6 +64,7 @@ public:
         uint32_t tessellatedVertices;
         uint32_t tessellatedTriangles;
         uint32_t degenerateTransforms;
+        uint32_t hiddenSubtrees;
         bool collectGeometry;
         bool hasViewport;
         bool truncated;
@@ -77,7 +78,7 @@ public:
               shapeLayers( 0 ), solidFills( 0 ), imageFills( 0 ),
               gradientFills( 0 ), tessellatedLayers( 0 ),
               tessellatedVertices( 0 ), tessellatedTriangles( 0 ),
-              degenerateTransforms( 0 ),
+              degenerateTransforms( 0 ), hiddenSubtrees( 0 ),
               collectGeometry( false ),
               hasViewport( false ), truncated( false )
         {
@@ -126,7 +127,9 @@ private:
     enum { kMaxTreeNodes = 4096 };
 
     void CollectTreeStats( const Scaleform::Render::TreeNode *node,
-        TreeStats *stats );
+        TreeStats *stats, bool parentVisible );
+    void AccumulateVisibilitySignature( const Scaleform::Render::TreeNode *node,
+        uint64_t *signature, uint32_t *visited ) const;
 
     bool m_frameOpen;
     uint64_t m_frame;
@@ -134,6 +137,9 @@ private:
     uint64_t m_pendingBatches;
     uint32_t m_treeStatsLoggedMask;
     uint32_t m_treeDrawableLoggedMask;
+    uint64_t m_menuVisibilitySignature;
+    uint32_t m_visibilityRebuilds;
+    bool m_menuVisibilityValid;
     TreeStats m_lastTreeStats;
     std::vector< CapturedVertex > m_capturedVertices;
     std::vector< uint16_t > m_capturedIndices;

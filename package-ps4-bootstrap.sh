@@ -8,6 +8,7 @@ DIAGNOSTIC_SHADER_DIR="${KISAK_PS4_DIAGNOSTIC_SHADER_DIR:-$ROOT_DIR/../freegnm-e
 CLEAR_SHADER="${KISAK_PS4_CLEAR_SHADER:-$ROOT_DIR/../freegnm-examples/cube/assets/misc/clear.frag.sb}"
 CUBE_SHADER_DIR="${KISAK_PS4_CUBE_SHADER_DIR:-$ROOT_DIR/../freegnm-examples/cube/assets/misc}"
 REFERENCE_TEXTURE_PIXEL_SHADER="${KISAK_PS4_REFERENCE_TEXTURE_PIXEL_SHADER:-$ROOT_DIR/../freegnm-examples/eden-composite-blit/assets/misc/blit.frag.sb}"
+SOLID_COLOR_PIXEL_SHADER="${KISAK_PS4_SOLID_COLOR_PIXEL_SHADER:-$ROOT_DIR/../freegnm-examples/triangle/assets/misc/tri.frag.sb}"
 if [[ "$VARIANT" == "monolithic" ]]; then
     BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
 TITLE="Kisak-Strike PS4 Monolithic"
@@ -110,12 +111,16 @@ if [[ "$VARIANT" == "monolithic" ]]; then
     fi
 fi
 if [[ "$VARIANT" == "monolithic" ]]; then
-    for shader in tri.vert.sb tri.frag.sb texture_sample.frag.sb present.frag.sb; do
+    for shader in tri.vert.sb texture_sample.frag.sb present.frag.sb; do
         if [[ ! -f "$DIAGNOSTIC_SHADER_DIR/$shader" ]]; then
             echo "Missing generated PS4 diagnostic shader: $DIAGNOSTIC_SHADER_DIR/$shader" >&2
             exit 1
         fi
     done
+    if [[ ! -f "$SOLID_COLOR_PIXEL_SHADER" ]]; then
+        echo "Missing pass-through solid-color pixel shader: $SOLID_COLOR_PIXEL_SHADER" >&2
+        exit 1
+    fi
     if [[ ! -f "$CLEAR_SHADER" ]]; then
         echo "Missing PS4 depth clear shader: $CLEAR_SHADER" >&2
         exit 1
@@ -147,7 +152,7 @@ if [[ "$VARIANT" == "monolithic" ]]; then
     done
     "$PYTHON3" "$ROOT_DIR/ps4/prepare_scaleform_swf.py" "$PACKAGE_DIR/resource/flash"
     cp "$DIAGNOSTIC_SHADER_DIR/tri.vert.sb" "$PACKAGE_DIR/kisak_diagnostic.vert.sb"
-    cp "$DIAGNOSTIC_SHADER_DIR/tri.frag.sb" "$PACKAGE_DIR/kisak_diagnostic.frag.sb"
+    cp "$SOLID_COLOR_PIXEL_SHADER" "$PACKAGE_DIR/kisak_diagnostic.frag.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/texture_sample.frag.sb" "$PACKAGE_DIR/kisak_texture_sample.frag.sb"
     cp "$DIAGNOSTIC_SHADER_DIR/present.frag.sb" "$PACKAGE_DIR/kisak_present.frag.sb"
     cp "$CLEAR_SHADER" "$PACKAGE_DIR/kisak_depth_clear.frag.sb"

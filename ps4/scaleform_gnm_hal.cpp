@@ -638,6 +638,8 @@ bool CapturePackedGlyph( const Scaleform::Render::TextureGlyph *glyph,
 CPs4ScaleformHal::CPs4ScaleformHal()
     : m_frameOpen( false ), m_frame( 0 ), m_capturedTrees( 0 ), m_pendingBatches( 0 ),
       m_treeStatsLoggedMask( 0 ), m_treeDrawableLoggedMask( 0 ),
+      m_menuVisibilitySignature( 0 ), m_visibilityRebuilds( 0 ),
+      m_menuVisibilityValid( false ),
       m_gradientTileCount( 0 )
 {
 }
@@ -670,7 +672,7 @@ bool CPs4ScaleformHal::QueueCapturedTree( bool captured, const char *phase )
 
 #if defined( KISAK_PS4_MONOLITHIC )
 void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node,
-    TreeStats *stats )
+    TreeStats *stats, bool parentVisible )
 {
     if ( !node || !stats )
         return;
@@ -682,8 +684,13 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
     }
 
     ++stats->totalNodes;
-    if ( node->IsVisible() )
-        ++stats->visibleNodes;
+    const bool visible = parentVisible && node->IsVisible();
+    if ( !visible )
+    {
+        ++stats->hiddenSubtrees;
+        return;
+    }
+    ++stats->visibleNodes;
 
     switch ( node->GetReadOnlyData()->GetType() )
     {
@@ -934,7 +941,35 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
     const Scaleform::Render::TreeContainer *container =
         static_cast< const Scaleform::Render::TreeContainer * >( node );
     for ( Scaleform::UPInt i = 0; i < container->GetSize(); ++i )
-        CollectTreeStats( container->GetAt( i ), stats );
+        CollectTreeStats( container->GetAt( i ), stats, visible );
+}
+
+void CPs4ScaleformHal::AccumulateVisibilitySignature(
+    const Scaleform::Render::TreeNode *node, uint64_t *signature,
+    uint32_t *visited ) const
+{
+    if ( !node || !signature || !visited || *visited >= kMaxTreeNodes )
+        return;
+
+    ++*visited;
+    const uint64_t value =
+        ( static_cast< uint64_t >( node->GetReadOnlyData()->GetType() ) << 1 ) |
+        ( node->IsVisible() ? 1u : 0u );
+    *signature ^= value + 0x9e3779b97f4a7c15ull +
+        ( *signature << 6 ) + ( *signature >> 2 );
+
+    const Scaleform::Render::Context::EntryData::EntryType type =
+        node->GetReadOnlyData()->GetType();
+    if ( type != Scaleform::Render::Context::EntryData::ET_Root &&
+         type != Scaleform::Render::Context::EntryData::ET_Container )
+        return;
+
+    const Scaleform::Render::TreeContainer *container =
+        static_cast< const Scaleform::Render::TreeContainer * >( node );
+    *signature ^= static_cast< uint64_t >( container->GetSize() ) +
+        0x9e3779b97f4a7c15ull + ( *signature << 6 ) + ( *signature >> 2 );
+    for ( Scaleform::UPInt i = 0; i < container->GetSize(); ++i )
+        AccumulateVisibilitySignature( container->GetAt( i ), signature, visited );
 }
 
 bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
@@ -944,8 +979,21 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         return false;
 
     const uint32_t statsBit = phase && phase[0] == 'h' ? 2u : 1u;
+    uint64_t visibilitySignature = 0xcbf29ce484222325ull;
+    uint32_t visibilityNodes = 0;
+    AccumulateVisibilitySignature( root, &visibilitySignature, &visibilityNodes );
+    const bool menuVisibilityChanged = statsBit == 1u &&
+        ( !m_menuVisibilityValid || visibilitySignature != m_menuVisibilitySignature );
+    if ( statsBit == 1u )
+    {
+        m_menuVisibilitySignature = visibilitySignature;
+        m_menuVisibilityValid = true;
+    }
+
     m_lastTreeStats = TreeStats();
-    m_lastTreeStats.collectGeometry = ( m_treeDrawableLoggedMask & statsBit ) == 0;
+    m_lastTreeStats.collectGeometry = statsBit == 1u
+        ? menuVisibilityChanged
+        : ( m_treeDrawableLoggedMask & statsBit ) == 0;
     if ( m_lastTreeStats.collectGeometry && statsBit == 1u )
     {
         m_capturedVertices.clear();
@@ -959,8 +1007,21 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         m_capturedVertices.reserve( 4096 );
         m_capturedIndices.reserve( 12288 );
         m_capturedDraws.reserve( 256 );
+        if ( m_treeDrawableLoggedMask & statsBit )
+        {
+            ++m_visibilityRebuilds;
+            if ( m_visibilityRebuilds <= 8 )
+            {
+                char rebuildMessage[192];
+                snprintf( rebuildMessage, sizeof( rebuildMessage ),
+                    "kisak-ps4: scaleform visibility rebuild=%u nodes=%u signature=%llx",
+                    m_visibilityRebuilds, visibilityNodes,
+                    static_cast< unsigned long long >( visibilitySignature ) );
+                KisakPs4StartupBreadcrumb( rebuildMessage );
+            }
+        }
     }
-    CollectTreeStats( root, &m_lastTreeStats );
+    CollectTreeStats( root, &m_lastTreeStats, true );
     if ( m_lastTreeStats.totalNodes == 0 )
         return false;
 
@@ -974,9 +1035,10 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         m_treeStatsLoggedMask |= statsBit;
         char message[192];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform tree stats phase=%s total=%u visible=%u containers=%u shapes=%u meshes=%u text=%u viewport=%u truncated=%u",
+            "kisak-ps4: scaleform tree stats phase=%s total=%u visible=%u hidden_subtrees=%u containers=%u shapes=%u meshes=%u text=%u viewport=%u truncated=%u",
             phase ? phase : "unknown",
             m_lastTreeStats.totalNodes, m_lastTreeStats.visibleNodes,
+            m_lastTreeStats.hiddenSubtrees,
             m_lastTreeStats.containerNodes, m_lastTreeStats.shapeNodes,
             m_lastTreeStats.meshNodes, m_lastTreeStats.textNodes,
             m_lastTreeStats.hasViewport ? 1u : 0u,
