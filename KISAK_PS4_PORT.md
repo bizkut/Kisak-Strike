@@ -4842,6 +4842,39 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `bb1ade7c77332d52f95fc65106b7386434d0f169b4b606c8ad43c6df2188e1b7`.
 
+The v4.06 hardware run passes real controller input. The pad reports centered
+sticks and connected state, Cross produces both Source and handled Scaleform
+events, StartScreen remains present until that press, and MainMenu is requested
+exactly once afterward. Normal boot no longer exposes the cube or color bars.
+
+Legals now loads through `LegalAnimation`, captures eight batches including
+five images, and reaches its audio callback. Its 180-frame nested animation runs
+at the movie's 30 Hz rate, however, so the 360-application-frame timeout fired
+at the exact six-second boundary before `AnimationCompleted`. The outgoing
+movie was consequently still visible when StartScreen and MainMenu were added;
+its large Hidden Path Entertainment frame leaked into the final menu.
+
+### v4.07: Finish and synchronously hide the Legals layer
+
+The Legals safety timeout now allows 480 application frames, leaving a two-
+second margin after the nominal 180-at-30-Hz animation duration for its real
+`AnimationCompleted` callback. Stage removal synchronously sets the outgoing
+movie clip `_visible=false` before invoking `_global.RemoveElement`, so even a
+failed or deferred ActionScript unload cannot enter the next retained capture.
+Bounded removal markers record the global member and invoke result.
+
+Marker: `kisak-ps4: build marker scaleform_legals_unload_v407`.
+
+The v4.07 hardware gate is a visible/legal intro or its bounded diagnostics,
+no Hidden Path/ratings artwork after StartScreen begins, real Cross-controlled
+transition, and the clean v4.03 MainMenu background. The log should prefer
+`Legals animation completed` over the timeout and report successful removal of
+both `LegalsMovie` and `StartScreenMovie`.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`cd02596545eebd340226aafc2dc80a7e1d1fbf90c055a55d9ad7053e899fae78`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

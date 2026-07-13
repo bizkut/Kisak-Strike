@@ -1230,7 +1230,18 @@ private:
              !global.GetMember( globalMember, &element ) || !element.IsObject() ||
              !global.GetMember( "RemoveElement", &removeFunction ) )
             return false;
-        return global.Invoke( "RemoveElement", NULL, &element, 1 );
+        // Hide synchronously so a failed/deferred AS unload can never leak the
+        // outgoing legal/start layer into the following retained capture.
+        Scaleform::GFx::Value hidden;
+        hidden.SetBoolean( false );
+        element.SetMember( "_visible", hidden );
+        const bool removed = global.Invoke( "RemoveElement", NULL, &element, 1 );
+        char marker[176];
+        snprintf( marker, sizeof( marker ),
+            "kisak-ps4: scaleform boot remove member=%s invoked=%u",
+            globalMember, removed ? 1u : 0u );
+        KisakPs4StartupBreadcrumb( marker );
+        return removed;
     }
 
     void RequestStartScreen( const char *reason )
@@ -1284,7 +1295,7 @@ private:
         case kBootLegalsPlaying:
             if ( m_callbackHandler->IsLegalsComplete() )
                 RequestStartScreen( "Legals completed" );
-            else if ( elapsed >= 360 )
+            else if ( elapsed >= 480 )
                 RequestStartScreen( "Legals animation timeout" );
             break;
         case kBootStartScreenLoading:
