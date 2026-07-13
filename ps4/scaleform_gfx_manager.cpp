@@ -6,9 +6,11 @@
 #include "Render/Render_TreeNode.h"
 #include "filesystem.h"
 #include "inputsystem/ButtonCode.h"
+#include "interfaces/interfaces.h"
 #include "tier1/keyvalues.h"
 #include "tier1/strtools.h"
 #include "tier1/utlbuffer.h"
+#include "vgui/ILocalize.h"
 #include "zlib.h"
 
 #include <stdarg.h>
@@ -256,6 +258,91 @@ private:
     uint32_t m_messages;
 };
 
+const wchar_t *FindLocalizedText( const char *value )
+{
+    if ( !value || value[0] != '#' || !g_pVGuiLocalize )
+        return NULL;
+
+    char key[1024];
+    V_strncpy( key, value, sizeof( key ) );
+    char *fontHint = strchr( key, '@' );
+    if ( fontHint )
+        *fontHint = '\0';
+    return g_pVGuiLocalize->Find( key );
+}
+
+bool LoadScaleformLocalization()
+{
+    if ( !g_pVGuiLocalize )
+    {
+        KisakPs4StartupBreadcrumb(
+            "kisak-ps4: scaleform localization interface unavailable" );
+        return false;
+    }
+
+    const bool valve = g_pVGuiLocalize->AddFile(
+        "resource/valve_%language%.txt", "GAME", true );
+    const bool csgo = g_pVGuiLocalize->AddFile(
+        "resource/csgo_%language%.txt", "GAME", true );
+    const bool platform = g_pVGuiLocalize->AddFile(
+        "resource/platform_%language%.txt" );
+    const bool vgui = g_pVGuiLocalize->AddFile(
+        "resource/vgui_%language%.txt" );
+    const wchar_t *probe = FindLocalizedText( "#SFUI_MainMenu_PlayButton" );
+    char probeUtf8[96] = {};
+    if ( probe )
+        V_UnicodeToUTF8( probe, probeUtf8, sizeof( probeUtf8 ) );
+
+    char marker[224];
+    snprintf( marker, sizeof( marker ),
+        "kisak-ps4: scaleform localization valve=%u csgo=%u platform=%u vgui=%u probe=%s",
+        valve ? 1u : 0u, csgo ? 1u : 0u,
+        platform ? 1u : 0u, vgui ? 1u : 0u,
+        probeUtf8[0] ? probeUtf8 : "missing" );
+    KisakPs4StartupBreadcrumb( marker );
+    return csgo && probe != NULL;
+}
+
+class KisakScaleformTranslator final : public Scaleform::GFx::Translator
+{
+public:
+    KisakScaleformTranslator() : m_logged( 0 ) {}
+
+    unsigned GetCaps() const override
+    {
+        return Cap_StripTrailingNewLines;
+    }
+
+    void Translate( TranslateInfo *info ) override
+    {
+        if ( !info || !info->GetKey() )
+            return;
+
+        char key[1024] = {};
+        V_UnicodeToUTF8( info->GetKey(), key, sizeof( key ) );
+        const wchar_t *translated = FindLocalizedText( key );
+        if ( translated )
+            info->SetResultHtml( translated );
+
+        if ( m_logged < 8 && key[0] == '#' )
+        {
+            char value[128] = {};
+            if ( translated )
+                V_UnicodeToUTF8( translated, value, sizeof( value ) );
+            char marker[256];
+            snprintf( marker, sizeof( marker ),
+                "kisak-ps4: scaleform translator hit=%u key=%s value=%s",
+                translated ? 1u : 0u, key,
+                value[0] ? value : "missing" );
+            KisakPs4StartupBreadcrumb( marker );
+            ++m_logged;
+        }
+    }
+
+private:
+    unsigned int m_logged;
+};
+
 enum ScaleformCallbackId
 {
     kCallbackOnLoadFinished = 1,
@@ -400,7 +487,6 @@ public:
             if ( params.pRetVal )
                 params.pRetVal->SetString( "" );
             break;
-        case kCallbackTranslate:
         case kCallbackReplaceGlyphs:
         case kCallbackMakeStringSafe:
             if ( params.pRetVal )
@@ -408,6 +494,18 @@ public:
                 const char *value = params.pArgs && params.ArgCount > 0
                     ? params.pArgs[0].GetString() : "";
                 params.pRetVal->SetString( value ? value : "" );
+            }
+            break;
+        case kCallbackTranslate:
+            if ( params.pRetVal )
+            {
+                const char *value = params.pArgs && params.ArgCount > 0
+                    ? params.pArgs[0].GetString() : "";
+                const wchar_t *translated = FindLocalizedText( value );
+                if ( translated && params.pMovie )
+                    params.pMovie->CreateStringW( params.pRetVal, translated );
+                else
+                    params.pRetVal->SetString( value ? value : "" );
             }
             break;
         case kCallbackIsMultiplayerPrivilegeEnabled:
@@ -652,6 +750,9 @@ public:
         m_loader = new Scaleform::GFx::Loader( fileOpener );
         m_log = *new KisakScaleformLog();
         m_loader->SetLog( m_log );
+        LoadScaleformLocalization();
+        m_translator = *new KisakScaleformTranslator();
+        m_loader->SetTranslator( m_translator );
         m_actionControl = *new Scaleform::GFx::ActionControl(
             Scaleform::GFx::ActionControl::Action_LogAllFilenames );
         m_actionControl->SetActionErrorSuppress( false );
@@ -732,6 +833,7 @@ public:
             m_loader = NULL;
             m_fontLib.Clear();
             m_fontMap.Clear();
+            m_translator.Clear();
             m_fileOpener.Clear();
             m_log.Clear();
             m_actionControl.Clear();
@@ -760,6 +862,7 @@ public:
         m_loader = NULL;
         m_fontLib.Clear();
         m_fontMap.Clear();
+        m_translator.Clear();
         m_fileOpener.Clear();
         m_log.Clear();
         m_actionControl.Clear();
@@ -1099,6 +1202,7 @@ private:
     Scaleform::Ptr< Scaleform::GFx::ZlibSupportBase > m_zlibSupport;
     Scaleform::Ptr< Scaleform::GFx::FontLib > m_fontLib;
     Scaleform::Ptr< Scaleform::GFx::FontMap > m_fontMap;
+    Scaleform::Ptr< KisakScaleformTranslator > m_translator;
     Scaleform::Ptr< KisakScaleformFunctionHandler > m_callbackHandler;
     ScaleformMovieSlot m_slots[kScaleformSlotCount];
     bool m_initialized;

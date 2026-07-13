@@ -3886,6 +3886,51 @@ The v3.81 monolithic package is staged at
 `3dca333a57a4f4dae94caac92e2db5fdf657da2378f6148e185161eb9553fe55`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.82: Restore Source localization in both GFx translation paths
+
+The v3.81 hardware run passed the retained-upload gate and produced the first
+recognizable CS:GO Scaleform menu. The screenshot shows real gradient panels,
+button outlines, and Stratum2 vector text. Its clean log records the solid draw
+(`68` batches), gradient-atlas draw (`82` batches), and—after the one-time
+dynamic-buffer probes retired—the complete vector-text draw (`799` batches,
+33,740 vertices, and 148,326 indices). The steady pass summary is
+`solid=1 gradient=1 text=1 font_atlas=0 font_items=0`, with 339,536 bytes still
+available in the normal 3 MiB frame arena. This validates the v3.81 compaction
+and confirms that the first-frame text rejection was transient rather than a
+retained-geometry failure.
+
+Most labels still displayed literal `#SFUI_...` keys, overflowed their authored
+button widths, and made the layout appear heavily overlapped. The PS4 manager
+had omitted the `ScaleformTranslatorAdapter` installed by Source and its
+ActionScript `GameInterface.Translate` callback returned the input unchanged.
+The required `csgo_english.txt`, `valve_english.txt`, `platform_english.txt`,
+and `vgui_english.txt` files are already mounted under the console content
+roots; `#SFUI_MainMenu_PlayButton` resolves to `PLAY` in that table.
+
+The PS4 bootstrap now loads the same English-first `%language%` localization
+sets through `ILocalize`, installs a GFx `Translator` before either root movie
+is created, strips Source's optional `@fontSize` lookup suffix, and returns
+localized wide strings from both automatic text-field translation and the
+ActionScript callback. Bounded diagnostics report each localization file,
+the `PLAY` probe, and the first eight GFx translation hits. Short translated
+labels should also substantially reduce the current 850 text records and 799
+per-frame vector glyph tessellations; retained-tree/text caching remains the
+next performance step if the measured rate stays below 60 Hz.
+
+The next hardware gate is `csgo=1 probe=PLAY`, translator hits for the visible
+menu keys, English labels instead of raw `#SFUI_...` strings, materially cleaner
+button layout, successful solid/gradient/text pass summaries, and stable flips.
+The current borrowed solid shader still forces alpha to 0.5 and the capture HAL
+does not yet apply cumulative color transforms or masks; those are separate
+visual-correctness milestones after localization and frame-cost measurement.
+
+Marker: `kisak-ps4: build marker scaleform_localization_v382`.
+
+The v3.82 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`cc95563712921963ece32dce8e5d1457571907f707289b36e83aa979b8fcf5ee`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
