@@ -5216,6 +5216,45 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `622702082bb5bc5d44bd4ffe485f7074445c642c4fe4a31de6f78d6c10f2d003`.
 
+The v4.18 hardware run validates this timing contract: the complete boot
+sequence remains stable, MainMenu snow loops continuously at its authored
+cadence, controller navigation works, and VideoOut remains near 60 FPS.
+
+### v4.19: Route MainMenu Local Play into the SinglePlayer element
+
+The first functional MainMenu command follows the original console protocol.
+Selecting Play still opens the ActionScript-owned dropdown. Selecting Local
+Play calls `BasePanelRunCommand("OpenCreateSinglePlayerGameDialog",
+"bHidePanel")`; the PS4 callback bridge now maps that command to the root
+movie's `StartSinglePlayer` element and defers the request until the current
+GFx input/advance callback has returned.
+
+The deferred transition hides MainMenu, invalidates retained geometry and
+image aliases, requests `single-player.swf`, initializes it as an offline,
+non-lobby, non-training dialog, and runs its authored `showPanel` animation.
+The callback object includes deterministic offline defaults for the 18
+SinglePlayer API calls referenced by the supplied ActionScript. Steam,
+matchmaking, and Workshop operations remain inert; `OnOk` currently records a
+bounded engine-handoff breadcrumb instead of starting a match.
+
+Unknown MainMenu commands are logged and left in ActionScript control, so
+Awards and Options keep their existing navigation behavior without invoking
+an unsafe or guessed engine action. A host test locks the command-to-element
+mapping. Marker:
+`kisak-ps4: build marker scaleform_local_play_v419`.
+
+The v4.19 hardware gate is: complete the existing boot sequence, select Play,
+select Local Play, observe MainMenu hide and the SinglePlayer panel load, then
+confirm the log contains `menu command=OpenCreateSinglePlayerGameDialog`,
+`menu action=1 element=StartSinglePlayer requested=1`, and
+`element ready name=StartSinglePlayer show=1` without a GFx load error or
+crash. The actual offline-match launch handoff is the next milestone.
+
+All 13 host tests pass and the PS4 monolithic link/package build completes.
+The v4.19 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its local SHA-256 is
+`6fb5f9c3b92a2ed8b449f61512d5ab4128d52c56e7f39c72f4dd75cd5ed8515a`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

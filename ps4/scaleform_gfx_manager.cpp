@@ -1,6 +1,7 @@
 #include "ps4/scaleform_gfx_manager.h"
 #include "ps4/scaleform_gnm_hal.h"
 #include "ps4/scaleform_asset_path.h"
+#include "ps4/scaleform_menu_actions.h"
 
 #include "GFx.h"
 #include "GFxVersion.h"
@@ -426,7 +427,24 @@ enum ScaleformCallbackId
     kCallbackGetTrialTimeRemaining,
     kCallbackAnimationCompleted,
     kCallbackGetRatingsBoardForLegals,
-    kCallbackPlayAudio
+    kCallbackPlayAudio,
+    kCallbackCheckGameSettingsRequirements,
+    kCallbackDownloadCurrentGamesCount,
+    kCallbackEnumerateWorkshopMapsFailed,
+    kCallbackFilterWorkshopMapsByTags,
+    kCallbackGetQueuedMatchmakingPreferredMaplist,
+    kCallbackGetQueuedMatchmakingTime,
+    kCallbackGetWorkshopMapDownloadProgress,
+    kCallbackGetWorkshopMapId,
+    kCallbackGetWorkshopMapPath,
+    kCallbackSinglePlayerOnOk,
+    kCallbackQueryWorkshopMapSubscriptionsFromScript,
+    kCallbackScriptGetTotalMapSubscriptions,
+    kCallbackSetCustomBotDifficulty,
+    kCallbackSetMatchmakingQuery,
+    kCallbackUpdatePendingInvites,
+    kCallbackUpdatedSelections,
+    kCallbackViewAllMapsInWorkshop
 };
 
 struct ScaleformCallbackDefinition
@@ -476,7 +494,24 @@ static const ScaleformCallbackDefinition kScaleformCallbackDefinitions[] =
     { "GetTrialTimeRemaining", kCallbackGetTrialTimeRemaining },
     { "AnimationCompleted", kCallbackAnimationCompleted },
     { "GetRatingsBoardForLegals", kCallbackGetRatingsBoardForLegals },
-    { "PlayAudio", kCallbackPlayAudio }
+    { "PlayAudio", kCallbackPlayAudio },
+    { "CheckGameSettingsRequirements", kCallbackCheckGameSettingsRequirements },
+    { "DownloadCurrentGamesCount", kCallbackDownloadCurrentGamesCount },
+    { "EnumerateWorkshopMapsFailed", kCallbackEnumerateWorkshopMapsFailed },
+    { "FilterWorkshopMapsByTags", kCallbackFilterWorkshopMapsByTags },
+    { "GetQueuedMatchmakingPreferredMaplist", kCallbackGetQueuedMatchmakingPreferredMaplist },
+    { "GetQueuedMatchmakingTime", kCallbackGetQueuedMatchmakingTime },
+    { "GetWorkshopMapDownloadProgress", kCallbackGetWorkshopMapDownloadProgress },
+    { "GetWorkshopMapID", kCallbackGetWorkshopMapId },
+    { "GetWorkshopMapPath", kCallbackGetWorkshopMapPath },
+    { "OnOk", kCallbackSinglePlayerOnOk },
+    { "QueryWorkshopMapSubscriptionsFromScript", kCallbackQueryWorkshopMapSubscriptionsFromScript },
+    { "ScriptGetTotalMapSubscriptions", kCallbackScriptGetTotalMapSubscriptions },
+    { "SetCustomBotDifficulty", kCallbackSetCustomBotDifficulty },
+    { "SetMatchmakingQuery", kCallbackSetMatchmakingQuery },
+    { "UpdatePendingInvites", kCallbackUpdatePendingInvites },
+    { "UpdatedSelections", kCallbackUpdatedSelections },
+    { "ViewAllMapsInWorkshop", kCallbackViewAllMapsInWorkshop }
 };
 
 class KisakScaleformFunctionHandler final : public Scaleform::GFx::FunctionHandler
@@ -486,7 +521,9 @@ public:
         : m_loadFinished( 0 ), m_ready( 0 ), m_loadErrors( 0 ), m_uiEvents( 0 ),
           m_legalsReady( false ), m_legalsComplete( false ),
           m_startScreenReady( false ), m_mainMenuReady( false ),
-          m_audioLogged( false )
+          m_audioLogged( false ), m_pendingMenuAction( kKisakPs4ScaleformMenuActionNone ),
+          m_pendingHideMainMenu( false ), m_menuCommandsLogged( 0 ),
+          m_singlePlayerActionsLogged( 0 )
     {
     }
 
@@ -531,6 +568,21 @@ public:
                      mainMenu.IsObject() )
                 {
                     shown = mainMenu.Invoke( "showPanel" );
+                }
+            }
+            else if ( params.pMovie && elementName &&
+                      strcmp( elementName, "StartSinglePlayer" ) == 0 )
+            {
+                Scaleform::GFx::Value singlePlayer;
+                if ( params.pMovie->GetVariable( &singlePlayer,
+                         "_global.SinglePlayerMovie" ) && singlePlayer.IsObject() )
+                {
+                    Scaleform::GFx::Value args[3];
+                    args[0].SetBoolean( false );
+                    args[1].SetBoolean( false );
+                    args[2].SetBoolean( false );
+                    singlePlayer.Invoke( "InitDialogData", NULL, args, 3 );
+                    shown = singlePlayer.Invoke( "showPanel" );
                 }
             }
 
@@ -627,6 +679,32 @@ public:
             if ( params.pRetVal )
                 params.pRetVal->SetBoolean( true );
             break;
+        case kCallbackBasePanelRunCommand:
+        {
+            const char *command = params.pArgs && params.ArgCount > 0 &&
+                params.pArgs[0].IsString() ? params.pArgs[0].GetString() : "";
+            const KisakPs4ScaleformMenuAction action =
+                KisakPs4ScaleformMenuActionForCommand( command );
+            const bool hideMainMenu = params.pArgs && params.ArgCount > 1 &&
+                params.pArgs[1].IsString() &&
+                strcmp( params.pArgs[1].GetString(), "bHidePanel" ) == 0;
+            if ( action != kKisakPs4ScaleformMenuActionNone )
+            {
+                m_pendingMenuAction = action;
+                m_pendingHideMainMenu = hideMainMenu;
+            }
+            if ( m_menuCommandsLogged++ < 24 )
+            {
+                char marker[224];
+                snprintf( marker, sizeof( marker ),
+                    "kisak-ps4: scaleform menu command=%s action=%u hide=%u",
+                    command && command[0] ? command : "unknown",
+                    static_cast< unsigned int >( action ),
+                    hideMainMenu ? 1u : 0u );
+                KisakPs4StartupBreadcrumb( marker );
+            }
+            break;
+        }
         case kCallbackGetPreviousLevel:
             if ( params.pRetVal )
                 params.pRetVal->SetNumber( -1.0 );
@@ -654,6 +732,41 @@ public:
                 m_audioLogged = true;
             }
             break;
+        case kCallbackFilterWorkshopMapsByTags:
+        case kCallbackGetQueuedMatchmakingPreferredMaplist:
+        case kCallbackGetWorkshopMapPath:
+            if ( params.pRetVal )
+                params.pRetVal->SetString( "" );
+            break;
+        case kCallbackEnumerateWorkshopMapsFailed:
+        case kCallbackQueryWorkshopMapSubscriptionsFromScript:
+            if ( params.pRetVal )
+                params.pRetVal->SetBoolean( false );
+            break;
+        case kCallbackGetQueuedMatchmakingTime:
+        case kCallbackGetWorkshopMapDownloadProgress:
+        case kCallbackGetWorkshopMapId:
+        case kCallbackScriptGetTotalMapSubscriptions:
+            if ( params.pRetVal )
+                params.pRetVal->SetNumber( 0.0 );
+            break;
+        case kCallbackCheckGameSettingsRequirements:
+            // The offline panel treats values <= 0 as a hard launch veto.
+            if ( params.pRetVal )
+                params.pRetVal->SetNumber( 1.0 );
+            break;
+        case kCallbackSinglePlayerOnOk:
+            if ( m_singlePlayerActionsLogged++ < 8 )
+                KisakPs4StartupBreadcrumb(
+                    "kisak-ps4: scaleform single-player launch requested; engine handoff pending" );
+            break;
+        case kCallbackDownloadCurrentGamesCount:
+        case kCallbackSetCustomBotDifficulty:
+        case kCallbackSetMatchmakingQuery:
+        case kCallbackUpdatePendingInvites:
+        case kCallbackUpdatedSelections:
+        case kCallbackViewAllMapsInWorkshop:
+            break;
         case kCallbackSendUIEvent:
             if ( m_uiEvents++ == 0 )
                 KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform GameInterface event bridge active" );
@@ -668,6 +781,16 @@ public:
     bool IsStartScreenReady() const { return m_startScreenReady; }
     bool IsMainMenuReady() const { return m_mainMenuReady; }
 
+    KisakPs4ScaleformMenuAction ConsumePendingMenuAction( bool *hideMainMenu )
+    {
+        const KisakPs4ScaleformMenuAction action = m_pendingMenuAction;
+        if ( hideMainMenu )
+            *hideMainMenu = m_pendingHideMainMenu;
+        m_pendingMenuAction = kKisakPs4ScaleformMenuActionNone;
+        m_pendingHideMainMenu = false;
+        return action;
+    }
+
 private:
     uint32_t m_loadFinished;
     uint32_t m_ready;
@@ -678,6 +801,10 @@ private:
     bool m_startScreenReady;
     bool m_mainMenuReady;
     bool m_audioLogged;
+    KisakPs4ScaleformMenuAction m_pendingMenuAction;
+    bool m_pendingHideMainMenu;
+    uint32_t m_menuCommandsLogged;
+    uint32_t m_singlePlayerActionsLogged;
 };
 
 enum
@@ -1074,6 +1201,7 @@ public:
             }
         }
         AdvanceBootSequence();
+        ProcessPendingMenuAction();
     }
 
     bool Render( int slot, const char *phase )
@@ -1218,6 +1346,52 @@ public:
     }
 
 private:
+    void SetMainMenuVisible( bool visible )
+    {
+        Scaleform::GFx::Movie *movie = m_slots[kScaleformMenuSlot].movie.GetPtr();
+        if ( !movie )
+            return;
+        Scaleform::GFx::Value mainMenu;
+        if ( movie->GetVariable( &mainMenu, "_global.MainMenuMovie" ) &&
+             mainMenu.IsObject() )
+        {
+            mainMenu.Invoke( visible ? "showPanel" : "hidePanel" );
+        }
+    }
+
+    void ProcessPendingMenuAction()
+    {
+        if ( !m_callbackHandler.GetPtr() )
+            return;
+
+        bool hideMainMenu = false;
+        const KisakPs4ScaleformMenuAction action =
+            m_callbackHandler->ConsumePendingMenuAction( &hideMainMenu );
+        if ( action == kKisakPs4ScaleformMenuActionNone )
+            return;
+
+        const char *elementName = KisakPs4ScaleformElementForMenuAction( action );
+        bool requested = false;
+        if ( m_bootStage == kBootReady && elementName )
+        {
+            if ( hideMainMenu )
+                SetMainMenuVisible( false );
+            KisakPs4ScaleformHal().InvalidateCapturedTree();
+            KisakPs4ScaleformHal().RequestDynamicRefresh( 120 );
+            requested = RequestElement( kScaleformMenuSlot, elementName );
+            if ( !requested && hideMainMenu )
+                SetMainMenuVisible( true );
+        }
+
+        char marker[224];
+        snprintf( marker, sizeof( marker ),
+            "kisak-ps4: scaleform menu action=%u element=%s requested=%u stage=%u",
+            static_cast< unsigned int >( action ),
+            elementName ? elementName : "none", requested ? 1u : 0u,
+            static_cast< unsigned int >( m_bootStage ) );
+        KisakPs4StartupBreadcrumb( marker );
+    }
+
     void SetBootStage( ScaleformBootStage stage, const char *reason )
     {
         m_bootStage = stage;
