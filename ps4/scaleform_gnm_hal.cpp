@@ -1260,12 +1260,6 @@ bool CPs4ScaleformHal::TranslateScissor( int left, int top, int right, int botto
     return true;
 }
 
-bool CPs4ScaleformHal::IsOrderedColorBatch( const CapturedBatch &batch )
-{
-    return !batch.complexFill && !batch.packedTextFill &&
-        batch.vertexCount > 0 && batch.indexCount > 0;
-}
-
 CPs4ScaleformHal &KisakPs4ScaleformHal()
 {
     static CPs4ScaleformHal hal;
