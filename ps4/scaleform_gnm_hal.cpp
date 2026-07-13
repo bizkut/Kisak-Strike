@@ -1,6 +1,7 @@
 #include "ps4/scaleform_gnm_hal.h"
 
 #if defined( KISAK_PS4_MONOLITHIC )
+#include "Kernel/SF_HeapNew.h"
 #include "Render/Render_TreeNode.h"
 #include "Render/Render_TreeShape.h"
 #include "Render/Render_TreeText.h"
@@ -786,6 +787,9 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
                 float penX = 0.0f;
                 float penY = 0.0f;
                 uint32_t color = 0xffffffffu;
+                Scaleform::Ptr< Scaleform::Render::GlyphShape > temporaryShape =
+                    *SF_HEAP_NEW( Scaleform::Memory::GetGlobalHeap() )
+                        Scaleform::Render::GlyphShape;
                 Scaleform::Render::TextLayout::Record record;
                 Scaleform::UPInt position = 0;
                 while ( ( position = layout->ReadNext( position, &record ) ) != 0 )
@@ -841,8 +845,23 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
                              ( record.mChar.Flags &
                                Scaleform::Render::TextLayout::Flag_Invisible ) == 0 )
                         {
+                            static bool tracedFirstVectorGlyph = false;
+                            const bool traceVectorGlyph = !tracedFirstVectorGlyph;
+                            if ( traceVectorGlyph )
+                            {
+                                char glyphMessage[192];
+                                snprintf( glyphMessage, sizeof( glyphMessage ),
+                                    "kisak-ps4: scaleform vector glyph begin index=%u size=%.2f advance=%.2f",
+                                    record.mChar.GlyphIndex, fontSize,
+                                    record.mChar.Advance );
+                                KisakPs4StartupBreadcrumb( glyphMessage );
+                            }
                             const Scaleform::Render::TextureGlyph *textureGlyph =
                                 font->GetTextureGlyph( record.mChar.GlyphIndex );
+                            if ( traceVectorGlyph )
+                                KisakPs4StartupBreadcrumb( textureGlyph
+                                    ? "kisak-ps4: scaleform vector glyph texture lookup found"
+                                    : "kisak-ps4: scaleform vector glyph texture lookup empty" );
                             const bool packedCaptured = textureGlyph &&
                                 CapturePackedGlyph( textureGlyph,
                                     fontSize, font->GetTextureGlyphHeight(), penX, penY,
@@ -856,20 +875,37 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
                             {
                                 const Scaleform::Render::ShapeDataInterface *glyphShape =
                                     font->GetPermanentGlyphShape( record.mChar.GlyphIndex );
-                                Scaleform::Render::GlyphShape temporaryShape;
-                                if ( !glyphShape && font->GetTemporaryGlyphShape(
+                                if ( traceVectorGlyph )
+                                    KisakPs4StartupBreadcrumb( glyphShape
+                                        ? "kisak-ps4: scaleform vector glyph permanent shape found"
+                                        : "kisak-ps4: scaleform vector glyph temporary shape begin" );
+                                const bool temporaryReady = !glyphShape && temporaryShape &&
+                                    font->GetTemporaryGlyphShape(
                                         record.mChar.GlyphIndex,
                                         static_cast< unsigned >( fontSize + 0.5f ),
-                                        &temporaryShape ) )
-                                    glyphShape = &temporaryShape;
+                                        temporaryShape.GetPtr() );
+                                if ( temporaryReady )
+                                    glyphShape = temporaryShape.GetPtr();
+                                if ( traceVectorGlyph )
+                                    KisakPs4StartupBreadcrumb( glyphShape && !glyphShape->IsEmpty()
+                                        ? "kisak-ps4: scaleform vector glyph shape ready"
+                                        : "kisak-ps4: scaleform vector glyph shape unavailable" );
                                 const float nominalHeight = font->GetNominalGlyphHeight();
-                                if ( glyphShape && nominalHeight > 0.0f &&
-                                     TessellateGlyphShape( glyphShape, viewMatrix,
+                                const bool glyphCaptured = glyphShape && nominalHeight > 0.0f &&
+                                    TessellateGlyphShape( glyphShape, viewMatrix,
                                         fontSize / nominalHeight, penX, penY, color,
                                         &m_capturedVertices, &m_capturedIndices,
                                         &m_capturedDraws, &stats->textGlyphVertices,
-                                        &stats->textGlyphTriangles ) )
+                                        &stats->textGlyphTriangles );
+                                if ( glyphCaptured )
                                     ++stats->textGlyphShapes;
+                                if ( traceVectorGlyph )
+                                {
+                                    KisakPs4StartupBreadcrumb( glyphCaptured
+                                        ? "kisak-ps4: scaleform vector glyph tessellation complete"
+                                        : "kisak-ps4: scaleform vector glyph tessellation empty" );
+                                    tracedFirstVectorGlyph = true;
+                                }
                             }
                         }
                         penX += record.mChar.Advance;

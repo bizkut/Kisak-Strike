@@ -3807,6 +3807,38 @@ The v3.79 monolithic package is staged at
 `7afe94adf5c4699c4bd594d91f5f2219ce23d39dbfd6b5a18897aa4bbb376a5b`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.80: Allocate compacted glyph shapes from a Scaleform heap
+
+The first installed v3.79 run validated the font fix before crashing. It loaded
+the packaged mapping sequentially (`config=1 aliases=9`), registered both font
+libraries, and resolved the first text layout to `Stratum2 Bold` with 1,077
+glyphs, vector outlines enabled, and `empty=0`. The log then stopped immediately
+after that font record, before the first text summary or OpenGNM submission.
+
+The first visible character exposed a Scaleform allocator contract violation in
+the v3.76 vector bridge. `GlyphShape` owns its packed path buffer through
+`ArrayLH_POD`; `AllocatorBaseLH` explicitly cannot be used for stack or global
+objects because it discovers the owning heap from the container address. The
+bridge constructed its temporary `GlyphShape` on the PS4 thread stack, so the
+first compacted Stratum outline growth passed a non-Scaleform address to
+`AllocAutoHeap` and faulted. GFx's native `GlyphCache` allocates the same object
+with `SF_HEAP_NEW` and retains it through a `Ptr`.
+
+The bridge now creates one reusable `GlyphShape` per text layout from
+Scaleform's global heap and keeps its `Ptr` alive through synchronous
+tessellation. A bounded first-glyph trace brackets texture lookup, temporary
+shape reconstruction, and tessellation, so any later failure is separated from
+the allocator fix. The next hardware gate is a complete first-glyph trace,
+non-zero `shapes`, `vertices`, and `triangles` in `scaleform text capture`, a
+non-zero vector-text draw, visible menu text, and stable flips.
+
+Marker: `kisak-ps4: build marker scaleform_heap_glyph_v380`.
+
+The v3.80 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`26b4641ccceb48afca80808d8c3ffe95cd97ae4738b42472994877819fbd9aa0`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
