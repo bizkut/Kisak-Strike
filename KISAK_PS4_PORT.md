@@ -5130,6 +5130,36 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `b3e54c0cf1b3af40545bedd2e036262d495480de6319340cefce88e7f4425014`.
 
+The v4.15 image-state diagnostics isolate the black Panel to geometry rather
+than color or texture state. Every legal image batch has nonzero alpha and a
+valid persistent image, but all bounds are `x=960..960`: the complete Panel is
+collapsed into a zero-width vertical line.
+
+The ancestor trace identifies the local matrix as
+`[0 0 19200; 0 1.5 -20]` in twips, corresponding to the malformed Orbis AS2
+ResizeManager input `[0,0,0,1.5,960,-1]` in pixels. The existing repair accepts
+only an exact zero Y translation, so it fixes MainMenu but misses Legals' valid
+one-pixel alignment offset.
+
+### v4.16: Repair pixel-offset 1080p ResizeManager matrices
+
+The Scaleform AS2 transform setter keeps the same narrow signature—zero X
+scale, no shear, Y scale 1.5, and X translation near 960—but accepts a Y
+translation from -2 to +2 pixels. It restores X scale from Y and removes only
+the false center X translation while preserving the authored Y offset. Other
+zero-scale animation matrices remain untouched.
+
+Marker: `kisak-ps4: build marker scaleform_legals_resize_v416`.
+
+The v4.16 hardware gate is a repair marker for the Legals matrix, image bounds
+spanning both screen axes, visible Source/legal Panel after Mature, natural
+completion, clean MainMenu, continuous 20 Hz snow updates, and near-60 Hz
+presentation.
+
+All 12 host tests pass and the modified Scaleform AS2 runtime, PS4 monolithic
+link, and package build complete. The staged package SHA-256 is
+`afcbcec1728dd062cbde2feb1020b844b106a8f855af440cbfcc3d32999d6a6f`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
