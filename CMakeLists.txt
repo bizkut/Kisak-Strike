@@ -212,6 +212,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         ps4/gnm_submission_bootstrap.cpp
         ps4/videoout_bootstrap.cpp
         ps4/scaleformui_bootstrap.cpp
+        ps4/scaleform_asset_path.cpp
         ps4/scaleform_gfx_manager.cpp
         ps4/scaleform_gnm_hal.cpp
     )

@@ -4349,6 +4349,39 @@ The PS4 link/package build completes and all 11 host tests pass. The staged
 monolithic package SHA-256 is
 `444e3f3eef6abf99708d28eff929a24fdf0169d1d9a11137ce5fdb7c1f304da0`.
 
+The v3.94 hardware run remains stable and confirms
+`Scaleform menu replaced bootstrap diagnostics` before the first ordered draw.
+The final image is unchanged, so the diagnostic scene was already fully
+covered by opaque menu geometry; the newly visible transition is the authored
+GFx/ActionScript visibility animation. The retained tree still reports zero
+image fills.
+
+### v3.95: Resolve authored external-movie URLs against packaged flash assets
+
+`background.swf` is present in the package and contains a 1280x720 lossless
+bitmap plus JPEG resources, yet the live tree contains `image=0`. The root AS2
+script loads it as relative, case-sensitive `Background.swf`, while package
+closure staging stores it as lowercase `resource/flash/background.swf`.
+
+The Scaleform file opener now canonicalizes packaged lookups only: it prefixes
+relative movie names with `resource/flash/`, converts ASCII path characters to
+lowercase, strips query/fragment suffixes, and rejects absolute, remote, and
+parent-traversal paths. GFx continues to receive the canonical movie URL so
+nested imports resolve from the same flash directory. A host test covers the
+relative, mixed-case, `/app0`, query-string, traversal, remote-URL, and bounded
+buffer cases.
+
+The next hardware gate is a `packaged alias` line for `Background.swf`, a full
+direct `/app0` read, and nonzero image fills/texture batches in the retained
+menu tree. If the alias opens but image fills remain zero, the next split is
+GFx bitmap resource creation rather than URL resolution.
+
+Marker: `kisak-ps4: build marker scaleform_background_asset_v395`.
+
+The PS4 link/package build completes and all 12 host tests pass. The staged
+monolithic package SHA-256 is
+`17226a93038f01e8d9afc75d6d4641a52db291905498eb8f6ed1fa4f0e9e300f`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

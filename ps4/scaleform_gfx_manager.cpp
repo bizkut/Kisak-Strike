@@ -1,5 +1,6 @@
 #include "ps4/scaleform_gfx_manager.h"
 #include "ps4/scaleform_gnm_hal.h"
+#include "ps4/scaleform_asset_path.h"
 
 #include "GFx.h"
 #include "GFxVersion.h"
@@ -44,14 +45,30 @@ class KisakScaleformFileOpener final : public Scaleform::GFx::FileOpener
 public:
     Scaleform::File *OpenFile( const char *url, int flags, int mode ) override
     {
+        char packagedUrl[512];
+        const bool packagedAsset = KisakPs4NormalizeScaleformAssetUrl(
+            url, packagedUrl, sizeof( packagedUrl ) );
+        if ( packagedAsset && strcmp( packagedUrl, url ) != 0 )
+        {
+            static unsigned int loggedAliases = 0;
+            if ( loggedAliases++ < 8 )
+            {
+                char aliasMarker[320];
+                snprintf( aliasMarker, sizeof( aliasMarker ),
+                    "kisak-ps4: scaleform packaged alias url=%s resolved=%s",
+                    url, packagedUrl );
+                KisakPs4StartupBreadcrumb( aliasMarker );
+            }
+        }
+
         // OpenOrbis' stat, fstat, ftell, and lseek end-position paths all report
         // truncated lengths for packaged /app0 files on hardware.  Uncompressed
         // SWF/GFX files carry their exact byte length in the header, so read that
         // many bytes sequentially instead of asking the runtime for a file size.
-        if ( url != NULL && strncmp( url, "resource/flash/", 15 ) == 0 )
+        if ( packagedAsset )
         {
             char packagedPath[512];
-            snprintf( packagedPath, sizeof( packagedPath ), "/app0/%s", url );
+            snprintf( packagedPath, sizeof( packagedPath ), "/app0/%s", packagedUrl );
             FILE *packagedFile = fopen( packagedPath, "rb" );
             if ( packagedFile != NULL )
             {
@@ -92,12 +109,13 @@ public:
                             char directMarker[256];
                             snprintf( directMarker, sizeof( directMarker ),
                                 "kisak-ps4: scaleform direct app0 bytes=%lu declared=%u url=%s",
-                                static_cast< unsigned long >( totalBytes ), declaredSize, url );
+                                static_cast< unsigned long >( totalBytes ), declaredSize,
+                                packagedUrl );
                             KisakPs4StartupBreadcrumb( directMarker );
                         }
                         if ( totalBytes == declaredSize )
                             return new KisakScaleformMemoryFile(
-                                url, data, static_cast< int >( declaredSize ) );
+                                packagedUrl, data, static_cast< int >( declaredSize ) );
                         Scaleform::Memory::Free( data );
                     }
                     else
@@ -116,10 +134,10 @@ public:
         {
             CUtlBuffer sourceData;
             bool loadedFromApp0 = false;
-            if ( url != NULL && strncmp( url, "resource/flash/", 15 ) == 0 )
+            if ( packagedAsset )
             {
                 char packagedPath[512];
-                snprintf( packagedPath, sizeof( packagedPath ), "/app0/%s", url );
+                snprintf( packagedPath, sizeof( packagedPath ), "/app0/%s", packagedUrl );
                 loadedFromApp0 = g_pFullFileSystem->ReadFile(
                     packagedPath, NULL, sourceData );
                 if ( !loadedFromApp0 )
@@ -211,7 +229,8 @@ public:
                 if ( data != NULL )
                 {
                     memcpy( data, source, size );
-                    return new KisakScaleformMemoryFile( url, data, size );
+                    return new KisakScaleformMemoryFile(
+                        loadedFromApp0 ? packagedUrl : url, data, size );
                 }
             }
         }
