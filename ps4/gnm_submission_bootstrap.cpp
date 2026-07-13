@@ -1666,11 +1666,19 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
         bool valid;
     };
     std::vector< ImagePlacement > imagePlacements( sourceImages.size() );
+    std::vector< bool > usedImages( sourceImages.size(), false );
+    for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
+        if ( sourceBatches[batchIndex].imageFill &&
+             sourceBatches[batchIndex].imageIndex < usedImages.size() )
+            usedImages[sourceBatches[batchIndex].imageIndex] = true;
     uint32_t shelfX = 1;
     uint32_t shelfY = ( ( hal.GradientTileCount() + 15 ) / 16 ) * 32 + 1;
     uint32_t shelfHeight = 0;
+    uint32_t packedImageCount = 0;
     for ( size_t imageIndex = 0; imageIndex < sourceImages.size(); ++imageIndex )
     {
+        if ( !usedImages[imageIndex] )
+            continue;
         const CPs4ScaleformHal::CapturedImage &image = sourceImages[imageIndex];
         ImagePlacement placement = {};
         const uint32_t packedWidth = image.width + 2;
@@ -1689,6 +1697,7 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
             placement.width = static_cast< uint16_t >( image.width );
             placement.height = static_cast< uint16_t >( image.height );
             placement.valid = true;
+            ++packedImageCount;
             for ( uint32_t y = 0; y < image.height + 2; ++y )
             {
                 const uint32_t sourceY = std::min( image.height - 1,
@@ -1705,6 +1714,28 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
             shelfHeight = std::max( shelfHeight, packedHeight );
         }
         imagePlacements[imageIndex] = placement;
+    }
+    static bool loggedImagePacking = false;
+    if ( !loggedImagePacking )
+    {
+        unsigned loggedImages = 0;
+        for ( size_t imageIndex = 0; imageIndex < sourceImages.size() && loggedImages < 16;
+              ++imageIndex )
+        {
+            if ( !usedImages[imageIndex] )
+                continue;
+            const CPs4ScaleformHal::CapturedImage &image = sourceImages[imageIndex];
+            const ImagePlacement &placement = imagePlacements[imageIndex];
+            char imageMessage[176];
+            snprintf( imageMessage, sizeof( imageMessage ),
+                "kisak-ps4: scaleform image atlas item=%u size=%ux%u aliases=%u packed=%u at=%u,%u",
+                static_cast< uint32_t >( imageIndex ), image.width, image.height,
+                static_cast< uint32_t >( image.keys.size() ), placement.valid ? 1u : 0u,
+                placement.x, placement.y );
+            KisakPs4StartupBreadcrumb( imageMessage );
+            ++loggedImages;
+        }
+        loggedImagePacking = true;
     }
 
     struct OrderedVertex
@@ -1933,9 +1964,11 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
     {
         char message[224];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform ordered draw batches=%u solid=%u gradient=%u text=%u image=%u deferred_images=%u vertices=%u indices=%u atlas_items=%u",
+            "kisak-ps4: scaleform ordered draw batches=%u solid=%u gradient=%u text=%u image=%u deferred_images=%u atlas_images=%u cached_images=%u vertices=%u indices=%u atlas_items=%u",
             orderedBatchCount, solidBatchCount, gradientBatchCount,
-            textBatchCount, imageBatchCount, deferredImageBatchCount, vertexCount, indexCount,
+            textBatchCount, imageBatchCount, deferredImageBatchCount,
+            packedImageCount, static_cast< uint32_t >( sourceImages.size() ),
+            vertexCount, indexCount,
             hal.GradientTileCount() );
         KisakPs4StartupBreadcrumb( message );
         logged = true;

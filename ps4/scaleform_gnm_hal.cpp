@@ -90,7 +90,8 @@ bool DecodeImageRgba( Scaleform::Render::Image *image,
     const Scaleform::Render::ImageSize size = base->GetSize();
     if ( size.Width == 0 || size.Height == 0 || size.Width > 2048 || size.Height > 2048 )
         return false;
-    captured->key = image;
+    captured->keys.clear();
+    captured->keys.push_back( image );
     captured->width = size.Width;
     captured->height = size.Height;
     captured->pixels.assign( static_cast< size_t >( size.Width ) * size.Height, 0 );
@@ -186,9 +187,21 @@ uint32_t CaptureImage( Scaleform::Render::Image *image,
 {
     if ( !image || !images ) return kInvalidImageIndex;
     for ( size_t i = 0; i < images->size(); ++i )
-        if ( ( *images )[i].key == image ) return static_cast< uint32_t >( i );
+        for ( size_t key = 0; key < ( *images )[i].keys.size(); ++key )
+            if ( ( *images )[i].keys[key] == image )
+                return static_cast< uint32_t >( i );
     CPs4ScaleformHal::CapturedImage captured;
     if ( !DecodeImageRgba( image, &captured ) ) return kInvalidImageIndex;
+    for ( size_t i = 0; i < images->size(); ++i )
+    {
+        CPs4ScaleformHal::CapturedImage &existing = ( *images )[i];
+        if ( existing.width == captured.width && existing.height == captured.height &&
+             existing.pixels == captured.pixels )
+        {
+            existing.keys.push_back( image );
+            return static_cast< uint32_t >( i );
+        }
+    }
     images->push_back( captured );
     return static_cast< uint32_t >( images->size() - 1 );
 }
@@ -1312,7 +1325,6 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         m_capturedVertices.clear();
         m_capturedIndices.clear();
         m_capturedDraws.clear();
-        m_capturedImages.clear();
         m_gradientPixels.clear();
         m_gradientTileCount = 0;
         m_fontAtlasPixels.clear();

@@ -48,7 +48,7 @@ public:
 
     struct CapturedImage
     {
-        const void *key;
+        std::vector< const void * > keys;
         uint32_t width;
         uint32_t height;
         std::vector< uint32_t > pixels;

@@ -4503,6 +4503,32 @@ All 12 host tests pass and the PS4 monolithic link succeeds. The staged
 monolithic package SHA-256 is
 `91270fef963e4f53552b73643e2acb6cb0f0b257fbcc642236665edde2efd5bc`.
 
+The v3.99 hardware run remains stable at about 59 FPS and renders the first
+cyan image tile beside `PIAYA!!`, proving the DXT decode, atlas upload, sampler,
+and image shader mode all execute on PS4. The ordered marker reports 4 rendered
+image batches and 26 deferred image batches. Captions enter slowly while the
+log records 31 visibility-driven geometry rebuilds during the ActionScript menu
+transition; the old capture path decoded image objects again on every rebuild.
+
+### v4.00: Cache image content across animated menu rebuilds
+
+Decoded images now retain every GFx object alias and deduplicate by dimensions
+and RGBA content instead of pointer identity alone. The cache survives retained
+tree rebuilds, while atlas packing considers only image indices referenced by
+the current capture. This removes repeated DXT decompression during the 31-frame
+menu entrance and prevents duplicate movie image objects from consuming atlas
+space. Bounded startup markers record each used image's dimensions, alias
+count, packing result, and atlas position to split any genuinely oversized
+assets from duplicate-instance pressure.
+
+Marker: `kisak-ps4: build marker scaleform_image_cache_v400`.
+
+The v4.00 hardware gate is a lower stable `cached_images=` count, more than four
+rendered image batches, fewer deferred images, unchanged 58-60 FPS, and faster
+completion of the caption transition. All 12 host tests pass and the PS4
+monolithic link succeeds. The staged monolithic package SHA-256 is
+`f0aa15b278ee466817939a1b5f3b6fd1e89d245cd64a48591f0a5a844e289e9f`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
