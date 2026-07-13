@@ -4949,6 +4949,39 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `e9b62c357d2a88b80dae03a7fc6c54da08d58a8d1eee8feb8e2c75e25a034b2a`.
 
+The v4.09 hardware run validates continuous retained capture: MainMenu snow
+now loops indefinitely without controller input. Legals still appears stuck
+on the Mature rating, although the log reaches 30 geometry rebuilds by frame
+300, executes the ratings clip's frame-90 handoff, starts the main Panel, and
+fires its audio callback. This proves the remaining fault is presentation of
+the changing image alpha rather than a stopped GFx timeline.
+
+### v4.10: Apply GFx color transforms to ordered image fills
+
+The ordered pixel shader previously used the same sampled mode for gradients
+and images. That mode replaced the interpolated vertex color completely, so an
+image ignored the cumulative GFx color transform captured from its tree node.
+In particular, the ratings bitmap remained opaque after its timeline faded it
+to alpha zero and covered all subsequent legal artwork.
+
+Ordered batches now encode solid, gradient, and image fills as distinct shader
+modes. Gradients continue using their pre-transformed atlas texels, while image
+samples multiply by the captured vertex color and alpha. This restores the
+common GFx fade/tint path for both packed and persistent images without
+changing draw order or the v4.09 continuous-timeline cadence.
+
+Marker: `kisak-ps4: build marker scaleform_image_cxform_v410`.
+
+The v4.10 hardware gate is that the Mature rating fades away and at least one
+following legal splash becomes visible before StartScreen. MainMenu snow must
+remain continuous. The longer-term image path should carry the complete GFx
+multiply/add color transform separately; v4.10 restores the multiplicative
+alpha/tint behavior needed by the current boot assets.
+
+All 12 host tests pass, the ordered shader rebuild succeeds, and the PS4
+monolithic link/package build completes. The staged package SHA-256 is
+`447167a8b297578b3daacd40fb2b77995319f7cfcf839d87978f89a264c684ca`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

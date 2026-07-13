@@ -10,6 +10,11 @@ layout(set = 0, binding = 0) uniform sampler2D gradient_atlas;
 layout(location = 0) out vec4 outcol;
 
 void main() {
-    vec4 gradient = texture(gradient_atlas, inuv);
-    outcol = mix(incol, gradient, clamp(inmode, 0.0, 1.0));
+    vec4 sampled = texture(gradient_atlas, inuv);
+    if (inmode < 0.5)
+        outcol = incol;
+    else if (inmode < 1.5)
+        outcol = sampled;
+    else
+        outcol = sampled * incol;
 }

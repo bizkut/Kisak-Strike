@@ -1984,7 +1984,8 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
                 destination.uv[0] = source.gradientU;
                 destination.uv[1] = source.gradientV;
             }
-            destination.mode = ( batch.gradientFill || batch.imageFill ) ? 1.0f : 0.0f;
+            destination.mode = batch.imageFill ? 2.0f :
+                ( batch.gradientFill ? 1.0f : 0.0f );
         }
         for ( uint32_t index = 0; index < batch.indexCount; ++index )
         {
