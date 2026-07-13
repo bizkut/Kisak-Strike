@@ -4733,6 +4733,39 @@ tracked `Legals -> StartScreen -> MainMenu` stage controller. Keep direct-to-
 MainMenu as the development fallback and keep StartScreen non-blocking until
 the existing PS4 pad backend's post-open polling gap is resolved.
 
+### v4.04: Restore the classic Scaleform boot-stage controller
+
+The menu root no longer requests `MainMenu` unconditionally from `LoadSlot`.
+`CPs4ScaleformMovieManager` now owns explicit Legals-loading/playing,
+StartScreen-loading/waiting, MainMenu-loading, and ready states. Every request
+still receives a fresh element callback object. The callback table now covers
+the Legals-specific `GetRatingsBoardForLegals`, `PlayAudio`, and
+`AnimationCompleted` contract; PS4 selects ESRB deterministically until region
+metadata exists and records the currently silent audio callback.
+
+The controller removes elements through the root movie's real
+`_global.RemoveElement` hook. Legals advances on its authored completion
+callback, StartScreen invokes `ShowStartLogo` after `OnReady`, and Cross,
+Enter, or Space can complete the start screen. Because the existing pad backend
+still has a post-open polling gap, a bounded three-second development timeout
+also advances StartScreen to MainMenu. Load and animation timeouts preserve a
+non-blocking path when supplied assets or callbacks are incomplete. Defining
+`KISAK_PS4_SCALEFORM_DIRECT_MENU=1` retains the previous direct boot escape
+hatch.
+
+Marker: `kisak-ps4: build marker scaleform_classic_boot_v404`.
+
+The v4.04 hardware gate is the complete Legals artwork followed by the
+StartScreen splash/logo and exactly one MainMenu request. Expected breadcrumbs
+include stages `1` through `6`, the Legals rating/audio/completion callbacks,
+and `MainMenu ready`. Until AudioOut and pad polling are completed, silent
+Legals audio and the offline StartScreen timeout are expected. The final menu
+must retain the v4.03 full background image and stable 58-62 FPS.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`998f516303f34479af16077c47642f8c52bfee98b537caa5fdd072e1a8f6d0c7`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

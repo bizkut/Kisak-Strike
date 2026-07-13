@@ -20,6 +20,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifndef KISAK_PS4_SCALEFORM_DIRECT_MENU
+#define KISAK_PS4_SCALEFORM_DIRECT_MENU 0
+#endif
+
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 
 namespace
@@ -407,7 +411,10 @@ enum ScaleformCallbackId
     kCallbackLaunchTraining,
     kCallbackViewMapInWorkshop,
     kCallbackGetPreviousLevel,
-    kCallbackGetTrialTimeRemaining
+    kCallbackGetTrialTimeRemaining,
+    kCallbackAnimationCompleted,
+    kCallbackGetRatingsBoardForLegals,
+    kCallbackPlayAudio
 };
 
 struct ScaleformCallbackDefinition
@@ -454,14 +461,20 @@ static const ScaleformCallbackDefinition kScaleformCallbackDefinitions[] =
     { "LaunchTraining", kCallbackLaunchTraining },
     { "ViewMapInWorkshop", kCallbackViewMapInWorkshop },
     { "GetPreviousLevel", kCallbackGetPreviousLevel },
-    { "GetTrialTimeRemaining", kCallbackGetTrialTimeRemaining }
+    { "GetTrialTimeRemaining", kCallbackGetTrialTimeRemaining },
+    { "AnimationCompleted", kCallbackAnimationCompleted },
+    { "GetRatingsBoardForLegals", kCallbackGetRatingsBoardForLegals },
+    { "PlayAudio", kCallbackPlayAudio }
 };
 
 class KisakScaleformFunctionHandler final : public Scaleform::GFx::FunctionHandler
 {
 public:
     KisakScaleformFunctionHandler()
-        : m_loadFinished( 0 ), m_ready( 0 ), m_loadErrors( 0 ), m_uiEvents( 0 )
+        : m_loadFinished( 0 ), m_ready( 0 ), m_loadErrors( 0 ), m_uiEvents( 0 ),
+          m_legalsReady( false ), m_legalsComplete( false ),
+          m_startScreenReady( false ), m_mainMenuReady( false ),
+          m_audioLogged( false )
     {
     }
 
@@ -489,6 +502,13 @@ public:
                 elementName = elementValue.GetString();
             }
 
+            if ( strcmp( elementName, "Legals" ) == 0 )
+                m_legalsReady = true;
+            else if ( strcmp( elementName, "StartScreen" ) == 0 )
+                m_startScreenReady = true;
+            else if ( strcmp( elementName, "MainMenu" ) == 0 )
+                m_mainMenuReady = true;
+
             bool shown = false;
             if ( params.pMovie && elementName && strcmp( elementName, "MainMenu" ) == 0 )
             {
@@ -502,7 +522,7 @@ public:
                 }
             }
 
-            if ( m_ready++ == 0 )
+            if ( m_ready++ < 8 )
             {
                 char marker[192];
                 snprintf( marker, sizeof( marker ),
@@ -587,6 +607,23 @@ public:
             if ( params.pRetVal )
                 params.pRetVal->SetNumber( -1.0 );
             break;
+        case kCallbackAnimationCompleted:
+            m_legalsComplete = true;
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: scaleform boot Legals animation completed" );
+            break;
+        case kCallbackGetRatingsBoardForLegals:
+            if ( params.pRetVal )
+                params.pRetVal->SetString( "ESRB" );
+            break;
+        case kCallbackPlayAudio:
+            if ( !m_audioLogged )
+            {
+                KisakPs4StartupBreadcrumb(
+                    "kisak-ps4: scaleform boot Legals audio callback (silent fallback)" );
+                m_audioLogged = true;
+            }
+            break;
         case kCallbackSendUIEvent:
             if ( m_uiEvents++ == 0 )
                 KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform GameInterface event bridge active" );
@@ -596,11 +633,21 @@ public:
         }
     }
 
+    bool IsLegalsReady() const { return m_legalsReady; }
+    bool IsLegalsComplete() const { return m_legalsComplete; }
+    bool IsStartScreenReady() const { return m_startScreenReady; }
+    bool IsMainMenuReady() const { return m_mainMenuReady; }
+
 private:
     uint32_t m_loadFinished;
     uint32_t m_ready;
     uint32_t m_loadErrors;
     uint32_t m_uiEvents;
+    bool m_legalsReady;
+    bool m_legalsComplete;
+    bool m_startScreenReady;
+    bool m_mainMenuReady;
+    bool m_audioLogged;
 };
 
 enum
@@ -608,6 +655,17 @@ enum
     kScaleformMenuSlot = 0,
     kScaleformHudSlot = 1,
     kScaleformSlotCount = 2
+};
+
+enum ScaleformBootStage
+{
+    kBootInactive = 0,
+    kBootLegalsLoading,
+    kBootLegalsPlaying,
+    kBootStartScreenLoading,
+    kBootStartScreenWaiting,
+    kBootMainMenuLoading,
+    kBootReady
 };
 
 struct ScaleformMovieSlot
@@ -792,14 +850,15 @@ class CPs4ScaleformMovieManager final
 public:
     CPs4ScaleformMovieManager()
         : m_system( NULL ), m_loader( NULL ), m_initialized( false ),
-          m_loggedCapture( false ), m_lastTime( -1.0f ), m_frame( 0 )
+          m_loggedCapture( false ), m_lastTime( -1.0f ), m_frame( 0 ),
+          m_bootStage( kBootInactive ), m_bootStageFrame( 0 )
     {
         // Source creates these two root movies as Scaleform slots.  MainMenu
         // is an element requested from MainUIRootMovie; GameUIRootMovie is
         // the client/HUD root and receives its level HUD elements later.  The
         // console runtime consumes Scaleform's optimized GFX versions.
         m_slots[kScaleformMenuSlot] = {
-            "resource/flash/mainuirootmovie.gfx", "MainMenu", NULL, NULL, false, false };
+            "resource/flash/mainuirootmovie.gfx", NULL, NULL, NULL, false, false };
         m_slots[kScaleformHudSlot] = {
             "resource/flash/gameuirootmovie.gfx", NULL, NULL, NULL, false, false };
     }
@@ -902,6 +961,8 @@ public:
         const bool menu = LoadSlot( kScaleformMenuSlot );
         const bool hud = LoadSlot( kScaleformHudSlot );
         m_initialized = menu || hud;
+        if ( menu )
+            BeginBootSequence();
         KisakPs4StartupBreadcrumb( menu
             ? "kisak-ps4: scaleform main menu movie loaded"
             : "kisak-ps4: scaleform main menu movie unavailable" );
@@ -958,6 +1019,8 @@ public:
         m_initialized = false;
         m_lastTime = -1.0f;
         m_frame = 0;
+        m_bootStage = kBootInactive;
+        m_bootStageFrame = 0;
     }
 
     void Advance( float time )
@@ -979,6 +1042,7 @@ public:
                 m_slots[i].captured = false;
             }
         }
+        AdvanceBootSequence();
     }
 
     bool Render( int slot, const char *phase )
@@ -1050,6 +1114,14 @@ public:
         }
         if ( handled )
             KisakPs4ScaleformHal().RequestDynamicRefresh( 30 );
+        if ( event.m_nType == IE_ButtonPressed &&
+             m_bootStage == kBootStartScreenWaiting &&
+             ( event.m_nData == KEY_XBUTTON_A || event.m_nData == KEY_ENTER ||
+               event.m_nData == KEY_SPACE ) )
+        {
+            CompleteStartScreen( "controller" );
+            handled = true;
+        }
         if ( event.m_nType == IE_ButtonPressed ||
              event.m_nType == IE_ButtonReleased )
         {
@@ -1103,6 +1175,120 @@ public:
     }
 
 private:
+    void SetBootStage( ScaleformBootStage stage, const char *reason )
+    {
+        m_bootStage = stage;
+        m_bootStageFrame = m_frame;
+        char marker[192];
+        snprintf( marker, sizeof( marker ),
+            "kisak-ps4: scaleform boot stage=%u frame=%llu reason=%s",
+            static_cast< unsigned int >( stage ),
+            static_cast< unsigned long long >( m_frame ),
+            reason ? reason : "none" );
+        KisakPs4StartupBreadcrumb( marker );
+    }
+
+    bool RemoveBootElement( const char *globalMember )
+    {
+        Scaleform::GFx::Movie *movie = m_slots[kScaleformMenuSlot].movie.GetPtr();
+        if ( !movie || !globalMember )
+            return false;
+        Scaleform::GFx::Value global;
+        Scaleform::GFx::Value element;
+        Scaleform::GFx::Value removeFunction;
+        if ( !movie->GetVariable( &global, "_global" ) ||
+             !global.GetMember( globalMember, &element ) || !element.IsObject() ||
+             !global.GetMember( "RemoveElement", &removeFunction ) )
+            return false;
+        return global.Invoke( "RemoveElement", NULL, &element, 1 );
+    }
+
+    void RequestStartScreen( const char *reason )
+    {
+        RemoveBootElement( "LegalsMovie" );
+        SetBootStage( kBootStartScreenLoading, reason );
+        if ( !RequestElement( kScaleformMenuSlot, "StartScreen" ) )
+        {
+            SetBootStage( kBootMainMenuLoading, "StartScreen request fallback" );
+            RequestElement( kScaleformMenuSlot, "MainMenu" );
+        }
+    }
+
+    void CompleteStartScreen( const char *reason )
+    {
+        if ( m_bootStage != kBootStartScreenWaiting &&
+             m_bootStage != kBootStartScreenLoading )
+            return;
+        RemoveBootElement( "StartScreenMovie" );
+        SetBootStage( kBootMainMenuLoading, reason );
+        if ( !RequestElement( kScaleformMenuSlot, "MainMenu" ) )
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: scaleform boot MainMenu request failed" );
+    }
+
+    void BeginBootSequence()
+    {
+#if KISAK_PS4_SCALEFORM_DIRECT_MENU
+        SetBootStage( kBootMainMenuLoading, "direct development mode" );
+        RequestElement( kScaleformMenuSlot, "MainMenu" );
+#else
+        SetBootStage( kBootLegalsLoading, "classic sequence" );
+        if ( !RequestElement( kScaleformMenuSlot, "Legals" ) )
+            RequestStartScreen( "Legals request fallback" );
+#endif
+    }
+
+    void AdvanceBootSequence()
+    {
+        if ( !m_callbackHandler.GetPtr() )
+            return;
+        const uint64_t elapsed = m_frame - m_bootStageFrame;
+        switch ( m_bootStage )
+        {
+        case kBootLegalsLoading:
+            if ( m_callbackHandler->IsLegalsReady() )
+                SetBootStage( kBootLegalsPlaying, "Legals ready" );
+            else if ( elapsed >= 600 )
+                RequestStartScreen( "Legals load timeout" );
+            break;
+        case kBootLegalsPlaying:
+            if ( m_callbackHandler->IsLegalsComplete() )
+                RequestStartScreen( "Legals completed" );
+            else if ( elapsed >= 360 )
+                RequestStartScreen( "Legals animation timeout" );
+            break;
+        case kBootStartScreenLoading:
+            if ( m_callbackHandler->IsStartScreenReady() )
+            {
+                Scaleform::GFx::Movie *movie =
+                    m_slots[kScaleformMenuSlot].movie.GetPtr();
+                Scaleform::GFx::Value startScreen;
+                bool shown = false;
+                if ( movie && movie->GetVariable( &startScreen,
+                         "_global.StartScreenMovie" ) && startScreen.IsObject() )
+                    shown = startScreen.Invoke( "ShowStartLogo" );
+                SetBootStage( kBootStartScreenWaiting,
+                    shown ? "StartScreen ready" : "StartScreen ready without logo hook" );
+            }
+            else if ( elapsed >= 600 )
+                CompleteStartScreen( "StartScreen load timeout" );
+            break;
+        case kBootStartScreenWaiting:
+            // Keep development boot non-blocking until the post-open PS4 pad
+            // polling gap is fixed. Controller confirmation takes this path
+            // immediately when input is available.
+            if ( elapsed >= 180 )
+                CompleteStartScreen( "offline development timeout" );
+            break;
+        case kBootMainMenuLoading:
+            if ( m_callbackHandler->IsMainMenuReady() )
+                SetBootStage( kBootReady, "MainMenu ready" );
+            break;
+        default:
+            break;
+        }
+    }
+
     void LogMovieInfoProbe( int slot, const char *kind, const char *url )
     {
         Scaleform::GFx::MovieInfo info;
@@ -1321,6 +1507,8 @@ private:
     bool m_loggedCapture;
     float m_lastTime;
     uint64_t m_frame;
+    ScaleformBootStage m_bootStage;
+    uint64_t m_bootStageFrame;
 };
 
 CPs4ScaleformMovieManager g_scaleformMovieManager;
