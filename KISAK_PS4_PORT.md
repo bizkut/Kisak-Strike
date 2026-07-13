@@ -3731,6 +3731,40 @@ The v3.77 monolithic package is staged at
 `99b3f4a57bd63d26224bfd614f913c7e65c14ffc054aa1dea812eaf7a5eff1cc`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.78: Resolve delegated packed-font images before CPU atlas capture
+
+The v3.77 hardware run remained visually unchanged. Its marker-scoped log
+isolates the failure before OpenGNM submission: all 848 character records were
+read, but `packed=0`, `atlas_glyphs=0`, and no font-atlas draw was emitted.
+
+Scaleform file images are commonly wrapped in `ImageDelegate`. The wrapper's
+`GetImageType()` intentionally reports its enclosed image type, but the first
+font-atlas bridge checked that forwarded value and then cast the wrapper itself
+to `RawImage`. The non-virtual `GetImageData()` call therefore read the wrong
+object and rejected every glyph. The bridge now follows `GetAsImage()` through
+bounded delegate layers before the type check and cast.
+
+Packed fonts use one-byte `Image_A8` coverage. Scaleform's legacy generic
+`ImageData::GetPixel()` indexes that format as if it were four bytes per pixel,
+so the bridge now reads A8 scanlines directly and keeps explicit RGBA-alpha
+handling for the supported four-channel formats. Bounded diagnostics report
+resolved or rejected concrete image type, format, dimensions, copied glyph
+rectangle, non-zero coverage count, and maximum coverage. This makes a
+`TextureImage`/`SubImage`, empty UV rectangle, or zero-alpha atlas distinguishable
+on the next hardware run without perturbing the validated shape passes.
+
+The next gate is `packed>0`, `atlas_glyphs>0`, a
+`scaleform font atlas draw` marker, and visible menu text. If the image is
+rejected as `Type_TextureImage`, font image creation must retain a CPU-visible
+A8 backing store instead of attempting an unsafe GPU readback.
+
+Marker: `kisak-ps4: build marker scaleform_font_delegate_v378`.
+
+The v3.78 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`c79dab5124680b9ef0cdac3516d9e1fbea0591da3544b23c243710ffd487ae30`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

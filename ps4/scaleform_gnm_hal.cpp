@@ -454,12 +454,47 @@ bool CapturePackedGlyph( const Scaleform::Render::TextureGlyph *glyph,
     const Scaleform::Render::ImageSize imageSize = glyph->pImage->GetSize();
     if ( tile == glyphKeys->size() )
     {
-        if ( tile >= kFontAtlasColumns * kFontAtlasRows ||
-             glyph->pImage->GetImageType() != Scaleform::Render::ImageBase::Type_RawImage )
+        if ( tile >= kFontAtlasColumns * kFontAtlasRows )
             return false;
+
+        // File-loaded GFx font images are commonly wrapped in ImageDelegate.
+        // GetImageType() deliberately forwards the wrapped type, so casting the
+        // outer object after checking that value corrupts the RawImage access.
+        Scaleform::Render::Image *resolvedImage = glyph->pImage.GetPtr();
+        const bool delegatedImage = resolvedImage && resolvedImage->IsDelegate();
+        for ( unsigned depth = 0; resolvedImage && resolvedImage->IsDelegate() && depth < 8;
+              ++depth )
+        {
+            Scaleform::Render::Image *next = resolvedImage->GetAsImage();
+            if ( !next || next == resolvedImage )
+                break;
+            resolvedImage = next;
+        }
+        if ( !resolvedImage ||
+             resolvedImage->GetImageType() != Scaleform::Render::ImageBase::Type_RawImage )
+        {
+            static bool loggedUnsupportedFontImage = false;
+            if ( !loggedUnsupportedFontImage )
+            {
+                const Scaleform::Render::ImageSize resolvedSize = resolvedImage
+                    ? resolvedImage->GetSize() : Scaleform::Render::ImageSize();
+                char imageMessage[224];
+                snprintf( imageMessage, sizeof( imageMessage ),
+                    "kisak-ps4: scaleform font image rejected delegate=%u type=%u format=%u size=%ux%u",
+                    delegatedImage ? 1u : 0u,
+                    resolvedImage ? static_cast< unsigned int >(
+                        resolvedImage->GetImageType() ) : ~0u,
+                    resolvedImage ? static_cast< unsigned int >(
+                        resolvedImage->GetFormatNoConv() ) : ~0u,
+                    resolvedSize.Width, resolvedSize.Height );
+                KisakPs4StartupBreadcrumb( imageMessage );
+                loggedUnsupportedFontImage = true;
+            }
+            return false;
+        }
         Scaleform::Render::ImageData imageData;
         Scaleform::Render::RawImage *rawImage =
-            static_cast< Scaleform::Render::RawImage * >( glyph->pImage.GetPtr() );
+            static_cast< Scaleform::Render::RawImage * >( resolvedImage );
         if ( !rawImage->GetImageData( &imageData ) )
             return false;
         if ( atlasPixels->empty() )
@@ -484,16 +519,52 @@ bool CapturePackedGlyph( const Scaleform::Render::TextureGlyph *glyph,
         const unsigned tileX = ( tile % kFontAtlasColumns ) * kFontTileSize;
         const unsigned tileY = ( tile / kFontAtlasColumns ) * kFontTileSize;
         Scaleform::Render::Color layoutColor( color );
+        unsigned nonzeroCoverage = 0;
+        unsigned maxCoverage = 0;
         for ( unsigned y = 0; y < copyHeight; ++y )
             for ( unsigned x = 0; x < copyWidth; ++x )
             {
-                const Scaleform::Render::Color source = imageData.GetPixel(
-                    sourceX + x, sourceY + y );
-                const unsigned alpha = source.GetAlpha() * layoutColor.GetAlpha() / 255;
+                const unsigned sampleX = sourceX + x;
+                const unsigned sampleY = sourceY + y;
+                const Scaleform::UByte *scanline = imageData.GetScanline( sampleY );
+                unsigned coverage = 255;
+                switch ( imageData.GetFormatNoConv() )
+                {
+                case Scaleform::Render::Image_A8:
+                    // ImageData::GetPixel historically indexes A8 as x * 4;
+                    // packed font atlases are one byte per pixel.
+                    coverage = scanline[sampleX];
+                    break;
+                case Scaleform::Render::Image_R8G8B8A8:
+                case Scaleform::Render::Image_B8G8R8A8:
+                    coverage = scanline[sampleX * 4 + 3];
+                    break;
+                default:
+                    coverage = imageData.GetPixel( sampleX, sampleY ).GetAlpha();
+                    break;
+                }
+                if ( coverage )
+                    ++nonzeroCoverage;
+                maxCoverage = std::max( maxCoverage, coverage );
+                const unsigned alpha = coverage * layoutColor.GetAlpha() / 255;
                 ( *atlasPixels )[( tileY + y ) * kFontAtlasWidth + tileX + x] =
                     layoutColor.GetRed() | ( layoutColor.GetGreen() << 8 ) |
                     ( layoutColor.GetBlue() << 16 ) | ( alpha << 24 );
             }
+        static bool loggedFontImage = false;
+        if ( !loggedFontImage )
+        {
+            char imageMessage[256];
+            snprintf( imageMessage, sizeof( imageMessage ),
+                "kisak-ps4: scaleform font image resolved delegate=%u type=%u format=%u size=%ux%u copy=%ux%u nonzero=%u max=%u",
+                delegatedImage ? 1u : 0u,
+                static_cast< unsigned int >( resolvedImage->GetImageType() ),
+                static_cast< unsigned int >( imageData.GetFormatNoConv() ),
+                imageData.GetWidth(), imageData.GetHeight(), copyWidth, copyHeight,
+                nonzeroCoverage, maxCoverage );
+            KisakPs4StartupBreadcrumb( imageMessage );
+            loggedFontImage = true;
+        }
         glyphKeys->push_back( glyph );
         glyphColors->push_back( color );
     }
