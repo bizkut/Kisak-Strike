@@ -4688,6 +4688,30 @@ asset mapping precisely. All 12 host tests pass and the PS4 monolithic link
 succeeds. The staged monolithic package SHA-256 is
 `62bf2cb2f33ce414803539b79d3317724a56c7ede4002eadb80e89a9846a2926`.
 
+The v4.02 hardware image is unchanged, but its bounded diagnostics identify the
+exact cause: every one of the fifteen referenced images reports normalized UV
+bounds `0,0..0,0`. The persistent textures, sampler switching, batch counts,
+and memory budgets remain healthy. Image meshes were resolved correctly at the
+batch level, but their tessellated vertices did not carry the complex-style bit,
+so vertex capture entered the solid-color branch before image UV generation.
+
+### v4.03: Prioritize resolved batch fills during vertex capture
+
+Vertex generation now applies the mesh's resolved gradient or image fill before
+consulting per-vertex solid-style flags. Image vertices therefore execute the
+fill matrix, exported-image adjustment, and size normalization even when the
+tessellator omits `TessStyleIsComplex` on individual vertices. Solid and mixed
+vertex colors remain the fallback only when no gradient or image is resolved.
+
+Marker: `kisak-ps4: build marker scaleform_image_vertex_uv_v403`.
+
+The v4.03 hardware gate is nonzero image UV ranges (normally covering roughly
+0..1), detailed menu imagery instead of flat sampled colors, all 55 batches,
+all 30 image batches, zero deferred images, and stable presentation. All 12
+host tests pass and the PS4 monolithic link succeeds. The staged monolithic
+package SHA-256 is
+`99a92b0329532fd5b55cc9446d9fbd2ed9661e927d6490f79fb447de3651fbb0`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

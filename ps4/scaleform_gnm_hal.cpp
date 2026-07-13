@@ -449,22 +449,7 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             captured.gradientV = 0.0f;
             captured.color = 0;
             const Scaleform::Render::TessVertex &tessVertex = meshVertices[vertex];
-            if ( !Scaleform::Render::TessStyleIsComplex( tessVertex.Flags ) )
-            {
-                const unsigned usedStyle = Scaleform::Render::TessGetUsedStyle(
-                    tessVertex.Flags );
-                Scaleform::Render::FillStyleType fill0;
-                provider->GetFillStyle( tessVertex.Styles[usedStyle], &fill0, 0.0f );
-                captured.color = fill0.Color;
-                if ( Scaleform::Render::TessStyleMixesColors( tessVertex.Flags ) )
-                {
-                    Scaleform::Render::FillStyleType fill1;
-                    provider->GetFillStyle( tessVertex.Styles[1], &fill1, 0.0f );
-                    captured.color = ( ( fill0.Color & 0xfefefefeu ) >> 1 ) |
-                        ( ( fill1.Color & 0xfefefefeu ) >> 1 );
-                }
-            }
-            else if ( gradient )
+            if ( gradient )
             {
                 captured.color = SampleGradientAt( gradient, gradientMatrix,
                     tessVertex.x, tessVertex.y );
@@ -483,6 +468,21 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
                 captured.gradientU = imageX / capturedImage.width;
                 captured.gradientV = imageY / capturedImage.height;
                 captured.color = 0xffffffffu;
+            }
+            else if ( !Scaleform::Render::TessStyleIsComplex( tessVertex.Flags ) )
+            {
+                const unsigned usedStyle = Scaleform::Render::TessGetUsedStyle(
+                    tessVertex.Flags );
+                Scaleform::Render::FillStyleType fill0;
+                provider->GetFillStyle( tessVertex.Styles[usedStyle], &fill0, 0.0f );
+                captured.color = fill0.Color;
+                if ( Scaleform::Render::TessStyleMixesColors( tessVertex.Flags ) )
+                {
+                    Scaleform::Render::FillStyleType fill1;
+                    provider->GetFillStyle( tessVertex.Styles[1], &fill1, 0.0f );
+                    captured.color = ( ( fill0.Color & 0xfefefefeu ) >> 1 ) |
+                        ( ( fill1.Color & 0xfefefefeu ) >> 1 );
+                }
             }
             captured.color = colorTransform.Transform(
                 Scaleform::Render::Color( captured.color ) ).Raw;
