@@ -4067,6 +4067,42 @@ The v3.86 monolithic package is staged at
 `690845a3e716e120f947b19e49df41474e59f025eff9ca3c1090f30e4cc40817`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.87: Retain animated transforms and cumulative GFx color transforms
+
+The v3.86 hardware run passes the MainMenu lifecycle gate. Its clean log
+reports `element ready name=MainMenu show=1`; the screenshot restores the
+translated `PLAY`, `AWARDS`, and `OPTIONS` navigation while holding 62.34 FPS.
+This confirms the v3.85 disappearance was caused by the missing `OnReady`
+bridge, not by hidden-subtree pruning.
+
+The remaining sparse, dark-olive presentation exposes two retained-HAL gaps.
+The capture signature only included node type, visibility, and child count, so
+ActionScript changes to position, scale, alpha, and tint after `showPanel()` did
+not rebuild geometry. Shape and text colors also bypassed every local and
+ancestor `Render::Cxform`. The menu could therefore freeze at an intermediate
+animation state and render authored colors with the wrong alpha and tint.
+
+The menu signature now includes each visible node's 2D matrix and color
+transform, while invisible subtrees remain excluded from churn. Retained
+geometry is rebuilt during ActionScript transitions and becomes static again
+when the animation settles. Capture now accumulates child and ancestor
+`Cxform`s in Scaleform's documented `child.Append(parent)` order and applies the
+result to solid vertices, gradient-atlas samples, vector text, and packed glyph
+colors. Diagnostics report the number of non-identity color-transform nodes and
+bounded rebuilds. Masks, clip rectangles, authored interleaved draw order, and
+bitmap fills remain subsequent HAL milestones.
+
+The next hardware gate is several bounded rebuilds during menu entrance,
+non-zero `cxforms`, a settled coherent menu with corrected tint/alpha, and a
+return to stable 60 Hz after the transition.
+
+Marker: `kisak-ps4: build marker scaleform_cxform_animation_v387`.
+
+The v3.87 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`f294aa25390c1533edae5bc3a2050ef76e819a550b21943b6a5491589e32997a`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

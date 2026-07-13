@@ -10,6 +10,7 @@ namespace Scaleform
 {
 namespace Render
 {
+class Cxform;
 class TreeNode;
 class TreeRoot;
 }
@@ -64,6 +65,7 @@ public:
         uint32_t tessellatedVertices;
         uint32_t tessellatedTriangles;
         uint32_t degenerateTransforms;
+        uint32_t colorTransforms;
         uint32_t hiddenSubtrees;
         bool collectGeometry;
         bool hasViewport;
@@ -78,7 +80,7 @@ public:
               shapeLayers( 0 ), solidFills( 0 ), imageFills( 0 ),
               gradientFills( 0 ), tessellatedLayers( 0 ),
               tessellatedVertices( 0 ), tessellatedTriangles( 0 ),
-              degenerateTransforms( 0 ), hiddenSubtrees( 0 ),
+              degenerateTransforms( 0 ), colorTransforms( 0 ), hiddenSubtrees( 0 ),
               collectGeometry( false ),
               hasViewport( false ), truncated( false )
         {
@@ -127,8 +129,9 @@ private:
     enum { kMaxTreeNodes = 4096 };
 
     void CollectTreeStats( const Scaleform::Render::TreeNode *node,
-        TreeStats *stats, bool parentVisible );
-    void AccumulateVisibilitySignature( const Scaleform::Render::TreeNode *node,
+        TreeStats *stats, bool parentVisible,
+        const Scaleform::Render::Cxform &parentCxform );
+    void AccumulateTreeSignature( const Scaleform::Render::TreeNode *node,
         uint64_t *signature, uint32_t *visited ) const;
 
     bool m_frameOpen;

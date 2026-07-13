@@ -95,6 +95,7 @@ void GradientAtlasUv( const Scaleform::Render::GradientData *gradient,
 
 bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
     unsigned layer, const Scaleform::Render::Matrix2F &viewMatrix,
+    const Scaleform::Render::Cxform &colorTransform,
     uint32_t *vertices, uint32_t *triangles,
     std::vector< CPs4ScaleformHal::CapturedVertex > *capturedVertices,
     std::vector< uint16_t > *capturedIndices,
@@ -239,7 +240,8 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
                         const float dy = ( v - 0.5f ) * 2.0f;
                         ratio = sqrtf( dx * dx + dy * dy );
                     }
-                    Scaleform::Render::Color color( SampleGradient( gradient, ratio ) );
+                    Scaleform::Render::Color color = colorTransform.Transform(
+                        Scaleform::Render::Color( SampleGradient( gradient, ratio ) ) );
                     ( *gradientPixels )[( tileY + pixelY ) * kGradientAtlasWidth +
                         tileX + pixelX] = color.GetRed() |
                         ( color.GetGreen() << 8 ) | ( color.GetBlue() << 16 ) |
@@ -282,6 +284,8 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
                     tessVertex.x, tessVertex.y,
                     &captured.gradientU, &captured.gradientV );
             }
+            captured.color = colorTransform.Transform(
+                Scaleform::Render::Color( captured.color ) ).Raw;
             viewMatrix.Transform( &captured.x, &captured.y );
             capturedVertices->push_back( captured );
         }
@@ -672,7 +676,8 @@ bool CPs4ScaleformHal::QueueCapturedTree( bool captured, const char *phase )
 
 #if defined( KISAK_PS4_MONOLITHIC )
 void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node,
-    TreeStats *stats, bool parentVisible )
+    TreeStats *stats, bool parentVisible,
+    const Scaleform::Render::Cxform &parentCxform )
 {
     if ( !node || !stats )
         return;
@@ -691,6 +696,11 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
         return;
     }
     ++stats->visibleNodes;
+
+    Scaleform::Render::Cxform cumulativeCxform = node->GetCxform();
+    cumulativeCxform.Append( parentCxform );
+    if ( !node->GetCxform().IsIdentity() )
+        ++stats->colorTransforms;
 
     switch ( node->GetReadOnlyData()->GetType() )
     {
@@ -743,7 +753,7 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
                 for ( unsigned layer = 0; layer < layerCount; ++layer )
                 {
                     if ( stats->collectGeometry && TessellateShapeLayer( shape, layer,
-                            viewMatrix,
+                            viewMatrix, cumulativeCxform,
                              &stats->tessellatedVertices, &stats->tessellatedTriangles,
                              &m_capturedVertices, &m_capturedIndices, &m_capturedDraws,
                              &m_gradientPixels, &m_gradientTileCount ) )
@@ -872,7 +882,9 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
                             const bool packedCaptured = textureGlyph &&
                                 CapturePackedGlyph( textureGlyph,
                                     fontSize, font->GetTextureGlyphHeight(), penX, penY,
-                                    color, viewMatrix, &m_capturedVertices,
+                                    cumulativeCxform.Transform(
+                                        Scaleform::Render::Color( color ) ).Raw,
+                                    viewMatrix, &m_capturedVertices,
                                     &m_capturedIndices, &m_capturedDraws,
                                     &m_fontAtlasPixels, &m_fontGlyphKeys,
                                     &m_fontGlyphColors );
@@ -900,7 +912,9 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
                                 const float nominalHeight = font->GetNominalGlyphHeight();
                                 const bool glyphCaptured = glyphShape && nominalHeight > 0.0f &&
                                     TessellateGlyphShape( glyphShape, viewMatrix,
-                                        fontSize / nominalHeight, penX, penY, color,
+                                        fontSize / nominalHeight, penX, penY,
+                                        cumulativeCxform.Transform(
+                                            Scaleform::Render::Color( color ) ).Raw,
                                         &m_capturedVertices, &m_capturedIndices,
                                         &m_capturedDraws, &stats->textGlyphVertices,
                                         &stats->textGlyphTriangles );
@@ -941,10 +955,10 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
     const Scaleform::Render::TreeContainer *container =
         static_cast< const Scaleform::Render::TreeContainer * >( node );
     for ( Scaleform::UPInt i = 0; i < container->GetSize(); ++i )
-        CollectTreeStats( container->GetAt( i ), stats, visible );
+        CollectTreeStats( container->GetAt( i ), stats, visible, cumulativeCxform );
 }
 
-void CPs4ScaleformHal::AccumulateVisibilitySignature(
+void CPs4ScaleformHal::AccumulateTreeSignature(
     const Scaleform::Render::TreeNode *node, uint64_t *signature,
     uint32_t *visited ) const
 {
@@ -958,6 +972,26 @@ void CPs4ScaleformHal::AccumulateVisibilitySignature(
     *signature ^= value + 0x9e3779b97f4a7c15ull +
         ( *signature << 6 ) + ( *signature >> 2 );
 
+    if ( !node->IsVisible() )
+        return;
+
+    const Scaleform::Render::Matrix2F &matrix = node->M2D();
+    const Scaleform::Render::Cxform &cxform = node->GetCxform();
+    for ( unsigned row = 0; row < 2; ++row )
+    {
+        for ( unsigned column = 0; column < 4; ++column )
+        {
+            uint32_t matrixBits = 0;
+            uint32_t cxformBits = 0;
+            memcpy( &matrixBits, &matrix.M[row][column], sizeof( matrixBits ) );
+            memcpy( &cxformBits, &cxform.M[row][column], sizeof( cxformBits ) );
+            *signature ^= matrixBits + 0x9e3779b97f4a7c15ull +
+                ( *signature << 6 ) + ( *signature >> 2 );
+            *signature ^= cxformBits + 0x9e3779b97f4a7c15ull +
+                ( *signature << 6 ) + ( *signature >> 2 );
+        }
+    }
+
     const Scaleform::Render::Context::EntryData::EntryType type =
         node->GetReadOnlyData()->GetType();
     if ( type != Scaleform::Render::Context::EntryData::ET_Root &&
@@ -969,7 +1003,7 @@ void CPs4ScaleformHal::AccumulateVisibilitySignature(
     *signature ^= static_cast< uint64_t >( container->GetSize() ) +
         0x9e3779b97f4a7c15ull + ( *signature << 6 ) + ( *signature >> 2 );
     for ( Scaleform::UPInt i = 0; i < container->GetSize(); ++i )
-        AccumulateVisibilitySignature( container->GetAt( i ), signature, visited );
+        AccumulateTreeSignature( container->GetAt( i ), signature, visited );
 }
 
 bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
@@ -981,7 +1015,7 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
     const uint32_t statsBit = phase && phase[0] == 'h' ? 2u : 1u;
     uint64_t visibilitySignature = 0xcbf29ce484222325ull;
     uint32_t visibilityNodes = 0;
-    AccumulateVisibilitySignature( root, &visibilitySignature, &visibilityNodes );
+    AccumulateTreeSignature( root, &visibilitySignature, &visibilityNodes );
     const bool menuVisibilityChanged = statsBit == 1u &&
         ( !m_menuVisibilityValid || visibilitySignature != m_menuVisibilitySignature );
     if ( statsBit == 1u )
@@ -1021,7 +1055,8 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
             }
         }
     }
-    CollectTreeStats( root, &m_lastTreeStats, true );
+    CollectTreeStats( root, &m_lastTreeStats, true,
+        Scaleform::Render::Cxform::Identity );
     if ( m_lastTreeStats.totalNodes == 0 )
         return false;
 
@@ -1072,7 +1107,7 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         m_treeDrawableLoggedMask |= statsBit;
         char message[384];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform drawable tree phase=%s shapes=%u meshes=%u text=%u layers=%u solid=%u image=%u gradient=%u tess_layers=%u vertices=%u triangles=%u retained_vertices=%u retained_indices=%u retained_batches=%u degenerate=%u",
+            "kisak-ps4: scaleform drawable tree phase=%s shapes=%u meshes=%u text=%u layers=%u solid=%u image=%u gradient=%u tess_layers=%u vertices=%u triangles=%u retained_vertices=%u retained_indices=%u retained_batches=%u degenerate=%u cxforms=%u",
             phase ? phase : "unknown", m_lastTreeStats.shapeNodes,
             m_lastTreeStats.meshNodes, m_lastTreeStats.textNodes,
             m_lastTreeStats.shapeLayers, m_lastTreeStats.solidFills,
@@ -1080,7 +1115,8 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
             m_lastTreeStats.tessellatedLayers, m_lastTreeStats.tessellatedVertices,
             m_lastTreeStats.tessellatedTriangles, CapturedVertexCount(),
             CapturedIndexCount(), CapturedBatchCount(),
-            m_lastTreeStats.degenerateTransforms );
+            m_lastTreeStats.degenerateTransforms,
+            m_lastTreeStats.colorTransforms );
         KisakPs4StartupBreadcrumb( message );
         if ( m_lastTreeStats.textNodes )
         {
