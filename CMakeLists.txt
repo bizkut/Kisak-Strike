@@ -297,6 +297,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         kernel
         SceGnmDriver
         SceVideoOut
+        SceUserService
+        ScePad
         "${OPENORBIS_ROOT}/lib/crtn.o"
     )
 

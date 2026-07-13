@@ -4194,6 +4194,48 @@ clip rectangles to batches and emit them through `CPs4GnmDrawState::SetScissor`.
 Add diagnostics for reordered batches, mask owners, clipped batches, and
 scissor changes before enabling the behavior by default.
 
+### v3.90: Reject sparse per-vertex gradient substitution
+
+The v3.90 experiment submitted all 55 current menu batches through the color
+pipeline in captured tree order and reduced frame-arena use from roughly 2.34
+MiB to 1.81 MiB. Hardware remained stable, but the screenshot became uniformly
+lime and lost the dark authored panels. Although gradient batches retain a
+sampled color at each tessellation vertex, those sparse samples do not preserve
+the gradient matrix/ramp across large polygons. The experiment is reverted and
+the validated v3.89 solid/gradient/text pass behavior restored. Full authored
+ordering must switch pipelines per ordered batch while retaining the gradient
+atlas; it must not replace textured gradients with vertex interpolation.
+
+### v3.91: Replace the PS4 no-device input stub with DualShock 4 sampling
+
+The first interactive menu screenshot also confirms that no controller event
+can reach Scaleform: `inputsystem_ps4.cpp` still deliberately reports zero
+devices and never polls. The PS4 input backend now initializes UserService,
+obtains the logged-in user, initializes `libScePad`, opens controller slot zero,
+and samples it from Source's existing `SampleDevices` boundary. Button edges
+map Cross/Circle/Square/Triangle to `A/B/X/Y`, both shoulders and triggers to
+their existing Source codes, Options to Start, touchpad to Back, stick clicks,
+and the four D-pad directions. Disconnects synthesize releases, reconnect state
+is observed on subsequent samples, and Source rumble drives the large/small
+DualShock motors.
+
+The axis layout follows the shipped PS3 `controller.ps3.cfg` under the supplied
+console content: left X/Y feed `JOY_AXIS_X/Y`, right X feeds `JOY_AXIS_U`, and
+right Y feeds `JOY_AXIS_R`. A small centered dead zone prevents idle stick
+jitter from generating continuous events. Bounded diagnostics record pad init,
+connection/button transitions, and the mapped Scaleform key plus handled state.
+
+The next hardware gate is a nonnegative pad handle and `count=1`, a connected
+sample near centered sticks, D-pad selection movement, Cross activation,
+Circle cancellation where supported, bounded Scaleform input logs, and stable
+58-62 FPS without renewed retained-tree rebuild churn.
+
+Marker: `kisak-ps4: build marker dualshock4_input_v391`.
+
+The PS4 link/package build completes and all 11 host tests pass. The staged
+monolithic package SHA-256 is
+`11f92fb3dd16fd9de8cda08b3ebda61e7a87ea96d07993c9079182a755d6cb64`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

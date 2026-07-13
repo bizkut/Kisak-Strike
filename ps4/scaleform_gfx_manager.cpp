@@ -1021,6 +1021,23 @@ public:
         }
         if ( handled )
             KisakPs4ScaleformHal().RequestDynamicRefresh( 30 );
+        if ( event.m_nType == IE_ButtonPressed ||
+             event.m_nType == IE_ButtonReleased )
+        {
+            static unsigned int loggedInputs = 0;
+            if ( loggedInputs < 24 )
+            {
+                char message[160];
+                snprintf( message, sizeof( message ),
+                    "kisak-ps4: scaleform input type=%d button=%d key=%u handled=%u",
+                    event.m_nType, event.m_nData,
+                    static_cast< unsigned int >( MapButtonCode(
+                        static_cast< ButtonCode_t >( event.m_nData ) ) ),
+                    handled ? 1u : 0u );
+                KisakPs4StartupBreadcrumb( message );
+                ++loggedInputs;
+            }
+        }
         return handled;
     }
 
