@@ -1156,50 +1156,109 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command, bool textPass )
         float position[4];
         float color[4];
     };
+
+    const auto selectsBatch = [textPass, &sourceVertices, &sourceIndices](
+        const CPs4ScaleformHal::CapturedBatch &batch )
+    {
+        return !batch.complexFill && !batch.gradientFill &&
+            !batch.packedTextFill && batch.textFill == textPass &&
+            batch.vertexCount > 0 && batch.indexCount > 0 &&
+            batch.firstVertex <= sourceVertices.size() &&
+            batch.vertexCount <= sourceVertices.size() - batch.firstVertex &&
+            batch.firstIndex <= sourceIndices.size() &&
+            batch.indexCount <= sourceIndices.size() - batch.firstIndex;
+    };
+    size_t compactVertexCount = 0;
+    size_t compactIndexCount = 0;
+    uint32_t solidBatchCount = 0;
+    for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
+    {
+        const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
+        if ( !selectsBatch( batch ) )
+            continue;
+        if ( batch.vertexCount > 65535 ||
+             compactVertexCount > 65535 - batch.vertexCount ||
+             compactIndexCount > UINT32_MAX - batch.indexCount )
+            return false;
+        for ( uint32_t index = 0; index < batch.indexCount; ++index )
+        {
+            const uint16_t sourceIndex = sourceIndices[batch.firstIndex + index];
+            if ( sourceIndex < batch.firstVertex ||
+                 sourceIndex >= batch.firstVertex + batch.vertexCount )
+                return false;
+        }
+        compactVertexCount += batch.vertexCount;
+        compactIndexCount += batch.indexCount;
+        ++solidBatchCount;
+    }
+    if ( compactVertexCount == 0 || compactIndexCount == 0 )
+        return false;
+
+    const size_t uploadBytes = compactVertexCount * sizeof( UiVertex ) +
+        compactIndexCount * sizeof( uint16_t ) + 2 * sizeof( GnmBuffer ) + 64;
+    if ( g_Device.FrameArena().Available() < uploadBytes )
+    {
+        static bool loggedArenaFailure[2] = { false, false };
+        if ( !loggedArenaFailure[textPass ? 1 : 0] )
+        {
+            char message[192];
+            snprintf( message, sizeof( message ),
+                "kisak-ps4: scaleform %s arena rejected needed=%llu available=%llu",
+                textPass ? "text" : "solid",
+                static_cast< unsigned long long >( uploadBytes ),
+                static_cast< unsigned long long >(
+                    g_Device.FrameArena().Available() ) );
+            KisakPs4StartupBreadcrumb( message );
+            loggedArenaFailure[textPass ? 1 : 0] = true;
+        }
+        return false;
+    }
     UiVertex *vertices = static_cast< UiVertex * >(
-        g_Device.FrameArena().Allocate( sourceVertices.size() * sizeof( UiVertex ), 16 ) );
+        g_Device.FrameArena().Allocate( compactVertexCount * sizeof( UiVertex ), 16 ) );
     uint16_t *indices = static_cast< uint16_t * >(
-        g_Device.FrameArena().Allocate( sourceIndices.size() * sizeof( uint16_t ), 8 ) );
+        g_Device.FrameArena().Allocate( compactIndexCount * sizeof( uint16_t ), 8 ) );
     GnmBuffer *descriptors = static_cast< GnmBuffer * >(
         g_Device.FrameArena().Allocate( 2 * sizeof( GnmBuffer ), 16 ) );
     if ( !vertices || !indices || !descriptors )
         return false;
 
-    for ( size_t i = 0; i < sourceVertices.size(); ++i )
-    {
-        vertices[i].position[0] = sourceVertices[i].x / 960.0f - 1.0f;
-        vertices[i].position[1] = 1.0f - sourceVertices[i].y / 540.0f;
-        vertices[i].position[2] = 0.0f;
-        vertices[i].position[3] = 1.0f;
-        Scaleform::Render::Color color( sourceVertices[i].color );
-        vertices[i].color[0] = color.GetRed() / 255.0f;
-        vertices[i].color[1] = color.GetGreen() / 255.0f;
-        vertices[i].color[2] = color.GetBlue() / 255.0f;
-        vertices[i].color[3] = color.GetAlpha() / 255.0f;
-    }
-
+    uint32_t vertexCount = 0;
     uint32_t indexCount = 0;
-    uint32_t solidBatchCount = 0;
     for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
     {
         const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
-        if ( batch.complexFill || batch.gradientFill || batch.packedTextFill ||
-             batch.textFill != textPass ||
-             batch.firstVertex + batch.vertexCount > sourceVertices.size() ||
-             batch.firstIndex + batch.indexCount > sourceIndices.size() )
+        if ( !selectsBatch( batch ) )
             continue;
-        memcpy( indices + indexCount, &sourceIndices[batch.firstIndex],
-            batch.indexCount * sizeof( uint16_t ) );
+
+        for ( uint32_t vertex = 0; vertex < batch.vertexCount; ++vertex )
+        {
+            const CPs4ScaleformHal::CapturedVertex &source =
+                sourceVertices[batch.firstVertex + vertex];
+            UiVertex &destination = vertices[vertexCount + vertex];
+            destination.position[0] = source.x / 960.0f - 1.0f;
+            destination.position[1] = 1.0f - source.y / 540.0f;
+            destination.position[2] = 0.0f;
+            destination.position[3] = 1.0f;
+            Scaleform::Render::Color color( source.color );
+            destination.color[0] = color.GetRed() / 255.0f;
+            destination.color[1] = color.GetGreen() / 255.0f;
+            destination.color[2] = color.GetBlue() / 255.0f;
+            destination.color[3] = color.GetAlpha() / 255.0f;
+        }
+        for ( uint32_t index = 0; index < batch.indexCount; ++index )
+        {
+            const uint16_t sourceIndex = sourceIndices[batch.firstIndex + index];
+            indices[indexCount + index] = static_cast< uint16_t >(
+                vertexCount + sourceIndex - batch.firstVertex );
+        }
+        vertexCount += batch.vertexCount;
         indexCount += batch.indexCount;
-        ++solidBatchCount;
     }
-    if ( indexCount == 0 )
-        return false;
 
     CPs4GnmBuffer vertexBuffer;
     CPs4GnmBuffer indexBuffer;
     if ( !vertexBuffer.Initialize( vertices,
-            sourceVertices.size() * sizeof( UiVertex ), CPs4GnmBuffer::kVertexBuffer, true ) ||
+            vertexCount * sizeof( UiVertex ), CPs4GnmBuffer::kVertexBuffer, true ) ||
          !indexBuffer.Initialize( indices, indexCount * sizeof( uint16_t ),
             CPs4GnmBuffer::kIndexBuffer, true ) ||
          !g_Device.SetStreamSource( 0, &vertexBuffer, 0, sizeof( UiVertex ) ) ||
@@ -1213,9 +1272,9 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command, bool textPass )
     CPs4GnmDevice::IndexedDrawPacket packet = {};
     if ( !declaration.Initialize( elements, 2 ) ||
          !g_Device.BuildVertexDescriptorTable( declaration, 0,
-            sourceVertices.size(), descriptors, 2 ) ||
+            vertexCount, descriptors, 2 ) ||
          !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
-            0, indexCount, 0, sourceVertices.size(), &packet ) )
+            0, indexCount, 0, vertexCount, &packet ) )
         return false;
 
     g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
@@ -1254,7 +1313,7 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command, bool textPass )
         snprintf( message, sizeof( message ),
             "kisak-ps4: scaleform %s draw batches=%u vertices=%u indices=%u",
             textPass ? "text" : "solid", solidBatchCount,
-            static_cast< unsigned int >( sourceVertices.size() ), indexCount );
+            vertexCount, indexCount );
         KisakPs4StartupBreadcrumb( message );
         logged[textPass ? 1 : 0] = true;
     }
@@ -1284,19 +1343,76 @@ bool EmitScaleformTextureBatches( GnmCommandBuffer *command, bool fontPass )
         float position[3];
         float uv[2];
     };
-    GradientVertex *vertices = static_cast< GradientVertex * >(
-        g_Device.FrameArena().Allocate(
-            sourceVertices.size() * sizeof( GradientVertex ), 16 ) );
-    uint16_t *indices = static_cast< uint16_t * >(
-        g_Device.FrameArena().Allocate( sourceIndices.size() * sizeof( uint16_t ), 8 ) );
-    GnmBuffer *descriptors = static_cast< GnmBuffer * >(
-        g_Device.FrameArena().Allocate( 2 * sizeof( GnmBuffer ), 16 ) );
-    GnmBuffer *constantDescriptor = static_cast< GnmBuffer * >(
-        g_Device.FrameArena().Allocate( sizeof( GnmBuffer ), 16 ) );
+
+    const auto selectsBatch = [fontPass, &sourceVertices, &sourceIndices](
+        const CPs4ScaleformHal::CapturedBatch &batch )
+    {
+        return ( fontPass ? batch.packedTextFill : batch.gradientFill ) &&
+            !batch.complexFill && batch.vertexCount > 0 && batch.indexCount > 0 &&
+            batch.firstVertex <= sourceVertices.size() &&
+            batch.vertexCount <= sourceVertices.size() - batch.firstVertex &&
+            batch.firstIndex <= sourceIndices.size() &&
+            batch.indexCount <= sourceIndices.size() - batch.firstIndex;
+    };
+    size_t compactVertexCount = 0;
+    size_t compactIndexCount = 0;
+    uint32_t textureBatchCount = 0;
+    for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
+    {
+        const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
+        if ( !selectsBatch( batch ) )
+            continue;
+        if ( batch.vertexCount > 65535 ||
+             compactVertexCount > 65535 - batch.vertexCount ||
+             compactIndexCount > UINT32_MAX - batch.indexCount )
+            return false;
+        for ( uint32_t index = 0; index < batch.indexCount; ++index )
+        {
+            const uint16_t sourceIndex = sourceIndices[batch.firstIndex + index];
+            if ( sourceIndex < batch.firstVertex ||
+                 sourceIndex >= batch.firstVertex + batch.vertexCount )
+                return false;
+        }
+        compactVertexCount += batch.vertexCount;
+        compactIndexCount += batch.indexCount;
+        ++textureBatchCount;
+    }
+    if ( compactVertexCount == 0 || compactIndexCount == 0 )
+        return false;
+
     const uint32_t atlasWidth = fontPass ? 1024u : 512u;
     const uint32_t atlasHeight = fontPass ? 512u : 256u;
     const size_t atlasCapacity =
         static_cast< size_t >( atlasWidth ) * atlasHeight * sizeof( uint32_t ) + 4096;
+    const size_t uploadBytes = compactVertexCount * sizeof( GradientVertex ) +
+        compactIndexCount * sizeof( uint16_t ) + 3 * sizeof( GnmBuffer ) +
+        atlasCapacity + CPs4GnmTexture::SamplerTableSize() + 64 + 1024;
+    if ( g_Device.FrameArena().Available() < uploadBytes )
+    {
+        static bool loggedArenaFailure[2] = { false, false };
+        if ( !loggedArenaFailure[fontPass ? 1 : 0] )
+        {
+            char message[208];
+            snprintf( message, sizeof( message ),
+                "kisak-ps4: scaleform %s atlas arena rejected needed=%llu available=%llu",
+                fontPass ? "font" : "gradient",
+                static_cast< unsigned long long >( uploadBytes ),
+                static_cast< unsigned long long >(
+                    g_Device.FrameArena().Available() ) );
+            KisakPs4StartupBreadcrumb( message );
+            loggedArenaFailure[fontPass ? 1 : 0] = true;
+        }
+        return false;
+    }
+    GradientVertex *vertices = static_cast< GradientVertex * >(
+        g_Device.FrameArena().Allocate(
+            compactVertexCount * sizeof( GradientVertex ), 16 ) );
+    uint16_t *indices = static_cast< uint16_t * >(
+        g_Device.FrameArena().Allocate( compactIndexCount * sizeof( uint16_t ), 8 ) );
+    GnmBuffer *descriptors = static_cast< GnmBuffer * >(
+        g_Device.FrameArena().Allocate( 2 * sizeof( GnmBuffer ), 16 ) );
+    GnmBuffer *constantDescriptor = static_cast< GnmBuffer * >(
+        g_Device.FrameArena().Allocate( sizeof( GnmBuffer ), 16 ) );
     void *atlasMemory = g_Device.FrameArena().Allocate( atlasCapacity, 256 );
     void *tableMemory = g_Device.FrameArena().Allocate(
         CPs4GnmTexture::SamplerTableSize(), 16 );
@@ -1304,32 +1420,34 @@ bool EmitScaleformTextureBatches( GnmCommandBuffer *command, bool fontPass )
          !atlasMemory || !tableMemory )
         return false;
 
-    for ( size_t i = 0; i < sourceVertices.size(); ++i )
-    {
-        vertices[i].position[0] = sourceVertices[i].x / 960.0f - 1.0f;
-        vertices[i].position[1] = 1.0f - sourceVertices[i].y / 540.0f;
-        vertices[i].position[2] = 0.0f;
-        vertices[i].uv[0] = sourceVertices[i].gradientU;
-        vertices[i].uv[1] = sourceVertices[i].gradientV;
-    }
-
+    uint32_t vertexCount = 0;
     uint32_t indexCount = 0;
-    uint32_t textureBatchCount = 0;
     for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
     {
         const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
-        if ( ( fontPass ? !batch.packedTextFill : !batch.gradientFill ) ||
-             batch.complexFill ||
-             batch.firstVertex + batch.vertexCount > sourceVertices.size() ||
-             batch.firstIndex + batch.indexCount > sourceIndices.size() )
+        if ( !selectsBatch( batch ) )
             continue;
-        memcpy( indices + indexCount, &sourceIndices[batch.firstIndex],
-            batch.indexCount * sizeof( uint16_t ) );
+
+        for ( uint32_t vertex = 0; vertex < batch.vertexCount; ++vertex )
+        {
+            const CPs4ScaleformHal::CapturedVertex &source =
+                sourceVertices[batch.firstVertex + vertex];
+            GradientVertex &destination = vertices[vertexCount + vertex];
+            destination.position[0] = source.x / 960.0f - 1.0f;
+            destination.position[1] = 1.0f - source.y / 540.0f;
+            destination.position[2] = 0.0f;
+            destination.uv[0] = source.gradientU;
+            destination.uv[1] = source.gradientV;
+        }
+        for ( uint32_t index = 0; index < batch.indexCount; ++index )
+        {
+            const uint16_t sourceIndex = sourceIndices[batch.firstIndex + index];
+            indices[indexCount + index] = static_cast< uint16_t >(
+                vertexCount + sourceIndex - batch.firstVertex );
+        }
+        vertexCount += batch.vertexCount;
         indexCount += batch.indexCount;
-        ++textureBatchCount;
     }
-    if ( indexCount == 0 )
-        return false;
 
     CPs4GnmTexture atlas;
     GnmSampler sampler = {};
@@ -1365,7 +1483,7 @@ bool EmitScaleformTextureBatches( GnmCommandBuffer *command, bool fontPass )
         0, 0, 1, 0, 0, 0, 0, 1
     };
     if ( !vertexBuffer.Initialize( vertices,
-            sourceVertices.size() * sizeof( GradientVertex ),
+            vertexCount * sizeof( GradientVertex ),
             CPs4GnmBuffer::kVertexBuffer, true ) ||
          !indexBuffer.Initialize( indices, indexCount * sizeof( uint16_t ),
             CPs4GnmBuffer::kIndexBuffer, true ) ||
@@ -1373,9 +1491,9 @@ bool EmitScaleformTextureBatches( GnmCommandBuffer *command, bool fontPass )
          !g_Device.SetIndices( &indexBuffer ) ||
          !declaration.Initialize( elements, 2 ) ||
          !g_Device.BuildVertexDescriptorTable( declaration, 0,
-            sourceVertices.size(), descriptors, 2 ) ||
+            vertexCount, descriptors, 2 ) ||
          !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32_FLOAT,
-            0, indexCount, 0, sourceVertices.size(), &packet ) ||
+            0, indexCount, 0, vertexCount, &packet ) ||
          !constants.SetFloat( CPs4GnmConstants::kVertex, 0, identity, 4 ) ||
          !constants.BuildBuffer( CPs4GnmConstants::kVertex,
             &g_Device.FrameArena(), constantDescriptor ) )
@@ -1591,10 +1709,49 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     uint32_t sourceDirtyMask = 0;
     Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX,
         &sourceDirtyMask );
-    EmitScaleformSolidBatches( command, false );
-    EmitScaleformTextureBatches( command, false );
-    EmitScaleformSolidBatches( command, true );
-    EmitScaleformTextureBatches( command, true );
+    const size_t scaleformArenaBefore = g_Device.FrameArena().Used();
+    const bool emittedScaleformSolid =
+        EmitScaleformSolidBatches( command, false );
+    const bool emittedScaleformGradient =
+        EmitScaleformTextureBatches( command, false );
+    const bool emittedScaleformText =
+        EmitScaleformSolidBatches( command, true );
+    const bool emittedScaleformFontAtlas =
+        EmitScaleformTextureBatches( command, true );
+    bool scaleformCaptureHasText = false;
+    const std::vector< CPs4ScaleformHal::CapturedBatch > &scaleformBatches =
+        KisakPs4ScaleformHal().CapturedDraws();
+    for ( size_t batchIndex = 0; batchIndex < scaleformBatches.size(); ++batchIndex )
+    {
+        if ( scaleformBatches[batchIndex].textFill )
+        {
+            scaleformCaptureHasText = true;
+            break;
+        }
+    }
+    static unsigned int scaleformPassSummaryCount = 0;
+    static bool scaleformCompletePassesLogged = false;
+    if ( scaleformCaptureHasText && !scaleformCompletePassesLogged &&
+         scaleformPassSummaryCount < 4 )
+    {
+        char message[224];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: scaleform passes solid=%u gradient=%u text=%u font_atlas=%u font_items=%u arena_before=%llu arena_after=%llu available=%llu",
+            emittedScaleformSolid ? 1u : 0u,
+            emittedScaleformGradient ? 1u : 0u,
+            emittedScaleformText ? 1u : 0u,
+            emittedScaleformFontAtlas ? 1u : 0u,
+            KisakPs4ScaleformHal().FontAtlasGlyphCount(),
+            static_cast< unsigned long long >( scaleformArenaBefore ),
+            static_cast< unsigned long long >( g_Device.FrameArena().Used() ),
+            static_cast< unsigned long long >( g_Device.FrameArena().Available() ) );
+        KisakPs4StartupBreadcrumb( message );
+        ++scaleformPassSummaryCount;
+        scaleformCompletePassesLogged = emittedScaleformSolid &&
+            emittedScaleformGradient && emittedScaleformText &&
+            ( KisakPs4ScaleformHal().FontAtlasGlyphCount() == 0 ||
+              emittedScaleformFontAtlas );
+    }
     static bool sourceBlendStateLogged = false;
     if ( !sourceBlendStateLogged )
     {

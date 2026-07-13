@@ -3839,6 +3839,53 @@ The v3.80 monolithic package is staged at
 `26b4641ccceb48afca80808d8c3ffe95cd97ae4738b42472994877819fbd9aa0`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.81: Compact retained Scaleform geometry per GPU pass
+
+The v3.80 hardware run completed the first compacted glyph trace and remained
+stable through frame 7,200. It resolved Stratum2 Bold and Regular, tessellated
+799 vector glyph shapes into 33,740 vertices and 49,442 triangles, and retained
+35,244 vertices, 154,188 indices, and 949 batches for the complete movie. The
+screen changed to an opaque lime UI layer with a faint central panel, proving
+that GFx geometry now covers the diagnostic scene, but no gradients or readable
+text appeared. The submission log contained only the solid-shape draw
+(`68` batches and `2,070` indices); neither the gradient-atlas nor vector-text
+draw was emitted.
+
+The missing passes were deterministic frame-arena exhaustion. OpenGNM divides
+the final 6 MiB of the 64 MiB direct-memory block across two frames, leaving
+3 MiB per frame. Command storage and the Source diagnostic dynamic buffers use
+about 852 KiB before Scaleform. Each v3.80 emitter then uploaded the *entire*
+retained vertex and index arrays even when its filter selected only a small
+subset. The first solid pass consumed another 1.44 MiB. The gradient pass
+allocated its full 705 KiB vertex copy before its full index copy and 516 KiB
+atlas failed, consuming the remaining monotonic arena space; the following text
+pass therefore failed before drawing. All four return values were ignored, so
+the failure was visually misleading and absent from the log.
+
+Each retained pass now pre-counts only its selected batches, validates that
+every index belongs to the batch vertex range, copies only those vertex spans,
+and rebases indices into a compact pass-local vertex buffer. Exact pass-sized
+allocations preserve enough arena capacity for the solid, gradient, and vector
+text submissions in one frame. Conservative capacity preflights prevent an
+insufficient-arena pass from partially consuming the bump arena, while bounded
+rejection and up to four text-bearing pass summaries expose transient startup
+results and before/after/available arena bytes. The packed-font-atlas pass may
+still report `font_atlas=0`: these CS:GO font libraries contain compacted vector
+outlines and no packed glyph texture.
+
+The next hardware gate is a pass summary with `solid=1 gradient=1 text=1`,
+`font_atlas=0 font_items=0` for the current compacted-vector font assets,
+non-zero `scaleform gradient atlas draw` and `scaleform text draw` records, no
+arena-rejection breadcrumb, visible menu gradients and text, stable flips, and
+no regression in the 60 Hz presentation path.
+
+Marker: `kisak-ps4: build marker scaleform_compact_pass_v381`.
+
+The v3.81 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`3dca333a57a4f4dae94caac92e2db5fdf657da2378f6148e185161eb9553fe55`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
