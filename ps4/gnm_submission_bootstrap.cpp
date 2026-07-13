@@ -1183,7 +1183,8 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command )
     for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
     {
         const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
-        if ( batch.complexFill || batch.firstVertex + batch.vertexCount > sourceVertices.size() ||
+        if ( batch.complexFill || batch.gradientFill ||
+             batch.firstVertex + batch.vertexCount > sourceVertices.size() ||
              batch.firstIndex + batch.indexCount > sourceIndices.size() )
             continue;
         memcpy( indices + indexCount, &sourceIndices[batch.firstIndex],
@@ -1253,6 +1254,163 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command )
             "kisak-ps4: scaleform solid draw batches=%u vertices=%u indices=%u",
             solidBatchCount, static_cast< unsigned int >( sourceVertices.size() ),
             indexCount );
+        KisakPs4StartupBreadcrumb( message );
+        logged = true;
+    }
+    return true;
+}
+
+bool EmitScaleformGradientBatches( GnmCommandBuffer *command )
+{
+    CPs4ScaleformHal &hal = KisakPs4ScaleformHal();
+    const std::vector< CPs4ScaleformHal::CapturedVertex > &sourceVertices =
+        hal.CapturedVertices();
+    const std::vector< uint16_t > &sourceIndices = hal.CapturedIndices();
+    const std::vector< CPs4ScaleformHal::CapturedBatch > &sourceBatches =
+        hal.CapturedDraws();
+    const std::vector< uint32_t > &gradientPixels = hal.GradientPixels();
+    const uint32_t gradientRows = hal.GradientRowCount();
+    if ( !command || sourceVertices.empty() || sourceIndices.empty() ||
+         sourceBatches.empty() || gradientPixels.empty() || gradientRows == 0 ||
+         !g_ReferenceCubeVertexShader || !g_ReferenceCubePixelShader ||
+         !g_ReferenceCubeFetchShader )
+        return false;
+
+    struct GradientVertex
+    {
+        float position[3];
+        float uv[2];
+    };
+    GradientVertex *vertices = static_cast< GradientVertex * >(
+        g_Device.FrameArena().Allocate(
+            sourceVertices.size() * sizeof( GradientVertex ), 16 ) );
+    uint16_t *indices = static_cast< uint16_t * >(
+        g_Device.FrameArena().Allocate( sourceIndices.size() * sizeof( uint16_t ), 8 ) );
+    GnmBuffer *descriptors = static_cast< GnmBuffer * >(
+        g_Device.FrameArena().Allocate( 2 * sizeof( GnmBuffer ), 16 ) );
+    GnmBuffer *constantDescriptor = static_cast< GnmBuffer * >(
+        g_Device.FrameArena().Allocate( sizeof( GnmBuffer ), 16 ) );
+    const size_t atlasCapacity = 512 * 1024;
+    void *atlasMemory = g_Device.FrameArena().Allocate( atlasCapacity, 256 );
+    void *tableMemory = g_Device.FrameArena().Allocate(
+        CPs4GnmTexture::SamplerTableSize(), 16 );
+    if ( !vertices || !indices || !descriptors || !constantDescriptor ||
+         !atlasMemory || !tableMemory )
+        return false;
+
+    for ( size_t i = 0; i < sourceVertices.size(); ++i )
+    {
+        vertices[i].position[0] = sourceVertices[i].x / 960.0f - 1.0f;
+        vertices[i].position[1] = 1.0f - sourceVertices[i].y / 540.0f;
+        vertices[i].position[2] = 0.0f;
+        vertices[i].uv[0] = sourceVertices[i].gradientU;
+        vertices[i].uv[1] = sourceVertices[i].gradientV;
+    }
+
+    uint32_t indexCount = 0;
+    uint32_t gradientBatchCount = 0;
+    for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
+    {
+        const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
+        if ( !batch.gradientFill || batch.complexFill ||
+             batch.firstVertex + batch.vertexCount > sourceVertices.size() ||
+             batch.firstIndex + batch.indexCount > sourceIndices.size() )
+            continue;
+        memcpy( indices + indexCount, &sourceIndices[batch.firstIndex],
+            batch.indexCount * sizeof( uint16_t ) );
+        indexCount += batch.indexCount;
+        ++gradientBatchCount;
+    }
+    if ( indexCount == 0 )
+        return false;
+
+    CPs4GnmTexture atlas;
+    GnmSampler sampler = {};
+    sampler.clampx = sampler.clampy = sampler.clampz =
+        GNM_TEX_CLAMP_CLAMP_LAST_TEXEL;
+    sampler.depthcomparefunc = GNM_DEPTH_COMPARE_ALWAYS;
+    sampler.filtermode = GNM_FILTER_MODE_BLEND;
+    sampler.xymagfilter = sampler.xyminfilter = GNM_FILTER_BILINEAR;
+    sampler.zfilter = GNM_ZFILTER_NONE;
+    sampler.mipfilter = GNM_MIPFILTER_NONE;
+    sampler.bordercolortype = GNM_BORDER_COLOR_OPAQUE_BLACK;
+    void *samplerTable = 0;
+    if ( !atlas.Initialize2D( atlasMemory, atlasCapacity, GNM_FMT_R8G8B8A8_UNORM,
+            256, 128, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) ||
+         !atlas.UploadLinear( &gradientPixels[0], 256 * sizeof( uint32_t ), gradientRows ) ||
+         !atlas.BuildSamplerTable( sampler, tableMemory,
+             CPs4GnmTexture::SamplerTableSize(), &samplerTable ) )
+        return false;
+
+    CPs4GnmBuffer vertexBuffer;
+    CPs4GnmBuffer indexBuffer;
+    const CPs4GnmVertexDeclaration::Element elements[2] = {
+        { 0, 0, GNM_FMT_R32G32B32_FLOAT },
+        { 0, 12, GNM_FMT_R32G32_FLOAT }
+    };
+    CPs4GnmVertexDeclaration declaration;
+    CPs4GnmDevice::IndexedDrawPacket packet = {};
+    CPs4GnmConstants constants;
+    const float identity[16] = {
+        1, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 1, 0, 0, 0, 0, 1
+    };
+    if ( !vertexBuffer.Initialize( vertices,
+            sourceVertices.size() * sizeof( GradientVertex ),
+            CPs4GnmBuffer::kVertexBuffer, true ) ||
+         !indexBuffer.Initialize( indices, indexCount * sizeof( uint16_t ),
+            CPs4GnmBuffer::kIndexBuffer, true ) ||
+         !g_Device.SetStreamSource( 0, &vertexBuffer, 0, sizeof( GradientVertex ) ) ||
+         !g_Device.SetIndices( &indexBuffer ) ||
+         !declaration.Initialize( elements, 2 ) ||
+         !g_Device.BuildVertexDescriptorTable( declaration, 0,
+            sourceVertices.size(), descriptors, 2 ) ||
+         !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32_FLOAT,
+            0, indexCount, 0, sourceVertices.size(), &packet ) ||
+         !constants.SetFloat( CPs4GnmConstants::kVertex, 0, identity, 4 ) ||
+         !constants.BuildBuffer( CPs4GnmConstants::kVertex,
+            &g_Device.FrameArena(), constantDescriptor ) )
+        return false;
+
+    g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
+    g_DrawState.SetVertexShader( g_ReferenceCubeVertexShader->registers, 0 );
+    g_DrawState.SetPixelShader( g_ReferenceCubePixelShader->registers );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_ReferenceCubeFetchShader );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, descriptors );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 6, constantDescriptor );
+    g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, samplerTable );
+    g_DrawState.SetScissor( 0, 0, 1920, 1080 );
+    g_DrawState.SetPsInputUsage(
+        sceGnmVsShaderExportSemanticTable( g_ReferenceCubeVertexShader ),
+        g_ReferenceCubeVertexShader->numexportsemantics,
+        sceGnmPsShaderInputSemanticTable( g_ReferenceCubePixelShader ),
+        g_ReferenceCubePixelShader->numinputsemantics );
+    GnmDepthStencilControl depth = {};
+    depth.zfunc = GNM_DEPTH_COMPARE_ALWAYS;
+    depth.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
+    depth.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
+    g_DrawState.SetDepthStencilControl( depth );
+    GnmBlendControl blend = {};
+    blend.blendenabled = true;
+    blend.colorfunc = GNM_COMB_DST_PLUS_SRC;
+    blend.colorsrcmult = GNM_BLEND_SRC_ALPHA;
+    blend.colordstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
+    blend.alphafunc = GNM_COMB_DST_PLUS_SRC;
+    blend.alphasrcmult = GNM_BLEND_ONE;
+    blend.alphadstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
+    g_DrawState.SetBlendControl( 0, blend );
+    g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil );
+    if ( !Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX ) )
+        return false;
+
+    static bool logged = false;
+    if ( !logged )
+    {
+        char message[176];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: scaleform gradient atlas draw batches=%u rows=%u indices=%u bytes=%llu",
+            gradientBatchCount, gradientRows, indexCount,
+            static_cast< unsigned long long >( atlas.Size() ) );
         KisakPs4StartupBreadcrumb( message );
         logged = true;
     }
@@ -1425,6 +1583,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX,
         &sourceDirtyMask );
     EmitScaleformSolidBatches( command );
+    EmitScaleformGradientBatches( command );
     static bool sourceBlendStateLogged = false;
     if ( !sourceBlendStateLogged )
     {

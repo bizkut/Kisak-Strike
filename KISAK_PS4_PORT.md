@@ -3600,6 +3600,35 @@ The v3.72 monolithic package is staged at
 `9dcff2c4b269a4cbf521429b1114556980cfe45cf0743065eafe8e0f7bd286f0`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.73: Upload and sample a real OpenGNM gradient atlas
+
+The v3.72 screenshot shows strong interior variation and visible centroid fans,
+proving that gradient records and authored fill matrices are correct while the
+per-vertex approximation is the remaining source of streaking.
+
+The HAL now captures a 256-sample RGBA row for every retained gradient mesh,
+packs channels explicitly for `GNM_FMT_R8G8B8A8_UNORM`, and records atlas UVs
+alongside each vertex. The submission path uploads those rows into a 256x128
+linear OpenGNM texture, builds a bilinear clamp sampler table, and renders the
+82 gradient batches through the proven reference-cube position/UV shader path.
+Solid batches remain on the color shader. Centroid refinement stays enabled for
+radial coordinate approximation during this first texture-backed checkpoint.
+
+This probe deliberately renders gradient batches after solids and the reused
+pixel shader forces sampled alpha to one. The dedicated Scaleform shader pair
+will restore original interleaved ordering, gradient alpha, and per-pixel radial
+evaluation after the native sampled-image compiler path is ready.
+
+The hardware gate is a stable `scaleform gradient atlas draw` marker, 82 atlas
+rows/batches, smooth multi-stop ramps, and no GPU hang or frame-rate regression.
+
+Marker: `kisak-ps4: build marker scaleform_gradient_atlas_v373`.
+
+The v3.73 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`41e44942cb5795149fa200b05d7b51cfcc7c86f1f4d85ba54279b9cf9c3e39a6`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

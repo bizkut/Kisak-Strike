@@ -25,6 +25,8 @@ public:
     {
         float x;
         float y;
+        float gradientU;
+        float gradientV;
         uint32_t color;
     };
 
@@ -36,6 +38,7 @@ public:
         uint32_t indexCount;
         uint32_t color;
         bool complexFill;
+        bool gradientFill;
     };
 
     struct TreeStats
@@ -102,6 +105,9 @@ public:
         { return m_capturedIndices; }
     const std::vector< CapturedBatch > &CapturedDraws() const
         { return m_capturedDraws; }
+    const std::vector< uint32_t > &GradientPixels() const
+        { return m_gradientPixels; }
+    uint32_t GradientRowCount() const { return m_gradientPixels.size() / 256; }
 
 private:
     enum { kMaxTreeNodes = 4096 };
@@ -119,6 +125,7 @@ private:
     std::vector< CapturedVertex > m_capturedVertices;
     std::vector< uint16_t > m_capturedIndices;
     std::vector< CapturedBatch > m_capturedDraws;
+    std::vector< uint32_t > m_gradientPixels;
 };
 
 CPs4ScaleformHal &KisakPs4ScaleformHal();

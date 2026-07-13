@@ -62,12 +62,24 @@ uint32_t SampleGradientAt( const Scaleform::Render::GradientData *gradient,
     return SampleGradient( gradient, ratio );
 }
 
+float GradientRatioAt( const Scaleform::Render::GradientData *gradient,
+    const Scaleform::Render::Matrix2F &gradientMatrix, float x, float y )
+{
+    gradientMatrix.Transform( &x, &y );
+    if ( gradient->GetGradientType() == Scaleform::Render::GradientLinear )
+        return x;
+    const float dx = ( x - 0.5f ) * 2.0f;
+    const float dy = ( y - 0.5f ) * 2.0f;
+    return sqrtf( dx * dx + dy * dy );
+}
+
 bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
     unsigned layer, const Scaleform::Render::Matrix2F &viewMatrix,
     uint32_t *vertices, uint32_t *triangles,
     std::vector< CPs4ScaleformHal::CapturedVertex > *capturedVertices,
     std::vector< uint16_t > *capturedIndices,
-    std::vector< CPs4ScaleformHal::CapturedBatch > *capturedDraws )
+    std::vector< CPs4ScaleformHal::CapturedBatch > *capturedDraws,
+    std::vector< uint32_t > *gradientPixels )
 {
     if ( !provider || !vertices || !triangles )
         return false;
@@ -181,6 +193,24 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
              capturedIndices->size() + requiredIndices > 196605 )
             continue;
 
+        int gradientRow = -1;
+        float gradientV = 0.0f;
+        if ( gradient )
+        {
+            if ( !gradientPixels || gradientPixels->size() / 256 >= 128 )
+                continue;
+            gradientRow = static_cast< int >( gradientPixels->size() / 256 );
+            gradientV = ( static_cast< float >( gradientRow ) + 0.5f ) / 128.0f;
+            for ( unsigned sample = 0; sample < 256; ++sample )
+            {
+                Scaleform::Render::Color color( SampleGradient( gradient,
+                    static_cast< float >( sample ) / 255.0f ) );
+                gradientPixels->push_back( color.GetRed() |
+                    ( color.GetGreen() << 8 ) | ( color.GetBlue() << 16 ) |
+                    ( color.GetAlpha() << 24 ) );
+            }
+        }
+
         std::vector< Scaleform::UInt16 > meshIndices( triangleCount * 3 );
         generator.mTess.GetTrianglesI16( mesh, &meshIndices[0], 0, triangleCount );
         for ( unsigned vertex = 0; vertex < copiedVertices; ++vertex )
@@ -188,6 +218,8 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             CPs4ScaleformHal::CapturedVertex captured;
             captured.x = meshVertices[vertex].x;
             captured.y = meshVertices[vertex].y;
+            captured.gradientU = 0.0f;
+            captured.gradientV = 0.0f;
             captured.color = 0;
             const Scaleform::Render::TessVertex &tessVertex = meshVertices[vertex];
             if ( !Scaleform::Render::TessStyleIsComplex( tessVertex.Flags ) )
@@ -206,8 +238,13 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
                 }
             }
             else if ( gradient )
+            {
                 captured.color = SampleGradientAt( gradient, gradientMatrix,
                     tessVertex.x, tessVertex.y );
+                captured.gradientU = GradientRatioAt( gradient, gradientMatrix,
+                    tessVertex.x, tessVertex.y );
+                captured.gradientV = gradientV;
+            }
             viewMatrix.Transform( &captured.x, &captured.y );
             capturedVertices->push_back( captured );
         }
@@ -236,6 +273,9 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             center.x = ( va.x + vb.x + vc.x ) / 3.0f;
             center.y = ( va.y + vb.y + vc.y ) / 3.0f;
             center.color = SampleGradientAt( gradient, gradientMatrix, center.x, center.y );
+            center.gradientU = GradientRatioAt( gradient, gradientMatrix,
+                center.x, center.y );
+            center.gradientV = gradientV;
             viewMatrix.Transform( &center.x, &center.y );
             const uint16_t centerIndex = static_cast< uint16_t >( capturedVertices->size() );
             capturedVertices->push_back( center );
@@ -255,6 +295,7 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
         batch.complexFill = !gradient && (
             Scaleform::Render::TessStyleIsComplex( tessMesh.Flags1 ) ||
             Scaleform::Render::TessStyleIsComplex( tessMesh.Flags2 ) );
+        batch.gradientFill = gradientRow >= 0;
         capturedDraws->push_back( batch );
     }
     generator.Clear();
@@ -363,8 +404,9 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
                 {
                     if ( stats->collectGeometry && TessellateShapeLayer( shape, layer,
                             viewMatrix,
-                            &stats->tessellatedVertices, &stats->tessellatedTriangles,
-                            &m_capturedVertices, &m_capturedIndices, &m_capturedDraws ) )
+                             &stats->tessellatedVertices, &stats->tessellatedTriangles,
+                             &m_capturedVertices, &m_capturedIndices, &m_capturedDraws,
+                             &m_gradientPixels ) )
                         ++stats->tessellatedLayers;
                     const unsigned fillCount = shape->GetFillCount( layer, 0 );
                     for ( unsigned fill = 0; fill < fillCount; ++fill )
@@ -429,9 +471,11 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         m_capturedVertices.clear();
         m_capturedIndices.clear();
         m_capturedDraws.clear();
+        m_gradientPixels.clear();
         m_capturedVertices.reserve( 4096 );
         m_capturedIndices.reserve( 12288 );
         m_capturedDraws.reserve( 256 );
+        m_gradientPixels.reserve( 128 * 256 );
     }
     CollectTreeStats( root, &m_lastTreeStats );
     if ( m_lastTreeStats.totalNodes == 0 )
