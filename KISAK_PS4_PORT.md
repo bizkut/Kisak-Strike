@@ -3705,6 +3705,32 @@ The v3.76 monolithic package is staged at
 `3272f36c3b0a616ee2d0bc728254b9b64b15c36f11a5adce0adbfca7ef2387ec`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.77: Render packed GFx font glyphs through an atlas
+
+The v3.76 log reports 848 text character records but zero vector glyph shapes,
+proving the active CSGO fonts use Scaleform's packed texture-glyph path. The
+vector fallback therefore could not alter the visible frame.
+
+The HAL now reads each `TextureGlyph` from its embedded raw image, deduplicates
+glyph/color pairs into a bounded 64x64-tile RGBA font atlas, and emits the exact
+Scaleform packed-glyph quad coordinates derived from `UvBounds`, `UvOrigin`,
+font size, texture glyph height, and line pen position. A8 coverage is combined
+with the layout color and alpha while copying atlas pixels. Packed glyph quads
+render in a final texture pass after gradients and vector text.
+
+The gradient tiles are reduced to 32x32 in a 512x256 atlas, leaving the second
+1024x512 font atlas within the three-megabyte per-frame direct-memory arena.
+Diagnostics now distinguish packed records, unique atlas glyphs, and submitted
+font-atlas batches. Glyphs larger than 64 pixels, non-raw images, distance-field
+fonts, clipping, and multiple atlas pages remain follow-ups.
+
+Marker: `kisak-ps4: build marker scaleform_packed_text_v377`.
+
+The v3.77 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`99b3f4a57bd63d26224bfd614f913c7e65c14ffc054aa1dea812eaf7a5eff1cc`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

@@ -1183,7 +1183,8 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command, bool textPass )
     for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
     {
         const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
-        if ( batch.complexFill || batch.gradientFill || batch.textFill != textPass ||
+        if ( batch.complexFill || batch.gradientFill || batch.packedTextFill ||
+             batch.textFill != textPass ||
              batch.firstVertex + batch.vertexCount > sourceVertices.size() ||
              batch.firstIndex + batch.indexCount > sourceIndices.size() )
             continue;
@@ -1260,7 +1261,7 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command, bool textPass )
     return true;
 }
 
-bool EmitScaleformGradientBatches( GnmCommandBuffer *command )
+bool EmitScaleformTextureBatches( GnmCommandBuffer *command, bool fontPass )
 {
     CPs4ScaleformHal &hal = KisakPs4ScaleformHal();
     const std::vector< CPs4ScaleformHal::CapturedVertex > &sourceVertices =
@@ -1268,10 +1269,12 @@ bool EmitScaleformGradientBatches( GnmCommandBuffer *command )
     const std::vector< uint16_t > &sourceIndices = hal.CapturedIndices();
     const std::vector< CPs4ScaleformHal::CapturedBatch > &sourceBatches =
         hal.CapturedDraws();
-    const std::vector< uint32_t > &gradientPixels = hal.GradientPixels();
-    const uint32_t gradientTiles = hal.GradientTileCount();
+    const std::vector< uint32_t > &atlasPixels = fontPass
+        ? hal.FontAtlasPixels() : hal.GradientPixels();
+    const uint32_t atlasItems = fontPass
+        ? hal.FontAtlasGlyphCount() : hal.GradientTileCount();
     if ( !command || sourceVertices.empty() || sourceIndices.empty() ||
-         sourceBatches.empty() || gradientPixels.empty() || gradientTiles == 0 ||
+         sourceBatches.empty() || atlasPixels.empty() || atlasItems == 0 ||
          !g_ReferenceCubeVertexShader || !g_ReferenceCubePixelShader ||
          !g_ReferenceCubeFetchShader )
         return false;
@@ -1290,7 +1293,10 @@ bool EmitScaleformGradientBatches( GnmCommandBuffer *command )
         g_Device.FrameArena().Allocate( 2 * sizeof( GnmBuffer ), 16 ) );
     GnmBuffer *constantDescriptor = static_cast< GnmBuffer * >(
         g_Device.FrameArena().Allocate( sizeof( GnmBuffer ), 16 ) );
-    const size_t atlasCapacity = 2 * 1024 * 1024 + 4096;
+    const uint32_t atlasWidth = fontPass ? 1024u : 512u;
+    const uint32_t atlasHeight = fontPass ? 512u : 256u;
+    const size_t atlasCapacity =
+        static_cast< size_t >( atlasWidth ) * atlasHeight * sizeof( uint32_t ) + 4096;
     void *atlasMemory = g_Device.FrameArena().Allocate( atlasCapacity, 256 );
     void *tableMemory = g_Device.FrameArena().Allocate(
         CPs4GnmTexture::SamplerTableSize(), 16 );
@@ -1308,18 +1314,19 @@ bool EmitScaleformGradientBatches( GnmCommandBuffer *command )
     }
 
     uint32_t indexCount = 0;
-    uint32_t gradientBatchCount = 0;
+    uint32_t textureBatchCount = 0;
     for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
     {
         const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
-        if ( !batch.gradientFill || batch.complexFill ||
+        if ( ( fontPass ? !batch.packedTextFill : !batch.gradientFill ) ||
+             batch.complexFill ||
              batch.firstVertex + batch.vertexCount > sourceVertices.size() ||
              batch.firstIndex + batch.indexCount > sourceIndices.size() )
             continue;
         memcpy( indices + indexCount, &sourceIndices[batch.firstIndex],
             batch.indexCount * sizeof( uint16_t ) );
         indexCount += batch.indexCount;
-        ++gradientBatchCount;
+        ++textureBatchCount;
     }
     if ( indexCount == 0 )
         return false;
@@ -1336,8 +1343,10 @@ bool EmitScaleformGradientBatches( GnmCommandBuffer *command )
     sampler.bordercolortype = GNM_BORDER_COLOR_OPAQUE_BLACK;
     void *samplerTable = 0;
     if ( !atlas.Initialize2D( atlasMemory, atlasCapacity, GNM_FMT_R8G8B8A8_UNORM,
-            1024, 512, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) ||
-         !atlas.UploadLinear( &gradientPixels[0], 1024 * sizeof( uint32_t ), 512 ) ||
+            atlasWidth, atlasHeight, 1,
+            GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) ||
+         !atlas.UploadLinear( &atlasPixels[0],
+            atlasWidth * sizeof( uint32_t ), atlasHeight ) ||
          !atlas.BuildSamplerTable( sampler, tableMemory,
              CPs4GnmTexture::SamplerTableSize(), &samplerTable ) )
         return false;
@@ -1403,16 +1412,16 @@ bool EmitScaleformGradientBatches( GnmCommandBuffer *command )
     if ( !Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX ) )
         return false;
 
-    static bool logged = false;
-    if ( !logged )
+    static bool logged[2] = { false, false };
+    if ( !logged[fontPass ? 1 : 0] )
     {
         char message[176];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform gradient atlas draw batches=%u tiles=%u indices=%u bytes=%llu",
-            gradientBatchCount, gradientTiles, indexCount,
+            "kisak-ps4: scaleform %s atlas draw batches=%u items=%u indices=%u bytes=%llu",
+            fontPass ? "font" : "gradient", textureBatchCount, atlasItems, indexCount,
             static_cast< unsigned long long >( atlas.Size() ) );
         KisakPs4StartupBreadcrumb( message );
-        logged = true;
+        logged[fontPass ? 1 : 0] = true;
     }
     return true;
 }
@@ -1583,8 +1592,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX,
         &sourceDirtyMask );
     EmitScaleformSolidBatches( command, false );
-    EmitScaleformGradientBatches( command );
+    EmitScaleformTextureBatches( command, false );
     EmitScaleformSolidBatches( command, true );
+    EmitScaleformTextureBatches( command, true );
     static bool sourceBlendStateLogged = false;
     if ( !sourceBlendStateLogged )
     {

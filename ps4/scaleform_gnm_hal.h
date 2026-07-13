@@ -40,6 +40,7 @@ public:
         bool complexFill;
         bool gradientFill;
         bool textFill;
+        bool packedTextFill;
     };
 
     struct TreeStats
@@ -54,6 +55,7 @@ public:
         uint32_t textGlyphShapes;
         uint32_t textGlyphVertices;
         uint32_t textGlyphTriangles;
+        uint32_t packedTextGlyphs;
         uint32_t shapeLayers;
         uint32_t solidFills;
         uint32_t imageFills;
@@ -71,6 +73,7 @@ public:
               shapeNodes( 0 ), meshNodes( 0 ), textNodes( 0 ),
               textGlyphRecords( 0 ), textGlyphShapes( 0 ),
               textGlyphVertices( 0 ), textGlyphTriangles( 0 ),
+              packedTextGlyphs( 0 ),
               shapeLayers( 0 ), solidFills( 0 ), imageFills( 0 ),
               gradientFills( 0 ), tessellatedLayers( 0 ),
               tessellatedVertices( 0 ), tessellatedTriangles( 0 ),
@@ -115,6 +118,9 @@ public:
     const std::vector< uint32_t > &GradientPixels() const
         { return m_gradientPixels; }
     uint32_t GradientTileCount() const { return m_gradientTileCount; }
+    const std::vector< uint32_t > &FontAtlasPixels() const
+        { return m_fontAtlasPixels; }
+    uint32_t FontAtlasGlyphCount() const { return m_fontGlyphKeys.size(); }
 
 private:
     enum { kMaxTreeNodes = 4096 };
@@ -134,6 +140,9 @@ private:
     std::vector< CapturedBatch > m_capturedDraws;
     std::vector< uint32_t > m_gradientPixels;
     uint32_t m_gradientTileCount;
+    std::vector< uint32_t > m_fontAtlasPixels;
+    std::vector< const void * > m_fontGlyphKeys;
+    std::vector< uint32_t > m_fontGlyphColors;
 };
 
 CPs4ScaleformHal &KisakPs4ScaleformHal();

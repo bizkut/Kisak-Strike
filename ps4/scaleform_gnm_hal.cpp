@@ -16,11 +16,16 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 
 namespace
 {
-const unsigned kGradientTileSize = 64;
+const unsigned kGradientTileSize = 32;
 const unsigned kGradientAtlasColumns = 16;
 const unsigned kGradientAtlasRows = 8;
 const unsigned kGradientAtlasWidth = kGradientTileSize * kGradientAtlasColumns;
 const unsigned kGradientAtlasHeight = kGradientTileSize * kGradientAtlasRows;
+const unsigned kFontTileSize = 64;
+const unsigned kFontAtlasColumns = 16;
+const unsigned kFontAtlasRows = 8;
+const unsigned kFontAtlasWidth = kFontTileSize * kFontAtlasColumns;
+const unsigned kFontAtlasHeight = kFontTileSize * kFontAtlasRows;
 
 bool IsComplexFill( const Scaleform::Render::ShapeDataInterface *shape,
     unsigned style )
@@ -295,6 +300,7 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             Scaleform::Render::TessStyleIsComplex( tessMesh.Flags2 ) );
         batch.gradientFill = gradientTile >= 0;
         batch.textFill = false;
+        batch.packedTextFill = false;
         capturedDraws->push_back( batch );
     }
     generator.Clear();
@@ -412,6 +418,7 @@ bool TessellateGlyphShape( const Scaleform::Render::ShapeDataInterface *shape,
         batch.complexFill = false;
         batch.gradientFill = false;
         batch.textFill = true;
+        batch.packedTextFill = false;
         capturedDraws->push_back( batch );
         if ( glyphVertices )
             *glyphVertices += tessMesh.VertexCount;
@@ -421,6 +428,136 @@ bool TessellateGlyphShape( const Scaleform::Render::ShapeDataInterface *shape,
     }
     generator.Clear();
     return emitted;
+}
+
+bool CapturePackedGlyph( const Scaleform::Render::TextureGlyph *glyph,
+    float fontSize, float textureHeight, float penX, float penY, uint32_t color,
+    const Scaleform::Render::Matrix2F &viewMatrix,
+    std::vector< CPs4ScaleformHal::CapturedVertex > *capturedVertices,
+    std::vector< uint16_t > *capturedIndices,
+    std::vector< CPs4ScaleformHal::CapturedBatch > *capturedDraws,
+    std::vector< uint32_t > *atlasPixels,
+    std::vector< const void * > *glyphKeys,
+    std::vector< uint32_t > *glyphColors )
+{
+    if ( !glyph || !glyph->pImage || fontSize <= 0.0f || textureHeight <= 0.0f ||
+         !capturedVertices || !capturedIndices || !capturedDraws ||
+         !atlasPixels || !glyphKeys || !glyphColors ||
+         capturedVertices->size() + 4 > 65535 ||
+         capturedIndices->size() + 6 > 196605 || capturedDraws->size() >= 4096 )
+        return false;
+
+    unsigned tile = 0;
+    for ( ; tile < glyphKeys->size(); ++tile )
+        if ( ( *glyphKeys )[tile] == glyph && ( *glyphColors )[tile] == color )
+            break;
+    const Scaleform::Render::ImageSize imageSize = glyph->pImage->GetSize();
+    if ( tile == glyphKeys->size() )
+    {
+        if ( tile >= kFontAtlasColumns * kFontAtlasRows ||
+             glyph->pImage->GetImageType() != Scaleform::Render::ImageBase::Type_RawImage )
+            return false;
+        Scaleform::Render::ImageData imageData;
+        Scaleform::Render::RawImage *rawImage =
+            static_cast< Scaleform::Render::RawImage * >( glyph->pImage.GetPtr() );
+        if ( !rawImage->GetImageData( &imageData ) )
+            return false;
+        if ( atlasPixels->empty() )
+            atlasPixels->assign( kFontAtlasWidth * kFontAtlasHeight, 0 );
+
+        const unsigned sourceX = static_cast< unsigned >( std::max( 0.0f,
+            floorf( glyph->UvBounds.x1 * imageSize.Width ) ) );
+        const unsigned sourceY = static_cast< unsigned >( std::max( 0.0f,
+            floorf( glyph->UvBounds.y1 * imageSize.Height ) ) );
+        const unsigned sourceX2 = static_cast< unsigned >( std::min(
+            static_cast< float >( imageSize.Width ),
+            ceilf( glyph->UvBounds.x2 * imageSize.Width ) ) );
+        const unsigned sourceY2 = static_cast< unsigned >( std::min(
+            static_cast< float >( imageSize.Height ),
+            ceilf( glyph->UvBounds.y2 * imageSize.Height ) ) );
+        const unsigned copyWidth = std::min( kFontTileSize,
+            sourceX2 > sourceX ? sourceX2 - sourceX : 0u );
+        const unsigned copyHeight = std::min( kFontTileSize,
+            sourceY2 > sourceY ? sourceY2 - sourceY : 0u );
+        if ( copyWidth == 0 || copyHeight == 0 )
+            return false;
+        const unsigned tileX = ( tile % kFontAtlasColumns ) * kFontTileSize;
+        const unsigned tileY = ( tile / kFontAtlasColumns ) * kFontTileSize;
+        Scaleform::Render::Color layoutColor( color );
+        for ( unsigned y = 0; y < copyHeight; ++y )
+            for ( unsigned x = 0; x < copyWidth; ++x )
+            {
+                const Scaleform::Render::Color source = imageData.GetPixel(
+                    sourceX + x, sourceY + y );
+                const unsigned alpha = source.GetAlpha() * layoutColor.GetAlpha() / 255;
+                ( *atlasPixels )[( tileY + y ) * kFontAtlasWidth + tileX + x] =
+                    layoutColor.GetRed() | ( layoutColor.GetGreen() << 8 ) |
+                    ( layoutColor.GetBlue() << 16 ) | ( alpha << 24 );
+            }
+        glyphKeys->push_back( glyph );
+        glyphColors->push_back( color );
+    }
+
+    const unsigned sourceWidth = std::max( 1u, static_cast< unsigned >(
+        ceilf( ( glyph->UvBounds.x2 - glyph->UvBounds.x1 ) * imageSize.Width ) ) );
+    const unsigned sourceHeight = std::max( 1u, static_cast< unsigned >(
+        ceilf( ( glyph->UvBounds.y2 - glyph->UvBounds.y1 ) * imageSize.Height ) ) );
+    const unsigned tileX = ( tile % kFontAtlasColumns ) * kFontTileSize;
+    const unsigned tileY = ( tile / kFontAtlasColumns ) * kFontTileSize;
+    const float u1 = ( tileX + 0.5f ) / static_cast< float >( kFontAtlasWidth );
+    const float v1 = ( tileY + 0.5f ) / static_cast< float >( kFontAtlasHeight );
+    const float u2 = ( tileX + std::min( kFontTileSize, sourceWidth ) - 0.5f ) /
+        static_cast< float >( kFontAtlasWidth );
+    const float v2 = ( tileY + std::min( kFontTileSize, sourceHeight ) - 0.5f ) /
+        static_cast< float >( kFontAtlasHeight );
+
+    const float scaleX = fontSize / textureHeight * imageSize.Width;
+    const float scaleY = fontSize / textureHeight * imageSize.Height;
+    float positions[8] = {
+        ( glyph->UvBounds.x1 - glyph->UvOrigin.x ) * scaleX + penX,
+        ( glyph->UvBounds.y1 - glyph->UvOrigin.y ) * scaleY + penY,
+        ( glyph->UvBounds.x2 - glyph->UvOrigin.x ) * scaleX + penX,
+        ( glyph->UvBounds.y1 - glyph->UvOrigin.y ) * scaleY + penY,
+        ( glyph->UvBounds.x2 - glyph->UvOrigin.x ) * scaleX + penX,
+        ( glyph->UvBounds.y2 - glyph->UvOrigin.y ) * scaleY + penY,
+        ( glyph->UvBounds.x1 - glyph->UvOrigin.x ) * scaleX + penX,
+        ( glyph->UvBounds.y2 - glyph->UvOrigin.y ) * scaleY + penY
+    };
+    const float uvs[8] = { u1, v1, u2, v1, u2, v2, u1, v2 };
+    const uint32_t firstVertex = capturedVertices->size();
+    for ( unsigned vertex = 0; vertex < 4; ++vertex )
+    {
+        CPs4ScaleformHal::CapturedVertex captured;
+        captured.x = positions[vertex * 2 + 0];
+        captured.y = positions[vertex * 2 + 1];
+        viewMatrix.Transform( &captured.x, &captured.y );
+        captured.gradientU = uvs[vertex * 2 + 0];
+        captured.gradientV = uvs[vertex * 2 + 1];
+        captured.color = color;
+        capturedVertices->push_back( captured );
+    }
+    const uint16_t quad[6] = {
+        static_cast< uint16_t >( firstVertex + 0 ),
+        static_cast< uint16_t >( firstVertex + 1 ),
+        static_cast< uint16_t >( firstVertex + 2 ),
+        static_cast< uint16_t >( firstVertex + 2 ),
+        static_cast< uint16_t >( firstVertex + 3 ),
+        static_cast< uint16_t >( firstVertex + 0 )
+    };
+    const uint32_t firstIndex = capturedIndices->size();
+    capturedIndices->insert( capturedIndices->end(), quad, quad + 6 );
+    CPs4ScaleformHal::CapturedBatch batch;
+    batch.firstVertex = firstVertex;
+    batch.vertexCount = 4;
+    batch.firstIndex = firstIndex;
+    batch.indexCount = 6;
+    batch.color = color;
+    batch.complexFill = false;
+    batch.gradientFill = false;
+    batch.textFill = false;
+    batch.packedTextFill = true;
+    capturedDraws->push_back( batch );
+    return true;
 }
 }
 
@@ -600,22 +737,36 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
                              ( record.mChar.Flags &
                                Scaleform::Render::TextLayout::Flag_Invisible ) == 0 )
                         {
-                            const Scaleform::Render::ShapeDataInterface *glyphShape =
-                                font->GetPermanentGlyphShape( record.mChar.GlyphIndex );
-                            Scaleform::Render::GlyphShape temporaryShape;
-                            if ( !glyphShape && font->GetTemporaryGlyphShape(
-                                    record.mChar.GlyphIndex,
-                                    static_cast< unsigned >( fontSize + 0.5f ),
-                                    &temporaryShape ) )
-                                glyphShape = &temporaryShape;
-                            const float nominalHeight = font->GetNominalGlyphHeight();
-                            if ( glyphShape && nominalHeight > 0.0f &&
-                                 TessellateGlyphShape( glyphShape, viewMatrix,
-                                    fontSize / nominalHeight, penX, penY, color,
-                                    &m_capturedVertices, &m_capturedIndices,
-                                    &m_capturedDraws, &stats->textGlyphVertices,
-                                    &stats->textGlyphTriangles ) )
-                                ++stats->textGlyphShapes;
+                            const Scaleform::Render::TextureGlyph *textureGlyph =
+                                font->GetTextureGlyph( record.mChar.GlyphIndex );
+                            const bool packedCaptured = textureGlyph &&
+                                CapturePackedGlyph( textureGlyph,
+                                    fontSize, font->GetTextureGlyphHeight(), penX, penY,
+                                    color, viewMatrix, &m_capturedVertices,
+                                    &m_capturedIndices, &m_capturedDraws,
+                                    &m_fontAtlasPixels, &m_fontGlyphKeys,
+                                    &m_fontGlyphColors );
+                            if ( packedCaptured )
+                                ++stats->packedTextGlyphs;
+                            else
+                            {
+                                const Scaleform::Render::ShapeDataInterface *glyphShape =
+                                    font->GetPermanentGlyphShape( record.mChar.GlyphIndex );
+                                Scaleform::Render::GlyphShape temporaryShape;
+                                if ( !glyphShape && font->GetTemporaryGlyphShape(
+                                        record.mChar.GlyphIndex,
+                                        static_cast< unsigned >( fontSize + 0.5f ),
+                                        &temporaryShape ) )
+                                    glyphShape = &temporaryShape;
+                                const float nominalHeight = font->GetNominalGlyphHeight();
+                                if ( glyphShape && nominalHeight > 0.0f &&
+                                     TessellateGlyphShape( glyphShape, viewMatrix,
+                                        fontSize / nominalHeight, penX, penY, color,
+                                        &m_capturedVertices, &m_capturedIndices,
+                                        &m_capturedDraws, &stats->textGlyphVertices,
+                                        &stats->textGlyphTriangles ) )
+                                    ++stats->textGlyphShapes;
+                            }
                         }
                         penX += record.mChar.Advance;
                         break;
@@ -662,6 +813,9 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         m_capturedDraws.clear();
         m_gradientPixels.clear();
         m_gradientTileCount = 0;
+        m_fontAtlasPixels.clear();
+        m_fontGlyphKeys.clear();
+        m_fontGlyphColors.clear();
         m_capturedVertices.reserve( 4096 );
         m_capturedIndices.reserve( 12288 );
         m_capturedDraws.reserve( 256 );
@@ -730,10 +884,11 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         {
             char textMessage[192];
             snprintf( textMessage, sizeof( textMessage ),
-                "kisak-ps4: scaleform text capture nodes=%u records=%u shapes=%u vertices=%u triangles=%u",
+                "kisak-ps4: scaleform text capture nodes=%u records=%u packed=%u shapes=%u vertices=%u triangles=%u atlas_glyphs=%u",
                 m_lastTreeStats.textNodes, m_lastTreeStats.textGlyphRecords,
-                m_lastTreeStats.textGlyphShapes, m_lastTreeStats.textGlyphVertices,
-                m_lastTreeStats.textGlyphTriangles );
+                m_lastTreeStats.packedTextGlyphs, m_lastTreeStats.textGlyphShapes,
+                m_lastTreeStats.textGlyphVertices,
+                m_lastTreeStats.textGlyphTriangles, FontAtlasGlyphCount() );
             KisakPs4StartupBreadcrumb( textMessage );
         }
     }
