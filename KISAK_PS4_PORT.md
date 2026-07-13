@@ -4982,6 +4982,35 @@ All 12 host tests pass, the ordered shader rebuild succeeds, and the PS4
 monolithic link/package build completes. The staged package SHA-256 is
 `447167a8b297578b3daacd40fb2b77995319f7cfcf839d87978f89a264c684ca`.
 
+The v4.10 hardware run validates image alpha modulation: the Mature rating now
+fades in and out correctly. No Panel artwork appears afterward. The authored
+flow runs the 90-frame ratings sprite followed by the 180-frame Panel at 30
+FPS, but the PS4 manager's 480-display-frame timeout expires after only eight
+seconds—about one second before the complete nine-second authored sequence and
+before `finishAnimation()` can call `AnimationCompleted()`.
+
+### v4.11: Match the Legals duration and probe the ratings-to-Panel handoff
+
+The Legals timeout is extended to 660 display frames, safely beyond the 540
+frames required for its 270 authored frames at 30 FPS. This permits the Panel's
+frame-180 completion action to execute instead of always forcing the timeout.
+
+Bounded timeline probes sample the ratings and Panel `_currentframe`, `_alpha`,
+and `_visible` properties around the expected handoff. These distinguish an
+AS2 `Panel.gotoAndPlay(2)` failure from a renderer capture/presentation failure
+without enabling verbose per-frame logging.
+
+Marker: `kisak-ps4: build marker scaleform_legals_timeline_probe_v411`.
+
+The v4.11 hardware gate is a naturally completed Legals sequence. If Panel
+remains invisible, the fresh log must show whether its playhead left frame 1
+and whether its alpha/visibility became drawable; that result directly selects
+the AS2 or OpenGNM fix for v4.12.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`b5e87bc8c32ff901618a951fffa6bdf0a0bb43b12507e184ff55e83ba6a42eda`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

@@ -1299,9 +1299,13 @@ private:
                 RequestStartScreen( "Legals load timeout" );
             break;
         case kBootLegalsPlaying:
+            if ( elapsed == 60 || elapsed == 120 || elapsed == 180 ||
+                 elapsed == 240 || elapsed == 300 || elapsed == 420 ||
+                 elapsed == 540 )
+                LogLegalsTimelineProbe( elapsed );
             if ( m_callbackHandler->IsLegalsComplete() )
                 RequestStartScreen( "Legals completed" );
-            else if ( elapsed >= 480 )
+            else if ( elapsed >= 660 )
                 RequestStartScreen( "Legals animation timeout" );
             break;
         case kBootStartScreenLoading:
@@ -1332,6 +1336,44 @@ private:
         default:
             break;
         }
+    }
+
+    void LogLegalsTimelineProbe( uint64_t elapsed )
+    {
+        Scaleform::GFx::Movie *movie = m_slots[kScaleformMenuSlot].movie.GetPtr();
+        if ( !movie )
+            return;
+        Scaleform::GFx::Value panelFrame, panelAlpha, panelVisible;
+        Scaleform::GFx::Value ratingsFrame, ratingsAlpha, ratingsVisible;
+        const bool panelFrameOk = movie->GetVariable( &panelFrame,
+            "_global.LegalsMovie.Panel._currentframe" );
+        const bool panelAlphaOk = movie->GetVariable( &panelAlpha,
+            "_global.LegalsMovie.Panel._alpha" );
+        const bool panelVisibleOk = movie->GetVariable( &panelVisible,
+            "_global.LegalsMovie.Panel._visible" );
+        const bool ratingsFrameOk = movie->GetVariable( &ratingsFrame,
+            "_global.LegalsMovie.ratings._currentframe" );
+        const bool ratingsAlphaOk = movie->GetVariable( &ratingsAlpha,
+            "_global.LegalsMovie.ratings._alpha" );
+        const bool ratingsVisibleOk = movie->GetVariable( &ratingsVisible,
+            "_global.LegalsMovie.ratings._visible" );
+        char message[320];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: scaleform Legals timeline elapsed=%llu panel=%s%.0f alpha=%s%.1f visible=%s%u ratings=%s%.0f alpha=%s%.1f visible=%s%u",
+            static_cast< unsigned long long >( elapsed ),
+            panelFrameOk && panelFrame.IsNumber() ? "" : "?",
+            panelFrameOk && panelFrame.IsNumber() ? panelFrame.GetNumber() : -1.0,
+            panelAlphaOk && panelAlpha.IsNumber() ? "" : "?",
+            panelAlphaOk && panelAlpha.IsNumber() ? panelAlpha.GetNumber() : -1.0,
+            panelVisibleOk && panelVisible.IsBool() ? "" : "?",
+            panelVisibleOk && panelVisible.IsBool() && panelVisible.GetBool() ? 1u : 0u,
+            ratingsFrameOk && ratingsFrame.IsNumber() ? "" : "?",
+            ratingsFrameOk && ratingsFrame.IsNumber() ? ratingsFrame.GetNumber() : -1.0,
+            ratingsAlphaOk && ratingsAlpha.IsNumber() ? "" : "?",
+            ratingsAlphaOk && ratingsAlpha.IsNumber() ? ratingsAlpha.GetNumber() : -1.0,
+            ratingsVisibleOk && ratingsVisible.IsBool() ? "" : "?",
+            ratingsVisibleOk && ratingsVisible.IsBool() && ratingsVisible.GetBool() ? 1u : 0u );
+        KisakPs4StartupBreadcrumb( message );
     }
 
     void LogMovieInfoProbe( int slot, const char *kind, const char *url )
