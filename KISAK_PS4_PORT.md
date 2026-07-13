@@ -3549,6 +3549,31 @@ The v3.70 monolithic package is staged at
 `33057e7c27de31f5f87d926abe7bbab5362dcfaeb1bd77eefd5a4ec5e71b0b9b`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.71: Sample gradients in authored GFx fill space
+
+The v3.70 hardware run submitted all 150 retained batches and 5,862 indices at
+about 59 FPS. Its additional bars and panel geometry prove gradient-backed
+meshes now reach OpenGNM, but the green-heavy palette exposed the temporary
+mesh-bounds sampler.
+
+Gradient vertices now pass through each fill's `ComplexFill::ImageMatrix`, the
+inverse SWF matrix that GFx already normalizes into texture space. Linear fills
+sample the transformed U coordinate; radial and focal fills sample normalized
+distance from the transformed texture center. This preserves authored gradient
+placement across adjacent meshes instead of restarting every ramp at each mesh
+edge. Exact focal-point evaluation and GPU gradient textures remain follow-ups.
+
+The hardware gate is stable 150-batch presentation with visibly corrected
+gradient placement and reduced green cast. Image fills and text atlases remain
+excluded from this checkpoint.
+
+Marker: `kisak-ps4: build marker scaleform_gradient_matrix_v371`.
+
+The v3.71 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`27ad55a9a86c5ae2cb61d2b6ce1c0eb285e1f171757a8ce328bcfd4e87e2820c`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

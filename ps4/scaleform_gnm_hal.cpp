@@ -150,6 +150,7 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
         }
         const unsigned meshStyles[2] = { tessMesh.Style1, tessMesh.Style2 };
         const Scaleform::Render::GradientData *gradient = NULL;
+        Scaleform::Render::Matrix2F gradientMatrix;
         for ( unsigned styleIndex = 0; styleIndex < 2 && !gradient; ++styleIndex )
         {
             if ( meshStyles[styleIndex] == 0 )
@@ -157,7 +158,10 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             Scaleform::Render::FillStyleType style;
             provider->GetFillStyle( meshStyles[styleIndex], &style, 0.0f );
             if ( style.pFill && style.pFill->pGradient )
+            {
                 gradient = style.pFill->pGradient;
+                gradientMatrix = style.pFill->ImageMatrix;
+            }
         }
         for ( unsigned vertex = 0; vertex < copiedVertices; ++vertex )
         {
@@ -183,16 +187,14 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             }
             else if ( gradient )
             {
-                float ratio = rawMaxX > rawMinX
-                    ? ( tessVertex.x - rawMinX ) / ( rawMaxX - rawMinX ) : 0.0f;
+                float gradientX = tessVertex.x;
+                float gradientY = tessVertex.y;
+                gradientMatrix.Transform( &gradientX, &gradientY );
+                float ratio = gradientX;
                 if ( gradient->GetGradientType() != Scaleform::Render::GradientLinear )
                 {
-                    const float centerX = ( rawMinX + rawMaxX ) * 0.5f;
-                    const float centerY = ( rawMinY + rawMaxY ) * 0.5f;
-                    const float radiusX = std::max( 1.0f, ( rawMaxX - rawMinX ) * 0.5f );
-                    const float radiusY = std::max( 1.0f, ( rawMaxY - rawMinY ) * 0.5f );
-                    const float dx = ( tessVertex.x - centerX ) / radiusX;
-                    const float dy = ( tessVertex.y - centerY ) / radiusY;
+                    const float dx = ( gradientX - 0.5f ) * 2.0f;
+                    const float dy = ( gradientY - 0.5f ) * 2.0f;
                     ratio = sqrtf( dx * dx + dy * dy );
                 }
                 captured.color = SampleGradient( gradient, ratio );
