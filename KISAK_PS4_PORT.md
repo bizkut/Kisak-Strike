@@ -4176,6 +4176,24 @@ The PS4 link/package build completes and all 11 host tests pass. The staged
 monolithic package SHA-256 is
 `d17eea97d686253da7f5940d49fe127606be02b36778ec4c27c3c2810f707d78`.
 
+The v3.89 hardware run passes the retained-refresh gate. The controller help
+now displays `[X] SELECT`, the app remains stable, and the observed rate is
+58-62 FPS around the 60 Hz presentation cadence. Runtime heartbeats report
+`total=21 changed=1` at frame 60, then `total=31 changed=0` at frames 120,
+300, and 600. Retessellation therefore stops after the bounded entrance
+window instead of continuing at 20 Hz; the remaining instantaneous FPS
+variation is presentation/overlay sampling jitter rather than recurring menu
+capture work.
+
+The next visual-correctness milestone is authored draw ordering and clipping.
+Current submission compacts all solid shapes, gradients, vector text, and
+packed glyphs into four type-based passes, which can place later fills over
+earlier UI layers. Preserve the captured tree's batch order while switching
+the required solid/gradient/font pipeline per batch, then attach mask-derived
+clip rectangles to batches and emit them through `CPs4GnmDrawState::SetScissor`.
+Add diagnostics for reordered batches, mask owners, clipped batches, and
+scissor changes before enabling the behavior by default.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
