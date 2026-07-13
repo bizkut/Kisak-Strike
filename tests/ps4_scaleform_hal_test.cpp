@@ -21,6 +21,21 @@ int main()
         scissor[2] == 1920 && scissor[3] == 1080 );
     assert( !hal.TranslateScissor( 10, 10, 10, 100, 1920, 1080, scissor ) );
 
+    CPs4ScaleformHal::CapturedBatch batch = {};
+    batch.vertexCount = 3;
+    batch.indexCount = 3;
+    assert( CPs4ScaleformHal::IsOrderedColorBatch( batch ) );
+    batch.gradientFill = true;
+    assert( CPs4ScaleformHal::IsOrderedColorBatch( batch ) );
+    batch.gradientFill = false;
+    batch.textFill = true;
+    assert( CPs4ScaleformHal::IsOrderedColorBatch( batch ) );
+    batch.complexFill = true;
+    assert( !CPs4ScaleformHal::IsOrderedColorBatch( batch ) );
+    batch.complexFill = false;
+    batch.packedTextFill = true;
+    assert( !CPs4ScaleformHal::IsOrderedColorBatch( batch ) );
+
     hal.BeginFrame( 1 );
     assert( !hal.QueueCapturedTree( static_cast< Scaleform::Render::TreeRoot * >( nullptr ), "menu" ) );
     assert( hal.QueueCapturedTree( true, "menu" ) );

@@ -4194,6 +4194,36 @@ clip rectangles to batches and emit them through `CPs4GnmDrawState::SetScissor`.
 Add diagnostics for reordered batches, mask owners, clipped batches, and
 scissor changes before enabling the behavior by default.
 
+### v3.90: Preserve authored order for the current color-only menu
+
+The v3.89 capture contains 55 drawable batches: 31 solid shape batches, four
+gradient batches, and 20 vector-text batches. It contains no packed font
+glyphs, bitmap fills, or unsupported complex fills. Every gradient vertex
+already carries its correctly sampled and color-transformed value in addition
+to its atlas coordinates, so the current menu does not require a texture
+pipeline merely to preserve its visual gradient.
+
+Submission now compacts all 55 supported batches into one color vertex/index
+stream in captured tree order. Solid shapes, sampled gradients, and vector
+glyphs therefore retain their authored relative order inside one blended draw
+instead of being overlaid as three independent type passes. This also removes
+the 512 KiB per-frame gradient-atlas upload from the current menu path. Packed
+glyphs and future bitmap fills remain on the texture path; complex fills remain
+explicitly excluded. The shared batch classifier has host coverage for solid,
+gradient, vector-text, packed-text, and complex-fill cases.
+
+The next hardware gate is `ordered color draw batches=55 solid=31 gradient=4
+text=20`, a lower frame-arena high-water mark, stable 60 Hz presentation, and
+the same readable menu with improved overlap/order. If the capture changes to
+include packed glyphs, the font-atlas pass must still render after the ordered
+color pass until the full pipeline-switching command list is implemented.
+
+Marker: `kisak-ps4: build marker scaleform_ordered_color_v390`.
+
+The PS4 link/package build completes and all 11 host tests pass. The staged
+monolithic package SHA-256 is
+`1cb4a7bcc70d6681478467738fdc517b975a7de73bb244bcb200dc18786aad21`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

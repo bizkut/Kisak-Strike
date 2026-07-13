@@ -1139,7 +1139,7 @@ bool EmitScenePresentation( GnmCommandBuffer *command,
     return Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
 }
 
-bool EmitScaleformSolidBatches( GnmCommandBuffer *command, bool textPass )
+bool EmitScaleformOrderedColorBatches( GnmCommandBuffer *command )
 {
     CPs4ScaleformHal &hal = KisakPs4ScaleformHal();
     const std::vector< CPs4ScaleformHal::CapturedVertex > &sourceVertices =
@@ -1157,12 +1157,10 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command, bool textPass )
         float color[4];
     };
 
-    const auto selectsBatch = [textPass, &sourceVertices, &sourceIndices](
+    const auto selectsBatch = [&sourceVertices, &sourceIndices](
         const CPs4ScaleformHal::CapturedBatch &batch )
     {
-        return !batch.complexFill && !batch.gradientFill &&
-            !batch.packedTextFill && batch.textFill == textPass &&
-            batch.vertexCount > 0 && batch.indexCount > 0 &&
+        return CPs4ScaleformHal::IsOrderedColorBatch( batch ) &&
             batch.firstVertex <= sourceVertices.size() &&
             batch.vertexCount <= sourceVertices.size() - batch.firstVertex &&
             batch.firstIndex <= sourceIndices.size() &&
@@ -1170,7 +1168,10 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command, bool textPass )
     };
     size_t compactVertexCount = 0;
     size_t compactIndexCount = 0;
+    uint32_t orderedBatchCount = 0;
     uint32_t solidBatchCount = 0;
+    uint32_t gradientBatchCount = 0;
+    uint32_t textBatchCount = 0;
     for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
     {
         const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
@@ -1189,7 +1190,13 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command, bool textPass )
         }
         compactVertexCount += batch.vertexCount;
         compactIndexCount += batch.indexCount;
-        ++solidBatchCount;
+        ++orderedBatchCount;
+        if ( batch.gradientFill )
+            ++gradientBatchCount;
+        else if ( batch.textFill )
+            ++textBatchCount;
+        else
+            ++solidBatchCount;
     }
     if ( compactVertexCount == 0 || compactIndexCount == 0 )
         return false;
@@ -1198,18 +1205,17 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command, bool textPass )
         compactIndexCount * sizeof( uint16_t ) + 2 * sizeof( GnmBuffer ) + 64;
     if ( g_Device.FrameArena().Available() < uploadBytes )
     {
-        static bool loggedArenaFailure[2] = { false, false };
-        if ( !loggedArenaFailure[textPass ? 1 : 0] )
+        static bool loggedArenaFailure = false;
+        if ( !loggedArenaFailure )
         {
             char message[192];
             snprintf( message, sizeof( message ),
-                "kisak-ps4: scaleform %s arena rejected needed=%llu available=%llu",
-                textPass ? "text" : "solid",
+                "kisak-ps4: scaleform ordered color arena rejected needed=%llu available=%llu",
                 static_cast< unsigned long long >( uploadBytes ),
                 static_cast< unsigned long long >(
                     g_Device.FrameArena().Available() ) );
             KisakPs4StartupBreadcrumb( message );
-            loggedArenaFailure[textPass ? 1 : 0] = true;
+            loggedArenaFailure = true;
         }
         return false;
     }
@@ -1306,16 +1312,16 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command, bool textPass )
     if ( !Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX ) )
         return false;
 
-    static bool logged[2] = { false, false };
-    if ( !logged[textPass ? 1 : 0] )
+    static bool logged = false;
+    if ( !logged )
     {
-        char message[160];
+        char message[208];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform %s draw batches=%u vertices=%u indices=%u",
-            textPass ? "text" : "solid", solidBatchCount,
-            vertexCount, indexCount );
+            "kisak-ps4: scaleform ordered color draw batches=%u solid=%u gradient=%u text=%u vertices=%u indices=%u",
+            orderedBatchCount, solidBatchCount, gradientBatchCount,
+            textBatchCount, vertexCount, indexCount );
         KisakPs4StartupBreadcrumb( message );
-        logged[textPass ? 1 : 0] = true;
+        logged = true;
     }
     return true;
 }
@@ -1710,12 +1716,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX,
         &sourceDirtyMask );
     const size_t scaleformArenaBefore = g_Device.FrameArena().Used();
-    const bool emittedScaleformSolid =
-        EmitScaleformSolidBatches( command, false );
-    const bool emittedScaleformGradient =
-        EmitScaleformTextureBatches( command, false );
-    const bool emittedScaleformText =
-        EmitScaleformSolidBatches( command, true );
+    const bool emittedScaleformOrderedColor =
+        EmitScaleformOrderedColorBatches( command );
     const bool emittedScaleformFontAtlas =
         EmitScaleformTextureBatches( command, true );
     bool scaleformCaptureHasText = false;
@@ -1736,10 +1738,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     {
         char message[224];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform passes solid=%u gradient=%u text=%u font_atlas=%u font_items=%u arena_before=%llu arena_after=%llu available=%llu",
-            emittedScaleformSolid ? 1u : 0u,
-            emittedScaleformGradient ? 1u : 0u,
-            emittedScaleformText ? 1u : 0u,
+            "kisak-ps4: scaleform passes ordered_color=%u font_atlas=%u font_items=%u arena_before=%llu arena_after=%llu available=%llu",
+            emittedScaleformOrderedColor ? 1u : 0u,
             emittedScaleformFontAtlas ? 1u : 0u,
             KisakPs4ScaleformHal().FontAtlasGlyphCount(),
             static_cast< unsigned long long >( scaleformArenaBefore ),
@@ -1747,8 +1747,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
             static_cast< unsigned long long >( g_Device.FrameArena().Available() ) );
         KisakPs4StartupBreadcrumb( message );
         ++scaleformPassSummaryCount;
-        scaleformCompletePassesLogged = emittedScaleformSolid &&
-            emittedScaleformGradient && emittedScaleformText &&
+        scaleformCompletePassesLogged = emittedScaleformOrderedColor &&
             ( KisakPs4ScaleformHal().FontAtlasGlyphCount() == 0 ||
               emittedScaleformFontAtlas );
     }
