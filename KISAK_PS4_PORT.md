@@ -4440,6 +4440,38 @@ The PS4 link/package build completes and all 12 host tests pass. The staged
 monolithic package SHA-256 is
 `b306cd6202019d3d8a287df4fcc4a0822ccb196d2fda9d52775c230631c6cf1b`.
 
+The v3.97 hardware run satisfies the image gate. Direct packaged DDS reads
+report matching actual and declared sizes, and the retained menu tree now has
+30 image fills: 55 batches total with 1 solid, 4 gradients, 20 shape-text
+batches, and 30 image batches. CPU image creation is therefore working. The
+diagnostic bars, cube, and clipped triangle returned because the ordered draw
+treated every image batch as a fatal unsupported complex fill and rejected the
+entire capture, not because movie loading regressed.
+
+### v3.98: Defer image fills without restoring bootstrap diagnostics
+
+Image fills now have an explicit retained-batch classification distinct from
+unknown complex fills. The ordered renderer validates the complete capture but
+selects the currently supported solid, gradient, and shape-text batches while
+deferring image batches. A valid partially supported menu capture now replaces
+the diagnostic bars/cube/triangle instead of falling back merely because image
+textures are present. Host coverage verifies that image batches are deferred
+and never accidentally consumed by the gradient atlas path.
+
+This is an intentional staging boundary, not completion of image rendering.
+The next slice retains each image resource and its fill matrix, decodes or maps
+its level-zero pixels, computes normalized UVs, uploads through
+`CPs4GnmTexture`, and emits image draws in original batch order. The v3.98
+hardware gate is a stable dark menu background with the existing menu text and
+shapes, no diagnostic scene, and a log showing `ordered=1` despite 30 deferred
+image batches.
+
+Marker: `kisak-ps4: build marker scaleform_deferred_images_v398`.
+
+All 12 host tests pass and the PS4 monolithic link succeeds. The staged
+monolithic package SHA-256 is
+`f0412e5c4dc7b3d49ceb278dccd5d83de26d45349ea5ea836487c84383d9662a`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

@@ -1097,7 +1097,7 @@ bool DrawBootstrapBackground( GnmCommandBuffer *command,
     return true;
 }
 
-bool HasCompleteScaleformOrderedCapture()
+bool HasScaleformOrderedCapture()
 {
     CPs4ScaleformHal &hal = KisakPs4ScaleformHal();
     const std::vector< CPs4ScaleformHal::CapturedVertex > &vertices =
@@ -1111,17 +1111,19 @@ bool HasCompleteScaleformOrderedCapture()
          !g_ScaleformOrderedFetchShader )
         return false;
 
+    bool hasOrderedBatch = false;
     for ( size_t batchIndex = 0; batchIndex < batches.size(); ++batchIndex )
     {
         const CPs4ScaleformHal::CapturedBatch &batch = batches[batchIndex];
-        if ( !CPs4ScaleformHal::IsOrderedAtlasBatch( batch ) ||
-             batch.firstVertex > vertices.size() ||
+        if ( batch.firstVertex > vertices.size() ||
              batch.vertexCount > vertices.size() - batch.firstVertex ||
              batch.firstIndex > indices.size() ||
              batch.indexCount > indices.size() - batch.firstIndex )
             return false;
+        hasOrderedBatch = hasOrderedBatch ||
+            CPs4ScaleformHal::IsOrderedAtlasBatch( batch );
     }
-    return true;
+    return hasOrderedBatch;
 }
 
 bool BuildSourceDynamicTriangle( CPs4GnmDevice::IndexedDrawPacket *packet,
@@ -1649,7 +1651,7 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
     const std::vector< CPs4ScaleformHal::CapturedBatch > &sourceBatches =
         hal.CapturedDraws();
     const std::vector< uint32_t > &atlasPixels = hal.GradientPixels();
-    if ( !command || !HasCompleteScaleformOrderedCapture() )
+    if ( !command || !HasScaleformOrderedCapture() )
         return false;
 
     struct OrderedVertex
@@ -1676,11 +1678,16 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
     uint32_t solidBatchCount = 0;
     uint32_t gradientBatchCount = 0;
     uint32_t textBatchCount = 0;
+    uint32_t deferredImageBatchCount = 0;
     for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
     {
         const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
         if ( !selectsBatch( batch ) )
+        {
+            if ( CPs4ScaleformHal::IsDeferredImageBatch( batch ) )
+                ++deferredImageBatchCount;
             continue;
+        }
         if ( batch.vertexCount > 65535 ||
              compactVertexCount > 65535 - batch.vertexCount ||
              compactIndexCount > UINT32_MAX - batch.indexCount )
@@ -1857,9 +1864,10 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
     {
         char message[224];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform ordered draw batches=%u solid=%u gradient=%u text=%u vertices=%u indices=%u atlas_items=%u",
+            "kisak-ps4: scaleform ordered draw batches=%u solid=%u gradient=%u text=%u deferred_images=%u vertices=%u indices=%u atlas_items=%u",
             orderedBatchCount, solidBatchCount, gradientBatchCount,
-            textBatchCount, vertexCount, indexCount, hal.GradientTileCount() );
+            textBatchCount, deferredImageBatchCount, vertexCount, indexCount,
+            hal.GradientTileCount() );
         KisakPs4StartupBreadcrumb( message );
         logged = true;
     }
@@ -1882,7 +1890,7 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     const unsigned int sceneSlot = SceneColorSlot();
     const GnmRenderTarget &sceneTarget = g_SceneColorReady
         ? g_SceneColorTextures[sceneSlot].ColorTarget() : renderTarget;
-    const bool showDiagnostics = !HasCompleteScaleformOrderedCapture();
+    const bool showDiagnostics = !HasScaleformOrderedCapture();
     if ( !DrawBootstrapBackground( command, sceneTarget, showDiagnostics ) )
         return;
     if ( !showDiagnostics )

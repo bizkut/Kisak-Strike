@@ -40,6 +40,7 @@ public:
         uint32_t color;
         bool complexFill;
         bool gradientFill;
+        bool imageFill;
         bool textFill;
         bool packedTextFill;
     };
@@ -111,6 +112,7 @@ public:
     bool TranslateScissor( int left, int top, int right, int bottom,
         uint32_t width, uint32_t height, uint32_t scissor[4] ) const;
     static bool IsOrderedAtlasBatch( const CapturedBatch &batch );
+    static bool IsDeferredImageBatch( const CapturedBatch &batch );
 
     uint64_t CapturedTrees() const { return m_capturedTrees; }
     uint64_t PendingBatches() const { return m_pendingBatches; }

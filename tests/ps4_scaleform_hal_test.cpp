@@ -22,7 +22,7 @@ int main()
     assert( !hal.TranslateScissor( 10, 10, 10, 100, 1920, 1080, scissor ) );
 
     CPs4ScaleformHal::CapturedBatch solid = {
-        0, 4, 0, 6, 0xffffffffu, false, false, false, false
+        0, 4, 0, 6, 0xffffffffu, false, false, false, false, false
     };
     assert( CPs4ScaleformHal::IsOrderedAtlasBatch( solid ) );
     CPs4ScaleformHal::CapturedBatch gradient = solid;
@@ -37,6 +37,11 @@ int main()
     CPs4ScaleformHal::CapturedBatch complex = solid;
     complex.complexFill = true;
     assert( !CPs4ScaleformHal::IsOrderedAtlasBatch( complex ) );
+    CPs4ScaleformHal::CapturedBatch image = solid;
+    image.complexFill = true;
+    image.imageFill = true;
+    assert( !CPs4ScaleformHal::IsOrderedAtlasBatch( image ) );
+    assert( CPs4ScaleformHal::IsDeferredImageBatch( image ) );
     CPs4ScaleformHal::CapturedBatch empty = solid;
     empty.indexCount = 0;
     assert( !CPs4ScaleformHal::IsOrderedAtlasBatch( empty ) );

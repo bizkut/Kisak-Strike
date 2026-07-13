@@ -195,8 +195,9 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
         }
         const unsigned meshStyles[2] = { tessMesh.Style1, tessMesh.Style2 };
         const Scaleform::Render::GradientData *gradient = NULL;
+        const Scaleform::Render::Image *image = NULL;
         Scaleform::Render::Matrix2F gradientMatrix;
-        for ( unsigned styleIndex = 0; styleIndex < 2 && !gradient; ++styleIndex )
+        for ( unsigned styleIndex = 0; styleIndex < 2 && !gradient && !image; ++styleIndex )
         {
             if ( meshStyles[styleIndex] == 0 )
                 continue;
@@ -206,6 +207,10 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             {
                 gradient = style.pFill->pGradient;
                 gradientMatrix = style.pFill->ImageMatrix;
+            }
+            else if ( style.pFill && style.pFill->pImage )
+            {
+                image = style.pFill->pImage;
             }
         }
         const uint32_t requiredVertices = copiedVertices;
@@ -305,6 +310,7 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             Scaleform::Render::TessStyleIsComplex( tessMesh.Flags1 ) ||
             Scaleform::Render::TessStyleIsComplex( tessMesh.Flags2 ) );
         batch.gradientFill = gradientTile >= 0;
+        batch.imageFill = image != NULL;
         batch.textFill = false;
         batch.packedTextFill = false;
         capturedDraws->push_back( batch );
@@ -423,6 +429,7 @@ bool TessellateGlyphShape( const Scaleform::Render::ShapeDataInterface *shape,
         batch.color = color;
         batch.complexFill = false;
         batch.gradientFill = false;
+        batch.imageFill = false;
         batch.textFill = true;
         batch.packedTextFill = false;
         capturedDraws->push_back( batch );
@@ -631,6 +638,7 @@ bool CapturePackedGlyph( const Scaleform::Render::TextureGlyph *glyph,
     batch.color = color;
     batch.complexFill = false;
     batch.gradientFill = false;
+    batch.imageFill = false;
     batch.textFill = false;
     batch.packedTextFill = true;
     capturedDraws->push_back( batch );
@@ -1238,7 +1246,7 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
             for ( size_t i = 0; i < m_capturedDraws.size(); ++i )
             {
                 const CapturedBatch &batch = m_capturedDraws[i];
-                const int kind = batch.complexFill ? 4 :
+                const int kind = batch.imageFill ? 4 :
                     ( batch.packedTextFill ? 3 :
                     ( batch.gradientFill ? 1 : ( batch.textFill ? 2 : 0 ) ) );
                 ++kinds[kind];
@@ -1250,7 +1258,7 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
             }
             char orderMessage[224];
             snprintf( orderMessage, sizeof( orderMessage ),
-                "kisak-ps4: scaleform ordered diagnostics batches=%u runs=%u solid=%u gradient=%u text=%u packed=%u complex=%u",
+                "kisak-ps4: scaleform ordered diagnostics batches=%u runs=%u solid=%u gradient=%u text=%u packed=%u image=%u",
                 CapturedBatchCount(), runs, kinds[0], kinds[1], kinds[2],
                 kinds[3], kinds[4] );
             KisakPs4StartupBreadcrumb( orderMessage );
@@ -1327,8 +1335,13 @@ bool CPs4ScaleformHal::TranslateScissor( int left, int top, int right, int botto
 
 bool CPs4ScaleformHal::IsOrderedAtlasBatch( const CapturedBatch &batch )
 {
-    return !batch.complexFill && !batch.packedTextFill &&
+    return !batch.complexFill && !batch.imageFill && !batch.packedTextFill &&
         batch.vertexCount > 0 && batch.indexCount > 0;
+}
+
+bool CPs4ScaleformHal::IsDeferredImageBatch( const CapturedBatch &batch )
+{
+    return batch.imageFill && batch.vertexCount > 0 && batch.indexCount > 0;
 }
 
 CPs4ScaleformHal &KisakPs4ScaleformHal()
