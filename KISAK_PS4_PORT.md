@@ -3574,6 +3574,32 @@ The v3.71 monolithic package is staged at
 `27ad55a9a86c5ae2cb61d2b6ce1c0eb285e1f171757a8ce328bcfd4e87e2820c`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.72: Add interior samples to retained gradient triangles
+
+The v3.71 hardware marker and all 150 submitted batches were present, but the
+screen remained visually unchanged. Exact fill matrices therefore work at the
+capture boundary, while the CPU bridge remains too sparse: radial gradients in
+particular can assign the same outer stop to every corner of a large triangle,
+leaving hardware interpolation with no interior color information.
+
+Each gradient triangle now gains a centroid sampled through its authored GFx
+fill matrix and is split into three equivalent triangles. Solid meshes retain
+their original vertices and indices. The bounded capture remains below 16-bit
+vertex and arena limits; the expected menu capture is approximately 2,768
+vertices and 13,446 indices across the same 150 batches.
+
+This is a diagnostic correctness bridge, not the final Scaleform implementation.
+If interior colors become visible, the next step is OpenGNM gradient textures;
+if the screen is still unchanged, image-backed fills and text atlases are the
+dominant missing layers and take priority.
+
+Marker: `kisak-ps4: build marker scaleform_gradient_interior_v372`.
+
+The v3.72 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`9dcff2c4b269a4cbf521429b1114556980cfe45cf0743065eafe8e0f7bd286f0`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
