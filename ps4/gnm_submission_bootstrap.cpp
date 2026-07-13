@@ -1801,12 +1801,28 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
                 continue;
             const CPs4ScaleformHal::CapturedImage &image = sourceImages[imageIndex];
             const ImagePlacement &placement = imagePlacements[imageIndex];
-            char imageMessage[176];
+            float minU = 1e30f, minV = 1e30f, maxU = -1e30f, maxV = -1e30f;
+            for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
+            {
+                const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
+                if ( !batch.imageFill || batch.imageIndex != imageIndex )
+                    continue;
+                for ( uint32_t vertex = 0; vertex < batch.vertexCount; ++vertex )
+                {
+                    const CPs4ScaleformHal::CapturedVertex &captured =
+                        sourceVertices[batch.firstVertex + vertex];
+                    minU = std::min( minU, captured.gradientU );
+                    minV = std::min( minV, captured.gradientV );
+                    maxU = std::max( maxU, captured.gradientU );
+                    maxV = std::max( maxV, captured.gradientV );
+                }
+            }
+            char imageMessage[224];
             snprintf( imageMessage, sizeof( imageMessage ),
-                "kisak-ps4: scaleform image atlas item=%u size=%ux%u aliases=%u packed=%u at=%u,%u",
+                "kisak-ps4: scaleform image item=%u size=%ux%u aliases=%u packed=%u at=%u,%u uv=%.3f,%.3f..%.3f,%.3f",
                 static_cast< uint32_t >( imageIndex ), image.width, image.height,
                 static_cast< uint32_t >( image.keys.size() ), placement.valid ? 1u : 0u,
-                placement.x, placement.y );
+                placement.x, placement.y, minU, minV, maxU, maxV );
             KisakPs4StartupBreadcrumb( imageMessage );
             ++loggedImages;
         }

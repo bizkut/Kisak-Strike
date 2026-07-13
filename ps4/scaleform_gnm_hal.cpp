@@ -376,6 +376,7 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
         Scaleform::Render::Image *image = NULL;
         Scaleform::Render::Matrix2F gradientMatrix;
         Scaleform::Render::Matrix2F imageMatrix;
+        Scaleform::Render::Matrix2F imageAdjustment;
         for ( unsigned styleIndex = 0; styleIndex < 2 && !gradient && !image; ++styleIndex )
         {
             if ( meshStyles[styleIndex] == 0 )
@@ -391,6 +392,7 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             {
                 image = style.pFill->pImage;
                 imageMatrix = style.pFill->ImageMatrix;
+                image->GetMatrixInverse( &imageAdjustment );
             }
         }
         const uint32_t imageIndex = CaptureImage( image, capturedImages );
@@ -475,6 +477,7 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
                 float imageX = tessVertex.x;
                 float imageY = tessVertex.y;
                 imageMatrix.Transform( &imageX, &imageY );
+                imageAdjustment.Transform( &imageX, &imageY );
                 const CPs4ScaleformHal::CapturedImage &capturedImage =
                     ( *capturedImages )[imageIndex];
                 captured.gradientU = imageX / capturedImage.width;

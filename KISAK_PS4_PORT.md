@@ -4558,6 +4558,31 @@ persistent-arena or frame-arena allocation failure. All 12 host tests pass and
 the PS4 monolithic link succeeds. The staged monolithic package SHA-256 is
 `58782d5fe8ed0f32c5c608ea85e3b68e45269f42c82e67b8cd2effae4f874038`.
 
+The v4.01 hardware run passes the persistent-image gate. All eleven large
+textures allocate successfully, about 28 MiB remains in the persistent arena,
+and the ordered marker reports all 55 batches, all 30 image batches, and zero
+deferred images. The entrance transition is smooth, the gray header and black
+panel backgrounds now render, and FPS remains near 60. Most detailed artwork
+is still dark or flat, making image UV generation the next correctness split.
+
+### v4.02: Apply exported-image UV adjustment
+
+Image vertices now apply `Image::GetMatrixInverse()` after the GFx fill matrix
+and before normalization by decoded image size. This mirrors the non-texture
+portion of Scaleform's `GetUVGenMatrix` path and handles gfxexport scaling or
+translation attached to embedded/sub-images. Bounded image markers now include
+the normalized UV bounds used by every referenced image, allowing the next
+hardware run to distinguish valid 0..1 coverage from constant, inverted, or
+out-of-range sampling.
+
+Marker: `kisak-ps4: build marker scaleform_image_uv_adjust_v402`.
+
+The v4.02 hardware gate is more detailed menu artwork with all 30 image batches
+still active, or—if unchanged—a UV marker that identifies the first invalid
+asset mapping precisely. All 12 host tests pass and the PS4 monolithic link
+succeeds. The staged monolithic package SHA-256 is
+`62bf2cb2f33ce414803539b79d3317724a56c7ede4002eadb80e89a9846a2926`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
