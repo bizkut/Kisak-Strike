@@ -54,6 +54,7 @@ SCALEFORM_ASSET_ROOT="${KISAK_PS4_SCALEFORM_ASSET_ROOT:-/Volumes/Untitled/CSGO/c
 SCALEFORM_ASSET_MODE="${KISAK_PS4_SCALEFORM_ASSET_MODE:-closure}"
 PYTHON3="${PYTHON3:-python3}"
 SCALEFORM_FLASH_FILES=(
+    fontmapping.cfg
     fontlib.gfx
     sharedlib.gfx
     colorlib.gfx
@@ -88,7 +89,8 @@ if [[ "$VARIANT" == "monolithic" ]]; then
             if [[ "$SCALEFORM_ASSET_MODE" == "all" ]]; then
                 find "$SCALEFORM_ASSET_ROOT/resource/flash" -maxdepth 1 -type f -print
             else
-                find "$SCALEFORM_ASSET_ROOT/resource/flash" -maxdepth 1 -type f \( -name '*.gfx' -o -name '*.swf' \) -print
+                find "$SCALEFORM_ASSET_ROOT/resource/flash" -maxdepth 1 -type f \
+                    \( -name '*.gfx' -o -name '*.swf' -o -name 'fontmapping.cfg' \) -print
             fi | sort
         )
     elif [[ "$SCALEFORM_ASSET_MODE" != "roots" ]]; then

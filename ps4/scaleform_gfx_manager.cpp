@@ -6,6 +6,8 @@
 #include "Render/Render_TreeNode.h"
 #include "filesystem.h"
 #include "inputsystem/ButtonCode.h"
+#include "tier1/keyvalues.h"
+#include "tier1/strtools.h"
 #include "tier1/utlbuffer.h"
 #include "zlib.h"
 
@@ -508,6 +510,71 @@ Scaleform::Key::Code MapButtonCode( ButtonCode_t code )
     }
 }
 
+struct CsgoFontMapDefinition
+{
+    const char *exportedName;
+    const char *fontName;
+    Scaleform::GFx::FontMap::MapFontFlags flags;
+};
+
+const CsgoFontMapDefinition kFallbackFontMap[] = {
+    { "$BigButtonFont", "Stratum2 Bold", Scaleform::GFx::FontMap::MFF_Original },
+    { "$CounterStrike", "Counter-Strike", Scaleform::GFx::FontMap::MFF_Original },
+    { "$TextFontLight", "Stratum2 Regular", Scaleform::GFx::FontMap::MFF_Original },
+    { "$BodyText", "PF DinText Pro", Scaleform::GFx::FontMap::MFF_Original },
+    { "$TextFont", "Stratum2 Regular", Scaleform::GFx::FontMap::MFF_Original },
+    { "$TextFontBold", "Stratum2 Bold", Scaleform::GFx::FontMap::MFF_Original },
+    { "$cs", "cs", Scaleform::GFx::FontMap::MFF_Original },
+    { "$ThaiTest", "iannnnnPDF 2008", Scaleform::GFx::FontMap::MFF_Original },
+    { "$ArialDefault", "Arial Unicode MS", Scaleform::GFx::FontMap::MFF_Original }
+};
+
+Scaleform::GFx::FontMap::MapFontFlags FontMapFlagsForStyle( const char *style )
+{
+    if ( style && !V_stricmp( style, "bold" ) )
+        return Scaleform::GFx::FontMap::MFF_Bold;
+    if ( style && !V_stricmp( style, "italic" ) )
+        return Scaleform::GFx::FontMap::MFF_Italic;
+    if ( style && ( !V_stricmp( style, "bolditalic" ) ||
+                    !V_stricmp( style, "italicbold" ) ) )
+        return Scaleform::GFx::FontMap::MFF_BoldItalic;
+    return Scaleform::GFx::FontMap::MFF_Original;
+}
+
+unsigned InstallFontMappings( Scaleform::GFx::FontMap *fontMap, KeyValues *config )
+{
+    if ( !fontMap )
+        return 0;
+
+    unsigned mapped = 0;
+    if ( config )
+    {
+        for ( KeyValues *entry = config->GetFirstTrueSubKey(); entry;
+              entry = entry->GetNextTrueSubKey() )
+        {
+            const char *exportedName = entry->GetName();
+            const char *fontName = entry->GetString( "font", "" );
+            if ( !exportedName || exportedName[0] != '$' || !fontName || !fontName[0] )
+                continue;
+            if ( fontMap->MapFont( exportedName, fontName,
+                    FontMapFlagsForStyle( entry->GetString( "style", "normal" ) ) ) )
+                ++mapped;
+        }
+    }
+
+    if ( mapped == 0 )
+    {
+        for ( unsigned i = 0; i < sizeof( kFallbackFontMap ) / sizeof( kFallbackFontMap[0] );
+              ++i )
+        {
+            if ( fontMap->MapFont( kFallbackFontMap[i].exportedName,
+                    kFallbackFontMap[i].fontName, kFallbackFontMap[i].flags ) )
+                ++mapped;
+        }
+    }
+    return mapped;
+}
+
 class CPs4ScaleformMovieManager final
 {
 public:
@@ -575,6 +642,39 @@ public:
         }
         fontDefinition.Clear();
 
+        Scaleform::Ptr< Scaleform::GFx::MovieDef > extraFontDefinition =
+            *m_loader->CreateMovie( "resource/flash/fontlib_extra.swf",
+                Scaleform::GFx::Loader::LoadAll );
+        if ( extraFontDefinition.GetPtr() )
+        {
+            m_fontLib->AddFontsFrom( extraFontDefinition, true );
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: scaleform extra font library initialized" );
+        }
+        else
+        {
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: scaleform extra font library unavailable" );
+        }
+        extraFontDefinition.Clear();
+
+        KeyValues *fontConfig = new KeyValues( "english" );
+        KeyValues::AutoDelete fontConfigDelete( fontConfig );
+        const bool loadedFontConfig = fontConfig && g_pFullFileSystem &&
+            ( fontConfig->LoadFromFile( g_pFullFileSystem,
+                  "/app0/resource/flash/fontmapping.cfg" ) ||
+              fontConfig->LoadFromFile( g_pFullFileSystem,
+                  "resource/flash/fontmapping.cfg", "GAME" ) );
+        m_fontMap = *new Scaleform::GFx::FontMap();
+        const unsigned mappedFonts = InstallFontMappings(
+            m_fontMap.GetPtr(), loadedFontConfig ? fontConfig : NULL );
+        m_loader->SetFontMap( m_fontMap );
+        char fontMapMarker[160];
+        snprintf( fontMapMarker, sizeof( fontMapMarker ),
+            "kisak-ps4: scaleform font map config=%u aliases=%u",
+            loadedFontConfig ? 1u : 0u, mappedFonts );
+        KisakPs4StartupBreadcrumb( fontMapMarker );
+
         const bool menu = LoadSlot( kScaleformMenuSlot );
         const bool hud = LoadSlot( kScaleformHudSlot );
         m_initialized = menu || hud;
@@ -590,6 +690,7 @@ public:
             delete m_loader;
             m_loader = NULL;
             m_fontLib.Clear();
+            m_fontMap.Clear();
             m_fileOpener.Clear();
             m_log.Clear();
             m_actionControl.Clear();
@@ -617,6 +718,7 @@ public:
         delete m_loader;
         m_loader = NULL;
         m_fontLib.Clear();
+        m_fontMap.Clear();
         m_fileOpener.Clear();
         m_log.Clear();
         m_actionControl.Clear();
@@ -955,6 +1057,7 @@ private:
     Scaleform::Ptr< Scaleform::GFx::ActionControl > m_actionControl;
     Scaleform::Ptr< Scaleform::GFx::ZlibSupportBase > m_zlibSupport;
     Scaleform::Ptr< Scaleform::GFx::FontLib > m_fontLib;
+    Scaleform::Ptr< Scaleform::GFx::FontMap > m_fontMap;
     Scaleform::Ptr< KisakScaleformFunctionHandler > m_callbackHandler;
     ScaleformMovieSlot m_slots[kScaleformSlotCount];
     bool m_initialized;

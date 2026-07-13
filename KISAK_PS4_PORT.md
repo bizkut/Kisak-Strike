@@ -3765,6 +3765,47 @@ The v3.78 monolithic package is staged at
 `c79dab5124680b9ef0cdac3516d9e1fbea0591da3544b23c243710ffd487ae30`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.79: Resolve CS:GO font aliases before text capture
+
+The v3.78 hardware run remained visually unchanged and reported 848 text
+records but zero packed glyphs, vector shapes, or atlas glyphs. It emitted
+neither a resolved-image nor rejected-image diagnostic, proving execution never
+reached image extraction. An asset audit corrects the earlier packed-font
+inference: `fontlib.gfx` contains nine `DefineCompactedFont` records and no
+`FontTextureInfo` or font-image tags. Four records contain real compacted vector
+outlines, including Stratum2 Bold and Regular; a null packed texture glyph is
+therefore expected.
+
+The root cause is missing parity with `ScaleformUIImpl::InitFonts`.
+`mainmenu.gfx` imports aliases such as `$TextFontBold` from
+`gfxfontlib.swf`, while the PS4 manager previously installed only `FontLib`.
+Without the `FontMap` entry `$TextFontBold` to `Stratum2 Bold`, GFx searches
+the library for the literal alias, fails, and substitutes a nameless empty font
+with no outlines. That exactly accounts for the 848 character records and zero
+renderable glyphs.
+
+The PS4 manager now loads the packaged `fontmapping.cfg`, installs its exported
+alias-to-face/style mappings before loading either root movie, and registers
+`fontlib_extra.swf` alongside `fontlib.gfx`. The package closure now includes
+the mapping file. A built-in copy of the nine English aliases is used only when
+the user-supplied configuration cannot be read, keeping the bootstrap
+diagnosable without redistributing font assets. Bounded per-font diagnostics
+report the resolved face, flags, outline/texture capabilities, and an explicit
+`empty` classification.
+
+The next hardware gate is `scaleform font map config=1 aliases=9`, a real
+`Stratum2` font with `empty=0`, non-zero temporary vector glyph shapes and text
+draw batches, visible menu text, stable flips, and no arena exhaustion. Packed
+font-atlas output may remain zero for these assets and is no longer a success
+criterion.
+
+Marker: `kisak-ps4: build marker scaleform_font_map_v379`.
+
+The v3.79 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`0a7cca8d02328d8b2929d6f0a49194448f024500605db79821c4553161e6d16f`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

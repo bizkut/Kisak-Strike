@@ -16,6 +16,7 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 
 namespace
 {
+#if defined( KISAK_PS4_MONOLITHIC )
 const unsigned kGradientTileSize = 32;
 const unsigned kGradientAtlasColumns = 16;
 const unsigned kGradientAtlasRows = 8;
@@ -630,6 +631,7 @@ bool CapturePackedGlyph( const Scaleform::Render::TextureGlyph *glyph,
     capturedDraws->push_back( batch );
     return true;
 }
+#endif
 }
 
 CPs4ScaleformHal::CPs4ScaleformHal()
@@ -793,6 +795,37 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
                     case Scaleform::Render::TextLayout::Record_Font:
                         font = record.mFont.pFont;
                         fontSize = record.mFont.mSize;
+                        if ( font )
+                        {
+                            static const Scaleform::Render::Font *loggedFonts[8] = {};
+                            static unsigned loggedFontCount = 0;
+                            bool alreadyLogged = false;
+                            for ( unsigned i = 0; i < loggedFontCount; ++i )
+                                alreadyLogged = alreadyLogged || loggedFonts[i] == font;
+                            if ( !alreadyLogged && loggedFontCount < 8 )
+                            {
+                                loggedFonts[loggedFontCount++] = font;
+                                const char *fontName = font->GetName();
+                                const bool emptyFont =
+                                    ( !fontName || !fontName[0] ) &&
+                                    !font->HasVectorOrRasterGlyphs() &&
+                                    !font->HasTextureGlyphs() &&
+                                    font->GetGlyphShapeCount() == 0;
+                                char fontMessage[256];
+                                snprintf( fontMessage, sizeof( fontMessage ),
+                                    "kisak-ps4: scaleform text font name=%s flags=0x%x resolved=%u empty=%u stripped=%u glyphs=%u vector=%u texture=%u texheight=%.2f nominal=%.2f",
+                                    fontName ? fontName : "",
+                                    font->GetFontFlags(), font->IsResolved() ? 1u : 0u,
+                                    emptyFont ? 1u : 0u,
+                                    font->GlyphShapesStripped() ? 1u : 0u,
+                                    font->GetGlyphShapeCount(),
+                                    font->HasVectorOrRasterGlyphs() ? 1u : 0u,
+                                    font->HasTextureGlyphs() ? 1u : 0u,
+                                    font->GetTextureGlyphHeight(),
+                                    font->GetNominalGlyphHeight() );
+                                KisakPs4StartupBreadcrumb( fontMessage );
+                            }
+                        }
                         break;
                     case Scaleform::Render::TextLayout::Record_Color:
                         color = record.mColor.mColor;
