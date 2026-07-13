@@ -5220,12 +5220,14 @@ The v4.18 hardware run validates this timing contract: the complete boot
 sequence remains stable, MainMenu snow loops continuously at its authored
 cadence, controller navigation works, and VideoOut remains near 60 FPS.
 
-### v4.19: Route MainMenu Local Play into the SinglePlayer element
+### v4.19: Route MainMenu Offline With Bots into the SinglePlayer element
 
 The first functional MainMenu command follows the original console protocol.
-Selecting Play still opens the ActionScript-owned dropdown. Selecting Local
-Play calls `BasePanelRunCommand("OpenCreateSinglePlayerGameDialog",
-"bHidePanel")`; the PS4 callback bridge now maps that command to the root
+Selecting Play still opens the ActionScript-owned dropdown. The supplied movie
+labels the offline entry **OFFLINE WITH BOTS** (its ActionScript menu identifier
+is `Offline`). Selecting it calls
+`BasePanelRunCommand("OpenCreateSinglePlayerGameDialog", "bHidePanel")`; the
+PS4 callback bridge now maps that command to the root
 movie's `StartSinglePlayer` element and defers the request until the current
 GFx input/advance callback has returned.
 
@@ -5244,7 +5246,8 @@ mapping. Marker:
 `kisak-ps4: build marker scaleform_local_play_v419`.
 
 The v4.19 hardware gate is: complete the existing boot sequence, select Play,
-select Local Play, observe MainMenu hide and the SinglePlayer panel load, then
+select Offline With Bots, observe MainMenu hide and the SinglePlayer panel
+load, then
 confirm the log contains `menu command=OpenCreateSinglePlayerGameDialog`,
 `menu action=1 element=StartSinglePlayer requested=1`, and
 `element ready name=StartSinglePlayer show=1` without a GFx load error or
@@ -5281,8 +5284,8 @@ Marker: `kisak-ps4: build marker scaleform_source_key_bridge_v420`.
 
 The v4.20 hardware gate is that the log reports 34 Valve key-table entries per
 root and MainMenu input reports `hook=1`. D-pad must move the highlighted menu
-item, Cross on Play must open the Play dropdown, and Cross on Local Play must
-emit `menu command=OpenCreateSinglePlayerGameDialog` and request the
+item, Cross on Play must open the Play dropdown, and Cross on Offline With Bots
+must emit `menu command=OpenCreateSinglePlayerGameDialog` and request the
 `StartSinglePlayer` element. Legals skip and StartScreen must still require
 separate presses.
 
@@ -5290,6 +5293,16 @@ All 13 host tests pass and the PS4 monolithic link/package build completes.
 The v4.20 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its local SHA-256 is
 `54de78804e1f3247fab34d2d64008094b5c66566b53b8e48886ceb2aeb26c474`.
+
+The v4.20 hardware run validates the Source key bridge. Both root slots report
+34 `ValveKeyTable` entries, D-pad and Cross input reaches the current
+ActionScript hook with `hook=1`, and Cross opens the authored Play dropdown.
+The visible offline choice is **OFFLINE WITH BOTS**; `Local Play` was only a
+localization fallback observed during earlier asset probing. The next hardware
+gate is to select Offline With Bots and validate the three SinglePlayer
+transition breadcrumbs above. The roughly 17 FPS reading captured while the
+dropdown animated is tracked separately from this functional input gate; idle
+MainMenu presentation had already returned to approximately 60 FPS.
 
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
