@@ -22,7 +22,7 @@ int main()
     assert( !hal.TranslateScissor( 10, 10, 10, 100, 1920, 1080, scissor ) );
 
     CPs4ScaleformHal::CapturedBatch solid = {
-        0, 4, 0, 6, 0xffffffffu, false, false, false, false, false
+        0, 4, 0, 6, 0xffffffffu, false, false, false, false, false, 0xffffffffu
     };
     assert( CPs4ScaleformHal::IsOrderedAtlasBatch( solid ) );
     CPs4ScaleformHal::CapturedBatch gradient = solid;

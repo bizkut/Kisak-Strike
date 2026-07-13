@@ -43,6 +43,15 @@ public:
         bool imageFill;
         bool textFill;
         bool packedTextFill;
+        uint32_t imageIndex;
+    };
+
+    struct CapturedImage
+    {
+        const void *key;
+        uint32_t width;
+        uint32_t height;
+        std::vector< uint32_t > pixels;
     };
 
     struct TreeStats
@@ -126,6 +135,8 @@ public:
         { return m_capturedIndices; }
     const std::vector< CapturedBatch > &CapturedDraws() const
         { return m_capturedDraws; }
+    const std::vector< CapturedImage > &CapturedImages() const
+        { return m_capturedImages; }
     const std::vector< uint32_t > &GradientPixels() const
         { return m_gradientPixels; }
     uint32_t GradientTileCount() const { return m_gradientTileCount; }
@@ -160,6 +171,7 @@ private:
     std::vector< CapturedVertex > m_capturedVertices;
     std::vector< uint16_t > m_capturedIndices;
     std::vector< CapturedBatch > m_capturedDraws;
+    std::vector< CapturedImage > m_capturedImages;
     std::vector< uint32_t > m_gradientPixels;
     uint32_t m_gradientTileCount;
     std::vector< uint32_t > m_fontAtlasPixels;

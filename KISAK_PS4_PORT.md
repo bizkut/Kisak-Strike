@@ -4472,6 +4472,37 @@ All 12 host tests pass and the PS4 monolithic link succeeds. The staged
 monolithic package SHA-256 is
 `f0412e5c4dc7b3d49ceb278dccd5d83de26d45349ea5ea836487c84383d9662a`.
 
+The v3.98 hardware run passes this boundary. The screen is a stable black
+background with the menu text and `[X] SELECT`; the diagnostic bars, spinning
+cube, and clipped triangle are absent. The clean log reports 25 ordered draws
+and all 30 image batches deferred, with `ordered=1` and no fallback passes.
+It also exposes the relevant memory limit: only about 811 KiB remains after the
+ordered draw, so a separate full-size per-frame image atlas is not acceptable.
+
+### v3.99: Pack decoded DDS controls into the ordered atlas
+
+The HAL now deduplicates GFx image objects, retains level-zero RGBA pixels, and
+records an image index plus normalized fill UVs on each image batch. It handles
+R/RGBA channel orders, alpha-only images, and CPU decompression of DXT1, DXT3,
+and DXT5 DDS data. Image fill matrices convert tessellated shape coordinates
+into normalized source-image coordinates before the view transform.
+
+To stay inside the v3.98 frame-arena budget, decoded images are shelf-packed
+with duplicated one-pixel borders into unused rows of the existing 512x256
+gradient atlas. Image batches then use that same sampler and ordered shader, so
+solid, gradient, text, and image geometry remains in original draw order with
+no extra large texture allocation. Oversized images remain explicitly deferred
+instead of invalidating the menu capture.
+
+Marker: `kisak-ps4: build marker scaleform_image_atlas_v399`.
+
+The v3.99 hardware gate is nonzero `image=` and zero `deferred_images=` in the
+ordered draw marker, visible controller/image artwork without diagnostic
+geometry, stable 58-60 FPS, and no increase in frame-arena allocation failure.
+All 12 host tests pass and the PS4 monolithic link succeeds. The staged
+monolithic package SHA-256 is
+`91270fef963e4f53552b73643e2acb6cb0f0b257fbcc642236665edde2efd5bc`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

@@ -28,6 +28,170 @@ const unsigned kFontAtlasColumns = 16;
 const unsigned kFontAtlasRows = 8;
 const unsigned kFontAtlasWidth = kFontTileSize * kFontAtlasColumns;
 const unsigned kFontAtlasHeight = kFontTileSize * kFontAtlasRows;
+const uint32_t kInvalidImageIndex = 0xffffffffu;
+
+uint32_t Expand565( uint16_t value )
+{
+    const uint32_t r = ( ( value >> 11 ) & 31 ) * 255 / 31;
+    const uint32_t g = ( ( value >> 5 ) & 63 ) * 255 / 63;
+    const uint32_t b = ( value & 31 ) * 255 / 31;
+    return r | ( g << 8 ) | ( b << 16 ) | 0xff000000u;
+}
+
+uint32_t MixColor( uint32_t first, uint32_t second,
+    unsigned firstWeight, unsigned secondWeight, unsigned divisor )
+{
+    uint32_t result = 0xff000000u;
+    for ( unsigned shift = 0; shift < 24; shift += 8 )
+        result |= ( ( ( ( first >> shift ) & 255 ) * firstWeight +
+            ( ( second >> shift ) & 255 ) * secondWeight ) / divisor ) << shift;
+    return result;
+}
+
+void DecodeDxtColors( const uint8_t *block, bool allowTransparent,
+    uint32_t colors[4] )
+{
+    const uint16_t c0 = block[0] | ( block[1] << 8 );
+    const uint16_t c1 = block[2] | ( block[3] << 8 );
+    colors[0] = Expand565( c0 );
+    colors[1] = Expand565( c1 );
+    if ( c0 > c1 || !allowTransparent )
+    {
+        colors[2] = MixColor( colors[0], colors[1], 2, 1, 3 );
+        colors[3] = MixColor( colors[0], colors[1], 1, 2, 3 );
+    }
+    else
+    {
+        colors[2] = MixColor( colors[0], colors[1], 1, 1, 2 );
+        colors[3] = 0;
+    }
+}
+
+bool DecodeImageRgba( Scaleform::Render::Image *image,
+    CPs4ScaleformHal::CapturedImage *captured )
+{
+    if ( !image || !captured )
+        return false;
+    Scaleform::Render::Image *base = image->GetAsImage();
+    Scaleform::Ptr< Scaleform::Render::RawImage > temporary;
+    Scaleform::Render::ImageData data;
+    if ( base->GetImageType() == Scaleform::Render::ImageBase::Type_RawImage )
+    {
+        if ( !static_cast< Scaleform::Render::RawImage * >( base )->GetImageData( &data ) )
+            return false;
+    }
+    else
+    {
+        temporary = *Scaleform::Render::RawImage::Create( base->GetFormat(), 1,
+            base->GetSize(), 0 );
+        if ( !temporary || !temporary->GetImageData( &data ) || !base->Decode( &data ) )
+            return false;
+    }
+    const Scaleform::Render::ImageSize size = base->GetSize();
+    if ( size.Width == 0 || size.Height == 0 || size.Width > 2048 || size.Height > 2048 )
+        return false;
+    captured->key = image;
+    captured->width = size.Width;
+    captured->height = size.Height;
+    captured->pixels.assign( static_cast< size_t >( size.Width ) * size.Height, 0 );
+    const Scaleform::Render::ImageFormat format = data.GetFormatNoConv();
+    const uint8_t *source = data.GetDataPtr();
+    if ( !source )
+        return false;
+    if ( format == Scaleform::Render::Image_R8G8B8A8 ||
+         format == Scaleform::Render::Image_B8G8R8A8 ||
+         format == Scaleform::Render::Image_R8G8B8 ||
+         format == Scaleform::Render::Image_B8G8R8 ||
+         format == Scaleform::Render::Image_A8 )
+    {
+        const unsigned channels = format == Scaleform::Render::Image_A8 ? 1 :
+            ( format == Scaleform::Render::Image_R8G8B8 ||
+              format == Scaleform::Render::Image_B8G8R8 ? 3 : 4 );
+        for ( uint32_t y = 0; y < size.Height; ++y )
+        {
+            const uint8_t *row = source + y * data.GetPitch();
+            for ( uint32_t x = 0; x < size.Width; ++x )
+            {
+                const uint8_t *pixel = row + x * channels;
+                uint32_t r = 255, g = 255, b = 255, a = 255;
+                if ( channels == 1 )
+                    a = pixel[0];
+                else
+                {
+                    const bool bgra = format == Scaleform::Render::Image_B8G8R8A8 ||
+                        format == Scaleform::Render::Image_B8G8R8;
+                    r = pixel[bgra ? 2 : 0]; g = pixel[1]; b = pixel[bgra ? 0 : 2];
+                    if ( channels == 4 ) a = pixel[3];
+                }
+                captured->pixels[y * size.Width + x] = r | ( g << 8 ) |
+                    ( b << 16 ) | ( a << 24 );
+            }
+        }
+        return true;
+    }
+    if ( format != Scaleform::Render::Image_DXT1 &&
+         format != Scaleform::Render::Image_DXT3 &&
+         format != Scaleform::Render::Image_DXT5 )
+        return false;
+    const unsigned blockBytes = format == Scaleform::Render::Image_DXT1 ? 8 : 16;
+    for ( uint32_t by = 0; by < ( size.Height + 3 ) / 4; ++by )
+    {
+        const uint8_t *row = source + by * data.GetPitch();
+        for ( uint32_t bx = 0; bx < ( size.Width + 3 ) / 4; ++bx )
+        {
+            const uint8_t *block = row + bx * blockBytes;
+            const uint8_t *colorBlock = block + ( blockBytes - 8 );
+            uint32_t colors[4];
+            DecodeDxtColors( colorBlock, format == Scaleform::Render::Image_DXT1, colors );
+            uint8_t alpha[16];
+            for ( unsigned i = 0; i < 16; ++i ) alpha[i] = 255;
+            if ( format == Scaleform::Render::Image_DXT3 )
+            {
+                for ( unsigned i = 0; i < 16; ++i )
+                    alpha[i] = ( ( block[i / 2] >> ( ( i & 1 ) * 4 ) ) & 15 ) * 17;
+            }
+            else if ( format == Scaleform::Render::Image_DXT5 )
+            {
+                uint8_t palette[8] = { block[0], block[1] };
+                if ( palette[0] > palette[1] )
+                    for ( unsigned i = 1; i < 7; ++i )
+                        palette[i + 1] = ( ( 7 - i ) * palette[0] + i * palette[1] ) / 7;
+                else
+                {
+                    for ( unsigned i = 1; i < 5; ++i )
+                        palette[i + 1] = ( ( 5 - i ) * palette[0] + i * palette[1] ) / 5;
+                    palette[6] = 0; palette[7] = 255;
+                }
+                uint64_t bits = 0;
+                for ( unsigned i = 0; i < 6; ++i ) bits |= static_cast< uint64_t >( block[2 + i] ) << ( i * 8 );
+                for ( unsigned i = 0; i < 16; ++i ) alpha[i] = palette[( bits >> ( i * 3 ) ) & 7];
+            }
+            const uint32_t colorBits = colorBlock[4] | ( colorBlock[5] << 8 ) |
+                ( colorBlock[6] << 16 ) | ( colorBlock[7] << 24 );
+            for ( unsigned py = 0; py < 4; ++py ) for ( unsigned px = 0; px < 4; ++px )
+            {
+                const uint32_t x = bx * 4 + px, y = by * 4 + py, i = py * 4 + px;
+                if ( x < size.Width && y < size.Height )
+                    captured->pixels[y * size.Width + x] =
+                        ( colors[( colorBits >> ( i * 2 ) ) & 3] & 0x00ffffffu ) |
+                        ( static_cast< uint32_t >( alpha[i] ) << 24 );
+            }
+        }
+    }
+    return true;
+}
+
+uint32_t CaptureImage( Scaleform::Render::Image *image,
+    std::vector< CPs4ScaleformHal::CapturedImage > *images )
+{
+    if ( !image || !images ) return kInvalidImageIndex;
+    for ( size_t i = 0; i < images->size(); ++i )
+        if ( ( *images )[i].key == image ) return static_cast< uint32_t >( i );
+    CPs4ScaleformHal::CapturedImage captured;
+    if ( !DecodeImageRgba( image, &captured ) ) return kInvalidImageIndex;
+    images->push_back( captured );
+    return static_cast< uint32_t >( images->size() - 1 );
+}
 
 bool IsComplexFill( const Scaleform::Render::ShapeDataInterface *shape,
     unsigned style )
@@ -100,6 +264,7 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
     std::vector< CPs4ScaleformHal::CapturedVertex > *capturedVertices,
     std::vector< uint16_t > *capturedIndices,
     std::vector< CPs4ScaleformHal::CapturedBatch > *capturedDraws,
+    std::vector< CPs4ScaleformHal::CapturedImage > *capturedImages,
     std::vector< uint32_t > *gradientPixels, uint32_t *gradientTileCount )
 {
     if ( !provider || !vertices || !triangles )
@@ -195,8 +360,9 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
         }
         const unsigned meshStyles[2] = { tessMesh.Style1, tessMesh.Style2 };
         const Scaleform::Render::GradientData *gradient = NULL;
-        const Scaleform::Render::Image *image = NULL;
+        Scaleform::Render::Image *image = NULL;
         Scaleform::Render::Matrix2F gradientMatrix;
+        Scaleform::Render::Matrix2F imageMatrix;
         for ( unsigned styleIndex = 0; styleIndex < 2 && !gradient && !image; ++styleIndex )
         {
             if ( meshStyles[styleIndex] == 0 )
@@ -211,8 +377,10 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             else if ( style.pFill && style.pFill->pImage )
             {
                 image = style.pFill->pImage;
+                imageMatrix = style.pFill->ImageMatrix;
             }
         }
+        const uint32_t imageIndex = CaptureImage( image, capturedImages );
         const uint32_t requiredVertices = copiedVertices;
         const uint32_t requiredIndices = triangleCount * 3;
         if ( capturedVertices->size() + requiredVertices > 65535 ||
@@ -289,6 +457,17 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
                     tessVertex.x, tessVertex.y,
                     &captured.gradientU, &captured.gradientV );
             }
+            else if ( image && imageIndex != kInvalidImageIndex )
+            {
+                float imageX = tessVertex.x;
+                float imageY = tessVertex.y;
+                imageMatrix.Transform( &imageX, &imageY );
+                const CPs4ScaleformHal::CapturedImage &capturedImage =
+                    ( *capturedImages )[imageIndex];
+                captured.gradientU = imageX / capturedImage.width;
+                captured.gradientV = imageY / capturedImage.height;
+                captured.color = 0xffffffffu;
+            }
             captured.color = colorTransform.Transform(
                 Scaleform::Render::Color( captured.color ) ).Raw;
             viewMatrix.Transform( &captured.x, &captured.y );
@@ -310,9 +489,10 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             Scaleform::Render::TessStyleIsComplex( tessMesh.Flags1 ) ||
             Scaleform::Render::TessStyleIsComplex( tessMesh.Flags2 ) );
         batch.gradientFill = gradientTile >= 0;
-        batch.imageFill = image != NULL;
+        batch.imageFill = imageIndex != kInvalidImageIndex;
         batch.textFill = false;
         batch.packedTextFill = false;
+        batch.imageIndex = imageIndex;
         capturedDraws->push_back( batch );
     }
     generator.Clear();
@@ -432,6 +612,7 @@ bool TessellateGlyphShape( const Scaleform::Render::ShapeDataInterface *shape,
         batch.imageFill = false;
         batch.textFill = true;
         batch.packedTextFill = false;
+        batch.imageIndex = kInvalidImageIndex;
         capturedDraws->push_back( batch );
         if ( glyphVertices )
             *glyphVertices += tessMesh.VertexCount;
@@ -641,6 +822,7 @@ bool CapturePackedGlyph( const Scaleform::Render::TextureGlyph *glyph,
     batch.imageFill = false;
     batch.textFill = false;
     batch.packedTextFill = true;
+    batch.imageIndex = kInvalidImageIndex;
     capturedDraws->push_back( batch );
     return true;
 }
@@ -806,6 +988,7 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
                             viewMatrix, cumulativeCxform,
                              &stats->tessellatedVertices, &stats->tessellatedTriangles,
                              &m_capturedVertices, &m_capturedIndices, &m_capturedDraws,
+                             &m_capturedImages,
                              &m_gradientPixels, &m_gradientTileCount ) )
                         ++stats->tessellatedLayers;
                     const unsigned fillCount = shape->GetFillCount( layer, 0 );
@@ -1129,6 +1312,7 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         m_capturedVertices.clear();
         m_capturedIndices.clear();
         m_capturedDraws.clear();
+        m_capturedImages.clear();
         m_gradientPixels.clear();
         m_gradientTileCount = 0;
         m_fontAtlasPixels.clear();
