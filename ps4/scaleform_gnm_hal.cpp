@@ -1313,7 +1313,7 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         m_menuTopologySignature = topologySignature;
         m_menuTopologyValid = true;
         if ( menuTopologyChanged )
-            RequestDynamicRefresh( 30 );
+            RequestDynamicRefresh( 120 );
     }
 
     const bool dynamicRefreshActive = m_frame <= 90 ||

@@ -1117,7 +1117,6 @@ bool HasScaleformOrderedCapture()
     const std::vector< CPs4ScaleformHal::CapturedBatch > &batches =
         hal.CapturedDraws();
     if ( vertices.empty() || indices.empty() || batches.empty() ||
-         hal.GradientPixels().empty() || hal.GradientTileCount() == 0 ||
          !g_ScaleformOrderedVertexShader || !g_ScaleformOrderedPixelShader ||
          !g_ScaleformOrderedFetchShader )
         return false;

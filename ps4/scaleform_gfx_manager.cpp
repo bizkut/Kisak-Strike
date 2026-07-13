@@ -1143,7 +1143,7 @@ public:
             }
         }
         if ( handled )
-            KisakPs4ScaleformHal().RequestDynamicRefresh( 30 );
+            KisakPs4ScaleformHal().RequestDynamicRefresh( 120 );
         if ( event.m_nType == IE_ButtonPressed &&
              m_bootStage == kBootStartScreenWaiting &&
              ( event.m_nData == KEY_XBUTTON_A || event.m_nData == KEY_ENTER ||

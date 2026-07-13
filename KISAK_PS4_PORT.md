@@ -4875,6 +4875,41 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `cd02596545eebd340226aafc2dc80a7e1d1fbf90c055a55d9ad7053e899fae78`.
 
+The v4.07 hardware run validates synchronous boot-layer removal: both
+`LegalsMovie` and `StartScreenMovie` report successful root-hook invocation,
+and the Hidden Path legal frame no longer leaks into MainMenu. Legals itself
+remains black even though capture reports eight ordered batches, including
+five image batches. No ordered draw or persistent image allocation occurs for
+that stage. MainMenu input is handled, but each animation visibly freezes after
+the 30-frame dynamic refresh window and advances again only when another button
+reopens the window.
+
+### v4.08: Accept image-only ordered scenes and finish UI transitions
+
+`HasScaleformOrderedCapture` incorrectly required a nonempty gradient atlas and
+at least one gradient tile. Legals has valid solid and image batches but no
+gradients, so that unrelated requirement rejected the entire scene before
+texture allocation or draw emission. Ordered capture now requires only valid
+geometry/batches and the ordered shader pipeline; its existing atlas builder
+creates an empty backing texture when a scene has images but no gradients.
+
+Topology changes and handled input now request 120 capture frames instead of
+30. This gives entrance, selection, and panel transitions up to two seconds to
+reach their authored final state. Idle looping animation still falls back to
+retained geometry afterward, preserving the prior stable-frame optimization
+instead of restoring permanent full-tree tessellation.
+
+Marker: `kisak-ps4: build marker scaleform_legals_images_v408`.
+
+The v4.08 hardware gate is visible Legals image content with an ordered-draw
+summary, clean removal before StartScreen, and menu input animations that
+finish without requiring repeated button presses. After two seconds of idle,
+the menu should again hold stable retained geometry near 60 FPS.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`bbd55921b5e93dcfa22afccf437abe7c244d8f7f85ea5dc4d66e42ce8bee99b3`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
