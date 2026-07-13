@@ -6,3 +6,5 @@ kisak_depth_clear|pixel|0|0|0|/app0/kisak_depth_clear.frag.sb|0|0|0|1
 kisak_reference_cube|vertex|0|0|2|/app0/kisak_reference_cube.vert.sb|2|0|0|0
 kisak_reference_cube|pixel|0|0|0|/app0/kisak_reference_cube.frag.sb|0|0|1|1
 kisak_present|pixel|0|0|0|/app0/kisak_present.frag.sb|0|0|1|1
+kisak_scaleform_ordered|vertex|0|0|3|/app0/kisak_scaleform_ordered.vert.sb|4|0|0|0
+kisak_scaleform_ordered|pixel|0|0|0|/app0/kisak_scaleform_ordered.frag.sb|0|0|1|1

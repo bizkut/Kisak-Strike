@@ -77,6 +77,8 @@ GnmPsShader *g_DepthClearPixelShader = 0;
 GnmVsShader *g_ReferenceCubeVertexShader = 0;
 GnmPsShader *g_ReferenceCubePixelShader = 0;
 GnmPsShader *g_PresentPixelShader = 0;
+GnmVsShader *g_ScaleformOrderedVertexShader = 0;
+GnmPsShader *g_ScaleformOrderedPixelShader = 0;
 CPs4GnmShader g_VertexShaderResource;
 CPs4GnmShader g_SolidPixelShaderResource;
 CPs4GnmShader g_TexturePixelShaderResource;
@@ -84,6 +86,8 @@ CPs4GnmShader g_DepthClearPixelShaderResource;
 CPs4GnmShader g_ReferenceCubeVertexShaderResource;
 CPs4GnmShader g_ReferenceCubePixelShaderResource;
 CPs4GnmShader g_PresentPixelShaderResource;
+CPs4GnmShader g_ScaleformOrderedVertexShaderResource;
+CPs4GnmShader g_ScaleformOrderedPixelShaderResource;
 CPs4GnmShaderHandleTable g_ShaderHandles;
 Ps4GnmShaderHandle g_VertexShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 Ps4GnmShaderHandle g_SolidPixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
@@ -92,6 +96,8 @@ Ps4GnmShaderHandle g_DepthClearPixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID
 Ps4GnmShaderHandle g_ReferenceCubeVertexShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 Ps4GnmShaderHandle g_ReferenceCubePixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 Ps4GnmShaderHandle g_PresentPixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
+Ps4GnmShaderHandle g_ScaleformOrderedVertexShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
+Ps4GnmShaderHandle g_ScaleformOrderedPixelShaderHandle = PS4_GNM_SHADER_HANDLE_INVALID;
 void *g_FetchShader = 0;
 GnmBuffer *g_VertexBuffers = 0;
 CPs4GnmBuffer g_DiagnosticVertexBuffer;
@@ -106,6 +112,7 @@ CPs4GnmTexture g_SceneColorTextures[2];
 CPs4ShaderManifest g_ShaderManifest;
 void *g_TextureSamplerTable = 0;
 void *g_ReferenceCubeFetchShader = 0;
+void *g_ScaleformOrderedFetchShader = 0;
 GnmBuffer *g_ReferenceCubeVertexBuffers = 0;
 GnmBuffer *g_CubeEdgeVertexBuffers = 0;
 CPs4GnmBuffer g_ReferenceCubeVertexBuffer;
@@ -348,14 +355,16 @@ uint32_t ShaderFragmentOutputMask( const GnmPsShader *shader )
 bool LoadDiagnosticShaders()
 {
     g_PendingSamplerMask = 0;
-    const Ps4ShaderManifestKey keys[7] = {
+    const Ps4ShaderManifestKey keys[9] = {
         { "kisak_diagnostic", PS4_SHADER_STAGE_VERTEX, 0, 0, 1 },
         { "kisak_diagnostic", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
         { "kisak_texture_sample", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
         { "kisak_depth_clear", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
         { "kisak_reference_cube", PS4_SHADER_STAGE_VERTEX, 0, 0, 2 },
         { "kisak_reference_cube", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
-        { "kisak_present", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 }
+        { "kisak_present", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 },
+        { "kisak_scaleform_ordered", PS4_SHADER_STAGE_VERTEX, 0, 0, 3 },
+        { "kisak_scaleform_ordered", PS4_SHADER_STAGE_PIXEL, 0, 0, 0 }
     };
     uint8_t *manifestData = 0;
     size_t manifestSize = 0;
@@ -379,7 +388,7 @@ bool LoadDiagnosticShaders()
     }
     uint8_t *gpuCursor = static_cast< uint8_t * >( g_Mapped );
     uint8_t *gpuEnd = gpuCursor + kPersistentMemorySize;
-    for ( unsigned int shader = 0; shader < 7; ++shader )
+    for ( unsigned int shader = 0; shader < 9; ++shader )
     {
         const Ps4ShaderManifestEntry *entry = g_ShaderManifest.Find( keys[shader] );
         if ( !entry )
@@ -398,7 +407,7 @@ bool LoadDiagnosticShaders()
         }
         GnmShaderMetadata metadata = {};
         const GnmError metadataResult = sceGnmShaderBinaryGetMetadata( fileData, fileSize, &metadata );
-        const bool vertexStage = shader == 0 || shader == 4;
+        const bool vertexStage = shader == 0 || shader == 4 || shader == 7;
         const bool expectedStage = vertexStage ? metadata.type == GNM_SHADER_VERTEX : metadata.type == GNM_SHADER_PIXEL;
         const uint32_t actualVertexInputs = vertexStage && metadataResult == GNM_ERROR_OK && metadata.stage
             ? reinterpret_cast< const GnmVsShader * >( metadata.stage )->numinputsemantics : 0;
@@ -452,7 +461,9 @@ bool LoadDiagnosticShaders()
             : ( shader == 3 ? g_DepthClearPixelShaderResource
             : ( shader == 4 ? g_ReferenceCubeVertexShaderResource
             : ( shader == 5 ? g_ReferenceCubePixelShaderResource
-            : g_PresentPixelShaderResource ) ) ) ) );
+            : ( shader == 6 ? g_PresentPixelShaderResource
+            : ( shader == 7 ? g_ScaleformOrderedVertexShaderResource
+            : g_ScaleformOrderedPixelShaderResource ) ) ) ) ) ) );
         const GnmShaderType resourceType = vertexStage ? GNM_SHADER_VERTEX : GNM_SHADER_PIXEL;
         if ( !resource.Initialize( fileData, fileSize, resourceType,
                 gpuCursor, static_cast< size_t >( gpuEnd - gpuCursor ) ) )
@@ -505,10 +516,20 @@ bool LoadDiagnosticShaders()
                 g_ReferenceCubePixelShaderHandle = handle;
                 g_ReferenceCubePixelShader = resolved->PixelShader();
             }
-            else
+            else if ( shader == 6 )
             {
                 g_PresentPixelShaderHandle = handle;
                 g_PresentPixelShader = resolved->PixelShader();
+            }
+            else if ( shader == 7 )
+            {
+                g_ScaleformOrderedVertexShaderHandle = handle;
+                g_ScaleformOrderedVertexShader = resolved->VertexShader();
+            }
+            else
+            {
+                g_ScaleformOrderedPixelShaderHandle = handle;
+                g_ScaleformOrderedPixelShader = resolved->PixelShader();
             }
         }
         const char *role = shader == 0 ? "vertex"
@@ -517,7 +538,9 @@ bool LoadDiagnosticShaders()
             : ( shader == 3 ? "depth_clear_pixel"
             : ( shader == 4 ? "reference_cube_vertex"
             : ( shader == 5 ? "reference_cube_pixel"
-            : "present_pixel" ) ) ) ) );
+            : ( shader == 6 ? "present_pixel"
+            : ( shader == 7 ? "scaleform_ordered_vertex"
+            : "scaleform_ordered_pixel" ) ) ) ) ) ) );
         char message[112];
         snprintf( message, sizeof( message ),
             "kisak-ps4: native GNM shader resource role=%s handle=0x%x codebytes=%u",
@@ -567,6 +590,47 @@ bool LoadDiagnosticShaders()
     g_FetchShader = gpuCursor;
     sceGnmVsRegsSetFetchShaderModifier( &g_VertexShader->registers, &fetchResults );
     gpuCursor += fetchSize;
+
+    GnmFetchShaderCreateInfo orderedFetchInfo = {};
+    orderedFetchInfo.regs = &g_ScaleformOrderedVertexShader->registers;
+    orderedFetchInfo.inputusages =
+        sceGnmVsShaderInputUsageSlotTable( g_ScaleformOrderedVertexShader );
+    orderedFetchInfo.numinputusages =
+        g_ScaleformOrderedVertexShader->common.numinputusageslots;
+    orderedFetchInfo.vtxinputs =
+        sceGnmVsShaderInputSemanticTable( g_ScaleformOrderedVertexShader );
+    orderedFetchInfo.numvtxinputs =
+        g_ScaleformOrderedVertexShader->numinputsemantics;
+    uint32_t orderedFetchSize = 0;
+    if ( sceGnmFetchShaderCalcSize( &orderedFetchSize, &orderedFetchInfo ) !=
+         GNM_ERROR_OK )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "ordered fetch size failed inputs=%u usages=%u",
+            orderedFetchInfo.numvtxinputs, orderedFetchInfo.numinputusages );
+        return false;
+    }
+    gpuCursor = reinterpret_cast< uint8_t * >(
+        ( reinterpret_cast< uintptr_t >( gpuCursor ) + 255 ) &
+        ~static_cast< uintptr_t >( 255 ) );
+    if ( orderedFetchSize > static_cast< uint32_t >( gpuEnd - gpuCursor ) )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "ordered fetch allocation failed bytes=%u", orderedFetchSize );
+        return false;
+    }
+    GnmFetchShaderResults orderedFetchResults = {};
+    if ( sceGnmCreateFetchShader( gpuCursor, orderedFetchSize,
+            &orderedFetchInfo, &orderedFetchResults ) != GNM_ERROR_OK )
+    {
+        snprintf( g_ShaderDiagnostic, sizeof( g_ShaderDiagnostic ),
+            "ordered fetch creation failed bytes=%u", orderedFetchSize );
+        return false;
+    }
+    g_ScaleformOrderedFetchShader = gpuCursor;
+    sceGnmVsRegsSetFetchShaderModifier(
+        &g_ScaleformOrderedVertexShader->registers, &orderedFetchResults );
+    gpuCursor += orderedFetchSize;
 
     struct DiagnosticVertex
     {
@@ -1544,6 +1608,235 @@ bool EmitScaleformTextureBatches( GnmCommandBuffer *command, bool fontPass )
     return true;
 }
 
+bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
+{
+    CPs4ScaleformHal &hal = KisakPs4ScaleformHal();
+    const std::vector< CPs4ScaleformHal::CapturedVertex > &sourceVertices =
+        hal.CapturedVertices();
+    const std::vector< uint16_t > &sourceIndices = hal.CapturedIndices();
+    const std::vector< CPs4ScaleformHal::CapturedBatch > &sourceBatches =
+        hal.CapturedDraws();
+    const std::vector< uint32_t > &atlasPixels = hal.GradientPixels();
+    if ( !command || sourceVertices.empty() || sourceIndices.empty() ||
+         sourceBatches.empty() || atlasPixels.empty() ||
+         hal.GradientTileCount() == 0 || !g_ScaleformOrderedVertexShader ||
+         !g_ScaleformOrderedPixelShader || !g_ScaleformOrderedFetchShader )
+        return false;
+
+    struct OrderedVertex
+    {
+        float position[4];
+        float color[4];
+        float uv[2];
+        float mode;
+    };
+
+    const auto selectsBatch = [&sourceVertices, &sourceIndices](
+        const CPs4ScaleformHal::CapturedBatch &batch )
+    {
+        return CPs4ScaleformHal::IsOrderedAtlasBatch( batch ) &&
+            batch.firstVertex <= sourceVertices.size() &&
+            batch.vertexCount <= sourceVertices.size() - batch.firstVertex &&
+            batch.firstIndex <= sourceIndices.size() &&
+            batch.indexCount <= sourceIndices.size() - batch.firstIndex;
+    };
+
+    size_t compactVertexCount = 0;
+    size_t compactIndexCount = 0;
+    uint32_t orderedBatchCount = 0;
+    uint32_t solidBatchCount = 0;
+    uint32_t gradientBatchCount = 0;
+    uint32_t textBatchCount = 0;
+    for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
+    {
+        const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
+        if ( !selectsBatch( batch ) )
+            continue;
+        if ( batch.vertexCount > 65535 ||
+             compactVertexCount > 65535 - batch.vertexCount ||
+             compactIndexCount > UINT32_MAX - batch.indexCount )
+            return false;
+        for ( uint32_t index = 0; index < batch.indexCount; ++index )
+        {
+            const uint16_t sourceIndex = sourceIndices[batch.firstIndex + index];
+            if ( sourceIndex < batch.firstVertex ||
+                 sourceIndex >= batch.firstVertex + batch.vertexCount )
+                return false;
+        }
+        compactVertexCount += batch.vertexCount;
+        compactIndexCount += batch.indexCount;
+        ++orderedBatchCount;
+        if ( batch.gradientFill )
+            ++gradientBatchCount;
+        else if ( batch.textFill )
+            ++textBatchCount;
+        else
+            ++solidBatchCount;
+    }
+    if ( compactVertexCount == 0 || compactIndexCount == 0 )
+        return false;
+
+    const uint32_t atlasWidth = 512;
+    const uint32_t atlasHeight = 256;
+    const size_t atlasCapacity =
+        static_cast< size_t >( atlasWidth ) * atlasHeight * sizeof( uint32_t ) + 4096;
+    const size_t uploadBytes = compactVertexCount * sizeof( OrderedVertex ) +
+        compactIndexCount * sizeof( uint16_t ) + 4 * sizeof( GnmBuffer ) +
+        atlasCapacity + CPs4GnmTexture::SamplerTableSize() + 64 + 1024;
+    if ( g_Device.FrameArena().Available() < uploadBytes )
+    {
+        static bool loggedArenaFailure = false;
+        if ( !loggedArenaFailure )
+        {
+            char message[192];
+            snprintf( message, sizeof( message ),
+                "kisak-ps4: scaleform ordered arena rejected needed=%llu available=%llu",
+                static_cast< unsigned long long >( uploadBytes ),
+                static_cast< unsigned long long >(
+                    g_Device.FrameArena().Available() ) );
+            KisakPs4StartupBreadcrumb( message );
+            loggedArenaFailure = true;
+        }
+        return false;
+    }
+
+    OrderedVertex *vertices = static_cast< OrderedVertex * >(
+        g_Device.FrameArena().Allocate(
+            compactVertexCount * sizeof( OrderedVertex ), 16 ) );
+    uint16_t *indices = static_cast< uint16_t * >(
+        g_Device.FrameArena().Allocate( compactIndexCount * sizeof( uint16_t ), 8 ) );
+    GnmBuffer *descriptors = static_cast< GnmBuffer * >(
+        g_Device.FrameArena().Allocate( 4 * sizeof( GnmBuffer ), 16 ) );
+    void *atlasMemory = g_Device.FrameArena().Allocate( atlasCapacity, 256 );
+    void *tableMemory = g_Device.FrameArena().Allocate(
+        CPs4GnmTexture::SamplerTableSize(), 16 );
+    if ( !vertices || !indices || !descriptors || !atlasMemory || !tableMemory )
+        return false;
+
+    uint32_t vertexCount = 0;
+    uint32_t indexCount = 0;
+    for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
+    {
+        const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
+        if ( !selectsBatch( batch ) )
+            continue;
+        for ( uint32_t vertex = 0; vertex < batch.vertexCount; ++vertex )
+        {
+            const CPs4ScaleformHal::CapturedVertex &source =
+                sourceVertices[batch.firstVertex + vertex];
+            OrderedVertex &destination = vertices[vertexCount + vertex];
+            destination.position[0] = source.x / 960.0f - 1.0f;
+            destination.position[1] = 1.0f - source.y / 540.0f;
+            destination.position[2] = 0.0f;
+            destination.position[3] = 1.0f;
+            Scaleform::Render::Color color( source.color );
+            destination.color[0] = color.GetRed() / 255.0f;
+            destination.color[1] = color.GetGreen() / 255.0f;
+            destination.color[2] = color.GetBlue() / 255.0f;
+            destination.color[3] = color.GetAlpha() / 255.0f;
+            destination.uv[0] = source.gradientU;
+            destination.uv[1] = source.gradientV;
+            destination.mode = batch.gradientFill ? 1.0f : 0.0f;
+        }
+        for ( uint32_t index = 0; index < batch.indexCount; ++index )
+        {
+            const uint16_t sourceIndex = sourceIndices[batch.firstIndex + index];
+            indices[indexCount + index] = static_cast< uint16_t >(
+                vertexCount + sourceIndex - batch.firstVertex );
+        }
+        vertexCount += batch.vertexCount;
+        indexCount += batch.indexCount;
+    }
+
+    CPs4GnmTexture atlas;
+    GnmSampler sampler = {};
+    sampler.clampx = sampler.clampy = sampler.clampz =
+        GNM_TEX_CLAMP_CLAMP_LAST_TEXEL;
+    sampler.depthcomparefunc = GNM_DEPTH_COMPARE_ALWAYS;
+    sampler.filtermode = GNM_FILTER_MODE_BLEND;
+    sampler.xymagfilter = sampler.xyminfilter = GNM_FILTER_BILINEAR;
+    sampler.zfilter = GNM_ZFILTER_NONE;
+    sampler.mipfilter = GNM_MIPFILTER_NONE;
+    sampler.bordercolortype = GNM_BORDER_COLOR_OPAQUE_BLACK;
+    void *samplerTable = 0;
+    if ( !atlas.Initialize2D( atlasMemory, atlasCapacity, GNM_FMT_R8G8B8A8_UNORM,
+            atlasWidth, atlasHeight, 1,
+            GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) ||
+         !atlas.UploadLinear( &atlasPixels[0],
+            atlasWidth * sizeof( uint32_t ), atlasHeight ) ||
+         !atlas.BuildSamplerTable( sampler, tableMemory,
+            CPs4GnmTexture::SamplerTableSize(), &samplerTable ) )
+        return false;
+
+    CPs4GnmBuffer vertexBuffer;
+    CPs4GnmBuffer indexBuffer;
+    const CPs4GnmVertexDeclaration::Element elements[4] = {
+        { 0, 0, GNM_FMT_R32G32B32A32_FLOAT },
+        { 0, 16, GNM_FMT_R32G32B32A32_FLOAT },
+        { 0, 32, GNM_FMT_R32G32_FLOAT },
+        { 0, 40, GNM_FMT_R32_FLOAT }
+    };
+    CPs4GnmVertexDeclaration declaration;
+    CPs4GnmDevice::IndexedDrawPacket packet = {};
+    if ( !vertexBuffer.Initialize( vertices,
+            vertexCount * sizeof( OrderedVertex ),
+            CPs4GnmBuffer::kVertexBuffer, true ) ||
+         !indexBuffer.Initialize( indices, indexCount * sizeof( uint16_t ),
+            CPs4GnmBuffer::kIndexBuffer, true ) ||
+         !g_Device.SetStreamSource( 0, &vertexBuffer, 0, sizeof( OrderedVertex ) ) ||
+         !g_Device.SetIndices( &indexBuffer ) ||
+         !declaration.Initialize( elements, 4 ) ||
+         !g_Device.BuildVertexDescriptorTable( declaration, 0,
+            vertexCount, descriptors, 4 ) ||
+         !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
+            0, indexCount, 0, vertexCount, &packet ) )
+        return false;
+
+    g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
+    g_DrawState.SetVertexShader( g_ScaleformOrderedVertexShader->registers, 0 );
+    g_DrawState.SetPixelShader( g_ScaleformOrderedPixelShader->registers );
+    g_DrawState.SetPointerUserData(
+        GNM_STAGE_VS, 0, g_ScaleformOrderedFetchShader );
+    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, descriptors );
+    g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, samplerTable );
+    g_DrawState.SetScissor( 0, 0, 1920, 1080 );
+    g_DrawState.SetPsInputUsage(
+        sceGnmVsShaderExportSemanticTable( g_ScaleformOrderedVertexShader ),
+        g_ScaleformOrderedVertexShader->numexportsemantics,
+        sceGnmPsShaderInputSemanticTable( g_ScaleformOrderedPixelShader ),
+        g_ScaleformOrderedPixelShader->numinputsemantics );
+    GnmDepthStencilControl depth = {};
+    depth.zfunc = GNM_DEPTH_COMPARE_ALWAYS;
+    depth.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
+    depth.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
+    g_DrawState.SetDepthStencilControl( depth );
+    GnmBlendControl blend = {};
+    blend.blendenabled = true;
+    blend.colorfunc = GNM_COMB_DST_PLUS_SRC;
+    blend.colorsrcmult = GNM_BLEND_SRC_ALPHA;
+    blend.colordstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
+    blend.alphafunc = GNM_COMB_DST_PLUS_SRC;
+    blend.alphasrcmult = GNM_BLEND_ONE;
+    blend.alphadstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
+    g_DrawState.SetBlendControl( 0, blend );
+    g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil );
+    if ( !Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX ) )
+        return false;
+
+    static bool logged = false;
+    if ( !logged )
+    {
+        char message[224];
+        snprintf( message, sizeof( message ),
+            "kisak-ps4: scaleform ordered draw batches=%u solid=%u gradient=%u text=%u vertices=%u indices=%u atlas_items=%u",
+            orderedBatchCount, solidBatchCount, gradientBatchCount,
+            textBatchCount, vertexCount, indexCount, hal.GradientTileCount() );
+        KisakPs4StartupBreadcrumb( message );
+        logged = true;
+    }
+    return true;
+}
+
 void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     const CPs4GnmDevice::IndexedDrawPacket &packet,
     const CPs4GnmDevice::IndexedDrawPacket &sourcePacket,
@@ -1710,11 +2003,12 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX,
         &sourceDirtyMask );
     const size_t scaleformArenaBefore = g_Device.FrameArena().Used();
-    const bool emittedScaleformSolid =
+    const bool emittedScaleformOrdered = EmitScaleformOrderedBatches( command );
+    const bool emittedScaleformSolid = emittedScaleformOrdered ? false :
         EmitScaleformSolidBatches( command, false );
-    const bool emittedScaleformGradient =
+    const bool emittedScaleformGradient = emittedScaleformOrdered ? false :
         EmitScaleformTextureBatches( command, false );
-    const bool emittedScaleformText =
+    const bool emittedScaleformText = emittedScaleformOrdered ? false :
         EmitScaleformSolidBatches( command, true );
     const bool emittedScaleformFontAtlas =
         EmitScaleformTextureBatches( command, true );
@@ -1736,7 +2030,8 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     {
         char message[224];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform passes solid=%u gradient=%u text=%u font_atlas=%u font_items=%u arena_before=%llu arena_after=%llu available=%llu",
+            "kisak-ps4: scaleform passes ordered=%u fallback_solid=%u fallback_gradient=%u fallback_text=%u font_atlas=%u font_items=%u arena_before=%llu arena_after=%llu available=%llu",
+            emittedScaleformOrdered ? 1u : 0u,
             emittedScaleformSolid ? 1u : 0u,
             emittedScaleformGradient ? 1u : 0u,
             emittedScaleformText ? 1u : 0u,
@@ -1747,8 +2042,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
             static_cast< unsigned long long >( g_Device.FrameArena().Available() ) );
         KisakPs4StartupBreadcrumb( message );
         ++scaleformPassSummaryCount;
-        scaleformCompletePassesLogged = emittedScaleformSolid &&
-            emittedScaleformGradient && emittedScaleformText &&
+        scaleformCompletePassesLogged =
+            ( emittedScaleformOrdered || ( emittedScaleformSolid &&
+              emittedScaleformGradient && emittedScaleformText ) ) &&
             ( KisakPs4ScaleformHal().FontAtlasGlyphCount() == 0 ||
               emittedScaleformFontAtlas );
     }

@@ -21,6 +21,26 @@ int main()
         scissor[2] == 1920 && scissor[3] == 1080 );
     assert( !hal.TranslateScissor( 10, 10, 10, 100, 1920, 1080, scissor ) );
 
+    CPs4ScaleformHal::CapturedBatch solid = {
+        0, 4, 0, 6, 0xffffffffu, false, false, false, false
+    };
+    assert( CPs4ScaleformHal::IsOrderedAtlasBatch( solid ) );
+    CPs4ScaleformHal::CapturedBatch gradient = solid;
+    gradient.gradientFill = true;
+    assert( CPs4ScaleformHal::IsOrderedAtlasBatch( gradient ) );
+    CPs4ScaleformHal::CapturedBatch text = solid;
+    text.textFill = true;
+    assert( CPs4ScaleformHal::IsOrderedAtlasBatch( text ) );
+    CPs4ScaleformHal::CapturedBatch packed = text;
+    packed.packedTextFill = true;
+    assert( !CPs4ScaleformHal::IsOrderedAtlasBatch( packed ) );
+    CPs4ScaleformHal::CapturedBatch complex = solid;
+    complex.complexFill = true;
+    assert( !CPs4ScaleformHal::IsOrderedAtlasBatch( complex ) );
+    CPs4ScaleformHal::CapturedBatch empty = solid;
+    empty.indexCount = 0;
+    assert( !CPs4ScaleformHal::IsOrderedAtlasBatch( empty ) );
+
     hal.BeginFrame( 1 );
     assert( !hal.QueueCapturedTree( static_cast< Scaleform::Render::TreeRoot * >( nullptr ), "menu" ) );
     assert( hal.QueueCapturedTree( true, "menu" ) );

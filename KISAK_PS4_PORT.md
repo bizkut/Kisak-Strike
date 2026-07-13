@@ -4273,6 +4273,51 @@ The PS4 link/package build completes and all 11 host tests pass. The staged
 monolithic package SHA-256 is
 `feaf902b1b067a5dcdcc3aa5d122cb4b1d2c46885cfdbbfa5fe919bd9c8e257a`.
 
+The v3.92 hardware run is stable and visually unchanged as intended. The menu
+capture contains 97 total/90 visible nodes, 55 retained batches, 31 solid
+batches, four gradient batches, and 20 vector-text batches. It contains no
+image, packed-text, complex-fill, mask-owner, mask-tree, or mask-bounds batch.
+Those 55 batches form only six contiguous type runs. Retained refresh remains
+bounded (`changed=1` at frame 60 and zero at frames 120, 300, and 600).
+Therefore masks and scissor are not responsible for the current flattened
+menu, and the next correction can target authored ordering without adding a
+mask implementation.
+
+### v3.93: Preserve GFx order and the real gradient atlas in one draw
+
+The current menu's three supported kinds—solid shapes, atlas gradients, and
+vector text—now share a dedicated ordered shader pair. Capture is compacted in
+its original 55-batch sequence into one indexed stream. Each vertex carries
+position, transformed color, gradient UV, and a fill-mode selector; the pixel
+shader selects transformed vertex color for solid/text primitives and samples
+the existing 512x256 GFx gradient atlas for gradient primitives. This preserves
+primitive blending order without the rejected v3.90 sparse per-vertex gradient
+approximation and removes the four global type passes for this menu.
+
+The old solid/gradient/text emitters remain as a deterministic fallback when
+the ordered shader, gradient atlas, or arena allocation is unavailable. Packed
+glyphs remain a separate final pass, but v3.92 proves the current menu has zero
+packed glyphs, so this does not affect its authored ordering. Complex/image
+fills are intentionally excluded until texture capture exists. The new
+offline shader build script compiles GLSL to SPIR-V with `glslc`, then packages
+base-PS4 shader binaries with the local `psbc`; both binaries and binding
+manifest entries are packaged with the monolithic executable.
+
+The next hardware gate is successful loading of nine shader manifest entries,
+an `ordered draw` line reporting 55 batches with 31 solid/four gradient/20 text,
+`passes ordered=1` with all fallback passes zero, the dark menu panels and
+gradient header drawn in correct overlap order, retained 58-62 FPS, and no
+arena rejection or shader metadata failure. If shader loading fails, the
+startup diagnostic should name the exact ordered stage/binding mismatch before
+any draw submission.
+
+Marker: `kisak-ps4: build marker scaleform_ordered_gradient_v393`.
+
+The PS4 link/package build and all 11 host tests pass. The staged monolithic
+package SHA-256 is
+`fef4424e0afbdb0f804992d13b4c35ab8f862532bcb259423971aa5d5576611f`.
+Hardware validation is pending the next launch.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
