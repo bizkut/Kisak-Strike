@@ -99,6 +99,7 @@ public:
 
     void BeginFrame( uint64_t frame );
     void EndFrame();
+    void RequestDynamicRefresh( uint32_t frames );
     bool QueueCapturedTree( bool captured, const char *phase );
     bool QueueCapturedTree( Scaleform::Render::TreeRoot *root, const char *phase );
 
@@ -133,6 +134,8 @@ private:
         const Scaleform::Render::Cxform &parentCxform );
     void AccumulateTreeSignature( const Scaleform::Render::TreeNode *node,
         uint64_t *signature, uint32_t *visited ) const;
+    void AccumulateTopologySignature( const Scaleform::Render::TreeNode *node,
+        uint64_t *signature, uint32_t *visited ) const;
 
     bool m_frameOpen;
     uint64_t m_frame;
@@ -141,8 +144,11 @@ private:
     uint32_t m_treeStatsLoggedMask;
     uint32_t m_treeDrawableLoggedMask;
     uint64_t m_menuVisibilitySignature;
+    uint64_t m_menuTopologySignature;
     uint32_t m_visibilityRebuilds;
     bool m_menuVisibilityValid;
+    bool m_menuTopologyValid;
+    uint64_t m_dynamicRefreshUntilFrame;
     TreeStats m_lastTreeStats;
     std::vector< CapturedVertex > m_capturedVertices;
     std::vector< uint16_t > m_capturedIndices;

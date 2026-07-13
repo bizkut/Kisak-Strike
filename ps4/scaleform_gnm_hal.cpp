@@ -642,8 +642,9 @@ bool CapturePackedGlyph( const Scaleform::Render::TextureGlyph *glyph,
 CPs4ScaleformHal::CPs4ScaleformHal()
     : m_frameOpen( false ), m_frame( 0 ), m_capturedTrees( 0 ), m_pendingBatches( 0 ),
       m_treeStatsLoggedMask( 0 ), m_treeDrawableLoggedMask( 0 ),
-      m_menuVisibilitySignature( 0 ), m_visibilityRebuilds( 0 ),
-      m_menuVisibilityValid( false ),
+      m_menuVisibilitySignature( 0 ), m_menuTopologySignature( 0 ),
+      m_visibilityRebuilds( 0 ), m_menuVisibilityValid( false ),
+      m_menuTopologyValid( false ), m_dynamicRefreshUntilFrame( 0 ),
       m_gradientTileCount( 0 )
 {
 }
@@ -659,6 +660,13 @@ void CPs4ScaleformHal::BeginFrame( uint64_t frame )
 void CPs4ScaleformHal::EndFrame()
 {
     m_frameOpen = false;
+}
+
+void CPs4ScaleformHal::RequestDynamicRefresh( uint32_t frames )
+{
+    const uint64_t requested = m_frame + frames;
+    if ( requested > m_dynamicRefreshUntilFrame )
+        m_dynamicRefreshUntilFrame = requested;
 }
 
 bool CPs4ScaleformHal::QueueCapturedTree( bool captured, const char *phase )
@@ -1006,6 +1014,36 @@ void CPs4ScaleformHal::AccumulateTreeSignature(
         AccumulateTreeSignature( container->GetAt( i ), signature, visited );
 }
 
+void CPs4ScaleformHal::AccumulateTopologySignature(
+    const Scaleform::Render::TreeNode *node, uint64_t *signature,
+    uint32_t *visited ) const
+{
+    if ( !node || !signature || !visited || *visited >= kMaxTreeNodes )
+        return;
+
+    ++*visited;
+    const uint64_t value =
+        ( static_cast< uint64_t >( node->GetReadOnlyData()->GetType() ) << 1 ) |
+        ( node->IsVisible() ? 1u : 0u );
+    *signature ^= value + 0x9e3779b97f4a7c15ull +
+        ( *signature << 6 ) + ( *signature >> 2 );
+    if ( !node->IsVisible() )
+        return;
+
+    const Scaleform::Render::Context::EntryData::EntryType type =
+        node->GetReadOnlyData()->GetType();
+    if ( type != Scaleform::Render::Context::EntryData::ET_Root &&
+         type != Scaleform::Render::Context::EntryData::ET_Container )
+        return;
+
+    const Scaleform::Render::TreeContainer *container =
+        static_cast< const Scaleform::Render::TreeContainer * >( node );
+    *signature ^= static_cast< uint64_t >( container->GetSize() ) +
+        0x9e3779b97f4a7c15ull + ( *signature << 6 ) + ( *signature >> 2 );
+    for ( Scaleform::UPInt i = 0; i < container->GetSize(); ++i )
+        AccumulateTopologySignature( container->GetAt( i ), signature, visited );
+}
+
 bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
     const char *phase )
 {
@@ -1016,17 +1054,29 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
     uint64_t visibilitySignature = 0xcbf29ce484222325ull;
     uint32_t visibilityNodes = 0;
     AccumulateTreeSignature( root, &visibilitySignature, &visibilityNodes );
-    const bool menuVisibilityChanged = statsBit == 1u &&
+    const bool menuVisualChanged = statsBit == 1u &&
         ( !m_menuVisibilityValid || visibilitySignature != m_menuVisibilitySignature );
+    uint64_t topologySignature = 0xcbf29ce484222325ull;
+    uint32_t topologyNodes = 0;
+    AccumulateTopologySignature( root, &topologySignature, &topologyNodes );
+    const bool menuTopologyChanged = statsBit == 1u &&
+        ( !m_menuTopologyValid || topologySignature != m_menuTopologySignature );
     if ( statsBit == 1u )
     {
         m_menuVisibilitySignature = visibilitySignature;
         m_menuVisibilityValid = true;
+        m_menuTopologySignature = topologySignature;
+        m_menuTopologyValid = true;
+        if ( menuTopologyChanged )
+            RequestDynamicRefresh( 30 );
     }
+
+    const bool dynamicRefreshActive = m_frame <= 90 ||
+        m_frame <= m_dynamicRefreshUntilFrame;
 
     m_lastTreeStats = TreeStats();
     m_lastTreeStats.collectGeometry = statsBit == 1u
-        ? menuVisibilityChanged
+        ? ( menuTopologyChanged || ( menuVisualChanged && dynamicRefreshActive ) )
         : ( m_treeDrawableLoggedMask & statsBit ) == 0;
     if ( m_lastTreeStats.collectGeometry && statsBit == 1u )
     {
@@ -1062,7 +1112,8 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         snprintf( rebuildHeartbeat, sizeof( rebuildHeartbeat ),
             "kisak-ps4: scaleform rebuild heartbeat frame=%llu total=%u changed=%u nodes=%u",
             static_cast< unsigned long long >( m_frame ), m_visibilityRebuilds,
-            menuVisibilityChanged ? 1u : 0u, visibilityNodes );
+            ( menuVisualChanged && dynamicRefreshActive ) ? 1u : 0u,
+            visibilityNodes );
         KisakPs4StartupBreadcrumb( rebuildHeartbeat );
     }
     CollectTreeStats( root, &m_lastTreeStats, true,

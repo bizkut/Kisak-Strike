@@ -268,7 +268,18 @@ const wchar_t *FindLocalizedText( const char *value )
     char *fontHint = strchr( key, '@' );
     if ( fontHint )
         *fontHint = '\0';
-    return g_pVGuiLocalize->Find( key );
+    const wchar_t *localized = g_pVGuiLocalize->Find( key );
+#if defined( PLATFORM_PS4 )
+    // Some shipped tables end with an accepted empty WIN32 override even
+    // though the PS4 UI uses the console movie branch. Keep a readable,
+    // controller-first fallback until every legacy conditional is normalized.
+    if ( ( !localized || !localized[0] ) &&
+         !V_stricmp( key, "#SFUI_MainMenu_Navigation_Root" ) )
+    {
+        return L"[X] SELECT";
+    }
+#endif
+    return localized;
 }
 
 bool LoadScaleformLocalization()
@@ -1008,6 +1019,8 @@ public:
                     Scaleform::GFx::Movie::HE_NotHandled || handled;
             }
         }
+        if ( handled )
+            KisakPs4ScaleformHal().RequestDynamicRefresh( 30 );
         return handled;
     }
 

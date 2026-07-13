@@ -4139,6 +4139,43 @@ The v3.88 monolithic package is staged at
 `de7de6a5d4977567f35a6e0904e6c4ecdbe99badf61a1bdf2eae06e4c7712f0b`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.89: Separate retained topology from looping movie animation
+
+The v3.88 hardware run validates the retail callback: the trial caption is
+gone, the visible tree drops from four text nodes to three, and retained
+vertices drop from 1,656 to 628. The controller-help lookup is still empty, so
+the localization conditional override does not yet displace the shipped final
+empty value.
+
+The rebuild heartbeats identify the 24-62 FPS fluctuation precisely. The menu
+rebuild count reaches 21 at frame 60, 41 at frame 120, 101 at frame 300, and
+201 at frame 600, with `changed=1` at every gate. The authored movie continues
+changing matrix or color state at 20 Hz, and the capture HAL retessellates the
+entire visible menu at that cadence even after its entrance has settled.
+
+Retained capture now computes two signatures. The topology signature contains
+node type, visibility, and child structure; its changes always rebuild geometry.
+The visual signature additionally contains matrices and color transforms. Its
+changes rebuild during the first 90 frames and during a 30-frame refresh window
+after handled controller input, but looping animation no longer forces
+unbounded tessellation. This preserves show/hide transitions and responsive
+selection highlighting while allowing static retained geometry between input
+events. A readable `[X] SELECT` fallback is returned only when the PS4 root
+navigation-help localization is absent or empty.
+
+The next hardware gate is a rebuild count that stops increasing after the
+entrance window, heartbeat `changed=0` from frame 120 onward, stable 60 FPS,
+working controller highlight refresh, no trial caption, and readable navigation
+help. The longer-term HAL replacement remains cheap per-frame transform/color
+buffer refresh without tessellation, followed by masks, scissor clips, and
+authored interleaved draw order.
+
+Marker: `kisak-ps4: build marker scaleform_retained_refresh_v389`.
+
+The PS4 link/package build completes and all 11 host tests pass. The staged
+monolithic package SHA-256 is
+`d17eea97d686253da7f5940d49fe127606be02b36778ec4c27c3c2810f707d78`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
