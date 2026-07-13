@@ -1344,10 +1344,11 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         m_frame <= m_dynamicRefreshUntilFrame;
     // GFx advances at 60 Hz, but rebuilding the complete retained tree every
     // frame is expensive enough to drop the PS4 menu into the low twenties.
-    // Reuse the cached draw on alternating frames while still sampling the
-    // movie timeline continuously. Topology changes bypass this throttle.
+    // The console root movie is authored at 20 Hz even though PS4 presents at
+    // 60 Hz. Reuse the cached draw for two presentations and rebuild on the
+    // third; topology changes bypass this throttle.
     const bool dynamicCaptureDue = m_lastGeometryCaptureFrame == 0 ||
-        m_frame - m_lastGeometryCaptureFrame >= 2;
+        m_frame - m_lastGeometryCaptureFrame >= 3;
 
     m_lastTreeStats = TreeStats();
     m_lastTreeStats.collectGeometry = statsBit == 1u
@@ -1395,6 +1396,48 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
     }
     CollectTreeStats( root, &m_lastTreeStats, true,
         Scaleform::Render::Cxform::Identity );
+    if ( statsBit == 1u &&
+         ( m_frame == 300 || m_frame == 420 || m_frame == 540 ) )
+    {
+        unsigned logged = 0;
+        for ( size_t draw = 0; draw < m_capturedDraws.size() && logged < 16; ++draw )
+        {
+            const CapturedBatch &batch = m_capturedDraws[draw];
+            if ( !batch.imageFill || batch.firstVertex >= m_capturedVertices.size() )
+                continue;
+            float minX = 1e30f, minY = 1e30f, maxX = -1e30f, maxY = -1e30f;
+            unsigned minR = 255, minG = 255, minB = 255, minA = 255;
+            unsigned maxR = 0, maxG = 0, maxB = 0, maxA = 0;
+            const uint32_t end = std::min< size_t >(
+                batch.firstVertex + batch.vertexCount, m_capturedVertices.size() );
+            for ( uint32_t vertex = batch.firstVertex; vertex < end; ++vertex )
+            {
+                const CapturedVertex &captured = m_capturedVertices[vertex];
+                const Scaleform::Render::Color color( captured.color );
+                minX = std::min( minX, captured.x );
+                minY = std::min( minY, captured.y );
+                maxX = std::max( maxX, captured.x );
+                maxY = std::max( maxY, captured.y );
+                minR = std::min( minR, static_cast< unsigned >( color.GetRed() ) );
+                minG = std::min( minG, static_cast< unsigned >( color.GetGreen() ) );
+                minB = std::min( minB, static_cast< unsigned >( color.GetBlue() ) );
+                minA = std::min( minA, static_cast< unsigned >( color.GetAlpha() ) );
+                maxR = std::max( maxR, static_cast< unsigned >( color.GetRed() ) );
+                maxG = std::max( maxG, static_cast< unsigned >( color.GetGreen() ) );
+                maxB = std::max( maxB, static_cast< unsigned >( color.GetBlue() ) );
+                maxA = std::max( maxA, static_cast< unsigned >( color.GetAlpha() ) );
+            }
+            char imageState[288];
+            snprintf( imageState, sizeof( imageState ),
+                "kisak-ps4: scaleform image state frame=%llu draw=%u image=%u bounds=%.1f,%.1f..%.1f,%.1f rgba=%u,%u,%u,%u..%u,%u,%u,%u",
+                static_cast< unsigned long long >( m_frame ),
+                static_cast< unsigned >( draw ), batch.imageIndex,
+                minX, minY, maxX, maxY, minR, minG, minB, minA,
+                maxR, maxG, maxB, maxA );
+            KisakPs4StartupBreadcrumb( imageState );
+            ++logged;
+        }
+    }
     if ( m_lastTreeStats.totalNodes == 0 )
         return false;
 

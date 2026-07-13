@@ -5100,6 +5100,36 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `b012b5b35b60659f33322944363c2d99324c227d9f35f195fc5dccfadd2e1709`.
 
+The v4.14 log confirms the forced handoff executes: ratings is hidden when
+Panel starts, its current frame remains 90 with visibility false, and visible
+tree nodes drop from 29 to 19. Panel advances and completes, but the hardware
+screen remains black. The exported Legals root frame 2 visibly contains the
+Source/legal Panel, so black is a renderer capture/color issue rather than
+authored content or remaining ratings coverage.
+
+### v4.15: Match the 20 Hz root cadence and probe Panel image batches
+
+The original console timing and PS4 probes agree: child movies are hosted by
+`mainuirootmovie` at an effective 20 FPS. PS4 presentation remains 60 Hz, while
+full retained-tree geometry capture is limited to every third presented frame.
+This preserves original UI timing, continuously updates looping snow, and
+avoids redundant retessellation between root-movie ticks.
+
+Bounded diagnostics at Legals display frames 300, 420, and 540 record each
+captured image batch's draw ordinal, image identity, screen bounds, and minimum/
+maximum RGBA. These identify whether Panel is missing from ordered capture or
+is emitted with a black/transparent GFx color transform.
+
+Marker: `kisak-ps4: build marker scaleform_20hz_panel_probe_v415`.
+
+The v4.15 gate retains the clean boot/menu behavior and validates smoother
+near-60 FPS presentation. If Panel remains black, the image-state lines select
+the exact batch/color fix for v4.16 without another broad renderer change.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`b3e54c0cf1b3af40545bedd2e036262d495480de6319340cefce88e7f4425014`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
