@@ -5045,6 +5045,37 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `7a421ac542e874ea2e3a66b560771916bfe772f69f63dc8cc8de49cb407b0d5b`.
 
+The v4.12 hardware run validates the measured timing and natural callback:
+Legals reports `animation completed` at display frame 798, then removal,
+StartScreen, controller confirmation, and MainMenu occur in order. The legal
+Panel is visible, but its Source/legal artwork still appears beneath MainMenu.
+This is no longer a live-timeline or timeout fault.
+
+The image cache retains raw Scaleform `Image` pointer aliases across external
+movie unloads. GFx can recycle those addresses for images in the next movie,
+causing a new MainMenu batch to match an old Legals cache record and bind its
+persistent ESRB/Source texture.
+
+### v4.13: Separate image identities across external-movie generations
+
+Retained-tree invalidation now clears every cached image's raw pointer aliases
+at a boot-element transition. It deliberately preserves the image records and
+their indices because persistent OpenGNM sampler tables are indexed by that
+vector and direct-memory allocations cannot be cheaply reclaimed mid-run.
+Images captured from the next movie therefore append fresh identities and GPU
+textures instead of aliasing recycled GFx addresses to legal artwork.
+
+Marker: `kisak-ps4: build marker scaleform_image_generation_v413`.
+
+The v4.13 hardware gate is the already validated Mature-to-Panel-to-StartScreen
+sequence followed by a clean MainMenu containing no ESRB, Source, or Hidden
+Path legal textures. Snow must remain continuous and presentation should
+return near 60 FPS once the contaminated extra image layers are gone.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`713abbd3d74abca3d83983ff68371b4cdae1bdcc03c182c36f31696fbea421d8`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

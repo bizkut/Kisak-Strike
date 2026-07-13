@@ -886,6 +886,13 @@ void CPs4ScaleformHal::InvalidateCapturedTree()
     m_fontAtlasPixels.clear();
     m_fontGlyphKeys.clear();
     m_fontGlyphColors.clear();
+    // Scaleform releases external-movie Image objects during unload and can
+    // reuse their addresses for the next movie. Raw pointer aliases must not
+    // survive that boundary or a MainMenu image can resolve to an old Legals
+    // GPU texture. Keep the records/indices stable for persistent samplers,
+    // but require every new movie image to append a fresh identity.
+    for ( size_t image = 0; image < m_capturedImages.size(); ++image )
+        m_capturedImages[image].keys.clear();
     m_menuVisibilityValid = false;
     m_menuTopologyValid = false;
     m_lastGeometryCaptureFrame = 0;
