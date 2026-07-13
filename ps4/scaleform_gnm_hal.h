@@ -107,7 +107,7 @@ public:
         { return m_capturedDraws; }
     const std::vector< uint32_t > &GradientPixels() const
         { return m_gradientPixels; }
-    uint32_t GradientRowCount() const { return m_gradientPixels.size() / 256; }
+    uint32_t GradientTileCount() const { return m_gradientTileCount; }
 
 private:
     enum { kMaxTreeNodes = 4096 };
@@ -126,6 +126,7 @@ private:
     std::vector< uint16_t > m_capturedIndices;
     std::vector< CapturedBatch > m_capturedDraws;
     std::vector< uint32_t > m_gradientPixels;
+    uint32_t m_gradientTileCount;
 };
 
 CPs4ScaleformHal &KisakPs4ScaleformHal();

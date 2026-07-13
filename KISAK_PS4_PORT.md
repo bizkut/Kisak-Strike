@@ -3654,6 +3654,31 @@ The v3.74 monolithic package is staged at
 `b5c7f9e8bd5b8af82d8e682ca6db12ebe3c7bdea99cc4f5665781f1da536b2ed`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.75: Move radial gradients into 2D atlas tiles
+
+The v3.74 screenshot proves sampled alpha is restored: the lime solid layers
+remain visible beneath all 82 RGBA atlas batches. Remaining fan-shaped streaks
+come from interpolating a precomputed radial distance across triangle vertices,
+not from the atlas or blend state.
+
+The HAL now assigns each gradient a 64x64 tile in a 1024x512 RGBA atlas. Linear
+tiles contain horizontal ramps; radial and focal tiles contain a sampled 2D
+distance field. Authored GFx fill matrices map original gradient UV directly
+into each tile, with half-texel inset coordinates preventing bilinear bleed
+between adjacent tiles. The centroid subdivision bridge is removed, returning
+the retained menu to approximately 1,504 vertices and 5,862 indices.
+
+Focal gradients temporarily use the radial distance field until the native GFx
+focal equation is ported. The hardware gate is 82 tiles/batches, smooth radial
+interiors without triangular fans, stable flips, and no frame-arena exhaustion.
+
+Marker: `kisak-ps4: build marker scaleform_gradient_tiles_v375`.
+
+The v3.75 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`26969b8a9c4cef92db5aa5f2b7c5bfd2cc7a9adf2e40675de7950058387f8649`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

@@ -1269,9 +1269,9 @@ bool EmitScaleformGradientBatches( GnmCommandBuffer *command )
     const std::vector< CPs4ScaleformHal::CapturedBatch > &sourceBatches =
         hal.CapturedDraws();
     const std::vector< uint32_t > &gradientPixels = hal.GradientPixels();
-    const uint32_t gradientRows = hal.GradientRowCount();
+    const uint32_t gradientTiles = hal.GradientTileCount();
     if ( !command || sourceVertices.empty() || sourceIndices.empty() ||
-         sourceBatches.empty() || gradientPixels.empty() || gradientRows == 0 ||
+         sourceBatches.empty() || gradientPixels.empty() || gradientTiles == 0 ||
          !g_ReferenceCubeVertexShader || !g_ReferenceCubePixelShader ||
          !g_ReferenceCubeFetchShader )
         return false;
@@ -1290,7 +1290,7 @@ bool EmitScaleformGradientBatches( GnmCommandBuffer *command )
         g_Device.FrameArena().Allocate( 2 * sizeof( GnmBuffer ), 16 ) );
     GnmBuffer *constantDescriptor = static_cast< GnmBuffer * >(
         g_Device.FrameArena().Allocate( sizeof( GnmBuffer ), 16 ) );
-    const size_t atlasCapacity = 512 * 1024;
+    const size_t atlasCapacity = 2 * 1024 * 1024 + 4096;
     void *atlasMemory = g_Device.FrameArena().Allocate( atlasCapacity, 256 );
     void *tableMemory = g_Device.FrameArena().Allocate(
         CPs4GnmTexture::SamplerTableSize(), 16 );
@@ -1336,8 +1336,8 @@ bool EmitScaleformGradientBatches( GnmCommandBuffer *command )
     sampler.bordercolortype = GNM_BORDER_COLOR_OPAQUE_BLACK;
     void *samplerTable = 0;
     if ( !atlas.Initialize2D( atlasMemory, atlasCapacity, GNM_FMT_R8G8B8A8_UNORM,
-            256, 128, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) ||
-         !atlas.UploadLinear( &gradientPixels[0], 256 * sizeof( uint32_t ), gradientRows ) ||
+            1024, 512, 1, GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) ||
+         !atlas.UploadLinear( &gradientPixels[0], 1024 * sizeof( uint32_t ), 512 ) ||
          !atlas.BuildSamplerTable( sampler, tableMemory,
              CPs4GnmTexture::SamplerTableSize(), &samplerTable ) )
         return false;
@@ -1408,8 +1408,8 @@ bool EmitScaleformGradientBatches( GnmCommandBuffer *command )
     {
         char message[176];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform gradient atlas draw batches=%u rows=%u indices=%u bytes=%llu",
-            gradientBatchCount, gradientRows, indexCount,
+            "kisak-ps4: scaleform gradient atlas draw batches=%u tiles=%u indices=%u bytes=%llu",
+            gradientBatchCount, gradientTiles, indexCount,
             static_cast< unsigned long long >( atlas.Size() ) );
         KisakPs4StartupBreadcrumb( message );
         logged = true;
