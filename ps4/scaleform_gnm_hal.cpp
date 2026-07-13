@@ -876,7 +876,7 @@ void CPs4ScaleformHal::RequestDynamicRefresh( uint32_t frames )
         m_dynamicRefreshUntilFrame = requested;
 }
 
-void CPs4ScaleformHal::InvalidateCapturedTree()
+void CPs4ScaleformHal::InvalidateCapturedTree( bool invalidateImageAliases )
 {
     m_capturedVertices.clear();
     m_capturedIndices.clear();
@@ -891,8 +891,9 @@ void CPs4ScaleformHal::InvalidateCapturedTree()
     // survive that boundary or a MainMenu image can resolve to an old Legals
     // GPU texture. Keep the records/indices stable for persistent samplers,
     // but require every new movie image to append a fresh identity.
-    for ( size_t image = 0; image < m_capturedImages.size(); ++image )
-        m_capturedImages[image].keys.clear();
+    if ( invalidateImageAliases )
+        for ( size_t image = 0; image < m_capturedImages.size(); ++image )
+            m_capturedImages[image].keys.clear();
     m_menuVisibilityValid = false;
     m_menuTopologyValid = false;
     m_lastGeometryCaptureFrame = 0;

@@ -881,7 +881,8 @@ public:
     CPs4ScaleformMovieManager()
         : m_system( NULL ), m_loader( NULL ), m_initialized( false ),
           m_loggedCapture( false ), m_lastTime( -1.0f ), m_frame( 0 ),
-          m_bootStage( kBootInactive ), m_bootStageFrame( 0 )
+          m_bootStage( kBootInactive ), m_bootStageFrame( 0 ),
+          m_legalsRatingsHidden( false )
     {
         // Source creates these two root movies as Scaleform slots.  MainMenu
         // is an element requested from MainUIRootMovie; GameUIRootMovie is
@@ -1276,6 +1277,7 @@ private:
 
     void BeginBootSequence()
     {
+        m_legalsRatingsHidden = false;
 #if KISAK_PS4_SCALEFORM_DIRECT_MENU
         SetBootStage( kBootMainMenuLoading, "direct development mode" );
         RequestElement( kScaleformMenuSlot, "MainMenu" );
@@ -1306,6 +1308,7 @@ private:
                 RequestStartScreen( "Legals load timeout" );
             break;
         case kBootLegalsPlaying:
+            HideLegalsRatingsAfterHandoff();
             if ( elapsed == 60 || elapsed == 120 || elapsed == 180 ||
                  elapsed == 240 || elapsed == 300 || elapsed == 420 ||
                  elapsed == 540 )
@@ -1343,6 +1346,32 @@ private:
         default:
             break;
         }
+    }
+
+    void HideLegalsRatingsAfterHandoff()
+    {
+        if ( m_legalsRatingsHidden )
+            return;
+        Scaleform::GFx::Movie *movie = m_slots[kScaleformMenuSlot].movie.GetPtr();
+        if ( !movie )
+            return;
+        Scaleform::GFx::Value panelFrame;
+        if ( !movie->GetVariable( &panelFrame,
+                 "_global.LegalsMovie.Panel._currentframe" ) ||
+             !panelFrame.IsNumber() || panelFrame.GetNumber() <= 1.0 )
+            return;
+        Scaleform::GFx::Value ratings;
+        if ( !movie->GetVariable( &ratings, "_global.LegalsMovie.ratings" ) ||
+             !ratings.IsObject() )
+            return;
+        Scaleform::GFx::Value hidden;
+        hidden.SetBoolean( false );
+        ratings.SetMember( "_visible", hidden );
+        m_legalsRatingsHidden = true;
+        KisakPs4ScaleformHal().InvalidateCapturedTree( false );
+        KisakPs4ScaleformHal().RequestDynamicRefresh( 4 );
+        KisakPs4StartupBreadcrumb(
+            "kisak-ps4: scaleform Legals ratings hidden after Panel handoff" );
     }
 
     void LogLegalsTimelineProbe( uint64_t elapsed )
@@ -1603,6 +1632,7 @@ private:
     uint64_t m_frame;
     ScaleformBootStage m_bootStage;
     uint64_t m_bootStageFrame;
+    bool m_legalsRatingsHidden;
 };
 
 CPs4ScaleformMovieManager g_scaleformMovieManager;

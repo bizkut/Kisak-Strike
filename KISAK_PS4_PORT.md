@@ -5076,6 +5076,30 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `713abbd3d74abca3d83983ff68371b4cdae1bdcc03c182c36f31696fbea421d8`.
 
+The v4.13 hardware run validates per-movie image identities: MainMenu is clean
+and no legal textures are rebound into it. Legals still becomes black after
+the Mature fade even though the probes show Panel advancing and the sequence
+completes naturally. Ratings loops from its final frame back to stopped frame
+1, remains `_visible=true`, and leaves its opaque layer above Panel.
+
+### v4.14: Hide ratings after its Panel handoff
+
+While Legals is playing, the manager observes `Panel._currentframe`. Once the
+ratings frame-90 action has moved Panel beyond frame 1, it sets the ratings
+movie clip `_visible=false`, invalidates the retained tree, and requests an
+immediate rebuild. This preserves the authored rating fade and Panel timing
+while preventing the stopped ratings frame from covering the legal artwork.
+
+Marker: `kisak-ps4: build marker scaleform_ratings_handoff_v414`.
+
+The v4.14 hardware gate is Mature fade followed immediately by the Source/legal
+Panel, natural `AnimationCompleted`, clean StartScreen, and uncontaminated
+MainMenu with continuous snow.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`b012b5b35b60659f33322944363c2d99324c227d9f35f195fc5dccfadd2e1709`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
