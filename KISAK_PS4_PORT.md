@@ -4382,6 +4382,37 @@ The PS4 link/package build completes and all 12 host tests pass. The staged
 monolithic package SHA-256 is
 `17226a93038f01e8d9afc75d6d4641a52db291905498eb8f6ed1fa4f0e9e300f`.
 
+The v3.95 hardware run confirms packaged aliasing for `Background.gfx`,
+`Grime.gfx`, and `MainMenu.gfx`, with no element-load error, but the final
+image and retained `image=0` inventory remain unchanged. Inspection of the
+stripped background movie identifies eleven referenced `Background_I*.dds`
+textures. None are present in the package because closure mode selected only
+GFX, SWF, and the font configuration.
+
+### v3.96: Package and read stripped-GFx DDS sidecars
+
+Scaleform closure mode now includes top-level DDS assets alongside GFX/SWF
+movies. The file opener recognizes the standard 128-byte DDS header and uses
+its validated linear payload size to read the complete packaged file
+sequentially. This avoids the same incorrect OpenOrbis stat/end-position APIs
+that previously truncated packaged movies. DDS and movie reads have independent
+bounded diagnostics so background textures remain visible after root-movie log
+budgets are exhausted.
+
+The next hardware gate is at least one `direct app0 type=dds` line with matching
+actual/declared sizes and a nonzero image-fill inventory. Image fills are not
+yet emitted by the ordered OpenGNM batch; once GFx exposes them in the retained
+tree, the following slice will capture their image resources, UV matrices, and
+compressed texture format.
+
+Marker: `kisak-ps4: build marker scaleform_dds_sidecars_v396`.
+
+The PS4 link/package build completes and all 12 host tests pass. Closure
+packaging includes all eleven background DDS sidecars and excludes the single
+legacy DDS filename containing a space, which the current `create-gp4` argument
+format cannot represent safely. The staged monolithic package SHA-256 is
+`2c91e1a829d16746a9252f253df8c00aa3e3d70d8fa801ee5f4b7363606684f2`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

@@ -92,7 +92,9 @@ if [[ "$VARIANT" == "monolithic" ]]; then
                 find "$SCALEFORM_ASSET_ROOT/resource/flash" -maxdepth 1 -type f -print
             else
                 find "$SCALEFORM_ASSET_ROOT/resource/flash" -maxdepth 1 -type f \
-                    \( -name '*.gfx' -o -name '*.swf' -o -name 'fontmapping.cfg' \) -print
+                    \( -name '*.gfx' -o -name '*.swf' -o \
+                       \( -name '*.dds' ! -name '* *' \) -o \
+                       -name 'fontmapping.cfg' \) -print
             fi | sort
         )
     elif [[ "$SCALEFORM_ASSET_MODE" != "roots" ]]; then

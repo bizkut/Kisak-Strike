@@ -72,27 +72,20 @@ public:
             FILE *packagedFile = fopen( packagedPath, "rb" );
             if ( packagedFile != NULL )
             {
-                Scaleform::UByte header[8];
+                Scaleform::UByte header[128];
                 const size_t headerBytes = fread( header, 1, sizeof( header ), packagedFile );
-                const bool uncompressedMovie = headerBytes == sizeof( header ) &&
-                    ( header[0] == 'F' || header[0] == 'G' ) &&
-                    ( header[1] == 'W' || header[1] == 'F' ) &&
-                    ( header[2] == 'S' || header[2] == 'X' );
-                const uint32_t declaredSize = uncompressedMovie
-                    ? static_cast< uint32_t >( header[4] ) |
-                        ( static_cast< uint32_t >( header[5] ) << 8 ) |
-                        ( static_cast< uint32_t >( header[6] ) << 16 ) |
-                        ( static_cast< uint32_t >( header[7] ) << 24 )
-                    : 0;
-                if ( declaredSize >= sizeof( header ) &&
+                bool directDds = false;
+                const uint32_t declaredSize = KisakPs4ScaleformPackagedPayloadSize(
+                    header, headerBytes, &directDds );
+                if ( declaredSize >= headerBytes &&
                      declaredSize <= 64u * 1024u * 1024u )
                 {
                     Scaleform::UByte *data = static_cast< Scaleform::UByte * >(
                         Scaleform::Memory::Alloc( declaredSize ) );
                     if ( data != NULL )
                     {
-                        memcpy( data, header, sizeof( header ) );
-                        size_t totalBytes = sizeof( header );
+                        memcpy( data, header, headerBytes );
+                        size_t totalBytes = headerBytes;
                         while ( totalBytes < declaredSize )
                         {
                             const size_t bytesRead = fread( data + totalBytes, 1,
@@ -103,12 +96,14 @@ public:
                         }
                         fclose( packagedFile );
 
-                        static unsigned int loggedDirectReads = 0;
-                        if ( loggedDirectReads++ < 8 )
+                        static unsigned int loggedDirectReads[2] = { 0, 0 };
+                        const unsigned int directReadKind = directDds ? 1u : 0u;
+                        if ( loggedDirectReads[directReadKind]++ < 8 )
                         {
                             char directMarker[256];
                             snprintf( directMarker, sizeof( directMarker ),
-                                "kisak-ps4: scaleform direct app0 bytes=%lu declared=%u url=%s",
+                                "kisak-ps4: scaleform direct app0 type=%s bytes=%lu declared=%u url=%s",
+                                directDds ? "dds" : "movie",
                                 static_cast< unsigned long >( totalBytes ), declaredSize,
                                 packagedUrl );
                             KisakPs4StartupBreadcrumb( directMarker );
