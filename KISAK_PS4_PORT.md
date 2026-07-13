@@ -3679,6 +3679,32 @@ The v3.75 monolithic package is staged at
 `26969b8a9c4cef92db5aa5f2b7c5bfd2cc7a9adf2e40675de7950058387f8649`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.76: Tessellate visible vector text from GFx layouts
+
+The v3.75 run removed radial fan artifacts and rendered all 150 shape batches,
+but the visible UI remained the same because 48 `TreeText` nodes were only
+counted. The current capture path has no live Scaleform `Renderer2D`, text mesh
+provider, or dynamic glyph cache, so text must initially be recovered directly
+from each retained `TextLayout`.
+
+The HAL now parses font, size, color, line-position, and character records;
+obtains permanent glyph outlines with a temporary-shape fallback; scales them
+by font size over nominal font height; and tessellates them with Scaleform's
+non-zero glyph fill rule after applying the text node view matrix. Glyph batches
+carry their layout color and render in a dedicated final solid pass after the
+gradient atlas, preventing the current split renderer from covering text.
+
+Bounded diagnostics report text records, usable glyph shapes, vertices,
+triangles, and submitted text batches. Packed/raster glyph atlases, clipping,
+color transforms, hinting, shadows, and filters remain follow-up work.
+
+Marker: `kisak-ps4: build marker scaleform_vector_text_v376`.
+
+The v3.76 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`3272f36c3b0a616ee2d0bc728254b9b64b15c36f11a5adce0adbfca7ef2387ec`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

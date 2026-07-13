@@ -3,6 +3,8 @@
 #if defined( KISAK_PS4_MONOLITHIC )
 #include "Render/Render_TreeNode.h"
 #include "Render/Render_TreeShape.h"
+#include "Render/Render_TreeText.h"
+#include "Render/Render_Font.h"
 #include "Render/Render_TessCurves.h"
 #include "Render/Render_TessGen.h"
 #endif
@@ -292,10 +294,133 @@ bool TessellateShapeLayer( Scaleform::Render::ShapeMeshProvider *provider,
             Scaleform::Render::TessStyleIsComplex( tessMesh.Flags1 ) ||
             Scaleform::Render::TessStyleIsComplex( tessMesh.Flags2 ) );
         batch.gradientFill = gradientTile >= 0;
+        batch.textFill = false;
         capturedDraws->push_back( batch );
     }
     generator.Clear();
     return true;
+}
+
+bool TessellateGlyphShape( const Scaleform::Render::ShapeDataInterface *shape,
+    const Scaleform::Render::Matrix2F &viewMatrix, float scale,
+    float penX, float penY, uint32_t color,
+    std::vector< CPs4ScaleformHal::CapturedVertex > *capturedVertices,
+    std::vector< uint16_t > *capturedIndices,
+    std::vector< CPs4ScaleformHal::CapturedBatch > *capturedDraws,
+    uint32_t *glyphVertices, uint32_t *glyphTriangles )
+{
+    if ( !shape || shape->IsEmpty() || !capturedVertices || !capturedIndices ||
+         !capturedDraws || scale <= 0.0f )
+        return false;
+
+    Scaleform::Render::MeshGenerator generator( Scaleform::Memory::GetGlobalHeap() );
+    Scaleform::Render::ToleranceParams tolerance;
+    tolerance.CurveTolerance *= 2.0f;
+    tolerance.CollinearityTolerance *= 2.0f;
+    generator.mTess.SetFillRule( Scaleform::Render::Tessellator::FillNonZero );
+    generator.mTess.SetToleranceParam( tolerance );
+
+    Scaleform::Render::ShapePosInfo position( shape->GetStartingPos() );
+    float coordinates[Scaleform::Render::Edge_MaxCoord];
+    unsigned styles[3];
+    Scaleform::Render::ShapePathType pathType;
+    bool firstPath = true;
+    while ( ( pathType = shape->ReadPathInfo( &position, coordinates, styles ) ) !=
+            Scaleform::Render::Shape_EndShape )
+    {
+        if ( !firstPath && pathType == Scaleform::Render::Shape_NewLayer )
+            break;
+        firstPath = false;
+        if ( styles[0] == styles[1] )
+        {
+            shape->SkipPathData( &position );
+            continue;
+        }
+
+        coordinates[0] = coordinates[0] * scale + penX;
+        coordinates[1] = coordinates[1] * scale + penY;
+        viewMatrix.Transform( &coordinates[0], &coordinates[1] );
+        generator.mTess.AddVertex( coordinates[0], coordinates[1] );
+        Scaleform::Render::PathEdgeType edge;
+        while ( ( edge = shape->ReadEdge( &position, coordinates ) ) !=
+                Scaleform::Render::Edge_EndPath )
+        {
+            const unsigned pointCount = edge == Scaleform::Render::Edge_LineTo ? 1u
+                : ( edge == Scaleform::Render::Edge_QuadTo ? 2u : 3u );
+            for ( unsigned point = 0; point < pointCount; ++point )
+            {
+                coordinates[point * 2 + 0] =
+                    coordinates[point * 2 + 0] * scale + penX;
+                coordinates[point * 2 + 1] =
+                    coordinates[point * 2 + 1] * scale + penY;
+                viewMatrix.Transform( &coordinates[point * 2 + 0],
+                    &coordinates[point * 2 + 1] );
+            }
+            if ( edge == Scaleform::Render::Edge_LineTo )
+                generator.mTess.AddVertex( coordinates[0], coordinates[1] );
+            else if ( edge == Scaleform::Render::Edge_QuadTo )
+                Scaleform::Render::TessellateQuadCurve( &generator.mTess, tolerance,
+                    coordinates[0], coordinates[1], coordinates[2], coordinates[3] );
+            else if ( edge == Scaleform::Render::Edge_CubicTo )
+                Scaleform::Render::TessellateCubicCurve( &generator.mTess, tolerance,
+                    coordinates[0], coordinates[1], coordinates[2], coordinates[3],
+                    coordinates[4], coordinates[5] );
+        }
+        generator.mTess.FinalizePath( 1, 0, false, false );
+    }
+
+    generator.mTess.Tessellate( false );
+    bool emitted = false;
+    for ( unsigned mesh = 0; mesh < generator.mTess.GetMeshCount(); ++mesh )
+    {
+        Scaleform::Render::TessMesh tessMesh;
+        generator.mTess.GetMesh( mesh, &tessMesh );
+        const unsigned triangleCount = generator.mTess.GetMeshTriangleCount( mesh );
+        if ( tessMesh.VertexCount == 0 || triangleCount == 0 ||
+             capturedVertices->size() + tessMesh.VertexCount > 65535 ||
+             capturedIndices->size() + triangleCount * 3 > 196605 ||
+             capturedDraws->size() >= 4096 )
+            continue;
+
+        std::vector< Scaleform::Render::TessVertex > vertices( tessMesh.VertexCount );
+        if ( generator.mTess.GetVertices( &tessMesh, &vertices[0],
+                tessMesh.VertexCount ) != tessMesh.VertexCount )
+            continue;
+        const uint32_t firstVertex = capturedVertices->size();
+        for ( unsigned vertex = 0; vertex < tessMesh.VertexCount; ++vertex )
+        {
+            CPs4ScaleformHal::CapturedVertex captured;
+            captured.x = vertices[vertex].x;
+            captured.y = vertices[vertex].y;
+            captured.gradientU = captured.gradientV = 0.0f;
+            captured.color = color;
+            capturedVertices->push_back( captured );
+        }
+        const uint32_t firstIndex = capturedIndices->size();
+        std::vector< Scaleform::UInt16 > indices( triangleCount * 3 );
+        generator.mTess.GetTrianglesI16( mesh, &indices[0], 0, triangleCount );
+        for ( unsigned index = 0; index < triangleCount * 3; ++index )
+            capturedIndices->push_back( static_cast< uint16_t >(
+                firstVertex + indices[index] ) );
+
+        CPs4ScaleformHal::CapturedBatch batch;
+        batch.firstVertex = firstVertex;
+        batch.vertexCount = tessMesh.VertexCount;
+        batch.firstIndex = firstIndex;
+        batch.indexCount = triangleCount * 3;
+        batch.color = color;
+        batch.complexFill = false;
+        batch.gradientFill = false;
+        batch.textFill = true;
+        capturedDraws->push_back( batch );
+        if ( glyphVertices )
+            *glyphVertices += tessMesh.VertexCount;
+        if ( glyphTriangles )
+            *glyphTriangles += triangleCount;
+        emitted = true;
+    }
+    generator.Clear();
+    return emitted;
 }
 }
 
@@ -434,8 +559,75 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
         ++stats->meshNodes;
         break;
     case Scaleform::Render::Context::EntryData::ET_Text:
+    {
         ++stats->textNodes;
+        if ( stats->collectGeometry )
+        {
+            Scaleform::Render::TreeText *textNode =
+                const_cast< Scaleform::Render::TreeText * >(
+                    static_cast< const Scaleform::Render::TreeText * >( node ) );
+            const Scaleform::Render::TextLayout *layout = textNode->GetLayout();
+            if ( layout )
+            {
+                Scaleform::Render::Matrix2F viewMatrix;
+                textNode->CalcViewMatrix( &viewMatrix );
+                Scaleform::Render::Font *font = NULL;
+                float fontSize = 0.0f;
+                float penX = 0.0f;
+                float penY = 0.0f;
+                uint32_t color = 0xffffffffu;
+                Scaleform::Render::TextLayout::Record record;
+                Scaleform::UPInt position = 0;
+                while ( ( position = layout->ReadNext( position, &record ) ) != 0 )
+                {
+                    switch ( layout->GetRecordType( record ) )
+                    {
+                    case Scaleform::Render::TextLayout::Record_Font:
+                        font = record.mFont.pFont;
+                        fontSize = record.mFont.mSize;
+                        break;
+                    case Scaleform::Render::TextLayout::Record_Color:
+                        color = record.mColor.mColor;
+                        break;
+                    case Scaleform::Render::TextLayout::Record_NewLine:
+                        penX = record.mLine.x;
+                        penY = record.mLine.y;
+                        break;
+                    case Scaleform::Render::TextLayout::Record_Char:
+                    {
+                        ++stats->textGlyphRecords;
+                        if ( font && fontSize > 0.0f &&
+                             ( record.mChar.Flags &
+                               Scaleform::Render::TextLayout::Flag_Invisible ) == 0 )
+                        {
+                            const Scaleform::Render::ShapeDataInterface *glyphShape =
+                                font->GetPermanentGlyphShape( record.mChar.GlyphIndex );
+                            Scaleform::Render::GlyphShape temporaryShape;
+                            if ( !glyphShape && font->GetTemporaryGlyphShape(
+                                    record.mChar.GlyphIndex,
+                                    static_cast< unsigned >( fontSize + 0.5f ),
+                                    &temporaryShape ) )
+                                glyphShape = &temporaryShape;
+                            const float nominalHeight = font->GetNominalGlyphHeight();
+                            if ( glyphShape && nominalHeight > 0.0f &&
+                                 TessellateGlyphShape( glyphShape, viewMatrix,
+                                    fontSize / nominalHeight, penX, penY, color,
+                                    &m_capturedVertices, &m_capturedIndices,
+                                    &m_capturedDraws, &stats->textGlyphVertices,
+                                    &stats->textGlyphTriangles ) )
+                                ++stats->textGlyphShapes;
+                        }
+                        penX += record.mChar.Advance;
+                        break;
+                    }
+                    default:
+                        break;
+                    }
+                }
+            }
+        }
         break;
+    }
     default:
         break;
     }
@@ -534,6 +726,16 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
             CapturedIndexCount(), CapturedBatchCount(),
             m_lastTreeStats.degenerateTransforms );
         KisakPs4StartupBreadcrumb( message );
+        if ( m_lastTreeStats.textNodes )
+        {
+            char textMessage[192];
+            snprintf( textMessage, sizeof( textMessage ),
+                "kisak-ps4: scaleform text capture nodes=%u records=%u shapes=%u vertices=%u triangles=%u",
+                m_lastTreeStats.textNodes, m_lastTreeStats.textGlyphRecords,
+                m_lastTreeStats.textGlyphShapes, m_lastTreeStats.textGlyphVertices,
+                m_lastTreeStats.textGlyphTriangles );
+            KisakPs4StartupBreadcrumb( textMessage );
+        }
     }
     (void)phase;
     return true;

@@ -1139,7 +1139,7 @@ bool EmitScenePresentation( GnmCommandBuffer *command,
     return Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX );
 }
 
-bool EmitScaleformSolidBatches( GnmCommandBuffer *command )
+bool EmitScaleformSolidBatches( GnmCommandBuffer *command, bool textPass )
 {
     CPs4ScaleformHal &hal = KisakPs4ScaleformHal();
     const std::vector< CPs4ScaleformHal::CapturedVertex > &sourceVertices =
@@ -1183,7 +1183,7 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command )
     for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
     {
         const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
-        if ( batch.complexFill || batch.gradientFill ||
+        if ( batch.complexFill || batch.gradientFill || batch.textFill != textPass ||
              batch.firstVertex + batch.vertexCount > sourceVertices.size() ||
              batch.firstIndex + batch.indexCount > sourceIndices.size() )
             continue;
@@ -1246,16 +1246,16 @@ bool EmitScaleformSolidBatches( GnmCommandBuffer *command )
     if ( !Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX ) )
         return false;
 
-    static bool logged = false;
-    if ( !logged )
+    static bool logged[2] = { false, false };
+    if ( !logged[textPass ? 1 : 0] )
     {
         char message[160];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform solid draw batches=%u vertices=%u indices=%u",
-            solidBatchCount, static_cast< unsigned int >( sourceVertices.size() ),
-            indexCount );
+            "kisak-ps4: scaleform %s draw batches=%u vertices=%u indices=%u",
+            textPass ? "text" : "solid", solidBatchCount,
+            static_cast< unsigned int >( sourceVertices.size() ), indexCount );
         KisakPs4StartupBreadcrumb( message );
-        logged = true;
+        logged[textPass ? 1 : 0] = true;
     }
     return true;
 }
@@ -1582,8 +1582,9 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     uint32_t sourceDirtyMask = 0;
     Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX,
         &sourceDirtyMask );
-    EmitScaleformSolidBatches( command );
+    EmitScaleformSolidBatches( command, false );
     EmitScaleformGradientBatches( command );
+    EmitScaleformSolidBatches( command, true );
     static bool sourceBlendStateLogged = false;
     if ( !sourceBlendStateLogged )
     {

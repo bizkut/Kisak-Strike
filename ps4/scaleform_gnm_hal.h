@@ -39,6 +39,7 @@ public:
         uint32_t color;
         bool complexFill;
         bool gradientFill;
+        bool textFill;
     };
 
     struct TreeStats
@@ -49,6 +50,10 @@ public:
         uint32_t shapeNodes;
         uint32_t meshNodes;
         uint32_t textNodes;
+        uint32_t textGlyphRecords;
+        uint32_t textGlyphShapes;
+        uint32_t textGlyphVertices;
+        uint32_t textGlyphTriangles;
         uint32_t shapeLayers;
         uint32_t solidFills;
         uint32_t imageFills;
@@ -64,6 +69,8 @@ public:
         TreeStats()
             : totalNodes( 0 ), visibleNodes( 0 ), containerNodes( 0 ),
               shapeNodes( 0 ), meshNodes( 0 ), textNodes( 0 ),
+              textGlyphRecords( 0 ), textGlyphShapes( 0 ),
+              textGlyphVertices( 0 ), textGlyphTriangles( 0 ),
               shapeLayers( 0 ), solidFills( 0 ), imageFills( 0 ),
               gradientFills( 0 ), tessellatedLayers( 0 ),
               tessellatedVertices( 0 ), tessellatedTriangles( 0 ),
