@@ -439,6 +439,33 @@ void PopulateGfxObjectFromKeyValues( Scaleform::GFx::Movie *movie,
     }
 }
 
+bool LoadKeyValuesFromPs4Content( KeyValues *keys, const char *resourceName,
+    const char *pathId )
+{
+    if ( !keys || !resourceName || !resourceName[0] )
+        return false;
+
+    char absolutePath[512];
+    snprintf( absolutePath, sizeof( absolutePath ),
+        "/data/kisak-strike/csgo/%s", resourceName );
+    FILE *file = fopen( absolutePath, "rb" );
+    if ( !file )
+        return false;
+
+    CUtlBuffer buffer( 0, 0, CUtlBuffer::TEXT_BUFFER );
+    char chunk[16384];
+    size_t bytesRead = 0;
+    while ( ( bytesRead = fread( chunk, 1, sizeof( chunk ), file ) ) > 0 )
+        buffer.Put( chunk, static_cast< int >( bytesRead ) );
+    const bool readFailed = ferror( file ) != 0;
+    fclose( file );
+    if ( readFailed || buffer.TellPut() <= 0 )
+        return false;
+
+    return keys->LoadFromBuffer(
+        absolutePath, buffer, g_pFullFileSystem, pathId );
+}
+
 void ReplacePs4GlyphKeywords( const char *source, char *destination,
     size_t destinationSize )
 {
@@ -741,6 +768,7 @@ public:
             const char *pathId = params.pArgs && params.ArgCount > 2 &&
                 params.pArgs[2].IsString() ? params.pArgs[2].GetString() : "GAME";
             bool loaded = false;
+            bool loadedFromPs4Content = false;
             KeyValues *keys = new KeyValues(
                 section && section[0] ? section : "ScaleformData" );
             if ( keys && g_pFullFileSystem && filename && filename[0] )
@@ -749,6 +777,17 @@ public:
                 if ( !loaded && !V_stricmp( filename, "GameModes.txt" ) )
                     loaded = keys->LoadFromFile(
                         g_pFullFileSystem, "gamemodes.txt", pathId );
+            }
+            if ( !loaded && keys && filename && filename[0] )
+            {
+                keys->deleteThis();
+                keys = new KeyValues(
+                    section && section[0] ? section : "ScaleformData" );
+                const char *contentName = !V_stricmp( filename, "GameModes.txt" )
+                    ? "gamemodes.txt" : filename;
+                loaded = keys && LoadKeyValuesFromPs4Content(
+                    keys, contentName, pathId );
+                loadedFromPs4Content = loaded;
             }
             if ( params.pRetVal && params.pMovie && keys )
                 PopulateGfxObjectFromKeyValues(
@@ -761,9 +800,10 @@ public:
             {
                 char marker[224];
                 snprintf( marker, sizeof( marker ),
-                    "kisak-ps4: scaleform LoadKVFile file=%s path=%s loaded=%u",
+                    "kisak-ps4: scaleform LoadKVFile file=%s path=%s loaded=%u data=%u",
                     filename && filename[0] ? filename : "unknown",
-                    pathId && pathId[0] ? pathId : "unknown", loaded ? 1u : 0u );
+                    pathId && pathId[0] ? pathId : "unknown", loaded ? 1u : 0u,
+                    loadedFromPs4Content ? 1u : 0u );
                 KisakPs4StartupBreadcrumb( marker );
             }
             break;

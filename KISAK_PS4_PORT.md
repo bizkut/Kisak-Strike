@@ -5339,6 +5339,60 @@ The v4.21 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its local SHA-256 is
 `8ee7abb93d88983a867c73702e90ea5b91e29bc03fb4a3710471bbb81b63ca7c`.
 
+The v4.21 hardware run reaches `StartSinglePlayer`, but reports
+`LoadKVFile file=GameModes.txt path=GAME loaded=0`. The uploaded file exists at
+`/data/kisak-strike/csgo/gamemodes.txt`; the failure is therefore a Source
+filesystem search-path gap, not missing user content or malformed ActionScript.
+The empty dialog can still emit `OnOk`, which correctly stops at the bounded
+engine-handoff breadcrumb.
+
+### v4.22: Load GameModes from the external PS4 content root
+
+`LoadKVFile` retains the normal Source filesystem lookup first. If that lookup
+fails, it now reads the legally supplied file directly from
+`/data/kisak-strike/csgo/`, parses the buffer through the same KeyValues parser,
+and performs the existing recursive conversion to GFx objects. The breadcrumb
+adds `data=1` when this external-content fallback supplied the file.
+
+Marker: `kisak-ps4: build marker scaleform_data_gamemodes_v422`.
+
+The v4.22 hardware gate is
+`LoadKVFile file=GameModes.txt path=GAME loaded=1 data=1`, followed by populated
+game-mode and bot-difficulty rows with no `undefined` labels.
+
+All 13 host tests pass and the PS4 monolithic link/package build completes.
+The v4.22 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its local SHA-256 is
+`b54368b6b12279896d6b47c18fdc1b19ad1a084317cdd1bcdcf6943024898827`.
+
+### PS3 Scaleform UI cross-reference priorities
+
+The extracted PS3 movies and Kisak drivers confirm that the movie,
+ActionScript, controller-navigation, and three-stage boot layers are already
+structurally aligned. The remaining work is ordered against the first offline
+bot-match milestone rather than by raw command count:
+
+1. Finish `StartSinglePlayer` data population and translate its `OnOk` payload
+   into an engine offline-listen-server launch.
+2. Load a supported BSP and bring the gameplay HUD, team/class selection,
+   scoreboard, and buy flow onto their existing Scaleform drivers.
+3. Restore the authentic Scaleform `PauseMenu` element and its
+   resume/disconnect/options actions; RocketUI remains a development fallback
+   until that path is stable.
+4. Route local settings, controller, audio, video, how-to-play, awards, and
+   credits commands incrementally, with an explicit element/callback contract
+   and hardware gate for each group.
+5. Reject PS3 Move and Sharpshooter option dialog types on PS4 at the C++
+   boundary. Keep `PlatformCode=2` because the other PS3 presentation branches
+   are the desired console behavior.
+6. Defer Steam party, matchmaking, profile, Workshop, inventory, community
+   browser, and other online commands until offline play is stable and the
+   multiplayer plan's authentication policy is satisfied.
+
+This ordering preserves the current `IsPC()==1`, `IsGameConsole()==0`, and
+`IsPlatformConsoleUI()` policy. PS4 continues to consume little-endian PC game
+content while only Scaleform receives the console presentation code.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
