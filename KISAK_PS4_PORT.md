@@ -4712,6 +4712,27 @@ host tests pass and the PS4 monolithic link succeeds. The staged monolithic
 package SHA-256 is
 `99a92b0329532fd5b55cc9446d9fbd2ed9661e927d6490f79fb447de3651fbb0`.
 
+The v4.03 hardware run passes the image gate. All fifteen decoded source
+images report normalized UV bounds around `0..1`; the ordered submission keeps
+all 55 batches, all 30 image batches, four atlas images, eleven persistent
+images, and zero deferred images. The final menu now contains the complete
+authored soldier background, snow artwork, icon, panels, gradients, and text at
+roughly 59 FPS.
+
+The background moves during entrance and then settles. This is the authored
+behavior, not a capture or GPU stall: `background.swf` calls the finite
+`PlayFadeIn()` timeline, while its ActionScript sets `SHOULD_SNOW = false`, so
+`SnowThink` is not scheduled for continuous motion. Runtime heartbeats also
+confirm the intended retained result: the visual rebuild count reaches 31,
+then remains unchanged with `changed=0` at frames 120, 300, and 600. Do not
+restore permanent whole-tree retessellation merely to make this static menu
+background move.
+
+With the base MainMenu image path validated, the next UI milestone is the
+tracked `Legals -> StartScreen -> MainMenu` stage controller. Keep direct-to-
+MainMenu as the development fallback and keep StartScreen non-blocking until
+the existing PS4 pad backend's post-open polling gap is resolved.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
