@@ -1348,7 +1348,8 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
     // 60 Hz. Reuse the cached draw for two presentations and rebuild on the
     // third; topology changes bypass this throttle.
     const bool dynamicCaptureDue = m_lastGeometryCaptureFrame == 0 ||
-        m_frame - m_lastGeometryCaptureFrame >= 3;
+        m_frame - m_lastGeometryCaptureFrame >=
+            kGeometryCaptureIntervalFrames;
 
     m_lastTreeStats = TreeStats();
     m_lastTreeStats.collectGeometry = statsBit == 1u

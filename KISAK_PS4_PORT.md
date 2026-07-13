@@ -5187,6 +5187,35 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `62865dfc548bd39f2ff83f389bdd6ed2ca3b7beb3429d70e54807d32aee0b6eb`.
 
+The v4.17 hardware run validates the skip contract. A controller press during
+Panel logs `Legals skipped by controller`, transitions to StartScreen, and the
+screen remains there until a separate confirmation. The same capture again
+measures ratings at frames 22, 42, 62, and 82 after 60-frame display intervals,
+confirming the root timeline's effective 20 FPS cadence.
+
+### v4.18: Make the PS4 Scaleform timing contract explicit
+
+The HAL now exposes compile-time timing constants for 60 Hz VideoOut
+presentation, the 20 FPS `mainuirootmovie` timeline, and one retained geometry
+capture every three presented frames. The capture throttle derives its interval
+from those rates instead of a magic number, and the host HAL test uses static
+assertions to prevent accidental drift.
+
+`GFx::Movie::Advance` remains driven by the real display-frame delta. It must
+not be called with a fabricated 1/20-second delta every presentation; GFx uses
+the movie metadata to step the 20 FPS root timeline correctly while input and
+presentation continue at 60 Hz.
+
+Marker: `kisak-ps4: build marker scaleform_timing_contract_v418`.
+
+The v4.18 hardware gate is unchanged visual behavior: skippable complete
+Legals, separately confirmed StartScreen, clean MainMenu, continuous snow at
+the authored cadence, and near-60 Hz presentation.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`622702082bb5bc5d44bd4ffe485f7074445c642c4fe4a31de6f78d6c10f2d003`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

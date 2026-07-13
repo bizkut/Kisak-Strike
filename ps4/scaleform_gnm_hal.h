@@ -22,6 +22,14 @@ class TreeRoot;
 class CPs4ScaleformHal
 {
 public:
+    enum Timing
+    {
+        kPresentationRateHz = 60,
+        kRootTimelineRateHz = 20,
+        kGeometryCaptureIntervalFrames =
+            kPresentationRateHz / kRootTimelineRateHz
+    };
+
     struct CapturedVertex
     {
         float x;

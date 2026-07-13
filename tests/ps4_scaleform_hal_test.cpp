@@ -8,6 +8,13 @@ extern "C" void KisakPs4StartupBreadcrumb( const char * )
 
 int main()
 {
+    static_assert( CPs4ScaleformHal::kPresentationRateHz == 60,
+        "PS4 Scaleform presentation rate changed" );
+    static_assert( CPs4ScaleformHal::kRootTimelineRateHz == 20,
+        "mainuirootmovie timeline rate changed" );
+    static_assert( CPs4ScaleformHal::kGeometryCaptureIntervalFrames == 3,
+        "Scaleform retained capture must sample every third presentation" );
+
     CPs4ScaleformHal hal;
     GnmBlendControl blend;
     assert( hal.TranslateBlend( CPs4ScaleformHal::kBlendNormal, &blend ) );
