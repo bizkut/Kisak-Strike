@@ -838,6 +838,111 @@ shader-constant, and EOP recycling tests. The later Scaleform adapter consumes
 that façade and must not duplicate PM4, resource lifetime, or D3D9 state-cache
 behavior.
 
+### Classic Scaleform boot sequence: Legals -> StartScreen -> MainMenu
+
+The production console boot flow has three separate Scaleform elements. Each
+stage is loaded through `_global.RequestElement`; it is not one timeline inside
+`MainMenu`. The PS4 manager currently skips the first two stages: after loading
+`mainuirootmovie.swf`, `CPs4ScaleformMovieManager` requests `MainMenu`
+directly. Restoring the classic flow is a tracked UI milestone after the base
+OpenGNM image path is stable.
+
+#### Stage 1: Legals (`legals.swf`)
+
+`CCreateLegalAnimScaleform::CreateIntroMovie()` requests this element from
+`cstrike15basepanel.cpp:1441-1458`. The exported movie contains these embedded
+JPEG images:
+
+| File | Size | Role |
+| --- | --- | --- |
+| `images/3.jpg` | 1280x720 | Full-screen Valve-logo splash background |
+| `images/20.jpg` | 1280x720 | Second full-screen splash background |
+| `images/6.jpg` | 640x360 | Smaller logo/image |
+| `images/11.jpg` | 736x313 | Wide Valve/Hidden Path-style logo |
+| `images/12.jpg` | 296x101 | Small logo |
+| `images/28.jpg` | 198x252 | Ratings-board logo |
+| `images/37.jpg` | 268x266 | Ratings-board logo |
+
+It also uses rating-badge PNGs `23.png` (1280x720), `31.png` (251x251),
+`34.png` (610x311), and `42.png` (213x261). In
+`legals.swf/scripts/frame_1/DoAction.as`, the movie calls
+`GetRatingsBoardForLegals()` and selects ESRB, PEGI, USK, CERO, GRB, OFLC, or
+BBFC/PEGI artwork. Frame 2 of the panel animation plays
+`valve_logo_music.mp3`. After 180 frames (about three seconds at 60 Hz),
+`finishAnimation()` removes and unloads the element.
+
+The PS4 stage controller must request `Legals`, wait for both element load
+completion and `AnimationCompleted`, then remove the Legals element and advance
+to StartScreen. Missing regional metadata must choose a deterministic fallback
+rating board and log that choice rather than blocking boot.
+
+#### Stage 2: StartScreen (`startscreen.swf`)
+
+`CCreateStartScreenScaleform::LoadDialog()` requests this element from
+`createstartscreen_scaleform.cpp:46-54`. Its exported content includes:
+
+| File/symbol | Size | Role |
+| --- | --- | --- |
+| `images/1.jpg` | 2134x1200 | Main splash background (about 428 KiB JPEG) |
+| `shapes/4.svg` | 307x71 | Vector `COUNTER-STRIKE` logo paths |
+| `shapes/8.svg` | 1280x78 | Gradient overlay bar |
+| `texts/11.txt` | n/a | `#SFUI_PressStartPrompt@24` prompt |
+| `DefineSprite_7` | 753x174, 30 frames | Animated logo reveal/fade |
+| `DefineSprite_9` | 1280x78 | Gradient overlay strip |
+| `DefineSprite_13` | timeline | `ShowStart` frame 1-to-25 transition |
+
+The ActionScript entry points are intentionally small:
+`onLoaded()` calls `gameAPI.OnReady()`, and `ShowStartLogo()` plays the
+`ShowStart` label. After platform statistics finish loading,
+`cstrike15basepanel.cpp:1263-1270` calls `ShowStartLogo()`. The screen then
+waits for a controller Start/confirm action; `CompleteStartScreenSignIn()`
+dismisses it and advances to MainMenu. Until full sign-in services exist, PS4
+uses an offline local-user completion path while preserving the same callbacks
+and transition boundaries.
+
+The key splash source is external content at
+`/Volumes/Untitled/Counter Strike Global Offensive/gfx_export/startscreen.swf/images/1.jpg`.
+It is authored at 2134x1200 and mapped into 1280x720 by
+`patternTransform="matrix(0.6, 0.0, 0.0, 0.6, 0.0, 0.0)"` in
+`shapes/2.svg`; `ResizeManager` then applies the 1.5x 1080p scale to fill
+1920x1080. The logo remains vector path data in `shapes/4.svg` and must not be
+rasterized during packaging.
+
+#### Stage 3: MainMenu (`mainmenu.swf`)
+
+MainMenu is requested only after StartScreen completes. Its existing
+`OnLoadFinished`/`OnReady`, `showPanel()`, `RunFrame`, menu, and HUD phase
+boundaries remain unchanged; the boot controller selects when the initial
+request occurs rather than adding special behavior inside the movie.
+
+#### PS4 implementation and verification plan
+
+1. Replace the unconditional initial `RequestElement("MainMenu")` in
+   `scaleform_gfx_manager.cpp` with an explicit boot-stage state machine:
+   `LegalsLoading`, `LegalsPlaying`, `StartScreenLoading`,
+   `StartScreenWaiting`, and `MainMenuLoading/Ready`.
+2. Give every stage a fresh element-specific `gameAPI` object and callback
+   table. Do not reuse the root slot's `GameInterface` object.
+3. Drive transitions only from the real callbacks: Legals load plus animation
+   completion, StartScreen `OnReady` plus controller confirmation, and MainMenu
+   `OnReady`. Make removal idempotent so duplicate AS callbacks cannot load two
+   stages.
+4. Package or mount the legally supplied Legals/StartScreen movies, JPEG/PNG
+   dependencies, vector shapes, fonts, localization, and
+   `valve_logo_music.mp3`; do not commit or redistribute those assets.
+5. Preserve a development option to start directly at MainMenu, but make the
+   classic three-stage path the production default once validated.
+6. Add bounded markers for stage request, load completion, callback transition,
+   removal, timeout/error fallback, and total elapsed frames.
+
+Host tests cover state-machine ordering, duplicate callback suppression,
+missing-stage fallback, ratings-board selection, offline Start confirmation,
+and direct-to-menu development mode. Hardware acceptance requires: Legals
+artwork and audio; automatic transition after roughly 180 authored frames;
+the full-resolution StartScreen splash and animated vector logo; DualShock 4
+confirmation; one and only one MainMenu request; stable 1080p scaling; and no
+memory growth across repeated boot-to-menu cycles.
+
 The first post-v2.53 façade slice now gives `CPs4GnmDevice` deterministic
 `BeginScene`/`EndScene` lifetime, eight vertex-stream bindings, 16/32-bit index
 binding, primitive-topology state, and overflow-safe indexed-draw range
