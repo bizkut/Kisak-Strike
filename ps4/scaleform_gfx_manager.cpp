@@ -1111,6 +1111,18 @@ public:
         if ( !m_initialized )
             return false;
 
+        if ( event.m_nType == IE_ButtonPressed &&
+             ( m_bootStage == kBootLegalsLoading ||
+               m_bootStage == kBootLegalsPlaying ) &&
+             MapButtonCode( static_cast< ButtonCode_t >( event.m_nData ) ) !=
+                 Scaleform::Key::None )
+        {
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: scaleform boot Legals skipped by controller" );
+            RequestStartScreen( "controller skip" );
+            return true;
+        }
+
         bool handled = false;
         for ( unsigned int i = 0; i < kScaleformSlotCount; ++i )
         {

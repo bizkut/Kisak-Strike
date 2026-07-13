@@ -5160,6 +5160,33 @@ All 12 host tests pass and the modified Scaleform AS2 runtime, PS4 monolithic
 link, and package build complete. The staged package SHA-256 is
 `afcbcec1728dd062cbde2feb1020b844b106a8f855af440cbfcc3d32999d6a6f`.
 
+The v4.16 hardware run validates the generalized ResizeManager repair: the
+Mature rating now transitions into the full Source/legal Panel instead of a
+black interval, and the clean StartScreen/MainMenu sequence remains intact.
+
+### v4.17: Allow any controller button to skip Legals
+
+The PS4 input bridge now intercepts a newly pressed mapped button while Legals
+is loading or playing. It removes the legal element, invalidates its retained
+draw/image aliases through the existing transition path, and requests
+StartScreen immediately. The event is consumed so that the same press cannot
+also confirm and dismiss StartScreen.
+
+Releases, analog events, StartScreen confirmation, and MainMenu navigation keep
+their existing behavior. This provides the console-style skip without changing
+the supplied Legals ActionScript or its natural completion path.
+
+Marker: `kisak-ps4: build marker scaleform_legals_skip_v417`.
+
+The v4.17 hardware gate is that Cross, Circle, a face/shoulder button, Start, or
+a D-pad press during either ratings or Panel transitions immediately to
+StartScreen; StartScreen must still wait for a separate Cross press. Letting
+Legals run untouched must still complete normally.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`62865dfc548bd39f2ff83f389bdd6ed2ca3b7beb3429d70e54807d32aee0b6eb`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
