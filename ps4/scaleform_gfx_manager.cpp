@@ -386,6 +386,115 @@ private:
     unsigned int m_logged;
 };
 
+bool ConvertKeyValueToGfx( Scaleform::GFx::Movie *movie,
+    Scaleform::GFx::Value *value, KeyValues *key )
+{
+    if ( !movie || !value || !key )
+        return false;
+
+    switch ( key->GetDataType() )
+    {
+    case KeyValues::TYPE_STRING:
+        movie->CreateString( value, key->GetString() );
+        return true;
+    case KeyValues::TYPE_INT:
+        value->SetNumber( static_cast< Scaleform::Double >( key->GetInt() ) );
+        return true;
+    case KeyValues::TYPE_FLOAT:
+        value->SetNumber( static_cast< Scaleform::Double >( key->GetFloat() ) );
+        return true;
+    case KeyValues::TYPE_WSTRING:
+        movie->CreateStringW( value, key->GetWString() );
+        return true;
+    case KeyValues::TYPE_UINT64:
+        value->SetNumber( static_cast< Scaleform::Double >( key->GetUint64() ) );
+        return true;
+    default:
+        return false;
+    }
+}
+
+void PopulateGfxObjectFromKeyValues( Scaleform::GFx::Movie *movie,
+    Scaleform::GFx::Value *object, KeyValues *keys )
+{
+    if ( !movie || !object || !keys )
+        return;
+
+    movie->CreateObject( object );
+    Scaleform::GFx::Value value;
+    for ( KeyValues *entry = keys->GetFirstValue(); entry;
+          entry = entry->GetNextValue() )
+    {
+        if ( ConvertKeyValueToGfx( movie, &value, entry ) )
+            object->SetMember( entry->GetName(), value );
+        value.SetNull();
+    }
+
+    for ( KeyValues *entry = keys->GetFirstTrueSubKey(); entry;
+          entry = entry->GetNextTrueSubKey() )
+    {
+        PopulateGfxObjectFromKeyValues( movie, &value, entry );
+        object->SetMember( entry->GetName(), value );
+        value.SetNull();
+    }
+}
+
+void ReplacePs4GlyphKeywords( const char *source, char *destination,
+    size_t destinationSize )
+{
+    if ( !destination || destinationSize == 0 )
+        return;
+    destination[0] = '\0';
+    if ( !source )
+        return;
+
+    struct GlyphReplacement
+    {
+        const char *keyword;
+        const char *text;
+    };
+    static const GlyphReplacement replacements[] =
+    {
+        { "${confirm}", "[X]" },
+        { "${cancel}", "[O]" },
+        { "${dpad}", "[D-PAD]" },
+        { "${start}", "[OPTIONS]" }
+    };
+
+    size_t written = 0;
+    while ( *source && written + 1 < destinationSize )
+    {
+        const char *replacement = NULL;
+        size_t keywordLength = 0;
+        for ( unsigned int i = 0;
+              i < sizeof( replacements ) / sizeof( replacements[0] ); ++i )
+        {
+            keywordLength = strlen( replacements[i].keyword );
+            if ( strncmp( source, replacements[i].keyword, keywordLength ) == 0 )
+            {
+                replacement = replacements[i].text;
+                break;
+            }
+        }
+
+        if ( replacement )
+        {
+            const size_t replacementLength = strlen( replacement );
+            const size_t available = destinationSize - written - 1;
+            const size_t copyLength = replacementLength < available
+                ? replacementLength : available;
+            memcpy( destination + written, replacement, copyLength );
+            written += copyLength;
+            source += keywordLength;
+        }
+        else
+        {
+            destination[written++] = *source++;
+        }
+    }
+    destination[written] = '\0';
+}
+
 enum ScaleformCallbackId
 {
     kCallbackOnLoadFinished = 1,
@@ -623,6 +732,42 @@ public:
             if ( params.pRetVal )
                 params.pRetVal->SetBoolean( true );
             break;
+        case kCallbackLoadKVFile:
+        {
+            const char *filename = params.pArgs && params.ArgCount > 0 &&
+                params.pArgs[0].IsString() ? params.pArgs[0].GetString() : "";
+            const char *section = params.pArgs && params.ArgCount > 1 &&
+                params.pArgs[1].IsString() ? params.pArgs[1].GetString() : filename;
+            const char *pathId = params.pArgs && params.ArgCount > 2 &&
+                params.pArgs[2].IsString() ? params.pArgs[2].GetString() : "GAME";
+            bool loaded = false;
+            KeyValues *keys = new KeyValues(
+                section && section[0] ? section : "ScaleformData" );
+            if ( keys && g_pFullFileSystem && filename && filename[0] )
+            {
+                loaded = keys->LoadFromFile( g_pFullFileSystem, filename, pathId );
+                if ( !loaded && !V_stricmp( filename, "GameModes.txt" ) )
+                    loaded = keys->LoadFromFile(
+                        g_pFullFileSystem, "gamemodes.txt", pathId );
+            }
+            if ( params.pRetVal && params.pMovie && keys )
+                PopulateGfxObjectFromKeyValues(
+                    params.pMovie, params.pRetVal, keys );
+            if ( keys )
+                keys->deleteThis();
+
+            static unsigned int loggedKvLoads = 0;
+            if ( loggedKvLoads++ < 8 )
+            {
+                char marker[224];
+                snprintf( marker, sizeof( marker ),
+                    "kisak-ps4: scaleform LoadKVFile file=%s path=%s loaded=%u",
+                    filename && filename[0] ? filename : "unknown",
+                    pathId && pathId[0] ? pathId : "unknown", loaded ? 1u : 0u );
+                KisakPs4StartupBreadcrumb( marker );
+            }
+            break;
+        }
         case kCallbackGetPlayerColorObject:
         {
             static const int colors[5][3] =
@@ -655,6 +800,18 @@ public:
                 params.pRetVal->SetString( "" );
             break;
         case kCallbackReplaceGlyphs:
+            if ( params.pRetVal )
+            {
+                const char *value = params.pArgs && params.ArgCount > 0
+                    ? params.pArgs[0].GetString() : "";
+                char replaced[1024];
+                ReplacePs4GlyphKeywords( value, replaced, sizeof( replaced ) );
+                if ( params.pMovie )
+                    params.pMovie->CreateString( params.pRetVal, replaced );
+                else
+                    params.pRetVal->SetString( replaced );
+            }
+            break;
         case kCallbackMakeStringSafe:
             if ( params.pRetVal )
             {

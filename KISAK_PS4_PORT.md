@@ -5304,6 +5304,41 @@ transition breadcrumbs above. The roughly 17 FPS reading captured while the
 dropdown animated is tracked separately from this functional input gate; idle
 MainMenu presentation had already returned to approximately 60 FPS.
 
+### v4.21: Populate the Offline With Bots dialog from GameModes.txt
+
+The v4.20 hardware run completes the first functional MainMenu transition.
+Selecting Offline With Bots emits the expected command and deferred action,
+then loads and shows `StartSinglePlayer` without a GFx load error. The rendered
+dialog nevertheless contains `undefined` mode, map-group, bot-difficulty, and
+navigation labels.
+
+The supplied `single-player.swf` constructs these lists by calling
+`GameInterface.LoadKVFile("GameModes.txt")` and recursively turning the returned
+KeyValues tree into ActionScript objects. The PS4 manager exposed that callback
+name but previously left it unimplemented. It now mirrors Source's recursive
+KeyValues-to-GFx conversion for strings, integers, floats, wide strings,
+64-bit values, and nested objects. It tries the authored filename first and a
+lowercase `gamemodes.txt` spelling second for the case-sensitive PS4 content
+filesystem, and records whether the load succeeded.
+
+The root `ReplaceGlyphs` fallback also translates the console keywords used by
+this panel into readable PS4 prompts: `${confirm}`, `${cancel}`, `${dpad}`, and
+`${start}` become `[X]`, `[O]`, `[D-PAD]`, and `[OPTIONS]`. Full Scaleform glyph
+font substitution remains a later presentation refinement.
+
+Marker: `kisak-ps4: build marker scaleform_gamemodes_kv_v421`.
+
+The v4.21 hardware gate is: select Offline With Bots, confirm the log reports
+`LoadKVFile file=GameModes.txt path=GAME loaded=1`, verify that no visible row
+contains `undefined`, and navigate the populated game-mode, map-group, and bot
+difficulty controls with the pad. The match-launch callback remains a bounded
+breadcrumb until the engine handoff is implemented.
+
+All 13 host tests pass and the PS4 monolithic link/package build completes.
+The v4.21 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its local SHA-256 is
+`8ee7abb93d88983a867c73702e90ea5b91e29bc03fb4a3710471bbb81b63ca7c`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
