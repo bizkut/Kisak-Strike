@@ -4802,6 +4802,46 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `895e5d90398b3c66cf2df873e936283da150f110c8204a9739f2895f79110e99`.
 
+The v4.05 hardware log explains why Legals still did not appear: the root
+ActionScript rejected the request before opening either movie with `No element
+named Legals defined`. Its actual `_global.ElementLoaders` key is
+`LegalAnimation`; that loader then opens `Legals.swf` under the panel name
+`Legals`. StartScreen and MainMenu otherwise remained stable. The run also
+confirmed a valid primary pad handle and `count=1`, but no read or Scaleform
+input events occurred, while the automatic StartScreen timeout continued to
+dismiss the prompt without user action.
+
+### v4.06: Use the real legal element and require controller confirmation
+
+The boot controller now requests `LegalAnimation` and recognizes that name in
+its element-specific `OnReady` callback. The existing console GFX mapping is
+therefore reached only after the root accepts the element ID.
+
+PS4 sampling no longer inherits the desktop client's archived
+`joystick_force_disabled=1` default. `SampleDevices` polls the mandatory
+DualShock directly, and the monolithic launcher forwards every current Source
+`InputEvent_t` to `IPs4ScaleformUI::HandleInputEvent` after each poll. Bounded
+read-result markers split a remaining `scePadRead` issue from event mapping.
+StartScreen no longer has a successful-load timeout: it remains visible until
+Cross, Enter, or Space produces a real press event. Only missing/load-failed
+content retains a bounded fallback.
+
+The color bars, cube, and triangle remain available to standalone OpenGNM
+renderer tests, but the registered Source frame callback now owns application
+presentation. Before the first Scaleform batch, the application uses the
+neutral bootstrap clear instead of exposing those diagnostics to players.
+
+Marker: `kisak-ps4: build marker scaleform_boot_input_v406`.
+
+The v4.06 hardware gate is no visible diagnostic cube during normal boot,
+visible Legals artwork and completion, a StartScreen that remains indefinitely
+without input, one `pad sample` plus `scaleform input` marker on Cross, and a
+single transition to MainMenu only after that press.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`bb1ade7c77332d52f95fc65106b7386434d0f169b4b606c8ad43c6df2188e1b7`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

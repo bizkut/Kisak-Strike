@@ -514,7 +514,7 @@ public:
                 elementName = elementValue.GetString();
             }
 
-            if ( strcmp( elementName, "Legals" ) == 0 )
+            if ( strcmp( elementName, "LegalAnimation" ) == 0 )
                 m_legalsReady = true;
             else if ( strcmp( elementName, "StartScreen" ) == 0 )
                 m_startScreenReady = true;
@@ -1263,7 +1263,7 @@ private:
         RequestElement( kScaleformMenuSlot, "MainMenu" );
 #else
         SetBootStage( kBootLegalsLoading, "classic sequence" );
-        if ( !RequestElement( kScaleformMenuSlot, "Legals" ) )
+        if ( !RequestElement( kScaleformMenuSlot, "LegalAnimation" ) )
             RequestStartScreen( "Legals request fallback" );
 #endif
     }
@@ -1304,11 +1304,9 @@ private:
                 CompleteStartScreen( "StartScreen load timeout" );
             break;
         case kBootStartScreenWaiting:
-            // Keep development boot non-blocking until the post-open PS4 pad
-            // polling gap is fixed. Controller confirmation takes this path
-            // immediately when input is available.
-            if ( elapsed >= 180 )
-                CompleteStartScreen( "offline development timeout" );
+            // The production screen remains here until a real confirmation
+            // event reaches HandleInput. Loading failures retain their bounded
+            // fallback, but a successfully shown prompt must not dismiss itself.
             break;
         case kBootMainMenuLoading:
             if ( m_callbackHandler->IsMainMenuReady() )

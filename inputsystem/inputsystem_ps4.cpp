@@ -116,7 +116,19 @@ void CInputSystem::PollJoystick( void )
 	OrbisPadData data = {};
 	const int readResult = scePadRead( g_ps4PadHandle, &data, 1 );
 	if ( readResult <= 0 )
+	{
+		static unsigned int loggedReadFailures = 0;
+		if ( loggedReadFailures < 8 )
+		{
+			char message[128];
+			snprintf( message, sizeof( message ),
+				"kisak-ps4: pad read result=%d handle=%d",
+				readResult, g_ps4PadHandle );
+			KisakPs4StartupBreadcrumb( message );
+			++loggedReadFailures;
+		}
 		return;
+	}
 
 	const bool connected = data.connected != 0;
 	const uint32_t buttons = connected ? data.buttons : 0;

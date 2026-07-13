@@ -2112,7 +2112,11 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     const unsigned int sceneSlot = SceneColorSlot();
     const GnmRenderTarget &sceneTarget = g_SceneColorReady
         ? g_SceneColorTextures[sceneSlot].ColorTarget() : renderTarget;
-    const bool showDiagnostics = !HasScaleformOrderedCapture();
+    // Keep the cube/bars available to standalone renderer tests, but once the
+    // Source frame callback owns presentation use a neutral bootstrap clear
+    // until Scaleform produces its first retained batch.
+    const bool showDiagnostics = !g_SourceFrameCallback &&
+        !HasScaleformOrderedCapture();
     if ( !DrawBootstrapBackground( command, sceneTarget, showDiagnostics ) )
         return;
     if ( !showDiagnostics )

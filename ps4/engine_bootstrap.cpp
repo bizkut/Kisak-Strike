@@ -132,7 +132,7 @@ public:
     int Run() override
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-    KisakPs4StartupBreadcrumb( "kisak-ps4: build marker scaleform_legals_gfx_v405" );
+    KisakPs4StartupBreadcrumb( "kisak-ps4: build marker scaleform_boot_input_v406" );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformSdkVersion() );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformKernelSelfTest()
 			? "kisak-ps4: scaleform kernel self-test passed"
@@ -153,7 +153,13 @@ public:
 		while ( !m_QuitRequested.load() )
 		{
 			if ( g_pInputSystem )
+			{
 				g_pInputSystem->PollInputState( false );
+				const int eventCount = g_pInputSystem->GetEventCount();
+				const InputEvent_t *events = g_pInputSystem->GetEventData();
+				for ( int eventIndex = 0; events && eventIndex < eventCount; ++eventIndex )
+					scaleformUI->HandleInputEvent( events[eventIndex] );
+			}
 			sourceFrame.frame = frame;
 			const uint64_t completedFrame = frame + 1;
 			if ( ( completedFrame <= 1200 && completedFrame % 60 == 0 ) ||

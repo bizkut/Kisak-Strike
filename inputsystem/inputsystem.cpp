@@ -1137,6 +1137,12 @@ void CInputSystem::SampleDevices( void )
 {
 	m_nLastSampleTick = ComputeSampleTick();
 
+#if defined( PLATFORM_PS4 )
+	// The desktop client convar defaults to disabled until its options panel
+	// enables a joystick. PS4 has a mandatory primary controller and must sample
+	// it during boot before that panel or its archived configuration exists.
+	PollJoystick();
+#else
 	static ConVarRef joystick_force_disabled( "joystick_force_disabled" );
 #if !defined( PLATFORM_POSIX ) || defined( _GAMECONSOLE )
 	if ( joystick_force_disabled.IsValid() && joystick_force_disabled.GetBool() == false )
@@ -1149,6 +1155,7 @@ void CInputSystem::SampleDevices( void )
 	{
 		PollJoystick();
 	}
+#endif
 
 	m_bSteamController = PollSteamControllers();
 }
