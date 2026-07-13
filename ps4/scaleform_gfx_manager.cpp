@@ -895,6 +895,112 @@ Scaleform::Key::Code MapButtonCode( ButtonCode_t code )
     }
 }
 
+struct ScaleformInputKeyDefinition
+{
+    ButtonCode_t code;
+    const char *name;
+};
+
+static const ScaleformInputKeyDefinition kScaleformInputKeys[] =
+{
+    { KEY_ENTER, "KEY_ENTER" },
+    { KEY_ESCAPE, "KEY_ESCAPE" },
+    { KEY_SPACE, "KEY_SPACE" },
+    { KEY_BACKSPACE, "KEY_BACKSPACE" },
+    { KEY_TAB, "KEY_TAB" },
+    { KEY_UP, "KEY_UP" },
+    { KEY_RIGHT, "KEY_RIGHT" },
+    { KEY_DOWN, "KEY_DOWN" },
+    { KEY_LEFT, "KEY_LEFT" },
+    { KEY_XBUTTON_UP, "KEY_XBUTTON_UP" },
+    { KEY_XBUTTON_RIGHT, "KEY_XBUTTON_RIGHT" },
+    { KEY_XBUTTON_DOWN, "KEY_XBUTTON_DOWN" },
+    { KEY_XBUTTON_LEFT, "KEY_XBUTTON_LEFT" },
+    { KEY_XBUTTON_A, "KEY_XBUTTON_A" },
+    { KEY_XBUTTON_B, "KEY_XBUTTON_B" },
+    { KEY_XBUTTON_X, "KEY_XBUTTON_X" },
+    { KEY_XBUTTON_Y, "KEY_XBUTTON_Y" },
+    { KEY_XBUTTON_LEFT_SHOULDER, "KEY_XBUTTON_LEFT_SHOULDER" },
+    { KEY_XBUTTON_RIGHT_SHOULDER, "KEY_XBUTTON_RIGHT_SHOULDER" },
+    { KEY_XBUTTON_BACK, "KEY_XBUTTON_BACK" },
+    { KEY_XBUTTON_START, "KEY_XBUTTON_START" },
+    { KEY_XBUTTON_STICK1, "KEY_XBUTTON_STICK1" },
+    { KEY_XBUTTON_STICK2, "KEY_XBUTTON_STICK2" },
+    { KEY_XBUTTON_INACTIVE_START, "KEY_XBUTTON_INACTIVE_START" },
+    { KEY_XBUTTON_LTRIGGER, "KEY_XBUTTON_LTRIGGER" },
+    { KEY_XBUTTON_RTRIGGER, "KEY_XBUTTON_RTRIGGER" },
+    { KEY_XSTICK1_RIGHT, "KEY_XSTICK1_RIGHT" },
+    { KEY_XSTICK1_LEFT, "KEY_XSTICK1_LEFT" },
+    { KEY_XSTICK1_DOWN, "KEY_XSTICK1_DOWN" },
+    { KEY_XSTICK1_UP, "KEY_XSTICK1_UP" },
+    { KEY_XSTICK2_RIGHT, "KEY_XSTICK2_RIGHT" },
+    { KEY_XSTICK2_LEFT, "KEY_XSTICK2_LEFT" },
+    { KEY_XSTICK2_DOWN, "KEY_XSTICK2_DOWN" },
+    { KEY_XSTICK2_UP, "KEY_XSTICK2_UP" }
+};
+
+unsigned int ScaleformInputKeyCount()
+{
+    return sizeof( kScaleformInputKeys ) / sizeof( kScaleformInputKeys[0] );
+}
+
+unsigned int InstallValveKeyTable( Scaleform::GFx::Movie *movie,
+    Scaleform::GFx::Value *global )
+{
+    if ( !movie || !global || !global->IsObject() )
+        return 0;
+
+    Scaleform::GFx::Value keyTable;
+    movie->CreateObject( &keyTable );
+    if ( !keyTable.IsObject() )
+        return 0;
+    global->SetMember( "ValveKeyTable", keyTable );
+
+    for ( unsigned int i = 0; i < ScaleformInputKeyCount(); ++i )
+    {
+        const ScaleformInputKeyDefinition &entry = kScaleformInputKeys[i];
+        Scaleform::GFx::Value value;
+        value.SetNumber( static_cast< Scaleform::Double >( entry.code ) );
+        keyTable.SetMember( entry.name, value );
+
+        char numberAsString[16];
+        snprintf( numberAsString, sizeof( numberAsString ), "%d",
+            static_cast< int >( entry.code ) );
+        value.SetString( entry.name );
+        keyTable.SetMember( numberAsString, value );
+    }
+    return ScaleformInputKeyCount();
+}
+
+bool InvokeSourceKeyHook( Scaleform::GFx::Movie *movie, bool keyDown,
+    const InputEvent_t &event, bool *scriptHandled )
+{
+    if ( scriptHandled )
+        *scriptHandled = false;
+    if ( !movie )
+        return false;
+
+    Scaleform::GFx::Value global;
+    Scaleform::GFx::Value function;
+    const char *hook = keyDown ? "KeyDownEvent" : "KeyUpEvent";
+    if ( !movie->GetVariable( &global, "_global" ) ||
+         !global.GetMember( hook, &function ) )
+        return false;
+
+    Scaleform::GFx::Value args[4];
+    args[0].SetNumber( static_cast< Scaleform::Double >( event.m_nData ) );
+    args[1].SetNumber( static_cast< Scaleform::Double >( event.m_nData2 ) );
+    args[2].SetNumber( 0.0 );
+    args[3].SetString( "" );
+    Scaleform::GFx::Value result;
+    result.SetNull();
+    if ( !global.Invoke( hook, &result, args, 4 ) )
+        return false;
+    if ( scriptHandled && result.IsBool() )
+        *scriptHandled = result.GetBool();
+    return true;
+}
+
 struct CsgoFontMapDefinition
 {
     const char *exportedName;
@@ -1252,6 +1358,7 @@ public:
         }
 
         bool handled = false;
+        bool usedSourceKeyHook = false;
         for ( unsigned int i = 0; i < kScaleformSlotCount; ++i )
         {
             Scaleform::GFx::Movie *movie = m_slots[i].movie.GetPtr();
@@ -1264,13 +1371,24 @@ public:
                     static_cast< ButtonCode_t >( event.m_nData ) );
                 if ( key != Scaleform::Key::None )
                 {
-                    const Scaleform::GFx::Event::EventType type =
-                        event.m_nType == IE_ButtonPressed
-                            ? Scaleform::GFx::Event::KeyDown
-                            : Scaleform::GFx::Event::KeyUp;
-                    Scaleform::GFx::KeyEvent keyEvent( type, key );
-                    handled = movie->HandleEvent( keyEvent ) !=
-                        Scaleform::GFx::Movie::HE_NotHandled || handled;
+                    bool scriptHandled = false;
+                    const bool routed = InvokeSourceKeyHook( movie,
+                        event.m_nType == IE_ButtonPressed, event, &scriptHandled );
+                    usedSourceKeyHook = routed || usedSourceKeyHook;
+                    if ( routed )
+                    {
+                        handled = scriptHandled || handled;
+                    }
+                    else
+                    {
+                        const Scaleform::GFx::Event::EventType type =
+                            event.m_nType == IE_ButtonPressed
+                                ? Scaleform::GFx::Event::KeyDown
+                                : Scaleform::GFx::Event::KeyUp;
+                        Scaleform::GFx::KeyEvent keyEvent( type, key );
+                        handled = movie->HandleEvent( keyEvent ) !=
+                            Scaleform::GFx::Movie::HE_NotHandled || handled;
+                    }
                 }
             }
             else if ( event.m_nType == IE_AnalogValueChanged )
@@ -1283,7 +1401,7 @@ public:
                     Scaleform::GFx::Movie::HE_NotHandled || handled;
             }
         }
-        if ( handled )
+        if ( handled || usedSourceKeyHook )
             KisakPs4ScaleformHal().RequestDynamicRefresh( 120 );
         if ( event.m_nType == IE_ButtonPressed &&
              m_bootStage == kBootStartScreenWaiting &&
@@ -1301,10 +1419,11 @@ public:
             {
                 char message[160];
                 snprintf( message, sizeof( message ),
-                    "kisak-ps4: scaleform input type=%d button=%d key=%u handled=%u",
+                    "kisak-ps4: scaleform input type=%d button=%d key=%u hook=%u handled=%u",
                     event.m_nType, event.m_nData,
                     static_cast< unsigned int >( MapButtonCode(
                         static_cast< ButtonCode_t >( event.m_nData ) ) ),
+                    usedSourceKeyHook ? 1u : 0u,
                     handled ? 1u : 0u );
                 KisakPs4StartupBreadcrumb( message );
                 ++loggedInputs;
@@ -1708,6 +1827,14 @@ private:
             CreateGameInterface( movieSlot.movie.GetPtr(), &gameInterface, NULL );
             if ( gameInterface.IsObject() )
                 global.SetMember( "GameInterface", gameInterface );
+
+            const unsigned int keyCount = InstallValveKeyTable(
+                movieSlot.movie.GetPtr(), &global );
+            char keyMarker[144];
+            snprintf( keyMarker, sizeof( keyMarker ),
+                "kisak-ps4: scaleform %s ValveKeyTable entries=%u",
+                ScaleformSlotLabel( slot ), keyCount );
+            KisakPs4StartupBreadcrumb( keyMarker );
         }
 
         if ( slot == kScaleformMenuSlot )

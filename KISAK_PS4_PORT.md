@@ -5255,6 +5255,42 @@ The v4.19 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its local SHA-256 is
 `6fb5f9c3b92a2ed8b449f61512d5ab4128d52c56e7f39c72f4dd75cd5ed8515a`.
 
+The v4.19 hardware log shows that PS4 Pad events reach the MainMenu movie and
+native GFx reports them handled, but no MainMenu command is emitted. D-pad
+Down arrives as Source button code 244 and Cross as 114; both mappings are
+correct. The missing layer is Source's `BaseSlot` key protocol, not libScePad.
+
+### v4.20: Restore Source's Scaleform key-event bridge
+
+The original Scaleform integration does not drive console navigation with
+native `GFx::KeyEvent` objects. `BaseSlot::CreateKeyTable` first publishes a
+bidirectional `_global.ValveKeyTable`, then `BaseSlot::HandleKeyEvent` invokes
+`_global.KeyDownEvent` or `_global.KeyUpEvent` with Source button code, virtual
+key, controller slot, and binding. The root ActionScript records that data in
+`Lib.SFKey` and calls `navManager.onKeyDown/onKeyUp`; MainMenu replaces the
+same global hooks when its panel becomes active.
+
+The PS4 manager now reproduces that contract. It installs the keyboard and
+controller keys needed by console UI before the root movie's first advance,
+routes press/release events through the current global ActionScript hooks, and
+uses native GFx key delivery only as a fallback when a hook is absent. Legals
+skip and the separate StartScreen Cross confirmation remain outside and after
+this bridge respectively, preserving their validated behavior.
+
+Marker: `kisak-ps4: build marker scaleform_source_key_bridge_v420`.
+
+The v4.20 hardware gate is that the log reports 34 Valve key-table entries per
+root and MainMenu input reports `hook=1`. D-pad must move the highlighted menu
+item, Cross on Play must open the Play dropdown, and Cross on Local Play must
+emit `menu command=OpenCreateSinglePlayerGameDialog` and request the
+`StartSinglePlayer` element. Legals skip and StartScreen must still require
+separate presses.
+
+All 13 host tests pass and the PS4 monolithic link/package build completes.
+The v4.20 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its local SHA-256 is
+`54de78804e1f3247fab34d2d64008094b5c66566b53b8e48886ceb2aeb26c474`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
