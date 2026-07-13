@@ -4910,6 +4910,45 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `bbd55921b5e93dcfa22afccf437abe7c244d8f7f85ea5dc4d66e42ce8bee99b3`.
 
+The v4.08 hardware run confirms that Legals image rendering is active: the
+current frame produces eight ordered batches, including five image batches and
+four persistent image allocations. It remains on the Mature rating artwork
+because only eight early geometry rebuilds occur before the bounded refresh
+window closes. The authored Legals package contains eleven pictures in total
+(seven JPEGs and four PNGs); those assets are timeline frames/variants and are
+not expected to be visible simultaneously. MainMenu similarly animates only
+inside a refresh window, dropping as low as 22 FPS while full-tree
+retessellation is active and freezing again when the window expires.
+
+### v4.09: Keep Scaleform timelines live with throttled retained-tree capture
+
+The movie manager now keeps dynamic capture armed throughout Legals,
+StartScreen, and MainMenu. This allows the complete legal-card timeline to
+advance and keeps the MainMenu snow loop running indefinitely without relying
+on controller events to reopen a temporary capture window.
+
+GFx still advances at the 60 Hz display rate, while the OpenGNM HAL limits
+expensive full retained-tree geometry rebuilds to every other frame. Cached
+geometry is reused between captures, producing a 30 Hz visual sample of the
+timeline while preserving 60 Hz presentation and input. Tree-topology changes
+bypass the throttle and rebuild immediately. This is the correctness-first
+bridge toward the planned per-node transform/color update path, which will
+remove full retessellation from steady animation entirely.
+
+Marker: `kisak-ps4: build marker scaleform_continuous_timeline_v409`.
+
+The v4.09 hardware gate is: more than the single Mature legal image appears
+before StartScreen; the StartScreen still waits for a real Cross press; menu
+snow continues without input for at least two minutes; menu animations never
+pause awaiting another button; presentation remains near 60 FPS without the
+repeated 22 FPS floor. Record minimum/average FPS during thirty seconds of
+idle snow to select the next capture cadence or prioritize the lightweight
+transform update.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`e9b62c357d2a88b80dae03a7fc6c54da08d58a8d1eee8feb8e2c75e25a034b2a`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

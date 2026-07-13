@@ -167,6 +167,7 @@ private:
     bool m_menuVisibilityValid;
     bool m_menuTopologyValid;
     uint64_t m_dynamicRefreshUntilFrame;
+    uint64_t m_lastGeometryCaptureFrame;
     TreeStats m_lastTreeStats;
     std::vector< CapturedVertex > m_capturedVertices;
     std::vector< uint16_t > m_capturedIndices;

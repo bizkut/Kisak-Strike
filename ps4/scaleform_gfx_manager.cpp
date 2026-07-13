@@ -1283,6 +1283,12 @@ private:
     {
         if ( !m_callbackHandler.GetPtr() )
             return;
+        // Legals, StartScreen and MainMenu all contain timeline animation.
+        // Keep capture armed so legal cards and the looping menu snow do not
+        // freeze when the previous bounded input-transition window expires.
+        // The HAL rate-limits geometry rebuilding while GFx itself remains at
+        // the display rate.
+        KisakPs4ScaleformHal().RequestDynamicRefresh( 2 );
         const uint64_t elapsed = m_frame - m_bootStageFrame;
         switch ( m_bootStage )
         {

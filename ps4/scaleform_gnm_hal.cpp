@@ -851,6 +851,7 @@ CPs4ScaleformHal::CPs4ScaleformHal()
       m_menuVisibilitySignature( 0 ), m_menuTopologySignature( 0 ),
       m_visibilityRebuilds( 0 ), m_menuVisibilityValid( false ),
       m_menuTopologyValid( false ), m_dynamicRefreshUntilFrame( 0 ),
+      m_lastGeometryCaptureFrame( 0 ),
       m_gradientTileCount( 0 )
 {
 }
@@ -1318,13 +1319,21 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
 
     const bool dynamicRefreshActive = m_frame <= 90 ||
         m_frame <= m_dynamicRefreshUntilFrame;
+    // GFx advances at 60 Hz, but rebuilding the complete retained tree every
+    // frame is expensive enough to drop the PS4 menu into the low twenties.
+    // Reuse the cached draw on alternating frames while still sampling the
+    // movie timeline continuously. Topology changes bypass this throttle.
+    const bool dynamicCaptureDue = m_lastGeometryCaptureFrame == 0 ||
+        m_frame - m_lastGeometryCaptureFrame >= 2;
 
     m_lastTreeStats = TreeStats();
     m_lastTreeStats.collectGeometry = statsBit == 1u
-        ? ( menuTopologyChanged || ( menuVisualChanged && dynamicRefreshActive ) )
+        ? ( menuTopologyChanged || ( menuVisualChanged && dynamicRefreshActive &&
+              dynamicCaptureDue ) )
         : ( m_treeDrawableLoggedMask & statsBit ) == 0;
     if ( m_lastTreeStats.collectGeometry && statsBit == 1u )
     {
+        m_lastGeometryCaptureFrame = m_frame;
         m_capturedVertices.clear();
         m_capturedIndices.clear();
         m_capturedDraws.clear();
