@@ -1055,6 +1055,16 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
             }
         }
     }
+    if ( statsBit == 1u &&
+         ( m_frame == 60 || m_frame == 120 || m_frame == 300 || m_frame == 600 ) )
+    {
+        char rebuildHeartbeat[176];
+        snprintf( rebuildHeartbeat, sizeof( rebuildHeartbeat ),
+            "kisak-ps4: scaleform rebuild heartbeat frame=%llu total=%u changed=%u nodes=%u",
+            static_cast< unsigned long long >( m_frame ), m_visibilityRebuilds,
+            menuVisibilityChanged ? 1u : 0u, visibilityNodes );
+        KisakPs4StartupBreadcrumb( rebuildHeartbeat );
+    }
     CollectTreeStats( root, &m_lastTreeStats, true,
         Scaleform::Render::Cxform::Identity );
     if ( m_lastTreeStats.totalNodes == 0 )

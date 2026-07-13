@@ -488,6 +488,17 @@ bool CLocalizedStringTable::AddFile( const char *szFileName, const char *pPathID
 							char cond[MAX_LOCALIZED_CHARS];
 							V_UCS2ToUTF8(conditional, cond, sizeof(cond));
 							bAccepted = EvaluateConditional( cond );
+#if defined( PLATFORM_PS4 )
+							// PS4 intentionally remains IsPC() for PC-format VPK and
+							// filesystem behavior, but Scaleform uses the PS3 strings for
+							// controller glyphs and console navigation help. Keep this
+							// override local to localization conditionals.
+							if ( !V_stricmp( cond, "[$PS3]" ) )
+								bAccepted = true;
+							else if ( !V_stricmp( cond, "[$WIN32]" ) ||
+								!V_stricmp( cond, "[$X360]" ) )
+								bAccepted = false;
+#endif
 
 							// Robin: HACK: Cheesy support for language-based filtering. Main has much better 
 							// support for this, in all KV files, so this will be obsoleted in post-TF2 products.

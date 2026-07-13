@@ -4103,6 +4103,42 @@ The v3.87 monolithic package is staged at
 `f294aa25390c1533edae5bc3a2050ef76e819a550b21943b6a5491589e32997a`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.88: Select console UI localization without changing engine policy
+
+The v3.87 hardware run validates cumulative color transforms. The selected
+`PLAY` item is bright while `AWARDS` and `OPTIONS` use their authored dimmed
+state, `cxforms=17` is reported, and the app remains stable through frame 420
+at 62.35 FPS. The initial bars and spinning cube are the expected renderer
+fallback before Scaleform completes initialization and replaces the frame.
+
+Two remaining defects are console UI policy/data mismatches. PS4 deliberately
+reports `IsPC()` so the engine retains little-endian PC VPK, filesystem, and
+material behavior. VGUI localization consequently accepted the final
+`[$WIN32]` empty value for `SFUI_MainMenu_Navigation_Root` instead of the PS3
+controller prompt. Separately, `mainmenu.gfx` calls
+`GetTrialTimeRemaining`, but that callback was absent from the stripped generic
+element table, producing the visible `NaN:NaN` trial banner.
+
+Localization condition parsing now treats `[$PS3]` as true and `[$WIN32]` and
+`[$X360]` as false only for `PLATFORM_PS4`; the global `IsPC()` and
+`IsGameConsole()` engine policy is unchanged. The MainMenu callback table now
+implements `GetTrialTimeRemaining` and returns Kisak's retained retail-console
+sentinel `-1`, meaning the full game is unlocked and the trial panel should be
+hidden. Rebuild heartbeats at frames 60, 120, 300, and 600 report whether
+matrix/color animation continues forcing tessellation after the menu settles.
+
+The next hardware gate is a controller navigation-help string instead of the
+malformed top label, no trial-time banner, stable input highlighting, and a
+rebuild heartbeat whose `changed` value returns to zero. Masks, scissor clips,
+and authored interleaved draw order remain the next OpenGNM HAL work.
+
+Marker: `kisak-ps4: build marker scaleform_console_policy_v388`.
+
+The v3.88 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`de7de6a5d4977567f35a6e0904e6c4ecdbe99badf61a1bdf2eae06e4c7712f0b`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

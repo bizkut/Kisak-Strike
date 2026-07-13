@@ -380,7 +380,8 @@ enum ScaleformCallbackId
     kCallbackIsMultiplayerPrivilegeEnabled,
     kCallbackLaunchTraining,
     kCallbackViewMapInWorkshop,
-    kCallbackGetPreviousLevel
+    kCallbackGetPreviousLevel,
+    kCallbackGetTrialTimeRemaining
 };
 
 struct ScaleformCallbackDefinition
@@ -426,7 +427,8 @@ static const ScaleformCallbackDefinition kScaleformCallbackDefinitions[] =
     { "IsMultiplayerPrivilegeEnabled", kCallbackIsMultiplayerPrivilegeEnabled },
     { "LaunchTraining", kCallbackLaunchTraining },
     { "ViewMapInWorkshop", kCallbackViewMapInWorkshop },
-    { "GetPreviousLevel", kCallbackGetPreviousLevel }
+    { "GetPreviousLevel", kCallbackGetPreviousLevel },
+    { "GetTrialTimeRemaining", kCallbackGetTrialTimeRemaining }
 };
 
 class KisakScaleformFunctionHandler final : public Scaleform::GFx::FunctionHandler
@@ -550,6 +552,12 @@ public:
                 params.pRetVal->SetBoolean( true );
             break;
         case kCallbackGetPreviousLevel:
+            if ( params.pRetVal )
+                params.pRetVal->SetNumber( -1.0 );
+            break;
+        case kCallbackGetTrialTimeRemaining:
+            // The retail console contract uses -1 to mean that the full game
+            // is unlocked. Zero means the trial has expired.
             if ( params.pRetVal )
                 params.pRetVal->SetNumber( -1.0 );
             break;
