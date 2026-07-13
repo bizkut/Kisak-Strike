@@ -3931,6 +3931,43 @@ The v3.82 monolithic package is staged at
 `cc95563712921963ece32dce8e5d1457571907f707289b36e83aa979b8fcf5ee`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.83: Read localization tables sequentially on PS4
+
+The v3.82 hardware run remained stable beyond frame 1,200, but the translated
+layout gate failed. The screenshot still showed the raw `#SFUI_...` labels at
+about 29 FPS. The clean log confirmed the intended package marker and reported
+all four `AddFile` calls as successful, while the `PLAY` probe and every bounded
+GFx translator lookup were missing. The console copy of `csgo_english.txt` is
+6,800,190 bytes and has SHA-256
+`dc5b525ff4f8869027289f5e3ef3639185480fec3ad9d0e5b08d16eb7aa5ade4`,
+identical to the source asset, so the content itself is intact.
+
+This is the localization equivalent of the packaged-movie truncation isolated
+in v3.56-v3.58. `CLocalize::ReadLocalizationFile` trusted
+`IFileSystem::Size()` and treated any non-zero `ReadEx()` result as a complete
+read. On the OpenOrbis runtime, a truncated size therefore returns success but
+only parses the beginning of the file; the required main-menu tokens are near
+line 28,000 and never enter the lookup table.
+
+The PS4 localization loader now ignores the unreliable size query. It grows a
+temporary buffer in 64 KiB chunks, repeatedly calls `ReadEx()` until the real
+EOF, rejects odd-length UTF-16 data and files beyond a 32 MiB safety bound, and
+only then runs the unchanged Source token parser. Other platforms retain the
+original optimal-buffer path.
+
+The next hardware gate is `csgo=1 probe=PLAY`, translator `hit=1` records for
+the visible menu keys, English labels instead of raw tokens, a materially
+smaller retained text workload, successful solid/gradient/text passes, and
+stable flips. After this gate, visibility pruning and authored-alpha support
+remain the next visual-correctness steps.
+
+Marker: `kisak-ps4: build marker localization_sequential_read_v383`.
+
+The v3.83 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`99bb5f3f7516f45926e3f87abe7cc0ad0f2ac24ec50e31965ed5be9653a656f6`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

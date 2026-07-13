@@ -337,11 +337,56 @@ bool CLocalize::ReadLocalizationFile( const char *pRelativePath, const char *pPa
 	// this is an optimization so that the filename string doesn't have to get converted to a symbol for each key/value
 	m_CurrentFile = pRelativePath;
 
-	// read into a memory block
+	// Read into a memory block. OpenOrbis file-size queries can report a
+	// truncated size for otherwise valid files, so PS4 must read to EOF instead
+	// of trusting Size(). Large localization tables put the menu tokens well
+	// beyond the incorrect reported length.
+#if defined( PLATFORM_PS4 )
+	static const int kReadChunkBytes = 64 * 1024;
+	static const int kMaxLocalizationFileBytes = 32 * 1024 * 1024;
+	CUtlVector< unsigned char > fileData;
+	int fileSize = 0;
+	bool bReadOK = false;
+	while ( fileSize < kMaxLocalizationFileBytes )
+	{
+		const int bytesWanted = MIN( kReadChunkBytes,
+			kMaxLocalizationFileBytes - fileSize );
+		const int writeOffset = fileData.AddMultipleToTail( bytesWanted );
+		const int bytesRead = g_pFullFileSystem->ReadEx(
+			fileData.Base() + writeOffset, bytesWanted, bytesWanted, file );
+		if ( bytesRead <= 0 )
+		{
+			fileData.RemoveMultipleFromTail( bytesWanted );
+			bReadOK = fileSize >= static_cast< int >( sizeof( ucs2 ) ) &&
+				g_pFullFileSystem->EndOfFile( file );
+			break;
+		}
+
+		const int bytesKept = MIN( bytesRead, bytesWanted );
+		if ( bytesKept < bytesWanted )
+			fileData.RemoveMultipleFromTail( bytesWanted - bytesKept );
+		fileSize += bytesKept;
+	}
+
+	if ( fileSize == kMaxLocalizationFileBytes )
+	{
+		unsigned char overflowByte = 0;
+		bReadOK = g_pFullFileSystem->ReadEx(
+			&overflowByte, sizeof( overflowByte ), sizeof( overflowByte ), file ) == 0 &&
+			g_pFullFileSystem->EndOfFile( file );
+	}
+	if ( ( fileSize & 1 ) != 0 )
+		bReadOK = false;
+
+	const int terminatorOffset = fileData.AddMultipleToTail( sizeof( ucs2 ) );
+	memset( fileData.Base() + terminatorOffset, 0, sizeof( ucs2 ) );
+	ucs2 *memBlock = reinterpret_cast< ucs2 * >( fileData.Base() );
+#else
 	int fileSize = g_pFullFileSystem->Size(file);
 	int bufferSize = g_pFullFileSystem->GetOptimalReadSize( file, fileSize + sizeof(wchar_t) );
 	ucs2 *memBlock = (ucs2 *)g_pFullFileSystem->AllocOptimalReadBuffer(file, bufferSize);
 	bool bReadOK = ( g_pFullFileSystem->ReadEx(memBlock, bufferSize, fileSize, file) != 0 );
+#endif
 
 	// finished with file
 	g_pFullFileSystem->Close(file);
@@ -355,7 +400,9 @@ bool CLocalize::ReadLocalizationFile( const char *pRelativePath, const char *pPa
 	if ( !bReadOK || signature != 0xFEFF )
 	{
 		Msg( "Ignoring non-unicode close caption file %s\n", pRelativePath );
+#if !defined( PLATFORM_PS4 )
 		g_pFullFileSystem->FreeOptimalReadBuffer( memBlock );
+#endif
 		m_CurrentFile = UTL_INVAL_SYMBOL;
 		return false;
 	}
@@ -486,7 +533,9 @@ bool CLocalize::ReadLocalizationFile( const char *pRelativePath, const char *pPa
 		}
 	}
 
+#if !defined( PLATFORM_PS4 )
 	g_pFullFileSystem->FreeOptimalReadBuffer( memBlock );
+#endif
 	m_CurrentFile = UTL_INVAL_SYMBOL;
 	DiscardFastValueLookup();
 	return true;
