@@ -3629,6 +3629,31 @@ The v3.73 monolithic package is staged at
 `41e44942cb5795149fa200b05d7b51cfcc7c86f1f4d85ba54279b9cf9c3e39a6`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.74: Preserve sampled gradient alpha
+
+The v3.73 hardware run rendered all 82 atlas rows/batches and 11,376 gradient
+indices at about 62 FPS. Smooth sampled ramps and the mostly black frame prove
+the atlas descriptor/UV path works: the borrowed cube pixel shader deliberately
+returned sampled RGB with alpha forced to one, so full-screen transparent mask
+gradients became opaque black.
+
+Packaging now pairs the proven cube UV vertex shader with the existing
+`eden-composite-blit` pixel binary, whose compatible interface returns the full
+sampled RGBA value. This retains the validated texture and descriptor ABI while
+restoring the alpha channel required by GFx blend state. The reference cube's
+opaque texture remains visually unchanged.
+
+The next hardware gate is the same 68 solid and 82 gradient batch split with
+the underlying solid layers visible through transparent gradient regions. Draw
+ordering and exact focal/radial evaluation remain later dedicated-HAL work.
+
+Marker: `kisak-ps4: build marker scaleform_gradient_rgba_v374`.
+
+The v3.74 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`b5c7f9e8bd5b8af82d8e682ca6db12ebe3c7bdea99cc4f5665781f1da536b2ed`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

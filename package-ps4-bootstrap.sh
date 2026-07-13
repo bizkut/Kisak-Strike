@@ -7,6 +7,7 @@ CONTENT_PROBE="$ROOT_DIR/ps4/content/kisak_ps4_content_probe.txt"
 DIAGNOSTIC_SHADER_DIR="${KISAK_PS4_DIAGNOSTIC_SHADER_DIR:-$ROOT_DIR/../freegnm-examples/eden-renderer-draw/assets/misc}"
 CLEAR_SHADER="${KISAK_PS4_CLEAR_SHADER:-$ROOT_DIR/../freegnm-examples/cube/assets/misc/clear.frag.sb}"
 CUBE_SHADER_DIR="${KISAK_PS4_CUBE_SHADER_DIR:-$ROOT_DIR/../freegnm-examples/cube/assets/misc}"
+REFERENCE_TEXTURE_PIXEL_SHADER="${KISAK_PS4_REFERENCE_TEXTURE_PIXEL_SHADER:-$ROOT_DIR/../freegnm-examples/eden-composite-blit/assets/misc/blit.frag.sb}"
 if [[ "$VARIANT" == "monolithic" ]]; then
     BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
 TITLE="Kisak-Strike PS4 Monolithic"
@@ -122,6 +123,10 @@ if [[ "$VARIANT" == "monolithic" ]]; then
             exit 1
         fi
     done
+    if [[ ! -f "$REFERENCE_TEXTURE_PIXEL_SHADER" ]]; then
+        echo "Missing RGBA texture pixel shader: $REFERENCE_TEXTURE_PIXEL_SHADER" >&2
+        exit 1
+    fi
 fi
 
 rm -rf "$PACKAGE_DIR"
@@ -144,7 +149,7 @@ if [[ "$VARIANT" == "monolithic" ]]; then
     cp "$DIAGNOSTIC_SHADER_DIR/present.frag.sb" "$PACKAGE_DIR/kisak_present.frag.sb"
     cp "$CLEAR_SHADER" "$PACKAGE_DIR/kisak_depth_clear.frag.sb"
     cp "$CUBE_SHADER_DIR/cube.vert.sb" "$PACKAGE_DIR/kisak_reference_cube.vert.sb"
-    cp "$CUBE_SHADER_DIR/cube.frag.sb" "$PACKAGE_DIR/kisak_reference_cube.frag.sb"
+    cp "$REFERENCE_TEXTURE_PIXEL_SHADER" "$PACKAGE_DIR/kisak_reference_cube.frag.sb"
     cp "$SHADER_MANIFEST" "$PACKAGE_DIR/kisak_diagnostic.manifest"
 
     manifest_entries=0
