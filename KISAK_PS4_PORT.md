@@ -4529,6 +4529,35 @@ completion of the caption transition. All 12 host tests pass and the PS4
 monolithic link succeeds. The staged monolithic package SHA-256 is
 `f0aa15b278ee466817939a1b5f3b6fd1e89d245cd64a48591f0a5a844e289e9f`.
 
+The v4.00 hardware run confirms the cache change: the same partial menu appears
+materially faster and remains near 59 FPS. Its packing inventory explains the
+unchanged final image: eleven real assets exceed the shared 512x256 atlas—nine
+are 1024x512 and two are 512x512—while the 16x16 and three 64x64 controls pack
+successfully. These are not duplicate-instance pressure and cannot fit in the
+roughly 809 KiB remaining frame arena as uncompressed textures.
+
+### v4.01: Persist large menu images outside the frame arena
+
+Large decoded images now allocate once from the existing 58 MiB persistent GPU
+arena and build retained OpenGNM texture/sampler descriptors. Small controls
+continue sharing unused gradient-atlas rows. The ordered renderer compacts all
+supported geometry once but emits one indexed draw per original GFx batch,
+switching between the shared atlas and persistent image samplers. This restores
+the original solid/gradient/text/image ordering instead of painting large
+background images over menu captions in a later pass.
+
+The expected eleven RGBA textures consume about 20 MiB of persistent GPU memory
+and no additional per-frame texture storage. Failed allocations stay deferred
+and are reported rather than invalidating the menu capture.
+
+Marker: `kisak-ps4: build marker scaleform_persistent_images_v401`.
+
+The v4.01 hardware gate is `persistent_images=11`, `image=30`, and
+`deferred_images=0`, visible full menu artwork, stable presentation, and no
+persistent-arena or frame-arena allocation failure. All 12 host tests pass and
+the PS4 monolithic link succeeds. The staged monolithic package SHA-256 is
+`58782d5fe8ed0f32c5c608ea85e3b68e45269f42c82e67b8cd2effae4f874038`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

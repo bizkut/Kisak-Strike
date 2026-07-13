@@ -138,6 +138,17 @@ bool g_OffscreenBlendProbeReady = false;
 uint32_t g_PendingSamplerMask = 0;
 char g_ShaderDiagnostic[160] = "not attempted";
 
+struct ScaleformPersistentImage
+{
+    CPs4GnmTexture *texture;
+    void *samplerTable;
+    bool attempted;
+
+    ScaleformPersistentImage() : texture( 0 ), samplerTable( 0 ), attempted( false ) {}
+};
+
+std::vector< ScaleformPersistentImage > g_ScaleformPersistentImages;
+
 const float kReferenceCubeBaseMvp[16] = {
     0.219f, 0.059f, 0.094f, 0.0f, 0.0f, 0.423f, -0.068f, 0.0f,
     0.126f, -0.102f, -0.163f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f
@@ -1642,6 +1653,58 @@ bool EmitScaleformTextureBatches( GnmCommandBuffer *command, bool fontPass )
     return true;
 }
 
+void *EnsureScaleformPersistentImage( uint32_t imageIndex,
+    const CPs4ScaleformHal::CapturedImage &image )
+{
+    if ( imageIndex >= g_ScaleformPersistentImages.size() )
+        g_ScaleformPersistentImages.resize( imageIndex + 1 );
+    ScaleformPersistentImage &persistent = g_ScaleformPersistentImages[imageIndex];
+    if ( persistent.attempted )
+        return persistent.samplerTable;
+    persistent.attempted = true;
+    if ( image.pixels.empty() || !image.width || !image.height )
+        return 0;
+
+    CPs4GnmMemory &arena = KisakPs4GnmRuntime().PersistentArena();
+    const size_t textureCapacity = static_cast< size_t >( image.width ) *
+        image.height * sizeof( uint32_t ) + 64 * 1024;
+    void *textureMemory = arena.Allocate( textureCapacity, 256 );
+    void *tableMemory = arena.Allocate( CPs4GnmTexture::SamplerTableSize(), 16 );
+    if ( !textureMemory || !tableMemory )
+        return 0;
+    persistent.texture = new CPs4GnmTexture;
+    GnmSampler sampler = {};
+    sampler.clampx = sampler.clampy = sampler.clampz =
+        GNM_TEX_CLAMP_CLAMP_LAST_TEXEL;
+    sampler.depthcomparefunc = GNM_DEPTH_COMPARE_ALWAYS;
+    sampler.filtermode = GNM_FILTER_MODE_BLEND;
+    sampler.xymagfilter = sampler.xyminfilter = GNM_FILTER_BILINEAR;
+    sampler.zfilter = GNM_ZFILTER_NONE;
+    sampler.mipfilter = GNM_MIPFILTER_NONE;
+    sampler.bordercolortype = GNM_BORDER_COLOR_OPAQUE_BLACK;
+    if ( !persistent.texture->Initialize2D( textureMemory, textureCapacity,
+            GNM_FMT_R8G8B8A8_UNORM, image.width, image.height, 1,
+            GNM_TM_DISPLAY_LINEAR_ALIGNED, GNM_GPU_BASE ) ||
+         !persistent.texture->UploadLinear( &image.pixels[0],
+            image.width * sizeof( uint32_t ), image.height ) ||
+         !persistent.texture->BuildSamplerTable( sampler, tableMemory,
+            CPs4GnmTexture::SamplerTableSize(), &persistent.samplerTable ) )
+    {
+        delete persistent.texture;
+        persistent.texture = 0;
+        persistent.samplerTable = 0;
+        return 0;
+    }
+    char message[192];
+    snprintf( message, sizeof( message ),
+        "kisak-ps4: scaleform persistent image=%u size=%ux%u bytes=%llu arena_available=%llu",
+        imageIndex, image.width, image.height,
+        static_cast< unsigned long long >( persistent.texture->Size() ),
+        static_cast< unsigned long long >( arena.Available() ) );
+    KisakPs4StartupBreadcrumb( message );
+    return persistent.samplerTable;
+}
+
 bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
 {
     CPs4ScaleformHal &hal = KisakPs4ScaleformHal();
@@ -1715,6 +1778,18 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
         }
         imagePlacements[imageIndex] = placement;
     }
+    std::vector< void * > persistentSamplerTables( sourceImages.size(), 0 );
+    uint32_t persistentImageCount = 0;
+    for ( size_t imageIndex = 0; imageIndex < sourceImages.size(); ++imageIndex )
+    {
+        if ( usedImages[imageIndex] && !imagePlacements[imageIndex].valid )
+        {
+            persistentSamplerTables[imageIndex] = EnsureScaleformPersistentImage(
+                static_cast< uint32_t >( imageIndex ), sourceImages[imageIndex] );
+            if ( persistentSamplerTables[imageIndex] )
+                ++persistentImageCount;
+        }
+    }
     static bool loggedImagePacking = false;
     if ( !loggedImagePacking )
     {
@@ -1745,14 +1820,22 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
         float uv[2];
         float mode;
     };
+    struct OrderedDrawRange
+    {
+        uint32_t firstIndex;
+        uint32_t indexCount;
+        void *samplerTable;
+    };
 
-    const auto selectsBatch = [&sourceVertices, &sourceIndices, &imagePlacements](
+    const auto selectsBatch = [&sourceVertices, &sourceIndices, &imagePlacements,
+        &persistentSamplerTables](
         const CPs4ScaleformHal::CapturedBatch &batch )
     {
         const bool supported = CPs4ScaleformHal::IsOrderedAtlasBatch( batch ) ||
             ( CPs4ScaleformHal::IsDeferredImageBatch( batch ) &&
               batch.imageIndex < imagePlacements.size() &&
-              imagePlacements[batch.imageIndex].valid );
+              ( imagePlacements[batch.imageIndex].valid ||
+                persistentSamplerTables[batch.imageIndex] != 0 ) );
         return supported &&
             batch.firstVertex <= sourceVertices.size() &&
             batch.vertexCount <= sourceVertices.size() - batch.firstVertex &&
@@ -1840,11 +1923,17 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
 
     uint32_t vertexCount = 0;
     uint32_t indexCount = 0;
+    std::vector< OrderedDrawRange > drawRanges;
+    drawRanges.reserve( orderedBatchCount );
     for ( size_t batchIndex = 0; batchIndex < sourceBatches.size(); ++batchIndex )
     {
         const CPs4ScaleformHal::CapturedBatch &batch = sourceBatches[batchIndex];
         if ( !selectsBatch( batch ) )
             continue;
+        OrderedDrawRange range = { indexCount, batch.indexCount, 0 };
+        if ( batch.imageFill && !imagePlacements[batch.imageIndex].valid )
+            range.samplerTable = persistentSamplerTables[batch.imageIndex];
+        drawRanges.push_back( range );
         for ( uint32_t vertex = 0; vertex < batch.vertexCount; ++vertex )
         {
             const CPs4ScaleformHal::CapturedVertex &source =
@@ -1862,10 +1951,18 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
             if ( batch.imageFill )
             {
                 const ImagePlacement &placement = imagePlacements[batch.imageIndex];
-                destination.uv[0] = ( placement.x + 0.5f +
-                    source.gradientU * ( placement.width - 1 ) ) / atlasWidth;
-                destination.uv[1] = ( placement.y + 0.5f +
-                    source.gradientV * ( placement.height - 1 ) ) / atlasHeight;
+                if ( placement.valid )
+                {
+                    destination.uv[0] = ( placement.x + 0.5f +
+                        source.gradientU * ( placement.width - 1 ) ) / atlasWidth;
+                    destination.uv[1] = ( placement.y + 0.5f +
+                        source.gradientV * ( placement.height - 1 ) ) / atlasHeight;
+                }
+                else
+                {
+                    destination.uv[0] = source.gradientU;
+                    destination.uv[1] = source.gradientV;
+                }
             }
             else
             {
@@ -1913,7 +2010,6 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
         { 0, 40, GNM_FMT_R32_FLOAT }
     };
     CPs4GnmVertexDeclaration declaration;
-    CPs4GnmDevice::IndexedDrawPacket packet = {};
     if ( !vertexBuffer.Initialize( vertices,
             vertexCount * sizeof( OrderedVertex ),
             CPs4GnmBuffer::kVertexBuffer, true ) ||
@@ -1923,9 +2019,7 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
          !g_Device.SetIndices( &indexBuffer ) ||
          !declaration.Initialize( elements, 4 ) ||
          !g_Device.BuildVertexDescriptorTable( declaration, 0,
-            vertexCount, descriptors, 4 ) ||
-         !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
-            0, indexCount, 0, vertexCount, &packet ) )
+            vertexCount, descriptors, 4 ) )
         return false;
 
     g_Device.SetPrimitiveTopology( CPs4GnmDevice::kPrimitiveTriangles );
@@ -1956,18 +2050,28 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
     blend.alphadstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
     g_DrawState.SetBlendControl( 0, blend );
     g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil );
-    if ( !Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX ) )
-        return false;
+    for ( size_t rangeIndex = 0; rangeIndex < drawRanges.size(); ++rangeIndex )
+    {
+        const OrderedDrawRange &range = drawRanges[rangeIndex];
+        g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0,
+            range.samplerTable ? range.samplerTable : samplerTable );
+        CPs4GnmDevice::IndexedDrawPacket packet = {};
+        if ( !g_Device.BuildIndexedDrawPacket( GNM_FMT_R32G32B32A32_FLOAT,
+                range.firstIndex, range.indexCount, 0, vertexCount, &packet ) ||
+             !Ps4EmitIndexedDraw( command, &g_DrawState, packet, UINT32_MAX ) )
+            return false;
+    }
 
     static bool logged = false;
     if ( !logged )
     {
         char message[224];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform ordered draw batches=%u solid=%u gradient=%u text=%u image=%u deferred_images=%u atlas_images=%u cached_images=%u vertices=%u indices=%u atlas_items=%u",
+            "kisak-ps4: scaleform ordered draw batches=%u solid=%u gradient=%u text=%u image=%u deferred_images=%u atlas_images=%u persistent_images=%u cached_images=%u vertices=%u indices=%u atlas_items=%u",
             orderedBatchCount, solidBatchCount, gradientBatchCount,
             textBatchCount, imageBatchCount, deferredImageBatchCount,
-            packedImageCount, static_cast< uint32_t >( sourceImages.size() ),
+            packedImageCount, persistentImageCount,
+            static_cast< uint32_t >( sourceImages.size() ),
             vertexCount, indexCount,
             hal.GradientTileCount() );
         KisakPs4StartupBreadcrumb( message );
