@@ -346,6 +346,7 @@ private:
 enum ScaleformCallbackId
 {
     kCallbackOnLoadFinished = 1,
+    kCallbackOnReady,
     kCallbackOnLoadProgress,
     kCallbackOnLoadError,
     kCallbackOnUnload,
@@ -391,6 +392,7 @@ struct ScaleformCallbackDefinition
 static const ScaleformCallbackDefinition kScaleformCallbackDefinitions[] =
 {
     { "OnLoadFinished", kCallbackOnLoadFinished },
+    { "OnReady", kCallbackOnReady },
     { "OnLoadProgress", kCallbackOnLoadProgress },
     { "OnLoadError", kCallbackOnLoadError },
     { "OnUnload", kCallbackOnUnload },
@@ -431,7 +433,7 @@ class KisakScaleformFunctionHandler final : public Scaleform::GFx::FunctionHandl
 {
 public:
     KisakScaleformFunctionHandler()
-        : m_loadFinished( 0 ), m_loadErrors( 0 ), m_uiEvents( 0 )
+        : m_loadFinished( 0 ), m_ready( 0 ), m_loadErrors( 0 ), m_uiEvents( 0 )
     {
     }
 
@@ -448,6 +450,41 @@ public:
             if ( m_loadFinished++ == 0 )
                 KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform element load finished" );
             break;
+        case kCallbackOnReady:
+        {
+            const char *elementName = "";
+            Scaleform::GFx::Value elementValue;
+            if ( params.pThis && params.pThis->IsObject() &&
+                 params.pThis->GetMember( "__KisakElementName", &elementValue ) &&
+                 elementValue.IsString() )
+            {
+                elementName = elementValue.GetString();
+            }
+
+            bool shown = false;
+            if ( params.pMovie && elementName && strcmp( elementName, "MainMenu" ) == 0 )
+            {
+                Scaleform::GFx::Value global;
+                Scaleform::GFx::Value mainMenu;
+                if ( params.pMovie->GetVariable( &global, "_global" ) &&
+                     global.GetMember( "MainMenuMovie", &mainMenu ) &&
+                     mainMenu.IsObject() )
+                {
+                    shown = mainMenu.Invoke( "showPanel" );
+                }
+            }
+
+            if ( m_ready++ == 0 )
+            {
+                char marker[192];
+                snprintf( marker, sizeof( marker ),
+                    "kisak-ps4: scaleform element ready name=%s show=%u",
+                    elementName && elementName[0] ? elementName : "unknown",
+                    shown ? 1u : 0u );
+                KisakPs4StartupBreadcrumb( marker );
+            }
+            break;
+        }
         case kCallbackOnLoadError:
             if ( m_loadErrors++ == 0 )
                 KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform element load error" );
@@ -527,6 +564,7 @@ public:
 
 private:
     uint32_t m_loadFinished;
+    uint32_t m_ready;
     uint32_t m_loadErrors;
     uint32_t m_uiEvents;
 };
@@ -990,7 +1028,7 @@ public:
         // root GameInterface lets one panel overwrite another panel's state.
         Scaleform::GFx::Value args[2];
         movie->CreateString( &args[0], elementName );
-        CreateGameInterface( movie, &args[1] );
+        CreateGameInterface( movie, &args[1], elementName );
         if ( !args[1].IsObject() )
             return false;
         global.Invoke( "RequestElement", NULL, args, 2 );
@@ -1013,7 +1051,7 @@ private:
     }
 
     void CreateGameInterface( Scaleform::GFx::Movie *movie,
-        Scaleform::GFx::Value *gameInterface )
+        Scaleform::GFx::Value *gameInterface, const char *elementName )
     {
         if ( !movie || !gameInterface )
             return;
@@ -1032,6 +1070,9 @@ private:
                     kScaleformCallbackDefinitions[i].id ) ) );
             gameInterface->SetMember( kScaleformCallbackDefinitions[i].name, function );
         }
+
+        if ( elementName && elementName[0] )
+            gameInterface->SetMember( "__KisakElementName", elementName );
     }
 
     bool LoadSlot( int slot )
@@ -1102,7 +1143,7 @@ private:
             uiSlot.SetNumber( slot );
             global.SetMember( "UISlot", uiSlot );
 
-            CreateGameInterface( movieSlot.movie.GetPtr(), &gameInterface );
+            CreateGameInterface( movieSlot.movie.GetPtr(), &gameInterface, NULL );
             if ( gameInterface.IsObject() )
                 global.SetMember( "GameInterface", gameInterface );
         }

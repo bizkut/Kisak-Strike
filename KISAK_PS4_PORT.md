@@ -4034,6 +4034,39 @@ The v3.85 monolithic package is staged at
 `77f29768d7380b474292614aaf07bf7ccd543e1ab0411178f12fb1355a9e7ce3`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.86: Complete the MainMenu element-ready transition
+
+The v3.85 screenshot confirmed that the visibility and authored-alpha changes
+work, but also exposed a missing element lifecycle callback: only the top
+`PLAY!`, `BACK`, and trial-time fields remained visible, while the main option
+panels disappeared. The clean capture reduced the menu tree from 456 nodes and
+48 text nodes to 98 nodes and four text nodes because six authored-invisible
+containers correctly hid 358 descendants.
+
+This is not a reason to render invisible subtrees again. Kisak's original
+`SFUI_BEGIN_GAME_API_DEF` always supplies `OnReady`; `mainmenu.gfx` calls
+`gameAPI.OnReady()` after `InitSelectMenu()` and resizing, and
+`CCreateMainMenuScreenScaleform::FlashReady()` immediately invokes the loaded
+element's `showPanel()`. The PS4 generic callback table omitted `OnReady`, so
+the ActionScript lifecycle stopped before the C++ show transition. The earlier
+HAL made that hidden content appear only by incorrectly walking invisible
+containers.
+
+Each PS4 per-element callback object now carries its element identity and
+exports `OnReady`. When the `MainMenu` element becomes ready, the callback
+resolves `_global.MainMenuMovie` and invokes `showPanel()` in the same callback
+order as Source. Other elements do not reopen the main menu. The runtime gate
+is `scaleform element ready name=MainMenu show=1`, followed by a visibility
+rebuild with the intended menu panels present, translated labels, authored
+alpha, and stable 60 Hz presentation.
+
+Marker: `kisak-ps4: build marker scaleform_mainmenu_ready_v386`.
+
+The v3.86 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`690845a3e716e120f947b19e49df41474e59f025eff9ca3c1090f30e4cc40817`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
