@@ -67,6 +67,9 @@ public:
         uint32_t degenerateTransforms;
         uint32_t colorTransforms;
         uint32_t hiddenSubtrees;
+        uint32_t maskOwnerNodes;
+        uint32_t maskTreeNodes;
+        uint32_t maskViewBounds;
         bool collectGeometry;
         bool hasViewport;
         bool truncated;
@@ -81,6 +84,7 @@ public:
               gradientFills( 0 ), tessellatedLayers( 0 ),
               tessellatedVertices( 0 ), tessellatedTriangles( 0 ),
               degenerateTransforms( 0 ), colorTransforms( 0 ), hiddenSubtrees( 0 ),
+              maskOwnerNodes( 0 ), maskTreeNodes( 0 ), maskViewBounds( 0 ),
               collectGeometry( false ),
               hasViewport( false ), truncated( false )
         {

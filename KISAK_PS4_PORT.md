@@ -4236,6 +4236,43 @@ The PS4 link/package build completes and all 11 host tests pass. The staged
 monolithic package SHA-256 is
 `11f92fb3dd16fd9de8cda08b3ebda61e7a87ea96d07993c9079182a755d6cb64`.
 
+The v3.91 hardware run restores the validated dark gradient menu and retains
+the bounded rebuild result through frame 600. Pad initialization succeeds:
+UserService and initial-user lookup return zero, `scePadInit` returns zero, and
+`scePadOpen` returns handle `50726144` with `count=1`. No `pad sample` or
+`scaleform input` line follows despite user input, so the remaining controller
+fault is strictly after open: Source is either not calling the PS4 poll boundary
+or `scePadRead` is not producing a connected packet. Controller work is
+deferred by request and the initialized backend remains in place for a later
+bounded poll/read-result split.
+
+### v3.92: Measure GFx masks and ordered pipeline runs without changing output
+
+The stable v3.89 pass ordering remains active. Before attempting another
+ordering change, retained capture now counts visible mask owners, mask-tree
+nodes, and valid 2D mask view bounds. Up to eight masks report owner type, mask
+type, and transformed bounds. Mask ownership bits are included in both visual
+and topology signatures so a runtime mask transition cannot leave stale
+retained geometry.
+
+Capture also classifies the existing ordered batch vector into solid,
+gradient, vector-text, packed-text, and complex-fill kinds and reports the
+number of contiguous pipeline runs. These measurements determine whether a
+per-run command list is practical and identify which mask bounds can become
+conservative scissor rectangles. No draw order, shader, atlas, blend, or
+scissor behavior changes in this build.
+
+The next hardware gate is unchanged menu output at 58-62 FPS plus one
+`ordered diagnostics` line and mask counts/bounds. Use those results to
+implement pipeline-preserving ordered runs first, then enable scissor only for
+confirmed rectangular 2D masks.
+
+Marker: `kisak-ps4: build marker scaleform_mask_diagnostics_v392`.
+
+The PS4 link/package build completes and all 11 host tests pass. The staged
+monolithic package SHA-256 is
+`feaf902b1b067a5dcdcc3aa5d122cb4b1d2c46885cfdbbfa5fe919bd9c8e257a`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

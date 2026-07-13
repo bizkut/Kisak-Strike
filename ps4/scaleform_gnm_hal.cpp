@@ -710,6 +710,40 @@ void CPs4ScaleformHal::CollectTreeStats( const Scaleform::Render::TreeNode *node
     if ( !node->GetCxform().IsIdentity() )
         ++stats->colorTransforms;
 
+    if ( node->IsMaskNode() )
+        ++stats->maskTreeNodes;
+    if ( node->HasMask() )
+    {
+        ++stats->maskOwnerNodes;
+        const Scaleform::Render::TreeNode *mask = node->GetMaskNode();
+        if ( mask && !mask->Is3D() )
+        {
+            Scaleform::Render::Matrix2F maskViewMatrix;
+            mask->CalcViewMatrix( &maskViewMatrix );
+            const Scaleform::Render::RectF maskBounds =
+                maskViewMatrix.EncloseTransform( mask->GetAproxLocalBounds() );
+            if ( maskBounds.Width() > 0.0f && maskBounds.Height() > 0.0f )
+            {
+                ++stats->maskViewBounds;
+                static unsigned int loggedMasks = 0;
+                if ( loggedMasks < 8 )
+                {
+                    char maskMessage[224];
+                    snprintf( maskMessage, sizeof( maskMessage ),
+                        "kisak-ps4: scaleform mask owner_type=%u mask_type=%u bounds=%.2f,%.2f..%.2f,%.2f",
+                        static_cast< unsigned int >(
+                            node->GetReadOnlyData()->GetType() ),
+                        static_cast< unsigned int >(
+                            mask->GetReadOnlyData()->GetType() ),
+                        maskBounds.x1, maskBounds.y1,
+                        maskBounds.x2, maskBounds.y2 );
+                    KisakPs4StartupBreadcrumb( maskMessage );
+                    ++loggedMasks;
+                }
+            }
+        }
+    }
+
     switch ( node->GetReadOnlyData()->GetType() )
     {
     case Scaleform::Render::Context::EntryData::ET_Root:
@@ -975,8 +1009,10 @@ void CPs4ScaleformHal::AccumulateTreeSignature(
 
     ++*visited;
     const uint64_t value =
-        ( static_cast< uint64_t >( node->GetReadOnlyData()->GetType() ) << 1 ) |
-        ( node->IsVisible() ? 1u : 0u );
+        ( static_cast< uint64_t >( node->GetReadOnlyData()->GetType() ) << 3 ) |
+        ( node->IsVisible() ? 1u : 0u ) |
+        ( node->HasMask() ? 2u : 0u ) |
+        ( node->IsMaskNode() ? 4u : 0u );
     *signature ^= value + 0x9e3779b97f4a7c15ull +
         ( *signature << 6 ) + ( *signature >> 2 );
 
@@ -1023,8 +1059,10 @@ void CPs4ScaleformHal::AccumulateTopologySignature(
 
     ++*visited;
     const uint64_t value =
-        ( static_cast< uint64_t >( node->GetReadOnlyData()->GetType() ) << 1 ) |
-        ( node->IsVisible() ? 1u : 0u );
+        ( static_cast< uint64_t >( node->GetReadOnlyData()->GetType() ) << 3 ) |
+        ( node->IsVisible() ? 1u : 0u ) |
+        ( node->HasMask() ? 2u : 0u ) |
+        ( node->IsMaskNode() ? 4u : 0u );
     *signature ^= value + 0x9e3779b97f4a7c15ull +
         ( *signature << 6 ) + ( *signature >> 2 );
     if ( !node->IsVisible() )
@@ -1131,12 +1169,14 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
         m_treeStatsLoggedMask |= statsBit;
         char message[192];
         snprintf( message, sizeof( message ),
-            "kisak-ps4: scaleform tree stats phase=%s total=%u visible=%u hidden_subtrees=%u containers=%u shapes=%u meshes=%u text=%u viewport=%u truncated=%u",
+            "kisak-ps4: scaleform tree stats phase=%s total=%u visible=%u hidden_subtrees=%u containers=%u shapes=%u meshes=%u text=%u mask_owners=%u mask_nodes=%u mask_bounds=%u viewport=%u truncated=%u",
             phase ? phase : "unknown",
             m_lastTreeStats.totalNodes, m_lastTreeStats.visibleNodes,
             m_lastTreeStats.hiddenSubtrees,
             m_lastTreeStats.containerNodes, m_lastTreeStats.shapeNodes,
             m_lastTreeStats.meshNodes, m_lastTreeStats.textNodes,
+            m_lastTreeStats.maskOwnerNodes, m_lastTreeStats.maskTreeNodes,
+            m_lastTreeStats.maskViewBounds,
             m_lastTreeStats.hasViewport ? 1u : 0u,
             m_lastTreeStats.truncated ? 1u : 0u );
         KisakPs4StartupBreadcrumb( message );
@@ -1189,6 +1229,31 @@ bool CPs4ScaleformHal::QueueCapturedTree( Scaleform::Render::TreeRoot *root,
                 m_lastTreeStats.textGlyphVertices,
                 m_lastTreeStats.textGlyphTriangles, FontAtlasGlyphCount() );
             KisakPs4StartupBreadcrumb( textMessage );
+        }
+        if ( statsBit == 1u && !m_capturedDraws.empty() )
+        {
+            uint32_t kinds[5] = {};
+            uint32_t runs = 0;
+            int previousKind = -1;
+            for ( size_t i = 0; i < m_capturedDraws.size(); ++i )
+            {
+                const CapturedBatch &batch = m_capturedDraws[i];
+                const int kind = batch.complexFill ? 4 :
+                    ( batch.packedTextFill ? 3 :
+                    ( batch.gradientFill ? 1 : ( batch.textFill ? 2 : 0 ) ) );
+                ++kinds[kind];
+                if ( kind != previousKind )
+                {
+                    ++runs;
+                    previousKind = kind;
+                }
+            }
+            char orderMessage[224];
+            snprintf( orderMessage, sizeof( orderMessage ),
+                "kisak-ps4: scaleform ordered diagnostics batches=%u runs=%u solid=%u gradient=%u text=%u packed=%u complex=%u",
+                CapturedBatchCount(), runs, kinds[0], kinds[1], kinds[2],
+                kinds[3], kinds[4] );
+            KisakPs4StartupBreadcrumb( orderMessage );
         }
     }
     (void)phase;

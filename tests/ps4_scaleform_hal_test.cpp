@@ -26,6 +26,9 @@ int main()
     assert( hal.QueueCapturedTree( true, "menu" ) );
     assert( hal.PendingBatches() == 1 );
     assert( hal.LastTreeStats().totalNodes == 0 );
+    assert( hal.LastTreeStats().maskOwnerNodes == 0 );
+    assert( hal.LastTreeStats().maskTreeNodes == 0 );
+    assert( hal.LastTreeStats().maskViewBounds == 0 );
     assert( !hal.LastTreeStats().truncated );
     hal.EndFrame();
     assert( hal.CapturedTrees() == 1 );
