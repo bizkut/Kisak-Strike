@@ -53,6 +53,16 @@ public:
         char packagedUrl[512];
         const bool packagedAsset = KisakPs4NormalizeScaleformAssetUrl(
             url, packagedUrl, sizeof( packagedUrl ) );
+        // The authored root requests Legals.swf, but the console package also
+        // contains Scaleform's optimized GFX movie and its external DDS closure.
+        // The full SWF fails MovieClipLoader before frame one on the PS4 runtime;
+        // prefer the console movie just as the original console URL builder did.
+        if ( packagedAsset &&
+             strcmp( packagedUrl, "resource/flash/legals.swf" ) == 0 )
+        {
+            V_strncpy( packagedUrl, "resource/flash/legals.gfx",
+                sizeof( packagedUrl ) );
+        }
         if ( packagedAsset && strcmp( packagedUrl, url ) != 0 )
         {
             static unsigned int loggedAliases = 0;
@@ -297,6 +307,8 @@ const wchar_t *FindLocalizedText( const char *value )
     {
         return L"[X] SELECT";
     }
+    if ( !V_stricmp( key, "#SFUI_PressStartPrompt" ) )
+        return L"Press [X] to Start";
 #endif
     return localized;
 }
@@ -534,8 +546,26 @@ public:
             break;
         }
         case kCallbackOnLoadError:
-            if ( m_loadErrors++ == 0 )
-                KisakPs4StartupBreadcrumb( "kisak-ps4: scaleform element load error" );
+            if ( m_loadErrors++ < 8 )
+            {
+                const char *elementName = "unknown";
+                const char *errorCode = "unknown";
+                Scaleform::GFx::Value elementValue;
+                if ( params.pThis && params.pThis->IsObject() &&
+                     params.pThis->GetMember( "__KisakElementName", &elementValue ) &&
+                     elementValue.IsString() )
+                    elementName = elementValue.GetString();
+                if ( params.pArgs && params.ArgCount > 1 &&
+                     params.pArgs[1].IsString() )
+                    errorCode = params.pArgs[1].GetString();
+                char marker[224];
+                snprintf( marker, sizeof( marker ),
+                    "kisak-ps4: scaleform element load error name=%s code=%s args=%u",
+                    elementName ? elementName : "unknown",
+                    errorCode ? errorCode : "unknown",
+                    static_cast< unsigned int >( params.ArgCount ) );
+                KisakPs4StartupBreadcrumb( marker );
+            }
             break;
         case kCallbackOnUnload:
             if ( params.pRetVal )

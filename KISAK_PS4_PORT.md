@@ -4766,6 +4766,42 @@ All 12 host tests pass and the PS4 monolithic link/package build completes.
 The staged package SHA-256 is
 `998f516303f34479af16077c47642f8c52bfee98b537caa5fdd072e1a8f6d0c7`.
 
+The v4.04 hardware run validates the stage controller but splits two content
+issues. Legals immediately reports an element load error and remains on the
+diagnostic cube until its 600-frame fallback. StartScreen then loads at frame
+601, renders its full 2134x1200 soldier splash and vector logo, plays the
+authored entrance, and advances through the offline timeout at frame 781.
+MainMenu becomes ready exactly once at frame 782 and retains the complete v4.03
+background. The visible prompt is still `Press ${start} to Start` because the
+minimal PS4 translator returns the localized string without Source's later
+glyph-keyword replacement.
+
+### v4.05: Prefer the console Legals movie and replace the Start glyph
+
+The original console Scaleform URL builder selects optimized GFX movies. The
+PS4 file opener now maps the authored `Legals.swf` request to packaged
+`legals.gfx`, whose external `legals_*.dds` closure is already present. This
+avoids the full embedded SWF path that fails before frame one on the current
+runtime. Element load errors now include the element name, MovieClipLoader
+error code, and argument count so a remaining GFX failure is actionable.
+
+The PS4 localization fallback also resolves
+`#SFUI_PressStartPrompt@24` directly to `Press [X] to Start`, matching the
+console Cross convention until the complete Source glyph-HTML replacement
+service is shared with this manager.
+
+Marker: `kisak-ps4: build marker scaleform_legals_gfx_v405`.
+
+The v4.05 hardware gate is visible Legals artwork and its completion callback,
+then a StartScreen prompt containing `[X]` with no literal `${start}`, followed
+by one MainMenu request. If Legals still fails, the new named error/code marker
+is the next repair boundary; the existing timeouts must continue reaching the
+validated menu.
+
+All 12 host tests pass and the PS4 monolithic link/package build completes.
+The staged package SHA-256 is
+`895e5d90398b3c66cf2df873e936283da150f110c8204a9739f2895f79110e99`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
