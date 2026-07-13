@@ -4,6 +4,7 @@
 
 #include "GFx.h"
 #include "GFxVersion.h"
+#include "GFx/GFx_ImageCreator.h"
 #include "Render/Render_TreeNode.h"
 #include "filesystem.h"
 #include "inputsystem/ButtonCode.h"
@@ -821,6 +822,16 @@ public:
         m_loader = new Scaleform::GFx::Loader( fileOpener );
         m_log = *new KisakScaleformLog();
         m_loader->SetLog( m_log );
+        m_imageHandlers = *new Scaleform::GFx::ImageFileHandlerRegistry(
+            Scaleform::GFx::ImageFileHandlerRegistry::AddDefaultHandlers );
+        m_imageCreator = *new Scaleform::GFx::ImageCreator();
+        m_loader->SetImageFileHandlerRegistry( m_imageHandlers );
+        m_loader->SetImageCreator( m_imageCreator );
+        KisakPs4StartupBreadcrumb(
+            m_loader->GetImageCreator().GetPtr() &&
+            m_loader->GetImageFileHandlerRegistry().GetPtr()
+                ? "kisak-ps4: scaleform CPU image creator and DDS handler installed"
+                : "kisak-ps4: scaleform image creation state unavailable" );
         LoadScaleformLocalization();
         m_translator = *new KisakScaleformTranslator();
         m_loader->SetTranslator( m_translator );
@@ -904,6 +915,8 @@ public:
             m_loader = NULL;
             m_fontLib.Clear();
             m_fontMap.Clear();
+            m_imageCreator.Clear();
+            m_imageHandlers.Clear();
             m_translator.Clear();
             m_fileOpener.Clear();
             m_log.Clear();
@@ -933,6 +946,8 @@ public:
         m_loader = NULL;
         m_fontLib.Clear();
         m_fontMap.Clear();
+        m_imageCreator.Clear();
+        m_imageHandlers.Clear();
         m_translator.Clear();
         m_fileOpener.Clear();
         m_log.Clear();
@@ -1297,6 +1312,8 @@ private:
     Scaleform::Ptr< Scaleform::GFx::ZlibSupportBase > m_zlibSupport;
     Scaleform::Ptr< Scaleform::GFx::FontLib > m_fontLib;
     Scaleform::Ptr< Scaleform::GFx::FontMap > m_fontMap;
+    Scaleform::Ptr< Scaleform::GFx::ImageCreator > m_imageCreator;
+    Scaleform::Ptr< Scaleform::GFx::ImageFileHandlerRegistry > m_imageHandlers;
     Scaleform::Ptr< KisakScaleformTranslator > m_translator;
     Scaleform::Ptr< KisakScaleformFunctionHandler > m_callbackHandler;
     ScaleformMovieSlot m_slots[kScaleformSlotCount];

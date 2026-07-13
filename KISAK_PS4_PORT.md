@@ -4413,6 +4413,33 @@ legacy DDS filename containing a space, which the current `create-gp4` argument
 format cannot represent safely. The staged monolithic package SHA-256 is
 `2c91e1a829d16746a9252f253df8c00aa3e3d70d8fa801ee5f4b7363606684f2`.
 
+The v3.96 hardware run is stable but requests no DDS file. Alias resolution for
+the three external GFX movies still succeeds, while the display tree remains at
+`image=0`. This rules out package presence and direct DDS reading: the GFx
+loader had no `ImageCreator` or image-file-handler registry state, so exported
+image binding stopped before calling the file opener.
+
+### v3.97: Install CPU image creation and the GFx DDS handler
+
+The PS4 manager now retains a default `GFx::ImageFileHandlerRegistry` and a
+`GFx::ImageCreator` without a GPU texture manager, and installs both on the
+loader before any font or root movie is parsed. Scaleform's built-in DDS reader
+can therefore decode DXT1/DXT5 resources into CPU-compatible images while the
+OpenGNM texture-manager implementation is still pending. Shutdown and failed
+initialization release both states after the loader.
+
+The next hardware gate is the image-state marker followed by matching direct
+DDS reads and nonzero image fills. Once CPU images appear in retained fill
+styles, the next renderer slice will extract image planes, preserve image fill
+matrices/UVs, upload DXT or decoded RGBA data through `CPs4GnmTexture`, and add
+image mode to the ordered shader path.
+
+Marker: `kisak-ps4: build marker scaleform_cpu_image_creator_v397`.
+
+The PS4 link/package build completes and all 12 host tests pass. The staged
+monolithic package SHA-256 is
+`b306cd6202019d3d8a287df4fcc4a0822ccb196d2fda9d52775c230631c6cf1b`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The
