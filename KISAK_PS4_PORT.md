@@ -4318,6 +4318,37 @@ package SHA-256 is
 `fef4424e0afbdb0f804992d13b4c35ab8f862532bcb259423971aa5d5576611f`.
 Hardware validation is pending the next launch.
 
+The v3.93 hardware run passes the ordered-rendering gate. The runtime loads all
+nine shader-manifest entries, emits one ordered draw containing all 55 captured
+batches (31 solid, four gradient, and 20 vector-text), and reports
+`passes ordered=1` with every fallback pass disabled. No arena, metadata, or
+binding failure appears. The screenshot confirms the gradient highlight now
+occupies its authored position inside the dark panel instead of flattening the
+whole screen, while presentation remains stable at 58-62 FPS.
+
+### v3.94: Retire bootstrap graphics after the Scaleform menu is complete
+
+The red/green/blue/white bars, reference cube, and clipped triangle are renderer
+bring-up diagnostics rather than part of the game. They were still being drawn
+under the translucent GFx menu, tinting the background and making otherwise
+correct UI colors look green. The presentation path now validates that every
+captured batch is supported by the ordered atlas pipeline and that its shader,
+geometry, and atlas resources are present. Once that complete capture exists,
+the scene starts from opaque black and skips all three bootstrap overlays. If
+capture or shader setup is incomplete, the established bars/cube/triangle scene
+remains the deterministic fallback.
+
+The next hardware gate is a stable 58-62 FPS menu with no color bars, cube, or
+triangle after `Scaleform menu replaced bootstrap diagnostics`, plus the same
+55-batch ordered draw and zero fallback passes. The black background is
+temporary until the authored background movie/image fill path is captured.
+
+Marker: `kisak-ps4: build marker scaleform_menu_background_v394`.
+
+The PS4 link/package build completes and all 11 host tests pass. The staged
+monolithic package SHA-256 is
+`444e3f3eef6abf99708d28eff929a24fdf0169d1d9a11137ce5fdb7c1f304da0`.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

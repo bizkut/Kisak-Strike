@@ -1041,8 +1041,8 @@ bool ClearDiagnosticDepth( GnmCommandBuffer *command )
     return true;
 }
 
-bool DrawDiagnosticColorBars( GnmCommandBuffer *command,
-    const GnmRenderTarget &renderTarget )
+bool DrawBootstrapBackground( GnmCommandBuffer *command,
+    const GnmRenderTarget &renderTarget, bool showDiagnostics )
 {
     if ( !command || !g_DepthClearPixelShader )
         return false;
@@ -1073,7 +1073,9 @@ bool DrawDiagnosticColorBars( GnmCommandBuffer *command,
         { 0.0f, 0.0f, 1.0f, 1.0f },
         { 1.0f, 1.0f, 1.0f, 1.0f }
     };
-    for ( uint32_t band = 0; band < 4; ++band )
+    const float menuBackground[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    const uint32_t drawCount = showDiagnostics ? 4u : 1u;
+    for ( uint32_t band = 0; band < drawCount; ++band )
     {
         float *color = static_cast< float * >(
             sceGnmCmdAllocInside( command, 4 * sizeof( float ), 4 ) );
@@ -1081,14 +1083,44 @@ bool DrawDiagnosticColorBars( GnmCommandBuffer *command,
             sceGnmCmdAllocInside( command, sizeof( GnmBuffer ), 4 ) );
         if ( !color || !descriptor )
             return false;
-        memcpy( color, colors[band], sizeof( colors[band] ) );
+        memcpy( color, showDiagnostics ? colors[band] : menuBackground,
+            sizeof( menuBackground ) );
         *descriptor = sceGnmCreateConstBuffer( color, 4 * sizeof( float ) );
         sceGnmDrawCmdSetPointerUserData( command, GNM_STAGE_PS, 0, descriptor );
-        const int32_t top = static_cast< int32_t >( band * 270 );
-        sceGnmDrawCmdSetScreenScissor( command, 0, top, 1920, top + 270 );
+        const int32_t top = showDiagnostics
+            ? static_cast< int32_t >( band * 270 ) : 0;
+        const int32_t bottom = showDiagnostics ? top + 270 : 1080;
+        sceGnmDrawCmdSetScreenScissor( command, 0, top, 1920, bottom );
         sceGnmDrawCmdDrawIndexAuto( command, 3 );
     }
     sceGnmDrawCmdWaitGraphicsWrite( command, GNM_ACQUIRE_TARGET_CB0 );
+    return true;
+}
+
+bool HasCompleteScaleformOrderedCapture()
+{
+    CPs4ScaleformHal &hal = KisakPs4ScaleformHal();
+    const std::vector< CPs4ScaleformHal::CapturedVertex > &vertices =
+        hal.CapturedVertices();
+    const std::vector< uint16_t > &indices = hal.CapturedIndices();
+    const std::vector< CPs4ScaleformHal::CapturedBatch > &batches =
+        hal.CapturedDraws();
+    if ( vertices.empty() || indices.empty() || batches.empty() ||
+         hal.GradientPixels().empty() || hal.GradientTileCount() == 0 ||
+         !g_ScaleformOrderedVertexShader || !g_ScaleformOrderedPixelShader ||
+         !g_ScaleformOrderedFetchShader )
+        return false;
+
+    for ( size_t batchIndex = 0; batchIndex < batches.size(); ++batchIndex )
+    {
+        const CPs4ScaleformHal::CapturedBatch &batch = batches[batchIndex];
+        if ( !CPs4ScaleformHal::IsOrderedAtlasBatch( batch ) ||
+             batch.firstVertex > vertices.size() ||
+             batch.vertexCount > vertices.size() - batch.firstVertex ||
+             batch.firstIndex > indices.size() ||
+             batch.indexCount > indices.size() - batch.firstIndex )
+            return false;
+    }
     return true;
 }
 
@@ -1617,10 +1649,7 @@ bool EmitScaleformOrderedBatches( GnmCommandBuffer *command )
     const std::vector< CPs4ScaleformHal::CapturedBatch > &sourceBatches =
         hal.CapturedDraws();
     const std::vector< uint32_t > &atlasPixels = hal.GradientPixels();
-    if ( !command || sourceVertices.empty() || sourceIndices.empty() ||
-         sourceBatches.empty() || atlasPixels.empty() ||
-         hal.GradientTileCount() == 0 || !g_ScaleformOrderedVertexShader ||
-         !g_ScaleformOrderedPixelShader || !g_ScaleformOrderedFetchShader )
+    if ( !command || !HasCompleteScaleformOrderedCapture() )
         return false;
 
     struct OrderedVertex
@@ -1853,8 +1882,19 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
     const unsigned int sceneSlot = SceneColorSlot();
     const GnmRenderTarget &sceneTarget = g_SceneColorReady
         ? g_SceneColorTextures[sceneSlot].ColorTarget() : renderTarget;
-    if ( !DrawDiagnosticColorBars( command, sceneTarget ) )
+    const bool showDiagnostics = !HasCompleteScaleformOrderedCapture();
+    if ( !DrawBootstrapBackground( command, sceneTarget, showDiagnostics ) )
         return;
+    if ( !showDiagnostics )
+    {
+        static bool loggedMenuBackground = false;
+        if ( !loggedMenuBackground )
+        {
+            KisakPs4StartupBreadcrumb(
+                "kisak-ps4: Scaleform menu replaced bootstrap diagnostics" );
+            loggedMenuBackground = true;
+        }
+    }
     KisakPs4SetShaderShadowCulling( false );
     KisakPs4SetShaderShadowDepth( false, false, 3 );
     KisakPs4SetShaderShadowBlend( false, 1, 0, 0, false, 1, 0, 0 );
@@ -1945,63 +1985,66 @@ void EmitDiagnosticTriangle( GnmCommandBuffer *command, void *destination,
         g_DrawState.ClearDepthRenderTarget();
     g_DrawState.SetDbRenderControl( dbControl );
     g_DrawState.SetRenderTarget( 0, sceneTarget );
-    g_DrawState.SetVertexShader( g_ReferenceCubeVertexShader->registers, 0 );
-    g_DrawState.SetPixelShader( g_ReferenceCubePixelShader->registers );
-    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_ReferenceCubeFetchShader );
-    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_ReferenceCubeVertexBuffers );
-    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 6, cubeVsDescriptor );
-    g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_TextureSamplerTable );
-    g_DrawState.SetPsInputUsage(
-        sceGnmVsShaderExportSemanticTable( g_ReferenceCubeVertexShader ),
-        g_ReferenceCubeVertexShader->numexportsemantics,
-        sceGnmPsShaderInputSemanticTable( g_ReferenceCubePixelShader ),
-        g_ReferenceCubePixelShader->numinputsemantics );
-    GnmDbRenderControl referenceDbControl = {};
-    GnmDepthStencilControl referenceDepthControl = {};
-    referenceDepthControl.zwrite = true;
-    referenceDepthControl.zfunc = GNM_DEPTH_COMPARE_LESSEQUAL;
-    referenceDepthControl.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
-    referenceDepthControl.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
-    referenceDepthControl.depthenable = true;
-    g_DrawState.SetDbRenderControl( referenceDbControl );
-    g_DrawState.SetDepthStencilControl( referenceDepthControl );
-    g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDbRender |
-        CPs4GnmDrawState::kDirtyDepthStencil );
-    if ( !Ps4EmitPrimitiveDraw( command, &g_DrawState, cubePacket ) )
-        return;
-    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_CubeEdgeVertexBuffers );
-    g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_CubeEdgeSamplerTable );
-    Ps4EmitPrimitiveDraw( command, &g_DrawState, edgePacket );
-    g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
-    g_DrawState.SetPixelShader( g_PixelShader->registers );
-    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
-    g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, sourceDescriptors );
-    // Intentionally clip the right side of the Source triangle. This makes
-    // hardware validation of per-draw scissor emission visually unambiguous.
-    g_DrawState.SetScissor( 80, 0, 330, 1080 );
-    g_DrawState.SetPsInputUsage(
-        sceGnmVsShaderExportSemanticTable( g_VertexShader ),
-        g_VertexShader->numexportsemantics,
-        sceGnmPsShaderInputSemanticTable( g_PixelShader ),
-        g_PixelShader->numinputsemantics );
-    GnmDepthStencilControl sourceDepth = {};
-    sourceDepth.zfunc = GNM_DEPTH_COMPARE_ALWAYS;
-    sourceDepth.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
-    sourceDepth.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
-    g_DrawState.SetDepthStencilControl( sourceDepth );
-    GnmBlendControl sourceBlend = {};
-    sourceBlend.blendenabled = true;
-    sourceBlend.colorfunc = GNM_COMB_DST_PLUS_SRC;
-    sourceBlend.colorsrcmult = GNM_BLEND_SRC_ALPHA;
-    sourceBlend.colordstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
-    sourceBlend.alphafunc = GNM_COMB_DST_PLUS_SRC;
-    sourceBlend.alphasrcmult = GNM_BLEND_ONE;
-    sourceBlend.alphadstmult = GNM_BLEND_ZERO;
-    g_DrawState.SetBlendControl( 0, sourceBlend );
-    g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil );
     uint32_t sourceDirtyMask = 0;
-    Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX,
-        &sourceDirtyMask );
+    if ( showDiagnostics )
+    {
+        g_DrawState.SetVertexShader( g_ReferenceCubeVertexShader->registers, 0 );
+        g_DrawState.SetPixelShader( g_ReferenceCubePixelShader->registers );
+        g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_ReferenceCubeFetchShader );
+        g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_ReferenceCubeVertexBuffers );
+        g_DrawState.SetPointerUserData( GNM_STAGE_VS, 6, cubeVsDescriptor );
+        g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_TextureSamplerTable );
+        g_DrawState.SetPsInputUsage(
+            sceGnmVsShaderExportSemanticTable( g_ReferenceCubeVertexShader ),
+            g_ReferenceCubeVertexShader->numexportsemantics,
+            sceGnmPsShaderInputSemanticTable( g_ReferenceCubePixelShader ),
+            g_ReferenceCubePixelShader->numinputsemantics );
+        GnmDbRenderControl referenceDbControl = {};
+        GnmDepthStencilControl referenceDepthControl = {};
+        referenceDepthControl.zwrite = true;
+        referenceDepthControl.zfunc = GNM_DEPTH_COMPARE_LESSEQUAL;
+        referenceDepthControl.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
+        referenceDepthControl.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
+        referenceDepthControl.depthenable = true;
+        g_DrawState.SetDbRenderControl( referenceDbControl );
+        g_DrawState.SetDepthStencilControl( referenceDepthControl );
+        g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDbRender |
+            CPs4GnmDrawState::kDirtyDepthStencil );
+        if ( !Ps4EmitPrimitiveDraw( command, &g_DrawState, cubePacket ) )
+            return;
+        g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, g_CubeEdgeVertexBuffers );
+        g_DrawState.SetPointerUserData( GNM_STAGE_PS, 0, g_CubeEdgeSamplerTable );
+        Ps4EmitPrimitiveDraw( command, &g_DrawState, edgePacket );
+        g_DrawState.SetVertexShader( g_VertexShader->registers, 0 );
+        g_DrawState.SetPixelShader( g_PixelShader->registers );
+        g_DrawState.SetPointerUserData( GNM_STAGE_VS, 0, g_FetchShader );
+        g_DrawState.SetPointerUserData( GNM_STAGE_VS, 2, sourceDescriptors );
+        // Intentionally clip the right side of the Source triangle. This makes
+        // hardware validation of per-draw scissor emission visually unambiguous.
+        g_DrawState.SetScissor( 80, 0, 330, 1080 );
+        g_DrawState.SetPsInputUsage(
+            sceGnmVsShaderExportSemanticTable( g_VertexShader ),
+            g_VertexShader->numexportsemantics,
+            sceGnmPsShaderInputSemanticTable( g_PixelShader ),
+            g_PixelShader->numinputsemantics );
+        GnmDepthStencilControl sourceDepth = {};
+        sourceDepth.zfunc = GNM_DEPTH_COMPARE_ALWAYS;
+        sourceDepth.stencilfunc = GNM_DEPTH_COMPARE_NEVER;
+        sourceDepth.stencilbackfunc = GNM_DEPTH_COMPARE_NEVER;
+        g_DrawState.SetDepthStencilControl( sourceDepth );
+        GnmBlendControl sourceBlend = {};
+        sourceBlend.blendenabled = true;
+        sourceBlend.colorfunc = GNM_COMB_DST_PLUS_SRC;
+        sourceBlend.colorsrcmult = GNM_BLEND_SRC_ALPHA;
+        sourceBlend.colordstmult = GNM_BLEND_ONE_MINUS_SRC_ALPHA;
+        sourceBlend.alphafunc = GNM_COMB_DST_PLUS_SRC;
+        sourceBlend.alphasrcmult = GNM_BLEND_ONE;
+        sourceBlend.alphadstmult = GNM_BLEND_ZERO;
+        g_DrawState.SetBlendControl( 0, sourceBlend );
+        g_DrawState.Invalidate( CPs4GnmDrawState::kDirtyDepthStencil );
+        Ps4EmitIndexedDraw( command, &g_DrawState, sourcePacket, UINT32_MAX,
+            &sourceDirtyMask );
+    }
     const size_t scaleformArenaBefore = g_Device.FrameArena().Used();
     const bool emittedScaleformOrdered = EmitScaleformOrderedBatches( command );
     const bool emittedScaleformSolid = emittedScaleformOrdered ? false :
