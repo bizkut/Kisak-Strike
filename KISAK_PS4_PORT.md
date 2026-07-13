@@ -3968,6 +3968,34 @@ The v3.83 monolithic package is staged at
 `99bb5f3f7516f45926e3f87abe7cc0ad0f2ac24ec50e31965ed5be9653a656f6`.
 The PS4 link/package build completes and all 11 host tests pass.
 
+### v3.84: Preserve UTF-16 values in the OpenOrbis wchar ABI
+
+The sequential reader fixes the missing late keys, but a target-ABI audit found
+a second localization defect before hardware deployment. The
+`x86_64-ps4-elf` compiler defines `wchar_t` as a 16-bit unsigned type. Source's
+generic POSIX `V_UCS2ToUnicode` path nevertheless asks `iconv` for UCS-4LE and
+writes those four-byte code units into a 16-bit destination. A value such as
+`PLAY` consequently becomes an interleaved `P, NUL, L, NUL, ...` sequence and
+appears truncated even after its key is found.
+
+`V_UCS2ToUnicode` now performs a bounded direct code-unit copy on PS4, matching
+the actual OpenOrbis ABI while leaving Windows and other POSIX targets
+unchanged. The sequential reader also checks `IFileSystem::IsOk()` after its
+terminal zero-byte read instead of `EndOfFile()`, because Source implements the
+latter as `Tell() >= Size()` and the PS4 size value is the quantity being
+bypassed.
+
+The v3.84 gate supersedes the uninstalled v3.83 package: the log must show
+`probe=PLAY`, bounded translator hits with complete English values, and a
+translated menu rather than single-character or raw-token labels.
+
+Marker: `kisak-ps4: build marker localization_utf16_v384`.
+
+The v3.84 monolithic package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` with SHA-256
+`01b9f5b317cd3c3db027d89e6d2622bf5016f3f93ca7be3344b621fc99ff7ba1`.
+The PS4 link/package build completes and all 11 host tests pass.
+
 ### v3.49: Preserve bounded AS2 runtime errors in the PS4 release config
 
 The v3.48 run still exposed no root hooks, but also no ActionScript error. The

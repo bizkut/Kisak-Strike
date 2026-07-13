@@ -1405,6 +1405,18 @@ int _V_UCS2ToUnicode( const ucs2 *pUCS2, wchar_t *pUnicode, int cubDestSizeInByt
 #ifdef _WIN32
 	int cchResult = V_wcslen( pUCS2 );
 	V_memcpy( pUnicode, pUCS2, cubDestSizeInBytes );
+#elif defined( PLATFORM_PS4 )
+	// The OpenOrbis ABI uses 16-bit wchar_t, so UCS-2 is already in the
+	// destination representation. The generic POSIX path converts to UCS-4 and
+	// would interleave zero wchar_t values into every localized string.
+	const int cchCapacity = cubDestSizeInBytes / sizeof( wchar_t );
+	int cchResult = 0;
+	while ( cchResult + 1 < cchCapacity && pUCS2[cchResult] != 0 )
+	{
+		pUnicode[cchResult] = static_cast< wchar_t >( pUCS2[cchResult] );
+		++cchResult;
+	}
+	pUnicode[cchResult] = 0;
 #else
 	iconv_t conv_t = iconv_open( "UCS-4LE", "UCS-2LE" );
 	int cchResult = -1;
@@ -5114,4 +5126,3 @@ void V_StripAndPreserveHTML( CUtlBuffer *pbuffer, const char *pchHTML, const cha
 	const char *rgszNoCloseTags[] = { "br", "img" };
 	V_StripAndPreserveHTMLCore( pbuffer, pchHTML, rgszPreserveTags, cPreserveTags, rgszNoCloseTags, V_ARRAYSIZE( rgszNoCloseTags ), cMaxResultSize );
 }
-

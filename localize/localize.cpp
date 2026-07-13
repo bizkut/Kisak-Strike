@@ -358,7 +358,7 @@ bool CLocalize::ReadLocalizationFile( const char *pRelativePath, const char *pPa
 		{
 			fileData.RemoveMultipleFromTail( bytesWanted );
 			bReadOK = fileSize >= static_cast< int >( sizeof( ucs2 ) ) &&
-				g_pFullFileSystem->EndOfFile( file );
+				g_pFullFileSystem->IsOk( file );
 			break;
 		}
 
@@ -373,7 +373,7 @@ bool CLocalize::ReadLocalizationFile( const char *pRelativePath, const char *pPa
 		unsigned char overflowByte = 0;
 		bReadOK = g_pFullFileSystem->ReadEx(
 			&overflowByte, sizeof( overflowByte ), sizeof( overflowByte ), file ) == 0 &&
-			g_pFullFileSystem->EndOfFile( file );
+			g_pFullFileSystem->IsOk( file );
 	}
 	if ( ( fileSize & 1 ) != 0 )
 		bReadOK = false;
