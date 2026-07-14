@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: The CS game stats header
 //
@@ -437,7 +437,9 @@ public:
 	void Event_MVPEarned( CCSPlayer* pPlayer );	
 	void Event_KnifeUse( CCSPlayer* pPlayer, bool bStab, int iDamage );
 
+#if !defined( _GAMECONSOLE ) && !defined( NO_STEAM )
 	void RecordWeaponHit( SWeaponHitData* pHitData );
+#endif
 	
 	// Steamworks Gamestats
 #if !defined( _GAMECONSOLE )

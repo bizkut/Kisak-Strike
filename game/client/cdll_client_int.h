@@ -99,9 +99,7 @@ extern IXboxSystem *xboxsystem;	// Xbox 360 only
 extern IAvi *avi;
 extern IBik *bik;
 extern IUploadGameStats *gamestatsuploader;
-#ifndef NO_STEAM
 extern CSteamAPIContext *steamapicontext;
-#endif
 extern ISoundEmitterSystemBase *soundemitterbase;
 
 #include "CegClientWrapper.h"

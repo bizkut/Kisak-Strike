@@ -161,6 +161,9 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     set(USE_ROCKETUI OFF CACHE BOOL "" FORCE)
     set(USE_KISAK_PHYSICS ON CACHE BOOL "" FORCE)
     set(NO_STEAM ON CACHE BOOL "Disable proprietary Steam runtime on PS4" FORCE)
+    # NO_STEAM is both a CMake source-selection option and a C++ feature gate.
+    # Keep every monolithic module on the same Steam-free ABI/initialization path.
+    add_compile_definitions(NO_STEAM)
     option(KISAK_PS4_BUILD_SOURCE_ENGINE
         "Compile the real Source engine as the next monolithic integration gate" ON)
     option(KISAK_PS4_BUILD_GAME_DLLS
@@ -228,6 +231,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
             add_subdirectory(scenefilecache)
             add_subdirectory(game/client)
             add_subdirectory(game/server)
+            add_subdirectory(matchmaking)
         endif()
     endif()
 
@@ -301,6 +305,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         engine_client
         client_client
         server_client
+        matchmaking_client
+        matchmakingbase
         scenefilecache_client
         "${KISAK_OPENGNM_ROOT}/libopengnm.a"
         appframework_client

@@ -276,7 +276,7 @@ void CInventoryManager::DestroyPlayerInventoryObject( CPlayerInventory *pPlayerI
 //-----------------------------------------------------------------------------
 void CInventoryManager::UpdateLocalInventory( void )
 {
-	if ( steamapicontext->SteamUser() && GetLocalInventory() )
+	if ( steamapicontext && steamapicontext->SteamUser() && GetLocalInventory() )
 	{
 		CSteamID steamID = steamapicontext->SteamUser()->GetSteamID();
 		SteamRequestInventory( GetLocalInventory(), steamID );
@@ -2168,8 +2168,16 @@ void CPlayerInventory::GetMarketCraftCompletionLink( const CUtlVector< itemid_t 
 		}
 	}
 
+	const char *pchCommunityHostPrefix = "";
+#if !defined( NO_STEAM )
+	if ( steamapicontext && steamapicontext->SteamUtils() &&
+		 steamapicontext->SteamUtils()->GetConnectedUniverse() != k_EUniversePublic )
+	{
+		pchCommunityHostPrefix = "beta.";
+	}
+#endif
 	V_snprintf( pchLink, nNumChars, "http://%ssteamcommunity.com/market/search?appid=730&lock_appid=730&q=",
-		( steamapicontext->SteamUtils()->GetConnectedUniverse() == k_EUniversePublic ) ? "" : "beta." );
+		pchCommunityHostPrefix );
 
 	if ( nRarity >= 0 || bMatchCollection || bStatTrak )
 	{

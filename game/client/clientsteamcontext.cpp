@@ -10,7 +10,11 @@ CClientSteamContext  &ClientSteamContext()
 	return g_ClientSteamContext;
 }
 
+#if defined( NO_STEAM )
+CSteamAPIContext *steamapicontext = NULL;
+#else
 CSteamAPIContext *steamapicontext = &g_ClientSteamContext;
+#endif
 
 //-----------------------------------------------------------------------------
 CClientSteamContext::CClientSteamContext() 

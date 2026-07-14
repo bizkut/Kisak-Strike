@@ -61,6 +61,9 @@
 #include "vphysics_interface.h"
 #include "inputsystem/iinputsystem.h"
 #include "appframework/IAppSystemGroup.h"
+#if defined( PLATFORM_PS4 )
+#include "appframework/StaticModuleRegistry.h"
+#endif
 #include "tier0/systeminformation.h"
 #ifdef _WIN32
 #include "VGuiMatSurface/IMatSystemSurface.h"
@@ -1836,7 +1839,7 @@ int CEngineAPI::Run()
 {
 	#if defined( PLATFORM_PS4 )
 	KisakPs4StartupBreadcrumb( "kisak-ps4: source engine run entered" );
-	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker steam_version_fallback_v430" );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker matchmaking_restart_v432" );
 	#endif
 	if ( CommandLine()->FindParm("-insecure") )
 	{
@@ -2300,6 +2303,9 @@ void ReloadDlls()
 bool CModAppSystemGroup::Create()
 {
 	COM_TimestampedLog( "CModAppSystemGroup::Create() - Start" );
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: mod create entered" );
+	#endif
 
 	// If we're not running from Perforce check if we need to restart under Steam
 	if ( !g_bRunningFromPerforce && g_unSteamAppID != k_uAppIdInvalid && SteamAPI_RestartAppIfNecessary( g_unSteamAppID ) )
@@ -2374,9 +2380,29 @@ bool CModAppSystemGroup::Create()
 
 	AddSystem( g_pIfaceMatchFramework, IMATCHFRAMEWORK_VERSION_STRING );
 	#else
-	// The first PS4 milestone is an offline listen server.  Steam matchmaking
-	// is neither linked nor required to load the client and server modules.
-	g_pMatchFramework = NULL;
+	// The Steam-free PS4 build still needs Source's matchmaking framework: the
+	// client, server, host, and offline listen-session paths all depend on its
+	// event, title, extension, and network-controller interfaces.
+	KisakPs4StartupBreadcrumb( "kisak-ps4: mod create before matchmaking factory" );
+	g_pfnMatchmakingFactory = FindStaticModuleFactory( "matchmaking" );
+	if ( !g_pfnMatchmakingFactory )
+	{
+		KisakPs4StartupBreadcrumb( "kisak-ps4: mod create matchmaking factory missing" );
+		return false;
+	}
+	KisakPs4StartupBreadcrumb( "kisak-ps4: mod create matchmaking factory ready" );
+
+	g_pIfaceMatchFramework = ( IMatchFramework * ) g_pfnMatchmakingFactory( IMATCHFRAMEWORK_VERSION_STRING, NULL );
+	if ( !g_pIfaceMatchFramework )
+	{
+		KisakPs4StartupBreadcrumb( "kisak-ps4: mod create matchmaking interface missing" );
+		return false;
+	}
+
+	g_pMatchFramework = g_pIfaceMatchFramework;
+	KisakPs4StartupBreadcrumb( "kisak-ps4: mod create matchmaking interface ready" );
+	AddSystem( g_pIfaceMatchFramework, IMATCHFRAMEWORK_VERSION_STRING );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: mod create matchmaking add system complete" );
 	#endif
 	
 	Host_SubscribeForProfileEvents( true );
@@ -2389,14 +2415,34 @@ bool CModAppSystemGroup::Create()
 #ifndef DEDICATED
 	if ( !IsServerOnly() )
 	{
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: mod create before client load" );
+		#endif
 		if ( !ClientDLL_Load() )
+		{
+			#if defined( PLATFORM_PS4 )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: mod create client load failed" );
+			#endif
 			return false;
+		}
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: mod create client load complete" );
+		#endif
 		ClientDLL_Connect();
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: mod create client connect returned" );
+		#endif
 	}
 #endif
 
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: mod create before server load" );
+	#endif
 	if ( !ServerDLL_Load( IsServerOnly() ) )
 	{
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: mod create server load failed" );
+		#endif
 #ifndef DEDICATED
 		if ( !IsServerOnly() )
 		{
@@ -2406,6 +2452,9 @@ bool CModAppSystemGroup::Create()
 	
 		return false;
 	}
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: mod create server load complete" );
+	#endif
 
 	IClientDLLSharedAppSystems *clientSharedSystems = 0;
 
@@ -2414,16 +2463,34 @@ bool CModAppSystemGroup::Create()
 	{
 		clientSharedSystems = ( IClientDLLSharedAppSystems * )g_ClientFactory( CLIENT_DLL_SHARED_APPSYSTEMS, NULL );
 		if ( !clientSharedSystems )
+		{
+			#if defined( PLATFORM_PS4 )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: mod create client shared systems missing" );
+			return false;
+			#else
 			return AddLegacySystems();
+			#endif
+		}
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: mod create client shared systems ready" );
+		#endif
 	}
 #endif
 
 	IServerDLLSharedAppSystems *serverSharedSystems = ( IServerDLLSharedAppSystems * )g_ServerFactory( SERVER_DLL_SHARED_APPSYSTEMS, NULL );
 	if ( !serverSharedSystems )
 	{
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: mod create server shared systems missing" );
+		return false;
+		#else
 		Assert( !"Expected both game and client .dlls to have or not have shared app systems interfaces!!!" );
 		return AddLegacySystems();
+		#endif
 	}
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: mod create server shared systems ready" );
+	#endif
 
 	// Load game and client .dlls and build list then
 	CUtlVector< AppSystemInfo_t >	systems;
@@ -2466,8 +2533,19 @@ bool CModAppSystemGroup::Create()
 	info.m_pInterfaceName = "";
 	systems.AddToTail( info );
 
-	if ( !AddSystems( systems.Base() ) ) 
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: mod create before shared add systems" );
+	#endif
+	if ( !AddSystems( systems.Base() ) )
+	{
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: mod create shared add systems failed" );
+		#endif
 		return false;
+	}
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: mod create shared add systems complete" );
+	#endif
 
 #if !defined( _LINUX ) && !defined( _GAMECONSOLE )
 //	if ( CommandLine()->FindParm( "-tools" ) )
@@ -2480,6 +2558,9 @@ bool CModAppSystemGroup::Create()
 #endif
 
 	COM_TimestampedLog( "CModAppSystemGroup::Create() - Finish" );
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: mod create complete" );
+	#endif
 
 	return true;
 }

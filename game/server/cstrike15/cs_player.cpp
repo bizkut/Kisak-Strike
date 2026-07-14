@@ -12727,9 +12727,9 @@ void CCSPlayer::ReportCustomClothingModels( void )
 	if ( !CSInventoryManager() )
 		return;
 
+#if !defined(NO_STEAM)
 	for ( int nSlot = LOADOUT_POSITION_FIRST_COSMETIC; nSlot <= LOADOUT_POSITION_LAST_COSMETIC; ++nSlot )
 	{
-#if !defined(NO_STEAM)
 		if ( steamgameserverapicontext->SteamGameServer() )
 		{
 			CSteamID steamIDForPlayer;

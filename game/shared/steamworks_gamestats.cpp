@@ -1,4 +1,4 @@
-//====== Copyright © 1996-2005, Valve Corporation, All rights reserved. =======
+//====== Copyright Â© 1996-2005, Valve Corporation, All rights reserved. =======
 //
 // Purpose: Uploads KeyValue stats to the new SteamWorks gamestats system.
 //
@@ -262,8 +262,10 @@ EResult	CSteamWorksGameStatsUploader::RequestSessionID()
 
 		// This initiates a callback that will get us our session ID.
 		// Callback: Steam_OnSteamSessionInfoIssued
+#ifndef NO_STEAM
 		SteamAPICall_t hSteamAPICall = m_SteamWorksInterface->GetNewSession( accountType, m_UserID, m_iAppID, GetTimeSinceEpoch() );
 		m_CallbackSteamSessionInfoIssued.Set( hSteamAPICall, this, &CSteamWorksGameStatsUploader::Steam_OnSteamSessionInfoIssued );
+#endif
 	}
 
 	return k_EResultOK;
@@ -413,8 +415,10 @@ void CSteamWorksGameStatsUploader::EndSession()
 
 		// Always need some data in the session row or we'll crash steam.
 		WriteSessionRow();
+#ifndef NO_STEAM
 		SteamAPICall_t hSteamAPICall = m_SteamWorksInterface->EndSession( m_SessionID, m_EndTime, 0 );
 		m_CallbackSteamSessionInfoClosed.Set( hSteamAPICall, this, &CSteamWorksGameStatsUploader::Steam_OnSteamSessionInfoClosed );
+#endif
 
 		Reset();
 	}

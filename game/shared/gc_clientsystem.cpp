@@ -252,6 +252,9 @@ void CGCClientSystem::SetupGC()
 //-----------------------------------------------------------------------------
 void CGCClientSystem::InitGC()
 {
+#if defined( NO_STEAM )
+	return;
+#else
     // Check to see if we have already initialized the GCClient.
     if ( m_bInittedGC )
         return;
@@ -282,8 +285,9 @@ void CGCClientSystem::InitGC()
         m_GCClient.BInit( pGameCoordinator );
 
         // Initialized the GCClient
-        m_bInittedGC = true;
-    }
+		m_bInittedGC = true;
+	}
+#endif
 }
 
 

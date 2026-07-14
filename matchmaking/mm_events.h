@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2009, Valve Corporation, All rights reserved. ======//
+//===== Copyright Â© 1996-2009, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -27,6 +27,7 @@ public:
 
 public:
 	bool IsBroacasting() const { return m_bBroadcasting; }
+	bool Reset();
 	void Shutdown();
 
 public:
@@ -34,12 +35,16 @@ public:
 	~CMatchEventsSubscription();
 
 protected:
+	void ClearTransientState();
+
+	bool m_bBroadcasting;
+	bool m_bAllowNestedBroadcasts;
+	bool m_bShutdown;
+
 	CUtlVector< IMatchEventsSink * > m_arrSinks;
 	CUtlVector< int > m_arrRefCount;
 	CUtlVector< int > m_arrIteratorsOutstanding;
 
-	bool m_bBroadcasting;
-	bool m_bAllowNestedBroadcasts;
 	CUtlVector< KeyValues * > m_arrQueuedEvents;
 	CUtlVector< KeyValues * > m_arrEventData;
 	CUtlVector< KeyValues * > m_arrSentEvents;

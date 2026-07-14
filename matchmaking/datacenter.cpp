@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2009, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2009, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -435,6 +435,14 @@ void CDatacenter::TrySaveInfoToUserStorage()
 
 void CDatacenter::Update()
 {
+#if defined( PLATFORM_PS4 ) && defined( NO_STEAM )
+	// There is no datacenter transport in the Steam-free PS4 runtime. Without
+	// this gate the empty request backend oscillates IDLE/REQUESTING forever.
+	// Keep updating command batches below so completed offline requests can be
+	// released normally.
+	m_eState = STATE_PAUSED;
+#endif
+
 #ifdef _X360
 #elif !defined( NO_STEAM ) && !defined( NO_STEAM_GAMECOORDINATOR ) && !defined( SWDS )
 	// Give a time-slice to the GCClient, which is used by Steam to communicate with the datacenter
@@ -1171,7 +1179,5 @@ void CDatacenterCmdBatchImpl::Update()
 		this->Destroy();
 #endif
 }
-
-
 
 

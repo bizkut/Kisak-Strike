@@ -35,7 +35,9 @@
 
 //Debugging for SteamController
 #include "engine/ivdebugoverlay.h"
+#if !defined( NO_STEAM )
 #include "clientsteamcontext.h"
+#endif
 
 #if defined( _X360 )
 #include "xbox/xbox_win32stubs.h"
@@ -114,6 +116,8 @@ void CInput::ApplySteamControllerCameraMove( QAngle& viewangles, CUserCmd *cmd, 
 	cmd->mousedy = (int)vecPosition.y;
 }
 
+#if !defined( NO_STEAM )
+
 static const char *g_ControllerDigitalGameActions[] = {
 	"+attack", "+attack2", "+reload", "+jump", "+duck", "toggle_duck", "+use", "invnext", "invprev", "lastinv", "buymenu", "+showscores", "drop", "+speed", "slot1", "slot2", "slot3", "slot4", "slot5", "invnextgrenade", "invnextitem", "invnextnongrenade", "+voicerecord", "autobuy", "rebuy", "+lookatweapon",
 };
@@ -158,12 +162,19 @@ static bool InitControllerTables()
 	return true;
 }
 
+#endif // !defined( NO_STEAM )
+
 //-----------------------------------------------------------------------------
 // Purpose: SteamControllerMove -- main entry point for applying Steam Controller Movements
 // Input  : *cmd - 
 //-----------------------------------------------------------------------------
 void CInput::SteamControllerMove( float flFrametime, CUserCmd *cmd )
 {
+#if defined( NO_STEAM )
+	(void)flFrametime;
+	(void)cmd;
+	return;
+#else
 	g_pInputSystem->SetSteamControllerMode( enginevgui->IsGameUIVisible() ? "MenuControls" : "GameControls" );
 	
 	if ( !steamapicontext || !steamapicontext->SteamController() )
@@ -279,4 +290,5 @@ void CInput::SteamControllerMove( float flFrametime, CUserCmd *cmd )
 	}
 
 	engine->SetViewAngles( viewangles );
+#endif // defined( NO_STEAM )
 }

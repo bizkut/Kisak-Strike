@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2009, Valve Corporation, All rights reserved. ======//
+//===== Copyright Â© 1996-2009, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -970,6 +970,7 @@ void CMatchTitleGameSettingsMgr::ExtendGameSettingsUpdateKeys( KeyValues *pSetti
 	{	// Ensure that clantag is also set when setting clanid
 		if ( uint64 xuid = V_atoui64( szClanIdUpdate ) )
 		{
+		#if !defined( NO_STEAM )
 			CSteamID steamIdClan( xuid );
 			const char *pTag = steamapicontext->SteamFriends()->GetClanTag( steamIdClan );
 			if ( pTag && *pTag )
@@ -982,6 +983,11 @@ void CMatchTitleGameSettingsMgr::ExtendGameSettingsUpdateKeys( KeyValues *pSetti
 			{
 				pUpdateDeleteKeys->SetString( "update/game/clantag", "" );
 			}
+		#else
+			// Clan metadata is a Steam social feature. Keep the paired key
+			// deterministic when a Steam-free session updates the clan id.
+			pUpdateDeleteKeys->SetString( "update/game/clantag", "" );
+		#endif
 		}
 	}
 
@@ -1082,7 +1088,9 @@ void UpdateAggregateMembersSettings( KeyValues *pFullGameSettings, KeyValues *pU
 	char const *szBestCountry = "";
 	float flBestCountryWeight = 0.0f;
 	CUtlStringMap< float > mapPlayerCountries;
+	#if !defined( NO_STEAM )
 	static CSteamID s_mysteamid = steamapicontext->SteamUser()->GetSteamID();
+	#endif
 	for ( int iMachine = 0, numMachines = pFullGameSettings->GetInt( "members/numMachines" ); iMachine < numMachines; ++iMachine )
 	{
 		KeyValues *pMachine = pFullGameSettings->FindKey( CFmtStr( "members/machine%d", iMachine ) );
@@ -1110,9 +1118,12 @@ void UpdateAggregateMembersSettings( KeyValues *pFullGameSettings, KeyValues *pU
 			UtlSymId_t symid = mapPlayerCountries.Find( szLocation );
 			if ( symid == UTL_INVAL_SYMBOL )
 				symid = mapPlayerCountries.Insert( szLocation, 0.0f );
-			float flNewWeightOfThisCountry = (
-				mapPlayerCountries[symid] += ( 1.0f + ( ( CSteamID( pPlayer->GetUint64( "xuid" ) ).GetAccountID() == s_mysteamid.GetAccountID() ) ? 0.5f : 0.0f ) )
-				);
+			float flCountryWeight = 1.0f;
+		#if !defined( NO_STEAM )
+			if ( CSteamID( pPlayer->GetUint64( "xuid" ) ).GetAccountID() == s_mysteamid.GetAccountID() )
+				flCountryWeight += 0.5f;
+		#endif
+			float flNewWeightOfThisCountry = ( mapPlayerCountries[symid] += flCountryWeight );
 			if ( flNewWeightOfThisCountry > flBestCountryWeight )
 			{
 				szBestCountry = szLocation;

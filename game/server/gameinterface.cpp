@@ -167,7 +167,10 @@ bool ShouldHideAllPlayers() { return false; }
 
 // this context is not available on dedicated servers
 // WARNING! always check if interfaces are available before using
-#if !defined(NO_STEAM)
+#if defined( NO_STEAM )
+CSteamAPIContext *steamapicontext = NULL;
+CSteamGameServerAPIContext *steamgameserverapicontext = NULL;
+#else
 static CSteamAPIContext s_SteamAPIContext;	
 CSteamAPIContext *steamapicontext = &s_SteamAPIContext;
 
@@ -1620,10 +1623,12 @@ void CServerGameDLL::Think( bool finalTick )
 	}
 
 	// TODO: would have liked this to be totally event driven... currently needs a tick.
+	#if !defined( NO_STEAM )
 	if ( engine->IsDedicatedServer() && steamgameserverapicontext->SteamHTTP() )
 	{
 		DedicatedServerWorkshop().Update();	
 	}
+	#endif
 }
 
 void CServerGameDLL::OnQueryCvarValueFinished( QueryCvarCookie_t iCookie, edict_t *pPlayerEntity, EQueryCvarValueStatus eStatus, const char *pCvarName, const char *pCvarValue )

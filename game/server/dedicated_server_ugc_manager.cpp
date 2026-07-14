@@ -1206,7 +1206,9 @@ void CStreamingUGCDownloader::Update( void )
 			//
 			// Timestamp the file to match workshop updated timestamp
 			//
+#if !defined( NO_STEAM )
 			UGCUtil_TimestampFile( m_pFileInfo->m_szFilePath, m_pFileInfo->m_unTimeLastUpdated );
+#endif
 
 			m_bIsFinished = true;
 			if ( 1 )//sv_debug_ugc_downloads.GetBool() )
@@ -1248,11 +1250,15 @@ const char* CWorkshopMapGroupBuilder::GetFirstMap( void ) const
 
 const char* CWorkshopMapGroupBuilder::GetMapMatchingId( PublishedFileId_t id ) const
 {
+#if defined( NO_STEAM )
+	NOTE_UNUSED( id );
+#else
 	FOR_EACH_VEC( m_Maps, i )
 	{
 		if ( id == GetMapIDFromMapPath( m_Maps[i] ) )
 			return m_Maps[i];
 	}
+#endif
 	return GetFirstMap();
 }
 

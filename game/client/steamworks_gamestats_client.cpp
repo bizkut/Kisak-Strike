@@ -195,6 +195,7 @@ void CSteamWorksGameStatsClient::WriteSessionRow()
 	BaseClass::WriteSessionRow();
 }
 
+#ifndef NO_STEAM
 void CSteamWorksGameStatsClient::OnSteamSessionIssued( GameStatsSessionIssued_t *pResult, bool bError )
 {
 	BaseClass::OnSteamSessionIssued( pResult, bError );
@@ -204,6 +205,7 @@ void CSteamWorksGameStatsClient::OnSteamSessionIssued( GameStatsSessionIssued_t 
 	const char *pPlayerName = pPlayer ? pPlayer->GetPlayerName() : "unknown";
 	V_strncpy( m_pzPlayerName, pPlayerName, sizeof( m_pzPlayerName ) );
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Reports client's perf data at the end of a client session.

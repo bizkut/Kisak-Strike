@@ -1,4 +1,4 @@
-//========= Copyright � 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright ï¿½ 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: CS game stats
 //
@@ -843,6 +843,8 @@ void CCSGameStats::Event_PlayerKilledOther( CBasePlayer *pAttacker, CBaseEntity 
 	int nConsecutiveKills = pPlayerAttacker ? MAX( FindPlayerStats( pPlayerVictim ).statsKills.iNumKilledByUnanswered[pPlayerAttacker->entindex()], 1 ) : 0;
 	pPlayerVictim->SetLastConcurrentKilled( MIN( nConsecutiveKills, 8 ) );
 
+	// StatTrak ownership is a Steam account feature and has no offline PS4 equivalent.
+#if !defined( NO_STEAM )
 	// check to see if a player killed another with a StatTrak weapon
 	if ( CBaseCombatWeapon *pWeapon = dynamic_cast<CBaseCombatWeapon *>( info.GetWeapon() ) )
 	{
@@ -866,6 +868,7 @@ void CCSGameStats::Event_PlayerKilledOther( CBasePlayer *pAttacker, CBaseEntity 
 		}
 		
 	}
+#endif
 }
 
 
@@ -999,6 +1002,7 @@ void CCSGameStats::FireGameEvent( IGameEvent *event )
 	{
 		CreateNewGameStatsSession();
 	}
+#if !defined( _GAMECONSOLE ) && !defined( NO_STEAM )
 	else if ( V_strcmp(pEventName, "bomb_planted") == 0 || V_strcmp(pEventName, "bomb_defused") == 0 )
 	{
 		//Generate a special weapon hit entry for each alive human player
@@ -1027,6 +1031,7 @@ void CCSGameStats::FireGameEvent( IGameEvent *event )
 			}
 		}					 	
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1750,10 +1755,12 @@ void CCSGameStats::CreateNewGameStatsSession( void )
 	GetSteamWorksGameStatsServer().StartSession();
 }
 
+#if !defined( NO_STEAM )
 void CCSGameStats::RecordWeaponHit( SWeaponHitData* pHitData )
 {
 	m_WeaponHitData.AddToTail( pHitData );
 }
+#endif
 
 float UTIL_GetEffectiveRange( CCSPlayer* pPlayer )
 {
@@ -1780,6 +1787,7 @@ float UTIL_GetEffectiveRange( CCSPlayer* pPlayer )
 }
 
 
+#if !defined( NO_STEAM )
 SWeaponHitData::SWeaponHitData( CCSPlayer *pCSTarget, const CTakeDamageInfo &info, uint8 subBullet, uint8 round, uint8 iRecoilIndex ) 
 {
 	Clear();
@@ -2008,6 +2016,7 @@ bool SWeaponHitData::InitAsBombEvent( CCSPlayer *pCSPlayer, CPlantedC4 *pPlanted
 	// m_uiRecoilIndex = 0;
 	return true;  
 }
+#endif
 
 
 

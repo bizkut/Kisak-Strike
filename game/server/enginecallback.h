@@ -56,10 +56,8 @@ extern IServerFoundry			*serverfoundry;
 extern IXboxSystem				*xboxsystem; // 360 only
 extern IScriptManager			*scriptmanager;
 
-#if !defined( NO_STEAM )
 extern CSteamAPIContext			*steamapicontext; // available on game clients
 extern CSteamGameServerAPIContext *steamgameserverapicontext; //available on game servers
-#endif
 
 #ifdef INFESTED_DLL
 class IASW_Mission_Chooser;

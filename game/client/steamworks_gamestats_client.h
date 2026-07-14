@@ -22,7 +22,9 @@ public:
 	virtual bool Init() OVERRIDE;							// return true on success. false to abort DLL init!
 	virtual void FireGameEvent( IGameEvent *event ) OVERRIDE;
 
-	virtual void OnSteamSessionIssued( GameStatsSessionIssued_t *pResult, bool bError ) OVERRIDE; 
+#ifndef NO_STEAM
+	virtual void OnSteamSessionIssued( GameStatsSessionIssued_t *pResult, bool bError ) OVERRIDE;
+#endif
 
 	virtual void WriteSessionRow();
 

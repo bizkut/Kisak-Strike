@@ -17300,6 +17300,7 @@ const wchar_t* CCSGameRules::GetFriendlyMapName( const char* szShortName )
 	char szPath[MAX_PATH];
 	V_strcpy_safe( szPath, szShortName );
 	V_FixSlashes( szPath, '/' ); // internal path strings use forward slashes, make sure we compare like that.
+#if !defined( NO_STEAM )
 	if ( V_strstr( szPath, "workshop/" ) )
 	{
 		PublishedFileId_t ullId = GetMapIDFromMapPath( szPath );
@@ -17316,6 +17317,7 @@ const wchar_t* CCSGameRules::GetFriendlyMapName( const char* szShortName )
 			return wszMapName;
 		}
 	}
+#endif
 
     static wchar_t wszMapName[128];
     g_pVGuiLocalize->ConvertANSIToUnicode(szShortName, wszMapName, sizeof(wszMapName));
@@ -18552,5 +18554,4 @@ bool CCSGameRules::OnReplayPrompt( CBasePlayer *pVictim, CBasePlayer *pScorer )
 	return CTeamplayRules::OnReplayPrompt( pVictim, pScorer ); // delegate to the base class
 }
 #endif
-
 

@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2009, Valve Corporation, All rights reserved. ======//
+//===== Copyright Â© 1996-2009, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -77,6 +77,9 @@ CMatchFramework::~CMatchFramework()
 
 InitReturnVal_t CMatchFramework::Init()
 {
+	if ( !g_pMatchEventsSubscription->Reset() )
+		return INIT_FAILED;
+
 	InitReturnVal_t ret = INIT_OK;
 
 	ret = MM_Title_Init();
@@ -956,5 +959,4 @@ uint64 CMatchFramework::GetLastInviteFlags()
 {
 	return g_uiLastInviteFlags;
 }
-
 

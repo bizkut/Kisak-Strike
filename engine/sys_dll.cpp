@@ -1029,9 +1029,12 @@ void *GameFactory( const char *pName, int *pReturnCode )
 
 	// ask matchmaking
 	extern CreateInterfaceFn g_pfnMatchmakingFactory;
-	pRetVal = g_pfnMatchmakingFactory( pName, pReturnCode );
-	if (pRetVal)
-		return pRetVal;
+	if ( g_pfnMatchmakingFactory )
+	{
+		pRetVal = g_pfnMatchmakingFactory( pName, pReturnCode );
+		if (pRetVal)
+			return pRetVal;
+	}
 
 #ifndef DEDICATED
 	// now ask the client dll
@@ -1315,6 +1318,7 @@ IgnoreThisDLL:
 		serverGameEnts = NULL;
 		serverGameClients = NULL;
 	}
+	g_ServerFactory = NULL;
 	return false;
 }
 

@@ -1064,6 +1064,8 @@ bool UGCUtil_IsOfficialMap( PublishedFileId_t id )
 	return false;
 }
 
+#if !defined( NO_STEAM ) && !defined ( _PS3 )
+
 //-----------------------------------------------------------------------------
 // Purpose: Get the local file name on disk, accounting for target directories and filenames
 //-----------------------------------------------------------------------------
@@ -1093,3 +1095,5 @@ void CUGCFileRequest::GetLocalDirectory( char *pDest, size_t strSize )
 		V_strncpy( pDest, m_szTargetDirectory, strSize );
 	}
 }
+
+#endif // !NO_STEAM && !_PS3

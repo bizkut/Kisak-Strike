@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2009, Valve Corporation, All rights reserved. ======//
+//===== Copyright Â© 1996-2009, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -113,6 +113,15 @@ uint64 CMatchTitle::GetTitleSettingsFlags()
 
 uint64 CMatchTitle::GetTitleSettingsFlags()
 {
+	#if defined( PLATFORM_PS4 ) && defined( NO_STEAM )
+	// The offline PS4 runtime still creates its local player, but has no Steam
+	// friends/server discovery backend. Disabling those managers also avoids the
+	// legacy LAN-search path whose stub never completes its pending request.
+	return MATCHTITLE_SETTING_MULTIPLAYER
+		| MATCHTITLE_VOICE_INGAME
+		| MATCHTITLE_PLAYERMGR_DISABLED
+		| MATCHTITLE_SERVERMGR_DISABLED;
+	#else
 	return MATCHTITLE_SETTING_MULTIPLAYER
 		| MATCHTITLE_VOICE_INGAME
 		| MATCHTITLE_PLAYERMGR_ALLFRIENDS
@@ -125,6 +134,7 @@ uint64 CMatchTitle::GetTitleSettingsFlags()
 		| MATCHTITLE_PLAYERMGR_FRIENDREQS
 #endif // !CSTRIKE15
 	;
+	#endif
 }
 
 #endif
@@ -507,4 +517,3 @@ void CMatchTitle::FireGameEvent( IGameEvent *pIGameEvent )
 		}
 	}
 }
-

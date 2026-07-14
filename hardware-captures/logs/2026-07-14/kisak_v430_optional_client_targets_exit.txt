@@ -1,0 +1,34 @@
+kisak-ps4: app before system init
+kisak-ps4: source engine init entered
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: app after init systems
+kisak-ps4: app before postinit
+kisak-ps4: app after postinit
+kisak-ps4: app after startup
+kisak-ps4: app before main
+kisak-ps4: source engine run entered
+kisak-ps4: build marker steam_version_fallback_v430
+kisak-ps4: app run entered
+kisak-ps4: app before startup
+kisak-ps4: app startup entered
+kisak-ps4: app before create
+kisak-ps4: app after startup
+kisak-ps4: app before shutdown
+kisak-ps4: app after shutdown
+kisak-ps4: app group destructor entered
+kisak-ps4: app after main
+kisak-ps4: app before shutdown
+kisak-ps4: app before system shutdown
+kisak-ps4: app after system shutdown
+kisak-ps4: app after shutdown
+kisak-ps4: after application run
+kisak-ps4: before application stage
+kisak-ps4: after application stage
+kisak-ps4: before reslist continue
+kisak-ps4: after reslist continue
+kisak-ps4: before override cleanup
+kisak-ps4: after override cleanup
+kisak-ps4: launcher iteration complete
+kisak-ps4: app groups retained
+kisak-ps4: LauncherMain returned

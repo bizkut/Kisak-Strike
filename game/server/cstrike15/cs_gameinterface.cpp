@@ -292,7 +292,7 @@ bool AddAccountToActiveCasters( const CSteamID &steamID )
 			if ( CSGameRules()->m_arrTournamentActiveCasterAccounts[ j ] == 0 )
 			{
 				CSGameRules()->m_arrTournamentActiveCasterAccounts.Set( j, steamID.GetAccountID() );
-				if ( steamapicontext->SteamUser() && steamapicontext->SteamFriends() )
+				if ( steamapicontext && steamapicontext->SteamUser() && steamapicontext->SteamFriends() )
 				{
 					const char *pszName = steamapicontext->SteamFriends()->GetFriendPersonaName( steamID );
 					ConMsg( "Adding %s (ID:%d) to active caster list!\n", pszName, steamID.GetAccountID() );

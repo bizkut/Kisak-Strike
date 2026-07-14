@@ -1836,6 +1836,7 @@ CON_COMMAND_F( list_active_casters, "List currently active casters.", FCVAR_CLIE
 		{
 			nActiveCasters++;
 
+		#if !defined( NO_STEAM )
 			if ( steamapicontext->SteamUser() && steamapicontext->SteamFriends() )
 			{
 				CSteamID steamID( CSGameRules()->m_arrTournamentActiveCasterAccounts[ i ], steamapicontext->SteamUser()->GetSteamID().GetEUniverse(), k_EAccountTypeIndividual );
@@ -1844,6 +1845,7 @@ CON_COMMAND_F( list_active_casters, "List currently active casters.", FCVAR_CLIE
 					 ( cameraManSteamID.GetAccountID() == CSGameRules()->m_arrTournamentActiveCasterAccounts[ i ] ) ? "*Camera Man*" : "" );
 			}
 			else
+		#endif
 			{
 				Msg( "%d, ID: %d  %s\n", i, CSGameRules()->m_arrTournamentActiveCasterAccounts[ i ], 
 					 ( cameraManSteamID.GetAccountID() == CSGameRules()->m_arrTournamentActiveCasterAccounts[ i ] ) ? "*Camera Man*" : "" );

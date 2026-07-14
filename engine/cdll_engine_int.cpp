@@ -12,6 +12,7 @@
 #include "client_pch.h"
 #if defined( PLATFORM_PS4 )
 #include "appframework/StaticModuleRegistry.h"
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 #endif
 #include "getintersectingsurfaces_struct.h"
 #include "gl_model_private.h"
@@ -2602,6 +2603,9 @@ CreateInterfaceFn ClientDLL_GetFactory( void )
 bool ClientDLL_Load()
 {
 	Assert ( !g_ClientDLLModule );
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: client dll load entered" );
+	#endif
 
 	// Check the signature on the client dll.  If this fails we load it anyway but put this client
 	// into insecure mode so it won't connect to secure servers and get VAC banned
@@ -2619,6 +2623,9 @@ bool ClientDLL_Load()
 	#if defined( PLATFORM_PS4 )
 	g_ClientFactory = FindStaticModuleFactory( "client" );
 	g_ClientDLLModule = g_ClientFactory ? reinterpret_cast< CSysModule * >( 1 ) : NULL;
+	KisakPs4StartupBreadcrumb( g_ClientFactory
+		? "kisak-ps4: client dll static factory ready"
+		: "kisak-ps4: client dll static factory missing" );
 	#else
 	g_ClientDLLModule = g_pFileSystem->LoadModule( "client" DLL_EXT_STRING, "GAMEBIN", false );
 	#endif
@@ -2645,6 +2652,9 @@ bool ClientDLL_Load()
 					Sys_Error( "Could not get client.dll interface from library client" );
 				}
 			}
+			#if defined( PLATFORM_PS4 )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: client dll base interface ready" );
+			#endif
 		}
 		else
 		{
@@ -2674,7 +2684,13 @@ bool ClientDLL_Load()
 	// Load the client render targets interface from the client .dll
 	// NOTE: Its OK if this returns NULL, as some mods won't provide the interface and will just use the default behavior of the engine
 	g_pClientRenderTargets = ( IClientRenderTargets * )g_ClientFactory( CLIENTRENDERTARGETS_INTERFACE_VERSION, NULL );
-	return g_pClientRenderTargets != NULL;
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( g_pClientRenderTargets
+		? "kisak-ps4: client render targets ready"
+		: "kisak-ps4: client render targets optional missing" );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: client dll load complete" );
+	#endif
+	return true;
 }
 
 void ClientDLL_GameInit()

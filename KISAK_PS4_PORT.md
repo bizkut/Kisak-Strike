@@ -24,7 +24,7 @@ Latest staged monolithic package:
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.05
-SHA-256: a6d500b47bc6025761407c36be7fbcd53a0913a6cff241505417edb0250d96a9
+SHA-256: fd142f44f5cffdb61f0b2103e2720cf13bc000a394031e031c729f116c128b0d
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -33,9 +33,13 @@ Current hardware baseline:
 - The real monolithic Source runtime completes its priority and ordinary
   constructor walks, registers and connects the launcher app systems, mounts
   the external gameinfo search paths, and completes `COM_InitFilesystem`.
-  Hardware v4.29 then stopped inside `Sys_Version` because the supplied content
-  has no `steam.inf`; v4.30 is staged with a narrow Steam-free fallback and
-  awaits hardware validation.
+  Hardware v4.30 validates the missing-`steam.inf` fallback and the full outer
+  preinit/init/run path. It then exits cleanly before `app after create` because
+  `ClientDLL_Load` treats the absent optional `ClientRenderTargets001`
+  interface as failure. v4.32 honors the optional contract, retains CS:GO's
+  registrar in the monolith, adds exact client/server/shared-system gates, and
+  makes the static matchmaking event dispatcher restart-safe; hardware
+  validation is pending.
 - OpenGNM opens two 1920x1080 VideoOut buffers and completes repeated VSYNC
   flips. The v1.78 run sustains approximately 60 FPS without a crash.
 - The presentation stress loop has reached at least frame 1200 with matching
@@ -5725,13 +5729,112 @@ The OpenOrbis monolith and package build successfully and all 14 host tests
 pass. The candidate is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `a6d500b47bc6025761407c36be7fbcd53a0913a6cff241505417edb0250d96a9`;
-the uploaded bytes match the local package. Hardware must now reach
-`version metadata fallback applied`, `version metadata complete`, and
-`engine startup info after version`. The next lifecycle gates are
-`startup info after engine call`, `app after preinit`, and genuine Source
-engine initialization. A future valid five-key `steam.inf` override and LAN
-loopback test must confirm protocol `13580`; `GetSteamAppID()`'s independent
-desktop fallback to 215 remains a later consumer audit, not part of this crash.
+the uploaded bytes match the local package.
+
+The 3,526-line fresh hardware run validates `version metadata fallback
+applied`, `version metadata complete`, `engine startup info after version`, and
+the full outer preinit/init/run path. Its final inner lifecycle sequence is:
+
+```text
+kisak-ps4: source engine run entered
+kisak-ps4: build marker steam_version_fallback_v430
+kisak-ps4: app run entered
+kisak-ps4: app before startup
+kisak-ps4: app startup entered
+kisak-ps4: app before create
+kisak-ps4: app after startup
+kisak-ps4: app before shutdown
+kisak-ps4: LauncherMain returned
+```
+
+There is no `app after create` or inner `app before main` marker.
+`ClientRenderTargets001` is explicitly optional and
+`InitWellKnownRenderTargets` supplies a standard null-interface fallback, but
+`ClientDLL_Load` contradicted that contract by returning false when the query
+was null. The interface registrar exists in `libclient_client.a`; because its
+object is registration-only, normal archive scanning did not retain it in the
+v4.30 monolithic ELF. The inner app-system group therefore rejected creation,
+skipped its main loop, shut down cleanly, and returned to the bootstrap's
+intentional sleep loop. The visible black screen is an orderly early exit, not
+a GPU crash or hang. The capture is preserved as
+`hardware-captures/logs/2026-07-14/kisak_v430_optional_client_targets_exit.txt`.
+
+Protocol metadata startup is now hardware validated. A valid five-key
+`steam.inf` override and LAN loopback test must still confirm protocol `13580`;
+`GetSteamAppID()`'s independent desktop fallback to 215 remains a later
+consumer audit.
+
+### v4.32 packaged candidate: complete Steam-free client creation
+
+Version 4.32 returns success from `ClientDLL_Load` once the required static
+client factory and base client interface are available. A genuinely missing
+`ClientRenderTargets001` can use the documented standard engine fallback, while
+the bundled CS:GO client now holds a deliberate link reference to its
+registration-only render-target object. The final ELF must therefore retain
+the full eyeglint, cascade-light, client-shadow, and render-to-texture setup.
+
+The PS4 `NO_STEAM` CMake option is now also a directory-wide compiler
+definition. This keeps engine, client, server, and matchmaking archives on the
+same Steam-free conditional path and prevents `CHLClient::Connect` from entering
+the desktop Steam-client fatal-exit branch. Offline play still needs Source's
+real matchmaking app-system graph: client/server initialization and `Host_Init`
+consume its events, extensions, title/system managers, and offline custom
+session implementation. The normal matchmaking base and CS:GO title layers are
+therefore statically registered for PS4 with their Steam sources and calls
+disabled; this is not Steam matchmaking or a null framework.
+
+Bounded breadcrumbs split matchmaking registration, client loading and
+connection, server loading, client/server shared-system discovery, and shared
+app-system registration. Marker:
+`kisak-ps4: build marker matchmaking_restart_v432`.
+
+Because the matchmaking archives remain resident in the monolithic process,
+their event singleton now has an explicit restart lifecycle. Shutdown blocks
+and safely drains transient owned events, while `Connect` and `Init` reset the
+dispatcher before a retry or `RUN_RESTART`; nested broadcasts retain their
+original queued ordering. This avoids carrying the shutdown-only broadcasting
+state into a second Source app-system run.
+
+The candidate now cross-compiles and links as a single 69 MiB ELF. Link-symbol
+inspection confirms that the binary retains both the
+`CBaseClientRenderTargets` interface registrar and `CMatchFramework`, including
+the explicit `KisakMatchmakingFactory` anchor. Engine, client, server,
+matchmaking base, and matchmaking title objects all compile with `NO_STEAM`,
+`ORBIS`, and `PLATFORM_PS4`. Steam-only statistics, GC, Steam Controller,
+inventory identity, HTTP, and Workshop operations have deterministic offline
+fallbacks; the shared client/server Steam-context symbols remain present as
+null pointers so legacy code can test availability without linking Steam.
+
+All 14 host tests pass. The package contains 895 prepared Scaleform assets and
+is staged at `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`fd142f44f5cffdb61f0b2103e2720cf13bc000a394031e031c729f116c128b0d`.
+The streamed FTP digest matches the local package. These are build/package
+results only; the v4.32 lifecycle remains hardware-unvalidated. The black-screen
+report immediately before this package produced no `/data/kisak-strike/startup.log`
+or coredump, so it did not validate even `main()`; install and launch the staged
+KISK00002 package before attributing a subsequent failure to Source startup.
+
+The first hardware pass must show the static matchmaking factory/interface,
+then this client sequence:
+
+```text
+kisak-ps4: client dll static factory ready
+kisak-ps4: client dll base interface ready
+kisak-ps4: client render targets ready
+kisak-ps4: client dll load complete
+kisak-ps4: mod create client load complete
+kisak-ps4: mod create client connect returned
+```
+
+The next lifecycle gates are `mod create server load complete`, the
+client/server shared-system `ready` markers, `mod create shared add systems
+complete`, `mod create complete`, and `app after create`. Any explicit
+`missing` or `failed` marker identifies the next narrow blocker. After
+`app after create`, hardware must continue through dependency, connection,
+preinit, init, and postinit stages to the inner `app before main`. Material
+system initialization must also exercise the retained client-target interface
+without allocation or rendering failure before menu or offline-match acceptance
+is claimed.
 
 ### PS3 Scaleform UI cross-reference priorities
 

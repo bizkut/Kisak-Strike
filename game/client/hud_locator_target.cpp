@@ -593,7 +593,9 @@ void CLocatorTarget::SetBinding( const char *pszBinding )
 
 	pchToken = nexttoken( szToken, pchToken, ';' );
 
-	// Get our steam controller handles ready
+	// Steam controller action origins require the Steam API. Offline builds
+	// deterministically use the engine binding lookup below.
+#ifndef NO_STEAM
 	uint64 nSteamControllerHandles[STEAM_CONTROLLER_MAX_COUNT];
 	int nSteamControllerCount = 0;
 	if ( nBindingLookupFlags == BINDINGLOOKUP_STEAMCONTROLLER_ONLY )
@@ -603,6 +605,7 @@ void CLocatorTarget::SetBinding( const char *pszBinding )
 			nSteamControllerCount = steamapicontext->SteamController()->GetConnectedControllers( nSteamControllerHandles );
 		}
 	}
+#endif
 
 // 	Msg("    m_bWasControllerLast     : %s\n", m_bWasControllerLast ? "TRUE" : "FALSE" );
 // 	Msg("    m_bWasSteamControllerLast: %s\n", m_bWasSteamControllerLast ? "TRUE" : "FALSE" );
@@ -610,6 +613,7 @@ void CLocatorTarget::SetBinding( const char *pszBinding )
 
 	while ( pchToken )
 	{
+#ifndef NO_STEAM
 		if ( nBindingLookupFlags == BINDINGLOOKUP_STEAMCONTROLLER_ONLY && nSteamControllerCount > 0 )
 		{
 			// What to do if they have multiple controllers connected?
@@ -645,6 +649,7 @@ void CLocatorTarget::SetBinding( const char *pszBinding )
 			}
 		}
 		else
+#endif
 		{
 			// Get the first parameter
 			int iTokenBindingCount = 0;

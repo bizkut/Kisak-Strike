@@ -9519,6 +9519,9 @@ bool CItemLevelingDefinition::BInitFromKV( KeyValues *pKVItemLevel, CEconItemSch
 
 void ReloadMasterItemSchema( void )
 {
+#if defined( NO_STEAM )
+	return;
+#else
 	// This command does nothing on the public universe.
 	if ( steamapicontext->SteamUtils() && steamapicontext->SteamUtils()->GetConnectedUniverse() == k_EUniversePublic )
 		return;
@@ -9532,6 +9535,7 @@ void ReloadMasterItemSchema( void )
 			Msg( "%s", vecErrors[nError].String() );
 		}
 	}
+#endif
 }
 
 CON_COMMAND_F( load_master_item_schema, "Reloads the item master schema.", FCVAR_GAMEDLL | FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY | FCVAR_HIDDEN )

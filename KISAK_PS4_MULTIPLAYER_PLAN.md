@@ -14,12 +14,25 @@ patch `1.35.8.0`, Source host protocol `13580`, client/server versions `500`,
 product `csgo`, and AppID `730`. This avoids the zero-version and PS3 AppID
 values that would make a listen server or LAN peer report a different protocol.
 
-This is only deterministic metadata, not multiplayer acceptance. Hardware must
-first pass the v4.30 startup boundary and the offline listen-server milestone.
-The networking phase must then assert protocol `13580` in loopback, demo/server
-headers, and a same-build Linux/community server before LAN compatibility is
-claimed. `GetSteamAppID()` has a separate legacy no-Steam fallback of 215; audit
-and replace that consumer path before exposing AppID-dependent discovery or UI.
+This is only deterministic metadata, not multiplayer acceptance. Hardware
+v4.30 validates the missing-metadata fallback and clears the protocol-version
+startup boundary, but exits cleanly before inner client/server app-system
+creation because an explicitly optional client render-target interface was
+treated as required. v4.32 aligns every PS4 archive on the `NO_STEAM` compile
+path and statically supplies Source's real offline matchmaking framework; it
+must reach `mod create complete`, `app after create`, and the offline
+listen-server milestone before networking acceptance begins. The networking
+phase must then assert protocol `13580` in loopback, demo/server headers, and a
+same-build Linux/community server before LAN compatibility is claimed.
+`GetSteamAppID()` has a separate legacy no-Steam fallback of 215; audit and
+replace that consumer path before exposing AppID-dependent discovery or UI.
+
+The packaged v4.32 candidate links the real `CMatchFramework` and its static
+registrar without a Steam runtime, resets its resident event dispatcher across
+Source restarts, and passes all 14 host tests. It is staged as
+the KISK00002 monolithic package with SHA-256
+`fd142f44f5cffdb61f0b2103e2720cf13bc000a394031e031c729f116c128b0d`;
+hardware validation is still pending.
 
 ## Recommendation
 
@@ -447,21 +460,24 @@ services.
 
 1. Port `net_ws.cpp` socket calls to OpenOrbis and pass UDP loopback tests.
 2. Complete offline listen-server operation and bot-match acceptance.
-3. Add direct LAN connect and two-console soak tests.
-4. Build the Linux/community dedicated server with the same protocol/content
+3. Add a `PLATFORM_PS4` branch to `GetPlatformInputDevice()` so matchmaking
+   title data reports the active DualShock controller instead of
+   `PLATFORM_INPUT_DEVICE_NONE`.
+4. Add direct LAN connect and two-console soak tests.
+5. Build the Linux/community dedicated server with the same protocol/content
    version and validate PS4-to-server play.
-5. Add a minimal server directory and heartbeat protocol.
-6. Define `IPs4DatagramTransport`; move native UDP behind it with byte-for-byte
+6. Add a minimal server directory and heartbeat protocol.
+7. Define `IPs4DatagramTransport`; move native UDP behind it with byte-for-byte
    and timing regression tests.
-7. Cross-compile and unit-test the selected ICE library independently.
-8. Add STUN candidate discovery and candidate signaling; prove direct
+8. Cross-compile and unit-test the selected ICE library independently.
+9. Add STUN candidate discovery and candidate signaling; prove direct
    NAT-punched sessions before enabling TURN.
-9. Add Cloudflare TURN/UDP fallback with short-lived backend-issued credentials.
-10. Add TURN/TCP/TLS fallback only if real network testing justifies it.
-11. Replace Steam lobby P2P control paths with `IKisakSessionTransport` and the
-    open signaling/session layer; remove PS4 `ISteamNetworking` references.
-12. Add browser/admin observability, abuse controls, credential revocation, and
-    relay-cost alerts before public matchmaking.
+10. Add Cloudflare TURN/UDP fallback with short-lived backend-issued credentials.
+11. Add TURN/TCP/TLS fallback only if real network testing justifies it.
+12. Replace Steam lobby P2P control paths with `IKisakSessionTransport` and the
+     open signaling/session layer; remove PS4 `ISteamNetworking` references.
+13. Add browser/admin observability, abuse controls, credential revocation, and
+     relay-cost alerts before public matchmaking.
 
 ## Test matrix
 

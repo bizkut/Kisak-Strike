@@ -513,7 +513,8 @@ CBasePlayer* CBasePlayer::GetPlayerBySteamID( const CSteamID &steamID )
 		if ( !pPlayer )
 			continue;
 
-		pPlayer->GetSteamID( &steamIDPlayer );
+		if ( !pPlayer->GetSteamID( &steamIDPlayer ) )
+			continue;
 
 		if ( steamIDPlayer == steamID )
 			return pPlayer;
@@ -9911,12 +9912,19 @@ bool CBasePlayer::HandleVoteCommands( const CCommand &args )
 }
 
 
-#if !defined(NO_STEAM)
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
 bool CBasePlayer::GetSteamID( CSteamID *pID, bool bRequireFullyAuthenticated )
 {
+#if defined(NO_STEAM)
+	if ( pID )
+	{
+		*pID = CSteamID();
+	}
+	(void)bRequireFullyAuthenticated;
+	return false;
+#else
 	const CSteamID *pClientID = engine->GetClientSteamID( edict(), bRequireFullyAuthenticated );
 	if ( pClientID )
 	{
@@ -9925,6 +9933,7 @@ bool CBasePlayer::GetSteamID( CSteamID *pID, bool bRequireFullyAuthenticated )
 	}
 
 	return false;
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -9937,8 +9946,6 @@ uint64 CBasePlayer::GetSteamIDAsUInt64( void )
 		return steamIDForPlayer.ConvertToUint64();
 	return 0;
 }
-#endif // NO_STEAM
-
 
 
 

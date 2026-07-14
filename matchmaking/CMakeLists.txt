@@ -11,13 +11,19 @@ set(MM_DS "0")
 
 include( ./matchmaking_base_inc.cmake )
 target_compile_definitions(${OUTLIBNAME} PRIVATE -DMATCHMAKING_DLL)
+if(ORBIS)
+    target_sources(${OUTLIBNAME} PRIVATE ps4_matchmaking_factory.cpp)
+endif()
 
-#Dedicated Server MatchmakingBase
-set(OUTLIBNAME "matchmakingbase_ds")
-set(MM_DS "1")
+if(NOT ORBIS)
+    # Dedicated-server matchmaking is a separate desktop binary. The PS4
+    # monolith only hosts the listen-server/offline client implementation.
+    set(OUTLIBNAME "matchmakingbase_ds")
+    set(MM_DS "1")
 
-include( ./matchmaking_base_inc.cmake )
-target_compile_definitions(${OUTLIBNAME} PRIVATE -DMATCHMAKING_DS_DLL -DSWDS)
+    include( ./matchmaking_base_inc.cmake )
+    target_compile_definitions(${OUTLIBNAME} PRIVATE -DMATCHMAKING_DS_DLL -DSWDS)
+endif()
 
 #CSGO Matchmaking
 set(OUTBINNAME "matchmaking_client")
@@ -27,15 +33,20 @@ target_compile_definitions(${OUTBINNAME} PRIVATE -DMATCHMAKING_DLL)
 target_link_libraries(${OUTBINNAME} matchmakingbase)
 target_link_libraries(${OUTBINNAME} tier2_client mathlib_client)
 target_link_libraries(${OUTBINNAME} kisak_gcsdk_client)
-target_link_libraries(${OUTBINNAME} ${LIBPUBLIC}/libsteam_api.so) # link to proprietary steamapi
+if(NOT NO_STEAM)
+    target_link_libraries(${OUTBINNAME} ${LIBPUBLIC}/libsteam_api.so) # link to proprietary steamapi
+endif()
 
-#CSGO Matchmaking DS
-set(OUTBINNAME "matchmaking_ds_client")
+if(NOT ORBIS)
+    # CSGO Matchmaking DS
+    set(OUTBINNAME "matchmaking_ds_client")
 
-include( ./matchmaking_cstrike15_inc.cmake )
-target_compile_definitions(${OUTBINNAME} PRIVATE -DMATCHMAKING_DS_DLL -DSWDS)
-target_link_libraries(${OUTBINNAME} matchmakingbase_ds)
-target_link_libraries(${OUTBINNAME} tier2_client mathlib_client)
-target_link_libraries(${OUTBINNAME} kisak_gcsdk_client)
-target_link_libraries(${OUTBINNAME} ${LIBPUBLIC}/libsteam_api.so) # link to proprietary steamapi
-
+    include( ./matchmaking_cstrike15_inc.cmake )
+    target_compile_definitions(${OUTBINNAME} PRIVATE -DMATCHMAKING_DS_DLL -DSWDS)
+    target_link_libraries(${OUTBINNAME} matchmakingbase_ds)
+    target_link_libraries(${OUTBINNAME} tier2_client mathlib_client)
+    target_link_libraries(${OUTBINNAME} kisak_gcsdk_client)
+    if(NOT NO_STEAM)
+        target_link_libraries(${OUTBINNAME} ${LIBPUBLIC}/libsteam_api.so) # link to proprietary steamapi
+    endif()
+endif()

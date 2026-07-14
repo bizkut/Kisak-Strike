@@ -372,6 +372,9 @@ CEconItemAttribute *CEconItemSystem::GenerateAttribute( const char *pszName, flo
 
 static ISteamHTTP *GetISteamHTTP()
 {
+#if defined( NO_STEAM )
+	return NULL;
+#else
 	if ( steamapicontext != NULL && steamapicontext->SteamHTTP() )
 	{
 		return steamapicontext->SteamHTTP();
@@ -383,6 +386,7 @@ static ISteamHTTP *GetISteamHTTP()
 		}
 	#endif
 	return NULL;
+#endif
 }
 
 //-----------------------------------------------------------------------------

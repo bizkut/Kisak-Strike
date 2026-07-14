@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -634,6 +634,9 @@ END_NETWORK_TABLE()
 			return;
 		}
 
+#if defined( NO_STEAM )
+		m_bDetonationRecorded = true;
+#else
 		CCSPlayer::StartNewBulletGroup();
 
 		SWeaponHitData *pHitData = new SWeaponHitData;
@@ -646,6 +649,7 @@ END_NETWORK_TABLE()
 		{
 			delete pHitData;
 		}
+#endif
 	}
 
 	void CBaseCSGrenadeProjectile::Explode( trace_t *pTrace, int bitsDamageType )

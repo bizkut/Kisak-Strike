@@ -1006,7 +1006,7 @@ bool ServerDLL_Load( bool bServerOnly )
 {
     // Load in the game .dll
     LoadEntityDLLs( GetBaseDirectory(), bServerOnly );
-    return g_ServerFactory != NULL;
+    return serverGameDLL != NULL && serverGameEnts != NULL && serverGameClients != NULL;
 }
 
 void ServerDLL_Unload()

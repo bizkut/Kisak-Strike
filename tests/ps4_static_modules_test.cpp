@@ -23,6 +23,7 @@ CreateInterfaceFn KisakEngineBootstrapFactory() { return TestFactory; }
 CreateInterfaceFn KisakSourceEngineFactory() { return TestFactory; }
 CreateInterfaceFn KisakGameClientFactory() { return TestFactory; }
 CreateInterfaceFn KisakGameServerFactory() { return TestFactory; }
+CreateInterfaceFn KisakMatchmakingFactory() { return TestFactory; }
 CreateInterfaceFn KisakSceneFileCacheFactory() { return TestFactory; }
 CreateInterfaceFn KisakRocketUIBootstrapFactory() { return TestFactory; }
 CreateInterfaceFn KisakInputSystemFactory() { return TestFactory; }
@@ -53,6 +54,7 @@ int main()
     assert( FindStaticModuleFactory( "source_client" ) == KisakGameClientFactory() );
     assert( FindStaticModuleFactory( "server" ) == KisakGameServerFactory() );
     assert( FindStaticModuleFactory( "source_server" ) == KisakGameServerFactory() );
+    assert( FindStaticModuleFactory( "matchmaking_client.so" ) == KisakMatchmakingFactory() );
     assert( FindStaticModuleFactory( "scenefilecache" ) == KisakSceneFileCacheFactory() );
 
     int result = 1;

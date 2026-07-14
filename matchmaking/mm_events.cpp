@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2009, Valve Corporation, All rights reserved. ======//
+//===== Copyright Â© 1996-2009, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -10,8 +10,9 @@
 #include "tier0/memdbgon.h"
 
 CMatchEventsSubscription::CMatchEventsSubscription() :
+	m_bBroadcasting( false ),
 	m_bAllowNestedBroadcasts( false ),
-	m_bBroadcasting( false )
+	m_bShutdown( false )
 {
 	;
 }
@@ -80,13 +81,62 @@ void CMatchEventsSubscription::Unsubscribe( IMatchEventsSink *pSink )
 	}
 }
 
+void CMatchEventsSubscription::ClearTransientState()
+{
+	Assert( !m_bBroadcasting );
+	Assert( !m_arrIteratorsOutstanding.Count() );
+
+	for ( int k = 0; k < m_arrQueuedEvents.Count(); ++ k )
+	{
+		m_arrQueuedEvents[k]->deleteThis();
+	}
+	m_arrQueuedEvents.Purge();
+
+	for ( int k = 0; k < m_arrEventData.Count(); ++ k )
+	{
+		m_arrEventData[k]->deleteThis();
+	}
+	m_arrEventData.Purge();
+	m_arrSentEvents.Purge();
+}
+
+bool CMatchEventsSubscription::Reset()
+{
+	Assert( !m_bBroadcasting );
+	Assert( !m_arrIteratorsOutstanding.Count() );
+	if ( m_bBroadcasting || m_arrIteratorsOutstanding.Count() )
+		return false;
+
+	ClearTransientState();
+	m_bBroadcasting = false;
+	m_bAllowNestedBroadcasts = false;
+	m_bShutdown = false;
+	return true;
+}
+
 void CMatchEventsSubscription::Shutdown()
 {
-	m_bBroadcasting = true;	// Blocks all BroadcastEvent calls from being dispatched!
+	m_bShutdown = true;
+
+	// A sink may shut the framework down from inside OnEvent. Let the active
+	// callback unwind before releasing state that is still on its stack.
+	if ( !m_bBroadcasting )
+	{
+		ClearTransientState();
+	}
 }
 
 void CMatchEventsSubscription::BroadcastEvent( KeyValues *pEvent )
 {
+	if ( !pEvent )
+		return;
+
+	if ( m_bShutdown )
+	{
+		pEvent->deleteThis();
+		return;
+	}
+
 	//
 	// Network raw packet decryption
 	//
@@ -131,7 +181,7 @@ void CMatchEventsSubscription::BroadcastEvent( KeyValues *pEvent )
 
 	// iterate subscribers
 	for ( m_arrIteratorsOutstanding.AddToTail( 0 );
-		  m_arrIteratorsOutstanding.Tail() < m_arrSinks.Count();
+		  !m_bShutdown && m_arrIteratorsOutstanding.Tail() < m_arrSinks.Count();
 		  ++ m_arrIteratorsOutstanding.Tail() )
 	{
 		int i = m_arrIteratorsOutstanding.Tail();
@@ -147,6 +197,12 @@ void CMatchEventsSubscription::BroadcastEvent( KeyValues *pEvent )
 
 	m_bBroadcasting = false;
 
+	if ( m_bShutdown )
+	{
+		ClearTransientState();
+		return;
+	}
+
 	//
 	// Broadcast queued events
 	//
@@ -161,13 +217,7 @@ void CMatchEventsSubscription::BroadcastEvent( KeyValues *pEvent )
 	//
 	// No more queued events left, clean up registered event data
 	//
-	for ( int k = 0; k < m_arrEventData.Count(); ++ k )
-	{
-		KeyValues *pRegistered = m_arrEventData[k];
-		pRegistered->deleteThis();
-	}
-	m_arrEventData.Purge();
-	m_arrSentEvents.Purge();
+	ClearTransientState();
 }
 
 void CMatchEventsSubscription::RegisterEventData( KeyValues *pEventData )
@@ -217,5 +267,3 @@ KeyValues * CMatchEventsSubscription::GetEventData( char const *szEventDataKey )
 
 	return NULL;
 }
-
-

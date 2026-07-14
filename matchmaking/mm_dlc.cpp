@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2009, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2009, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -257,6 +257,11 @@ bool CDlcManager::IsDlcUpdateFinished( bool bWaitForFinish )
 
 KeyValues * CDlcManager::GetDataInfo()
 {
+	if ( !m_pDataInfo )
+	{
+		m_pDataInfo = new KeyValues( "DlcManager" );
+		m_pDataInfo->SetUint64( "@info/installed", 0 );
+	}
 	return m_pDataInfo;
 }
 
@@ -336,5 +341,4 @@ void CDlcManager::Steam_OnDLCInstalled( DlcInstalled_t *pParam )
 	}
 }
 #endif
-
 

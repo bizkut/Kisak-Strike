@@ -1,4 +1,4 @@
-//====== Copyright © 1996-2007, Valve Corporation, All rights reserved. =======//
+//====== Copyright Â© 1996-2007, Valve Corporation, All rights reserved. =======//
 //
 // Purpose: 
 //
@@ -98,6 +98,8 @@ static MatchExtInterface_t s_table[] =
 bool CMatchFramework::Connect( CreateInterfaceFn factory )
 {
 	Assert( !s_pfnDelegateFactory );
+	if ( !g_pMatchEventsSubscription->Reset() )
+		return false;
 
 	s_pfnDelegateFactory = factory;
 

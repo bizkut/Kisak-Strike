@@ -145,15 +145,15 @@ void PlayerManager::RemoveOldFriends()
 			mFriendsList.FastRemove( iIndex -- );
 			player.Destroy();
 		}
+	#if !defined( NO_STEAM )
 		else if ( !bPerfectWorld && ( player.GetTitleID() == uint64( -3 ) || player.GetTitleID() == uint64( -2 ) ) )
 		{
 			int nLevel = steamapicontext->SteamFriends()->GetFriendSteamLevel( player.GetXUID() );
 			mapFriendRequests.Insert( nLevel, &player );
-#if !defined( NO_STEAM )
 			if ( !nLevel ) // force the information to be downloaded
 				steamapicontext->SteamFriends()->RequestUserInformation( player.GetXUID(), false );
-#endif
 		}
+	#endif
 	}
 #if !defined( NO_STEAM )
 	int nLimit = mm_player_search_requests_limit.GetInt();

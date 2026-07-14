@@ -1,4 +1,4 @@
-//====== Copyright © 1996-2006, Valve Corporation, All rights reserved. =======//
+//====== Copyright Â© 1996-2006, Valve Corporation, All rights reserved. =======//
 //
 // Purpose: Uploads gamestats via the SteamWorks API. 
 //
@@ -59,7 +59,7 @@ public:
 
 
 	// called after entities think
-#if defined ( GAME_DLL )
+#if defined( GAME_DLL ) && !defined( NO_STEAM )
 	virtual void FrameUpdatePostEntityThink() OVERRIDE;
 #endif
 	

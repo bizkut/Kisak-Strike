@@ -1071,8 +1071,14 @@ IBaseClientDLL *clientdll = &gHLClient;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CHLClient, IBaseClientDLL, CLIENT_DLL_INTERFACE_VERSION, gHLClient );
 
 #if defined( PLATFORM_PS4 )
+extern ConVar cl_disable_water_render_targets;
 CreateInterfaceFn KisakGameClientFactory()
 {
+	// The render-target registrar lives in an otherwise registration-only archive
+	// member. Keep a volatile reference so the monolithic linker retains the full
+	// CS:GO client render-target implementation instead of silently dropping it.
+	ConVar * volatile pRenderTargetLinkAnchor = &cl_disable_water_render_targets;
+	(void)pRenderTargetLinkAnchor;
 	return Sys_GetFactoryThis();
 }
 #endif
@@ -4437,6 +4443,11 @@ public:
 
 char const * CHLClient::GetRichPresenceStatusString()
 {
+	#if defined( NO_STEAM )
+	// Rich presence, join hashes, and Steam universe classification have no
+	// offline equivalent. Keep callers deterministic without a Steam context.
+	return "";
+	#else
 	ISteamFriends *pf = steamapicontext->SteamFriends();
 	if ( !pf )
 		return "";
@@ -4816,6 +4827,7 @@ char const * CHLClient::GetRichPresenceStatusString()
 	}
 
 	return sRichPresence.Get();
+	#endif
 }
 
 int CHLClient::GetInEyeEntity() const
