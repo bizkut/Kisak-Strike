@@ -18,21 +18,21 @@ This is only deterministic metadata, not multiplayer acceptance. Hardware
 v4.30 validates the missing-metadata fallback and clears the protocol-version
 startup boundary, but exits cleanly before inner client/server app-system
 creation because an explicitly optional client render-target interface was
-treated as required. v4.32 aligns every PS4 archive on the `NO_STEAM` compile
-path and statically supplies Source's real offline matchmaking framework; it
-must reach `mod create complete`, `app after create`, and the offline
-listen-server milestone before networking acceptance begins. The networking
+treated as required. Hardware v4.32 validates the aligned `NO_STEAM` archives,
+real offline matchmaking framework, `mod create complete`, `app after create`,
+and entry into the inner engine main. It crashes later in `Host_Init`, after
+both initial thread pools start, so the offline listen-server milestone remains
+blocked. The networking
 phase must then assert protocol `13580` in loopback, demo/server headers, and a
 same-build Linux/community server before LAN compatibility is claimed.
 `GetSteamAppID()` has a separate legacy no-Steam fallback of 215; audit and
 replace that consumer path before exposing AppID-dependent discovery or UI.
 
-The packaged v4.32 candidate links the real `CMatchFramework` and its static
-registrar without a Steam runtime, resets its resident event dispatcher across
-Source restarts, and passes all 14 host tests. It is staged as
-the KISK00002 monolithic package with SHA-256
-`fd142f44f5cffdb61f0b2103e2720cf13bc000a394031e031c729f116c128b0d`;
-hardware validation is still pending.
+The v4.33 diagnostic retains the real `CMatchFramework`, restart-safe event
+dispatcher, and Steam-free app-system graph while tracing every `TRACEINIT`
+call around the new Host_Init boundary. It is staged as the KISK00002
+monolithic package with SHA-256
+`eb131afe29cd0f8d21eea60f620fed87ad8b929fca2544c912d601906dd9bfa7`.
 
 ## Recommendation
 

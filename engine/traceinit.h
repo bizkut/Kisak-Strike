@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Allows matching of initialization and shutdown function calls
 //
@@ -13,9 +13,25 @@
 void TraceInit( const char *i, const char *s, int list );
 void TraceShutdown( const char *s, int list );
 
+#if defined( PLATFORM_PS4 )
+void KisakPs4TraceInitPhase( const char *phase, const char *functionName );
+#endif
+
+#if defined( PLATFORM_PS4 )
+#define TRACEINITNUM( initfunc, shutdownfunc, num )            \
+	do                                                        \
+	{                                                         \
+		KisakPs4TraceInitPhase( "dispatch", #initfunc );        \
+		TraceInit( #initfunc, #shutdownfunc, num );             \
+		KisakPs4TraceInitPhase( "before", #initfunc );          \
+		initfunc;                                               \
+		KisakPs4TraceInitPhase( "after", #initfunc );           \
+	} while ( 0 )
+#else
 #define TRACEINITNUM( initfunc, shutdownfunc, num )	\
 	TraceInit( #initfunc, #shutdownfunc, num );		\
 	initfunc;
+#endif
 
 #define TRACESHUTDOWNNUM( shutdownfunc, num )	\
 	TraceShutdown( #shutdownfunc, num );		\

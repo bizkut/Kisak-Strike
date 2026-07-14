@@ -46,7 +46,7 @@ int main( int argc, char **argv )
 {
     FILE *log = OpenStartupLog();
     LogLine( log, "kisak-ps4: bootstrap entered" );
-    LogLine( log, "kisak-ps4: build marker matchmaking_restart_v432" );
+    LogLine( log, "kisak-ps4: build marker host_traceinit_v433" );
 
 #if defined( KISAK_PS4_MONOLITHIC )
     KisakConstructor *priorityConstructor = __kisak_priority_ctors_start;

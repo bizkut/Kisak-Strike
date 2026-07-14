@@ -24,7 +24,7 @@ Latest staged monolithic package:
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.05
-SHA-256: fd142f44f5cffdb61f0b2103e2720cf13bc000a394031e031c729f116c128b0d
+SHA-256: eb131afe29cd0f8d21eea60f620fed87ad8b929fca2544c912d601906dd9bfa7
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -38,8 +38,11 @@ Current hardware baseline:
   `ClientDLL_Load` treats the absent optional `ClientRenderTargets001`
   interface as failure. v4.32 honors the optional contract, retains CS:GO's
   registrar in the monolith, adds exact client/server/shared-system gates, and
-  makes the static matchmaking event dispatcher restart-safe; hardware
-  validation is pending.
+  makes the static matchmaking event dispatcher restart-safe. Hardware v4.32
+  validates all of those gates plus app-system dependency ordering, Connect,
+  Init, PostInit, and entry into the inner engine main. It then crashes during
+  `Host_Init`, after the global and save-worker thread pools both report a
+  successful start.
 - OpenGNM opens two 1920x1080 VideoOut buffers and completes repeated VSYNC
   flips. The v1.78 run sustains approximately 60 FPS without a crash.
 - The presentation stress loop has reached at least frame 1200 with matching
@@ -5809,10 +5812,12 @@ All 14 host tests pass. The package contains 895 prepared Scaleform assets and
 is staged at `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `fd142f44f5cffdb61f0b2103e2720cf13bc000a394031e031c729f116c128b0d`.
 The streamed FTP digest matches the local package. These are build/package
-results only; the v4.32 lifecycle remains hardware-unvalidated. The black-screen
-report immediately before this package produced no `/data/kisak-strike/startup.log`
-or coredump, so it did not validate even `main()`; install and launch the staged
-KISK00002 package before attributing a subsequent failure to Source startup.
+results only. Hardware v4.32 subsequently validated the complete module and
+app-system lifecycle through `app before main`. The capture stops after the
+one-thread save-worker pool returns `thread pool start complete`, narrowing the
+crash to the following untraced `Host_Init` initialization sequence. Preserved
+capture:
+`hardware-captures/logs/2026-07-14/kisak_v432_host_init_thread_pool_crash.txt`.
 
 The first hardware pass must show the static matchmaking factory/interface,
 then this client sequence:
@@ -5835,6 +5840,27 @@ preinit, init, and postinit stages to the inner `app before main`. Material
 system initialization must also exercise the retained client-target interface
 without allocation or rendering failure before menu or offline-match acceptance
 is claimed.
+
+### v4.33: Trace the exact Host_Init subsystem boundary
+
+Version 4.33 wraps the existing PS4 `TRACEINIT` macro with bounded dispatch,
+before, and after breadcrumbs plus the original initialization expression.
+The dispatch marker precedes `TraceInit` bookkeeping, while the before marker
+follows it. This preserves the
+initialization and shutdown tracker while identifying whether the v4.32 crash
+occurs in save/restore completion, console, memory, command buffer, cvar, view,
+common, filter, key, networking, server, client, material, Scaleform, model,
+studio-render, matchmaking, VGUI, or audio initialization. The instrumentation
+is PS4-only and has no per-frame cost.
+
+Marker: `kisak-ps4: build marker host_traceinit_v433`.
+
+The package contains 895 prepared Scaleform assets and is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`eb131afe29cd0f8d21eea60f620fed87ad8b929fca2544c912d601906dd9bfa7`.
+The next hardware log must end with an exact dispatch/before/after expression;
+that identifies tracker bookkeeping separately from the initialization call
+and becomes the next implementation boundary.
 
 ### PS3 Scaleform UI cross-reference priorities
 

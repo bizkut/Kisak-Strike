@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -11,6 +11,22 @@
 #include "utlvector.h"
 #include "sys.h"
 #include "common.h"
+
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+
+void KisakPs4TraceInitPhase( const char *phase, const char *functionName )
+{
+	const char *phaseBreadcrumb = "kisak-ps4: trace init after";
+	if ( phase && phase[0] == 'd' )
+		phaseBreadcrumb = "kisak-ps4: trace init dispatch";
+	else if ( phase && phase[0] == 'b' )
+		phaseBreadcrumb = "kisak-ps4: trace init before";
+
+	KisakPs4StartupBreadcrumb( phaseBreadcrumb );
+	KisakPs4StartupBreadcrumb( functionName );
+}
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
