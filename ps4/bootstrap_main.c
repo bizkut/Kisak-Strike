@@ -46,7 +46,7 @@ int main( int argc, char **argv )
 {
     FILE *log = OpenStartupLog();
     LogLine( log, "kisak-ps4: bootstrap entered" );
-    LogLine( log, "kisak-ps4: build marker source_preinit_focus_v428" );
+    LogLine( log, "kisak-ps4: build marker filesystem_absolute_game_v429" );
 
 #if defined( KISAK_PS4_MONOLITHIC )
     KisakConstructor *priorityConstructor = __kisak_priority_ctors_start;

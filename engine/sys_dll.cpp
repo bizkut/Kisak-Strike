@@ -93,7 +93,7 @@ void SeedRandomNumberGenerator( bool random_invariant );
 void Con_ColorPrintf( const Color& clr, const char *fmt, ... );
 
 void COM_ShutdownFileSystem( void );
-void COM_InitFilesystem( const char *pFullModPath );
+bool COM_InitFilesystem( const char *pFullModPath );
 
 modinfo_t			gmodinfo;
 

@@ -886,7 +886,7 @@ const char *COM_GetModDirectory()
 COM_InitFilesystem
 ================
 */
-void COM_InitFilesystem( const char *pFullModPath )
+bool COM_InitFilesystem( const char *pFullModPath )
 {
 #if defined( PLATFORM_PS4 )
 	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem entered" );
@@ -974,10 +974,15 @@ void COM_InitFilesystem( const char *pFullModPath )
 #endif
 	FSReturnCode_t searchPathResult = FileSystem_LoadSearchPaths( initInfo );
 #if defined( PLATFORM_PS4 )
-	KisakPs4StartupBreadcrumb( searchPathResult == FS_OK
-		? "kisak-ps4: com filesystem search paths ready"
-		: "kisak-ps4: com filesystem search paths failed" );
+	if ( searchPathResult != FS_OK )
+	{
+		KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem search paths failed" );
+		return false;
+	}
+	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem search paths ready" );
 	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem before absolute mod path" );
+#else
+	(void)searchPathResult;
 #endif
 
 	// The mod path becomes com_gamedir.
@@ -1012,6 +1017,7 @@ void COM_InitFilesystem( const char *pFullModPath )
 	#if defined( PLATFORM_PS4 )
 	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem complete" );
 	#endif
+	return true;
 }
 
 const char *COM_DXLevelToString( int dxlevel )

@@ -452,6 +452,9 @@ static bool FileSystem_GetBaseDir( char *baseDir, int baseDirLen )
 	V_strncpy( baseDir,  g_pPS3PathInfo->GameImagePath(), baseDirLen );
 		
 	return baseDir[0] != 0;
+#elif defined( PLATFORM_PS4 )
+	V_strncpy( baseDir, CommandLine()->ParmValue( "-basedir", "/app0" ), baseDirLen );
+	return baseDir[0] != 0;
 #else
 	if ( FileSystem_GetExecutableDir( baseDir, baseDirLen ) )
 	{
@@ -861,12 +864,10 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths platform ready" );
 #endif
 
-	// these specialized tool paths are not used on 360 and cause a costly constant perf tax, so inhibited
+	// these specialized tool paths are not used on consoles and cause a costly constant perf tax, so inhibited
+#if !defined( PLATFORM_PS4 )
 	if ( IsPC() )
 	{
-#if defined( PLATFORM_PS4 )
-		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths before content paths" );
-#endif
 		// Create a content search path based on the game search path
 		char szContentRoot[MAX_PATH];
 		V_strncpy( szContentRoot, baseDir, sizeof(szContentRoot) );
@@ -908,10 +909,10 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 		// Also, mark specific path IDs as "by request only". That way, we won't waste time searching in them
 		// when people forget to specify a search path.
 		initInfo.m_pFileSystem->MarkPathIDByRequestOnly( "content", true );
-#if defined( PLATFORM_PS4 )
-		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths content paths ready" );
-#endif
 	}
+#else
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths content tools skipped" );
+#endif
 
 	// Also, mark specific path IDs as "by request only". That way, we won't waste time searching in them
 	// when people forget to specify a search path.

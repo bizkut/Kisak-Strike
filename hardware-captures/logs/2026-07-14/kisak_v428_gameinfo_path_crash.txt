@@ -1,0 +1,32 @@
+kisak-ps4: app before preinit
+kisak-ps4: content search paths mounted
+kisak-ps4: content packaged probe readable
+kisak-ps4: content gameinfo readable
+kisak-ps4: content sound manifest readable
+kisak-ps4: content vmt readable
+kisak-ps4: content vtf readable
+kisak-ps4: content bsp readable
+kisak-ps4: content probes complete
+kisak-ps4: startup info storage ready
+kisak-ps4: startup info instance ready
+kisak-ps4: startup info base directory ready
+kisak-ps4: startup info before initial mod
+kisak-ps4: startup info initial mod ready
+kisak-ps4: startup info before initial game
+kisak-ps4: startup info initial game ready
+kisak-ps4: startup info before engine call
+kisak-ps4: engine startup info entered
+kisak-ps4: engine startup info text mode copied
+kisak-ps4: engine startup info base directory copied
+kisak-ps4: engine startup info structure copied
+kisak-ps4: engine startup info before filesystem trace
+kisak-ps4: engine startup info after filesystem trace
+kisak-ps4: engine startup info before filesystem init
+kisak-ps4: com filesystem entered
+kisak-ps4: com filesystem search info ready
+kisak-ps4: com filesystem interface ready
+kisak-ps4: com filesystem before search paths
+kisak-ps4: filesystem search paths entered
+kisak-ps4: filesystem search paths before game info
+kisak-ps4: com filesystem search paths failed
+kisak-ps4: com filesystem before absolute mod path

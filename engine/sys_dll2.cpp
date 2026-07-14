@@ -170,7 +170,7 @@ bool s_bIsDedicatedServer = false;
 void Host_GetHostInfo(float *fps, int *nActive, int *nMaxPlayers, char *pszMap, int maxlen );
 const char *Key_BindingForKey( ButtonCode_t code );
 void COM_ShutdownFileSystem( void );
-void COM_InitFilesystem( const char *pFullModPath );
+bool COM_InitFilesystem( const char *pFullModPath );
 void Host_ReadPreStartupConfiguration();
 void EditorToggle_f();
 
@@ -756,12 +756,16 @@ bool CEngineAPI::SetStartupInfo( StartupInfo_t &info )
 
 	// Needs to be done prior to init material system config
 	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info before filesystem init" );
+	if ( !COM_InitFilesystem( m_StartupInfo.m_pInitialMod ) )
+	{
+		KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info filesystem init failed" );
+		return false;
+	}
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info after filesystem init" );
 	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info before filesystem trace" );
 	TraceInit( "COM_InitFilesystem( m_StartupInfo.m_pInitialMod )", "COM_ShutdownFileSystem()", 0 );
 	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info after filesystem trace" );
-	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info before filesystem init" );
-	COM_InitFilesystem( m_StartupInfo.m_pInitialMod );
-	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info after filesystem init" );
 	#else
 	TRACEINIT( COM_InitFilesystem( m_StartupInfo.m_pInitialMod ), COM_ShutdownFileSystem() );
 	#endif
@@ -1832,7 +1836,7 @@ int CEngineAPI::Run()
 {
 	#if defined( PLATFORM_PS4 )
 	KisakPs4StartupBreadcrumb( "kisak-ps4: source engine run entered" );
-	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker source_preinit_focus_v428" );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker filesystem_absolute_game_v429" );
 	#endif
 	if ( CommandLine()->FindParm("-insecure") )
 	{
@@ -2913,7 +2917,13 @@ bool CDedicatedServerAPI::ModInit( ModInfo_t &info )
 
 	g_bTextMode = info.m_bTextMode;
 
+#if defined( PLATFORM_PS4 )
+	if ( !COM_InitFilesystem( info.m_pInitialMod ) )
+		return false;
+	TraceInit( "COM_InitFilesystem( info.m_pInitialMod )", "COM_ShutdownFileSystem()", 0 );
+#else
 	TRACEINIT( COM_InitFilesystem( info.m_pInitialMod ), COM_ShutdownFileSystem() );
+#endif
 	// set this up as early as possible, if the server isn't going to run pure, stop CRCing bits as we load them
 	// this happens even before the ConCommand's are processed, but we need to be sure to either CRC every file
 	// that is loaded, or not bother doing any

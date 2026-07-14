@@ -5661,7 +5661,37 @@ The v4.28 monolithic candidate builds successfully with the OpenOrbis LLVM 18
 toolchain and all 14 host tests pass. The packaged artifact is
 `build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `08fe55d100b3ca6e36f9b578c8aea10fc1869ca464aee7431fcd141e3dde5c29`.
-Hardware validation is pending.
+The 3,329-line hardware run validates every v4.28 boundary through
+`FileSystem_LoadSearchPaths`. It then reports `com filesystem search paths
+failed` and crashes after `before absolute mod path`, proving that the legacy
+code ignored the failed search-path result and passed an unset mod path to
+`Q_MakeAbsolutePath`.
+
+### v4.29 candidate: use the mounted absolute game directory during Source preinit
+
+The layered `IFileSystem` probes can read the external `gameinfo.txt`, but
+`LoadGameInfoFile` deliberately uses raw stdio. The launcher was still passing
+the relative command-line value `csgo`, so that raw open depended on an invalid
+ambient working directory. Version 4.29 passes the stable launcher game path
+`/data/kisak-strike/csgo` as `StartupInfo_t::m_pInitialMod`, establishes
+`/app0` as the packaged launcher/filesystem base, and leaves `m_pInitialGame`
+as the Source game identifier `csgo`.
+
+The early PS4 mounts now use `GAME` and `PLATFORM` only. The gameinfo loader
+creates the one authoritative `MOD` path from its first `Game` entry, avoiding
+a semicolon-composite `MOD` value in desktop add-on reconciliation. PS4 also
+skips the desktop-only `CONTENT` path synthesis that searches for Windows
+backslashes. Finally, `COM_InitFilesystem` returns its status and
+`CEngineAPI::SetStartupInfo` propagates PS4 search-path failure instead of
+continuing with an invalid `m_ModPath`.
+
+Marker: `kisak-ps4: build marker filesystem_absolute_game_v429`. The PS4
+monolith builds successfully and all 14 host tests pass. Hardware validation is
+pending; the packaged artifact is
+`build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`4500710c79b6fd73279f1a777301117ffb4b241e67f004d5eaf929d35a1a5d8a`.
+The next gate is `filesystem search paths game info ready`, followed by
+base-directory and individual search-entry markers.
 
 ### PS3 Scaleform UI cross-reference priorities
 

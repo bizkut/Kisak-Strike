@@ -362,6 +362,10 @@ void UTIL_ComputeBaseDir()
 #ifndef _PS3
 	g_szBasedir[0] = 0;
 
+#if defined( PLATFORM_PS4 )
+	Q_strncpy( g_szBasedir, "/app0", sizeof( g_szBasedir ) );
+#endif
+
 	if ( IsX360() )
 	{
 		char const *pBaseDir = CommandLine()->ParmValue( "-basedir" );
@@ -966,14 +970,10 @@ bool CSourceAppSystemGroup::PreInit()
 
 	SetGameDirectory( contentLayout.externalGame );
 	g_pFullFileSystem->AddSearchPath( contentLayout.packagedGame, "GAME", PATH_ADD_TO_TAIL );
-	g_pFullFileSystem->AddSearchPath( contentLayout.packagedGame, "MOD", PATH_ADD_TO_TAIL );
 	g_pFullFileSystem->AddSearchPath( contentLayout.packagedRoot, "GAME", PATH_ADD_TO_TAIL );
-	g_pFullFileSystem->AddSearchPath( contentLayout.packagedRoot, "MOD", PATH_ADD_TO_TAIL );
 	g_pFullFileSystem->AddSearchPath( contentLayout.packagedPlatform, "PLATFORM", PATH_ADD_TO_TAIL );
 	g_pFullFileSystem->AddSearchPath( contentLayout.externalRoot, "GAME", PATH_ADD_TO_HEAD );
-	g_pFullFileSystem->AddSearchPath( contentLayout.externalRoot, "MOD", PATH_ADD_TO_HEAD );
 	g_pFullFileSystem->AddSearchPath( contentLayout.externalGame, "GAME", PATH_ADD_TO_HEAD );
-	g_pFullFileSystem->AddSearchPath( contentLayout.externalGame, "MOD", PATH_ADD_TO_HEAD );
 	g_pFullFileSystem->AddSearchPath( contentLayout.externalPlatform, "PLATFORM", PATH_ADD_TO_HEAD );
 	g_pFullFileSystem->AddSearchPath( contentLayout.writeRoot, "DEFAULT_WRITE_PATH", PATH_ADD_TO_HEAD );
 	g_pFullFileSystem->AddSearchPath( contentLayout.writeRoot, "LOGDIR", PATH_ADD_TO_HEAD );
@@ -1075,7 +1075,11 @@ bool CSourceAppSystemGroup::PreInit()
 	Ps4LauncherBreadcrumb( "kisak-ps4: startup info base directory ready" );
 	Ps4LauncherBreadcrumb( "kisak-ps4: startup info before initial mod" );
 #endif
+#if defined( PLATFORM_PS4 )
+	info.m_pInitialMod = GetGameDirectory();
+#else
 	info.m_pInitialMod = DetermineDefaultMod();
+#endif
 #if defined( PLATFORM_PS4 )
 	Ps4LauncherBreadcrumb( "kisak-ps4: startup info initial mod ready" );
 	Ps4LauncherBreadcrumb( "kisak-ps4: startup info before initial game" );
