@@ -2,6 +2,7 @@
 #include "ps4/scaleform_gnm_hal.h"
 #include "ps4/scaleform_asset_path.h"
 #include "ps4/scaleform_menu_actions.h"
+#include "ps4/offline_launch_request.h"
 
 #include "GFx.h"
 #include "GFxVersion.h"
@@ -659,8 +660,10 @@ public:
           m_startScreenReady( false ), m_mainMenuReady( false ),
           m_audioLogged( false ), m_pendingMenuAction( kKisakPs4ScaleformMenuActionNone ),
           m_pendingHideMainMenu( false ), m_menuCommandsLogged( 0 ),
-          m_singlePlayerActionsLogged( 0 )
+          m_singlePlayerActionsLogged( 0 ), m_customBotDifficulty( 1 ),
+          m_singlePlayerLaunchSubmitted( false )
     {
+        m_matchmakingQuery[0] = '\0';
     }
 
     void Call( const Params &params ) override
@@ -953,16 +956,43 @@ public:
                 params.pRetVal->SetNumber( 1.0 );
             break;
         case kCallbackSinglePlayerOnOk:
+        {
+            bool submitted = false;
+            if ( !m_singlePlayerLaunchSubmitted && m_matchmakingQuery[0] )
+            {
+                submitted = KisakPs4SubmitOfflineLaunch(
+                    m_matchmakingQuery, m_customBotDifficulty );
+                m_singlePlayerLaunchSubmitted = submitted;
+            }
             if ( m_singlePlayerActionsLogged++ < 8 )
-                KisakPs4StartupBreadcrumb(
-                    "kisak-ps4: scaleform single-player launch requested; engine handoff pending" );
+            {
+                char marker[192];
+                snprintf( marker, sizeof( marker ),
+                    "kisak-ps4: scaleform single-player OnOk query=%u bot=%d submitted=%u duplicate=%u",
+                    m_matchmakingQuery[0] ? 1u : 0u, m_customBotDifficulty,
+                    submitted ? 1u : 0u,
+                    m_singlePlayerLaunchSubmitted && !submitted ? 1u : 0u );
+                KisakPs4StartupBreadcrumb( marker );
+            }
             break;
+        }
         case kCallbackDownloadCurrentGamesCount:
-        case kCallbackSetCustomBotDifficulty:
-        case kCallbackSetMatchmakingQuery:
         case kCallbackUpdatePendingInvites:
         case kCallbackUpdatedSelections:
         case kCallbackViewAllMapsInWorkshop:
+            break;
+        case kCallbackSetCustomBotDifficulty:
+            if ( params.pArgs && params.ArgCount > 0 && params.pArgs[0].IsNumber() )
+                m_customBotDifficulty = static_cast< int >(
+                    params.pArgs[0].GetNumber() );
+            break;
+        case kCallbackSetMatchmakingQuery:
+            if ( params.pArgs && params.ArgCount > 0 && params.pArgs[0].IsString() )
+            {
+                V_strncpy( m_matchmakingQuery, params.pArgs[0].GetString(),
+                    sizeof( m_matchmakingQuery ) );
+                m_singlePlayerLaunchSubmitted = false;
+            }
             break;
         case kCallbackSendUIEvent:
             if ( m_uiEvents++ == 0 )
@@ -1002,6 +1032,9 @@ private:
     bool m_pendingHideMainMenu;
     uint32_t m_menuCommandsLogged;
     uint32_t m_singlePlayerActionsLogged;
+    int m_customBotDifficulty;
+    char m_matchmakingQuery[2048];
+    bool m_singlePlayerLaunchSubmitted;
 };
 
 enum

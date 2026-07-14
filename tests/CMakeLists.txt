@@ -55,6 +55,15 @@ set_target_properties(ps4_scaleform_menu_actions_test PROPERTIES
     CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_scaleform_menu_actions COMMAND ps4_scaleform_menu_actions_test)
 
+add_executable(ps4_offline_launch_request_test
+    ps4_offline_launch_request_test.cpp
+    ../ps4/offline_launch_request.cpp
+)
+target_include_directories(ps4_offline_launch_request_test PRIVATE ..)
+set_target_properties(ps4_offline_launch_request_test PROPERTIES
+    CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
+add_test(NAME ps4_offline_launch_request COMMAND ps4_offline_launch_request_test)
+
 add_executable(ps4_gnm_device_test
     ps4_gnm_device_test.cpp
     ../materialsystem/ps4gnm/ps4_gnm_buffer.cpp

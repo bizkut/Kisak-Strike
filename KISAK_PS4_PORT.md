@@ -5386,6 +5386,43 @@ Presentation follow-ups remain visible but are not launch blockers: the
 and this animated selection screen was captured near 30 FPS. They remain
 separate glyph-substitution and retained-tree performance tasks.
 
+### v4.23: Preserve and validate the offline launch request
+
+The authentic Single Player ActionScript does not pass launch selections to
+`OnOk`. It first calls `SetCustomBotDifficulty(index)`, then supplies the full
+KeyValues-style request to `SetMatchmakingQuery(settings)`, and finally invokes
+the zero-argument `OnOk`. The PS4 callback table previously discarded both
+setters, so the final callback had no actionable context and repeated callback
+delivery produced eight identical pending-handoff messages.
+
+The bridge now retains the bot index and bounded query, resets deduplication
+when a new query arrives, and accepts only a structurally valid offline-create
+request. A host-tested parser requires `System/network=offline`, the game type,
+mode, map-group and skirmish fields, and `Options/action=create`. It rejects
+online, incomplete, and out-of-range bot requests. A valid `OnOk` submits the
+typed request once; duplicate callbacks cannot enqueue it again.
+
+The presentation-only `CPs4EngineLauncher` retains the complete typed request
+and logs its type, mode, map group, skirmish mode, and bot difficulty at the
+main-loop boundary. It deliberately marks the real lifecycle as pending: the
+current monolith does not yet link the full matchmaking/client/server modules,
+where the original implementation calls `g_pMatchFramework->CreateSession`
+and sends the session a `Start` command. This avoids claiming a match launch
+before that lifecycle exists while preserving every selection needed to add
+it.
+
+Marker: `kisak-ps4: build marker offline_request_bridge_v423`.
+
+The v4.23 hardware gate is to complete the dialog through bot selection and
+confirm one `submitted=1` callback followed by one engine breadcrumb containing
+the selected type, mode, map group, skirmish, and bot values. Repeated `OnOk`
+delivery may report `duplicate=1` but must not enqueue another request.
+
+All 14 host tests, including the new offline-request parser cases, pass. The
+PS4 monolithic link and package build complete. The v4.23 package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its local SHA-256 is
+`007c8b254dd728a54fe8f307a72e523c56c0b3231d78455060084be0fc206499`.
+
 ### PS3 Scaleform UI cross-reference priorities
 
 The extracted PS3 movies and Kisak drivers confirm that the movie,

@@ -1,6 +1,7 @@
 #include "icvar.h"
 #include "common/engine_launcher_api.h"
 #include "inputsystem/iinputsystem.h"
+#include "ps4/offline_launch_request.h"
 #include "scaleformui/ps4_scaleformui.h"
 #include "tier1/convar.h"
 
@@ -26,6 +27,10 @@ extern "C" bool KisakPs4ScaleformMovieInstanceProbe();
 
 namespace
 {
+KisakPs4OfflineLaunchRequest g_pendingOfflineLaunch = {};
+bool g_offlineLaunchPending = false;
+bool g_offlineLaunchObserved = false;
+
 struct Ps4SourceFrameContext
 {
     IPs4ScaleformUI *scaleformUI;
@@ -132,7 +137,7 @@ public:
     int Run() override
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-    KisakPs4StartupBreadcrumb( "kisak-ps4: build marker scaleform_data_gamemodes_v422" );
+    KisakPs4StartupBreadcrumb( "kisak-ps4: build marker offline_request_bridge_v423" );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformSdkVersion() );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformKernelSelfTest()
 			? "kisak-ps4: scaleform kernel self-test passed"
@@ -179,6 +184,19 @@ public:
 					break;
 				}
 			}
+			if ( g_offlineLaunchPending && !g_offlineLaunchObserved )
+			{
+				char marker[320];
+				snprintf( marker, sizeof( marker ),
+					"kisak-ps4: engine offline request queued type=%s mode=%s mapgroup=%s skirmish=%d bot=%d lifecycle=pending",
+					g_pendingOfflineLaunch.gameType,
+					g_pendingOfflineLaunch.gameMode,
+					g_pendingOfflineLaunch.mapGroup,
+					g_pendingOfflineLaunch.skirmishMode,
+					g_pendingOfflineLaunch.botDifficulty );
+				KisakPs4StartupBreadcrumb( marker );
+				g_offlineLaunchObserved = true;
+			}
 			if ( !videoOutReady )
 				std::this_thread::sleep_for( std::chrono::milliseconds( 16 ) );
 			++frame;
@@ -214,6 +232,22 @@ private:
 
 CPs4CvarQuery g_Ps4CvarQuery;
 CPs4EngineLauncher g_Ps4EngineLauncher;
+}
+
+extern "C" bool KisakPs4SubmitOfflineLaunch(
+    const char *query, int botDifficulty )
+{
+    KisakPs4OfflineLaunchRequest request = {};
+    if ( !KisakPs4ParseOfflineLaunchRequest( query, botDifficulty, &request ) )
+    {
+        KisakPs4StartupBreadcrumb(
+            "kisak-ps4: engine offline request rejected invalid payload" );
+        return false;
+    }
+    g_pendingOfflineLaunch = request;
+    g_offlineLaunchPending = true;
+    g_offlineLaunchObserved = false;
+    return true;
 }
 
 CreateInterfaceFn KisakEngineBootstrapFactory();
