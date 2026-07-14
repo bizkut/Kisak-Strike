@@ -2100,7 +2100,7 @@ void CEngineVGui::Simulate()
 			w = rect.right;
 			h = rect.bottom;
 		}
-#elif defined( _PS3 )
+#elif defined( _PS3 ) || defined( ORBIS )
 		g_pMaterialSystem->GetBackBufferDimensions( w, h );
 #else
 #error
@@ -2264,7 +2264,7 @@ void CEngineVGui::Paint( PaintMode_t mode )
 		w = rect.right;
 		h = rect.bottom;
 	}
-#elif defined( _PS3 )
+#elif defined( _PS3 ) || defined( ORBIS )
 	g_pMaterialSystem->GetBackBufferDimensions( w, h );
 #else
 #error

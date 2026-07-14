@@ -5217,16 +5217,16 @@ static bool Host_IsValidSignature( const char *pFilename, bool bAllowUnknown )
 // Ask steam if it is ok to load this DLL.  Unsigned DLLs should not be loaded unless
 // the client is running -insecure (testing a plugin for example)
 // This keeps legitimate users with modified binaries from getting VAC banned because of them
-#if defined( DEDICATED ) || defined( OSX ) || defined( LINUX )
+#if defined( DEDICATED ) || defined( OSX ) || defined( LINUX ) || defined( ORBIS )
 #else
 static CUtlVector< CUtlString * > g_PendingSignatureChecks;
 static CUtlVector< CUtlString * > g_FailedSignatureChecks;
 #endif
 bool Host_AllowLoadModule( const char *pFilename, const char *pPathID, bool bAllowUnknown )
 {
-#if defined( DEDICATED ) || defined( OSX ) || defined( LINUX )
+#if defined( DEDICATED ) || defined( OSX ) || defined( LINUX ) || defined( ORBIS )
 	// dedicated servers don't check signatures
-	// OSX and Linux have no ability to check signatures
+	// OSX, Linux, and the Steam-free PS4 client do not check Steam signatures.
 	return true;
 #else
 	// Allow loading plugins
@@ -5321,7 +5321,7 @@ void Host_DisallowSecureServers()
 
 void Host_FinishSecureSignatureChecks()
 {
-#if defined( DEDICATED ) || defined( OSX ) || defined( LINUX )
+#if defined( DEDICATED ) || defined( OSX ) || defined( LINUX ) || defined( ORBIS )
 #else
 	while ( g_PendingSignatureChecks.Count() )
 	{

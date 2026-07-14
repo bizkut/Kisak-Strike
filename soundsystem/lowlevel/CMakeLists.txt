@@ -28,7 +28,7 @@ if( LINUXALL )
     target_compile_options(${OUTLIBNAME} PRIVATE -fpic -fno-semantic-interposition)
 endif()
 
-if( POSIX )
+if( POSIX AND NOT ORBIS )
     target_sources(${OUTLIBNAME} PRIVATE "device_sdl.cpp")
 endif()
 target_sources(${OUTLIBNAME} PRIVATE "device_null.cpp")

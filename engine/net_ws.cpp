@@ -489,7 +489,11 @@ int NET_OpenSocket ( const char *net_interface, int& port, int protocol )
 
 	
 	opt =  1; // make it non-blocking
+#if defined( ORBIS )
+	int ret = fcntl( newsocket, F_SETFL, fcntl( newsocket, F_GETFL, 0 ) | O_NONBLOCK );
+#else
 	int ret = ioctlsocket( newsocket, FIONBIO, (unsigned long*)&opt );
+#endif
 	if ( ret == -1 )
 	{
 		NET_GetLastError();
@@ -1446,7 +1450,7 @@ static bool NET_ReceiveDatagram_Helper( const int sock, netpacket_t * packet, bo
 	Assert ( packet );
 	Assert ( net_multiplayer );
 
-#if defined( _DEBUG ) && !defined( _PS3 )
+#if defined( _DEBUG ) && !defined( _PS3 ) && !defined( ORBIS )
 	if ( recvpackets.GetInt() >= 0 )
 	{
 		unsigned long bytes;
@@ -5334,5 +5338,4 @@ CON_COMMAND( net_encrypt_key_make_clusters, "Generate certificates and their sig
 	}
 }
 #endif
-
 

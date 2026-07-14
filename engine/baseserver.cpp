@@ -13,7 +13,7 @@
 
 #if defined(_WIN32) && !defined(_X360)
 #include "winlite.h"		// FILETIME
-#elif defined(OSX) || defined(CYGWIN)
+#elif defined(OSX) || defined(CYGWIN) || defined(ORBIS)
 #include <time.h>                  
 #include <sys/time.h>                  
 #include <sys/resource.h>                  

@@ -160,6 +160,9 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     set(USE_SCALEFORM OFF CACHE BOOL "" FORCE)
     set(USE_ROCKETUI OFF CACHE BOOL "" FORCE)
     set(USE_KISAK_PHYSICS ON CACHE BOOL "" FORCE)
+    set(NO_STEAM ON CACHE BOOL "Disable proprietary Steam runtime on PS4" FORCE)
+    option(KISAK_PS4_BUILD_SOURCE_ENGINE
+        "Compile the real Source engine as the next monolithic integration gate" ON)
 
     set(KISAK_OPENGNM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../opengnm" CACHE PATH "OpenGNM PS4 source/build root")
 
@@ -197,6 +200,17 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     add_subdirectory(vguimatsurface)
     add_subdirectory(appframework)
     add_subdirectory(launcher)
+    if(KISAK_PS4_BUILD_SOURCE_ENGINE)
+        set(protobuf_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+        set(protobuf_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+        set(protobuf_WITH_ZLIB OFF CACHE BOOL "" FORCE)
+        add_subdirectory(thirdparty/protobuf-2.5.0/cmake)
+        add_subdirectory(utils/bzip2)
+        add_subdirectory(thirdparty/quickhull)
+        add_subdirectory(soundsystem/lowlevel)
+        add_subdirectory(vgui2/matsys_controls)
+        add_subdirectory(engine)
+    endif()
 
     file(READ "${OPENORBIS_ROOT}/link.x" KISAK_OPENORBIS_LINK_SCRIPT)
     string(REPLACE "\t.data.sce_process_param"

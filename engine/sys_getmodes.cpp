@@ -17,6 +17,15 @@
 		#include <Carbon/Carbon.h>
 	#endif
 typedef void *HDC;
+#if defined( ORBIS )
+struct RECT
+{
+	long left;
+	long top;
+	long right;
+	long bottom;
+};
+#endif
 #endif
 
 #include "appframework/ilaunchermgr.h"
@@ -997,6 +1006,7 @@ void CVideoMode_Common::InvalidateWindow()
         Rect bounds = { 0,0,w,t}; // inval is in local co-ords
         InvalWindowRect( (WindowRef)game->GetMainWindow(), &bounds );
 #elif defined( _PS3 )
+#elif defined( ORBIS )
 #else
 #error
 #endif
@@ -1116,7 +1126,9 @@ typedef struct tagRGBQUAD {
 #define BI_RLE4       2L
 #define BI_BITFIELDS  3L
 
+#if !defined( ORBIS )
 typedef GUID UUID;
+#endif
 
 #endif //WIN32
 //-----------------------------------------------------------------------------
@@ -1309,7 +1321,7 @@ int CVideoMode_Common::GetRefreshRateForMode( const vmode_t *pMode )
 //-----------------------------------------------------------------------------
 void CVideoMode_Common::AdjustWindow( int nWidth, int nHeight, int nBPP, bool bWindowed, bool bNoWindowBorder )
 {
-	if ( IsPS3() )
+	if ( IsPS3() || IsPS4() )
 	{
 		if ( game )
 			game->SetWindowSize( nWidth, nHeight );
@@ -2574,6 +2586,7 @@ void CVideoMode_MaterialSystem::RestoreVideo( void )
 // 	XMapWindow( g_pLauncherMgr->GetDisplay(), (Window)game->GetMainWindow() );
 // !!! FIXME: Mapping isn't really what we want here.
 #elif _WIN32
+#elif defined( ORBIS )
 #else
 #error
 #endif
@@ -2610,6 +2623,7 @@ void CVideoMode_MaterialSystem::ReleaseFullScreen( void )
 //	XUnmapWindow( g_pLauncherMgr->GetDisplay(), (Window)game->GetMainWindow() );
 // !!! FIXME: Unmapping isn't really what we want here.
 #elif _WIN32
+#elif defined( ORBIS )
 #else
 #error
 #endif

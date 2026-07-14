@@ -19,6 +19,7 @@
 #endif
 #elif defined(LINUX)
 #elif defined( _PS3 )
+#elif defined( ORBIS )
 #elif defined(OSX)
 #include <Carbon/Carbon.h>
 #else
@@ -180,6 +181,8 @@ WindowRef pmainwindow;
 #elif LINUX
 void *pmainwindow = NULL;
 #elif defined( _PS3 )
+void *pmainwindow = NULL;
+#elif defined( ORBIS )
 void *pmainwindow = NULL;
 #else
 #error
@@ -1009,6 +1012,8 @@ void CEngineAPI::PumpMessages()
 	}
 #elif defined( OSX ) || defined( USE_SDL )
 	g_pLauncherMgr->PumpWindowsMessageLoop();
+#elif defined( ORBIS )
+	// VideoOut and Pad are pumped by the PS4 platform layer.
 #else
 #error
 #endif
@@ -1099,6 +1104,7 @@ void CEngineAPI::PumpMessagesEditMode( bool &bIdle, long &lIdleCount )
 		ReleaseEvent(theEvent);
 	}
 #elif defined( _PS3 )
+#elif defined( ORBIS )
 #elif defined( LINUX )
 #else
 #error

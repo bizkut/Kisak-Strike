@@ -33,6 +33,9 @@
 //#include <netinet/tcp.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#if defined( PLATFORM_PS4 )
+#include <fcntl.h>
+#endif
 #define closesocket close
 #define WSAGetLastError() errno
 #define ioctlsocket ioctl
@@ -88,7 +91,12 @@ CNetConsoleMgr::CNetConsoleMgr( void ) : m_Socket( this )
 	{
 		int opt = 1;
 		// set this socket to non-blocking
+#if defined( PLATFORM_PS4 )
+		fcntl( g_nSocketToParentProcess, F_SETFL,
+			fcntl( g_nSocketToParentProcess, F_GETFL, 0 ) | O_NONBLOCK );
+#else
 		ioctlsocket( g_nSocketToParentProcess, FIONBIO, (unsigned long*)&opt ); // non-blocking
+#endif
 		m_ParentConnection.m_hSocket = g_nSocketToParentProcess;
 		m_ParentConnection.m_bAuthorized = true;			// no password needed from parent
 		m_ParentConnection.m_bInputOnly = true;				// we don't want to spew to here
@@ -196,7 +204,26 @@ void CNetConsoleMgr::RunFrame( void )
 			continue;
 		}
 
-		// find out how much we have to read
+		// Find out how much we have to read. OpenOrbis does not expose
+		// FIONREAD, so drain the already non-blocking socket directly.
+#if defined( PLATFORM_PS4 )
+		for ( ;; )
+		{
+			char recvBuf[256];
+			int recvLen = recv( hSocket, recvBuf, sizeof( recvBuf ), 0 );
+			if ( recvLen == 0 )
+			{
+				CloseConnection( i );
+				break;
+			}
+			if ( recvLen < 0 )
+				break;
+
+			HandleInputChars( recvBuf, recvLen, pData );
+			if ( recvLen < static_cast<int>( sizeof( recvBuf ) ) )
+				break;
+		}
+#else
 		unsigned long readLen;
 		ioctlsocket( hSocket, FIONREAD, &readLen );
 		while( readLen > 0  )
@@ -218,6 +245,7 @@ void CNetConsoleMgr::RunFrame( void )
 			// now, lets write what we've got into the command buffer
 			HandleInputChars( recvBuf, recvLen, pData );
 		}
+#endif
 	}
 }
 
@@ -255,4 +283,3 @@ void CNetConsoleMgr::HandleInputChars( char const *pIn, int recvLen, CConnectedN
 CNetConsoleMgr *g_pNetConsoleMgr;
 
 #endif // support_netconsole
-

@@ -570,8 +570,8 @@ void CRConClient::RunFrame()
 
 	// find out how much we have to read
 	unsigned long readLen = 0;
-#ifdef _PS3
-	ExecuteNTimes( 5, Warning( "CRConClient unsupported on PS3!\n" ) );
+#if defined( _PS3 ) || defined( ORBIS )
+	ExecuteNTimes( 5, Warning( "CRConClient unsupported on this console!\n" ) );
 	readLen = 0;
 #else
 	ioctlsocket( hSocket, FIONREAD, &readLen );

@@ -689,6 +689,10 @@ void Sys_InitMemory( void )
 	{
 		memsize = ONE_HUNDRED_TWENTY_EIGHT_MB;
 	}
+#elif defined(ORBIS)
+	// Base PS4 exposes a 6 GiB application memory budget. Source ultimately
+	// clamps this value to its configured heap ceiling below.
+	memsize = 6ull * 1024ull * 1024ull * 1024ull;
 #elif defined(LINUX)
 	const int fd = open("/proc/meminfo", O_RDONLY);
 	if (fd < 0)
@@ -1692,8 +1696,8 @@ CON_COMMAND( star_memory, "Dump memory stats" )
 	struct mstats memstats = mstats( );
 	Msg( "Available %.2f MB, Used: %.2f MB, #mallocs = %d\n",
 		 memstats.bytes_free / ( 1024.0 * 1024.0), memstats.bytes_used / ( 1024.0 * 1024.0 ), memstats.chunks_used );
-#elif defined( _PS3 )
-	Msg( "Memory info on PS3: not implemented.\n" );
+#elif defined( _PS3 ) || defined( ORBIS )
+	Msg( "Memory info on this console is not implemented.\n" );
 #else
 	MEMORYSTATUSEX statex;
 	statex.dwLength = sizeof( MEMORYSTATUSEX );
@@ -1734,5 +1738,4 @@ static void errorcallstacks_length_callback( IConVar *var, const char *pOldValue
 }
 ConVar errorcallstacks_length( "errorcallstacks_length", "20", FCVAR_DEVELOPMENTONLY, "Length of automatic error callstacks", errorcallstacks_length_callback );
 #endif //#if defined( ENABLE_RUNTIME_STACK_TRANSLATION )
-
 

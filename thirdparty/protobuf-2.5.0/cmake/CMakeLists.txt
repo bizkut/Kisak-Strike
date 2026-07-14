@@ -1,8 +1,8 @@
 # Minimum CMake required
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.5)
 
 #Kisak-strike specific options
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE AND NOT ORBIS)
   #Downgrade ABI for kisakstrike
   message(STATUS "Downgrading CXX11 ABI for kisakstrike!")
   if(CMAKE_SYSTEM_PROCESSOR STREQUAL "e2k")

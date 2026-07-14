@@ -47,6 +47,8 @@
 #define WIN32_LEAN_AND_MEAN
 #undef INVALID_HANDLE_VALUE
 #include <winsock2.h> // gethostname
+#elif defined( ORBIS )
+#include <unistd.h> // gethostname
 #elif !IsGameConsole()
 #include <sys/unistd.h> // gethostname
 #endif

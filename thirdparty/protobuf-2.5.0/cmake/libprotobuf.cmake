@@ -16,13 +16,17 @@ set(libprotobuf_files
   ${protobuf_source_dir}/src/google/protobuf/text_format.cc
   ${protobuf_source_dir}/src/google/protobuf/unknown_field_set.cc
   ${protobuf_source_dir}/src/google/protobuf/wire_format.cc
-  ${protobuf_source_dir}/src/google/protobuf/io/gzip_stream.cc
   ${protobuf_source_dir}/src/google/protobuf/io/printer.cc
   ${protobuf_source_dir}/src/google/protobuf/io/tokenizer.cc
   ${protobuf_source_dir}/src/google/protobuf/io/zero_copy_stream_impl.cc
   ${protobuf_source_dir}/src/google/protobuf/compiler/importer.cc
   ${protobuf_source_dir}/src/google/protobuf/compiler/parser.cc
 )
+
+if (HAVE_ZLIB)
+  list(APPEND libprotobuf_files
+    ${protobuf_source_dir}/src/google/protobuf/io/gzip_stream.cc)
+endif()
 
 #kisak-strike: add this or the descriptor database is global!
 add_definitions(-fvisibility=hidden -fpic)

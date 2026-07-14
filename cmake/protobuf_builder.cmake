@@ -26,16 +26,22 @@ macro( TargetBuildAndAddProto TARGET_NAME PROTO_FILE PROTO_OUTPUT_FOLDER )
     set(PROTO_FILENAME)
     get_filename_component(PROTO_FILENAME ${PROTO_FILE} NAME_WLE) #name without any extensions (/home/gamer/swag.proto = swag)
 
-    add_custom_command(
-            OUTPUT "${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.cc"
-                   "${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.h"
-            COMMAND ${PROTO_COMPILER}
-            ARGS --cpp_out=. --proto_path=${SRCDIR}/game/shared/cstrike15 --proto_path=${SRCDIR}/thirdparty/protobuf-2.5.0/src --proto_path=${SRCDIR}/gcsdk --proto_path=${SRCDIR}/game/shared --proto_path=${SRCDIR}/common ${PROTO_FILE}
-            DEPENDS ${PROTO_FILE} ${PROTO_COMPILER}
-            WORKING_DIRECTORY ${PROTO_OUTPUT_FOLDER}
-            COMMENT "Running homemade protoc compiler on ${PROTO_FILE} - output (${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.cc)"
-            VERBATIM
-    )
+    if( NOT ORBIS )
+        add_custom_command(
+                OUTPUT "${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.cc"
+                       "${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.h"
+                COMMAND ${PROTO_COMPILER}
+                ARGS --cpp_out=. --proto_path=${SRCDIR}/game/shared/cstrike15 --proto_path=${SRCDIR}/thirdparty/protobuf-2.5.0/src --proto_path=${SRCDIR}/gcsdk --proto_path=${SRCDIR}/game/shared --proto_path=${SRCDIR}/common ${PROTO_FILE}
+                DEPENDS ${PROTO_FILE} ${PROTO_COMPILER}
+                WORKING_DIRECTORY ${PROTO_OUTPUT_FOLDER}
+                COMMENT "Running homemade protoc compiler on ${PROTO_FILE} - output (${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.cc)"
+                VERBATIM
+        )
+    elseif( NOT EXISTS "${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.cc" OR
+            NOT EXISTS "${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.h" )
+        message(FATAL_ERROR
+            "PS4 cross-build requires checked-in protobuf output for ${PROTO_FILENAME}")
+    endif()
 
     #add the output folder in the include path.
     target_include_directories(${TARGET_NAME} PRIVATE ${PROTO_OUTPUT_FOLDER})

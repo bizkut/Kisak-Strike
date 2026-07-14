@@ -512,13 +512,13 @@ uintp DownloadThread( void *voidPtr )
 	return rc.status;
 }
 
-#elif defined( _PS3 )
+#elif defined( _PS3 ) || defined( ORBIS )
 
 uintp DownloadThread( void *voidPtr )
 {
 	RequestContext& rc = *(RequestContext *)voidPtr;
 
-	Warning( "DownloadThread not implemented on PS3!\n" );
+	Warning( "DownloadThread not implemented on this console!\n" );
 	Assert( 0 );
 
 	return 0;
@@ -916,4 +916,3 @@ uintp DownloadThread( void *voidPtr )
 	return 0;
 }
 #endif
-

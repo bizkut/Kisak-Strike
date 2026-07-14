@@ -278,8 +278,8 @@ void CRConServer::RunFrame()
 		}
 
 		// find out how much we have to read
-#ifdef _PS3
-		ExecuteNTimes( 5, Warning( "PS3 implementation of SV_RCON is disabled!\n" ) );
+#if defined( _PS3 ) || defined( ORBIS )
+		ExecuteNTimes( 5, Warning( "Console implementation of SV_RCON is disabled!\n" ) );
 		readLen = 0;
 #else
 		ioctlsocket( hSocket, FIONREAD, &readLen );

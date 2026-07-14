@@ -29,6 +29,8 @@
 #include "ps3/ps3_win32stubs.h"
 #include <cell/audio.h>
 #include <sysutil/sysutil_sysparam.h>
+#elif defined( ORBIS )
+// VideoOut and Pad are owned by the PS4 platform layer; no desktop window API.
 #else
 #error
 #endif
@@ -213,6 +215,8 @@ private:
 	RECT			m_rcLastRestoredClientRect;
 #elif OSX
 	WindowRef		m_hWindow;
+#elif defined( ORBIS )
+	void			*m_hWindow;
 #else
 #error
 #endif
@@ -1192,6 +1196,8 @@ int CGame::WindowProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 #elif defined(_WIN32)
 
+#elif defined(ORBIS)
+
 #else
 #error
 #endif
@@ -1438,6 +1444,14 @@ bool CGame::CreateGameWindow( void )
 
 	AttachToWindow( );
 	return true;
+#elif defined(ORBIS)
+	modinfo->deleteThis();
+	modinfo = NULL;
+	m_hWindow = NULL;
+	m_iDesktopWidth = 1920;
+	m_iDesktopHeight = 1080;
+	m_iDesktopRefreshRate = 60;
+	return true;
 #else
 #error
 #endif
@@ -1480,6 +1494,7 @@ void CGame::DestroyGameWindow()
 #elif defined( OSX )
 	g_pLauncherMgr->DestroyGameWindow();
 #elif defined (_PS3)
+#elif defined (ORBIS)
 #else
 #error
 #endif
@@ -1500,6 +1515,8 @@ void CGame::SetGameWindow( void *hWnd )
 	Assert( !"unimpl OSX-64" );
 #elif defined( OSX )
 	SetUserFocusWindow( (WindowRef)hWnd );
+#elif defined( ORBIS )
+	m_hWindow = hWnd;
 #else
 #error
 #endif
@@ -1596,6 +1613,7 @@ bool CGame::InputAttachToGameWindow()
 	Assert( !"Impl me" );
 	return false;
 #elif defined(_PS3)
+#elif defined(ORBIS)
 #else
 #error
 #endif
@@ -1621,6 +1639,7 @@ void CGame::InputDetachFromGameWindow()
 #elif defined(_WIN32)
 	Assert( !"Impl me" );
 #elif defined(_PS3)
+#elif defined(ORBIS)
 #else
 #error
 #endif
@@ -2560,6 +2579,11 @@ void** CGame::GetMainWindowAddress( void )
 	m_hWindow = (WindowRef)g_pLauncherMgr->GetWindowRef();
 	return (void**)&m_hWindow;
 }
+#elif defined(ORBIS)
+void** CGame::GetMainWindowAddress( void )
+{
+	return &m_hWindow;
+}
 #else
 #error
 #endif
@@ -2615,6 +2639,10 @@ void CGame::GetDesktopInfo( int &width, int &height, int &refreshrate )
 	width = m_iDesktopWidth;
 	height = m_iDesktopHeight;
 	refreshrate = m_iDesktopRefreshRate;
+#elif defined(ORBIS)
+	width = 1920;
+	height = 1080;
+	refreshrate = 60;
 #else
 #error
 #endif
@@ -2645,6 +2673,10 @@ void CGame::UpdateDesktopInformation( HWND hWnd )
 	m_iDesktopWidth = (int)CGDisplayModeGetWidth(displayMode);
 	m_iDesktopHeight = (int)CGDisplayModeGetHeight(displayMode);;
 	m_iDesktopRefreshRate = (int)CGDisplayModeGetRefreshRate(displayMode);
+#elif defined(ORBIS)
+	m_iDesktopWidth = 1920;
+	m_iDesktopHeight = 1080;
+	m_iDesktopRefreshRate = 60;
 #else
 #error
 #endif
@@ -2666,6 +2698,8 @@ void CGame::SetMainWindow( HWND window )
 	m_hWindow = window;
 #elif OSX
 	m_hWindow = (WindowRef)window;
+#elif defined(ORBIS)
+	m_hWindow = window;
 #else
 #error
 #endif
@@ -2741,4 +2775,3 @@ void CGame::OnScreenSizeChanged( int nOldWidth, int nOldHeight )
 		g_ClientDLL->OnScreenSizeChanged( nOldWidth, nOldHeight );
 	}
 }
-

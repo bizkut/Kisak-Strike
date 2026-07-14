@@ -24,7 +24,7 @@
 #elif defined(POSIX)
 #include <sys/stat.h>
 
-#if !defined( LINUX )
+#if defined( OSX )
 #include <copyfile.h>
 #endif 
 
@@ -352,6 +352,8 @@ void DisplaySystemVersion( char *osversion, int maxlen )
 
 		fclose( fpKernelVer );
 	}
+#elif defined(ORBIS)
+	Q_strncpy( osversion, "PS4", maxlen );
 #endif
 }
 
@@ -2535,8 +2537,8 @@ bool CBugUIPanel::UploadFile( char const *local, char const *remote, bool bDelet
 #elif defined( _PS3 )
 		Warning( "PS3 is missing UploadFile implementation!\n" );
 		bResult = false;
-#elif defined( LINUX )
-		Warning( "LINUX is missing UploadFile implementation!\n" );
+#elif defined( LINUX ) || defined( ORBIS )
+		Warning( "This platform is missing UploadFile implementation!\n" );
 		bResult = false;
 #elif POSIX
 		bResult = (0 == copyfile( local, remote, NULL, COPYFILE_ALL )); 

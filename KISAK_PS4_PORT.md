@@ -5472,12 +5472,81 @@ All 14 host tests pass and the PS4 monolithic link/package build completes.
 The v4.25 package SHA-256 is
 `b0a0ab886c2f45eb8979dbd423616e672f9d24b5a6829a600a6a4717e781288f`.
 
+### Post-v4.25: Cross works; the presentation launcher lacks an engine consumer
+
+The v4.25 hardware capture proves that Cross is not the blocker. Repeated
+confirm presses reach the authentic `SinglePlayerDialog.OnOk` callback and
+submit valid typed requests for bot indices 0 through 5. Each request records
+`submitted=1` and queues `classic/casual/mg_cs_office` with
+`lifecycle=pending`. Nothing consumes that lifecycle because the deployed
+`CPs4EngineLauncher` still contains only the presentation/bootstrap registry;
+the real Source engine, game client, and listen server are not linked into the
+executable. Hiding the dialog or synthesizing a success transition would only
+mask this missing runtime boundary.
+
+The first real-runtime compile gate is now complete. `ORBIS` CMake can build
+the checked-in protobuf sources and the full `engine_client` static archive
+for `x86_64-ps4-elf` without Steam, SDL audio, curl downloads, desktop window
+APIs, or unsupported RCON services. PS4 branches provide VideoOut dimensions,
+console memory policy, nonblocking BSD sockets through `fcntl`, backbuffer
+dimensions for VGUI, and local-content/offline-safe fallbacks. Verification:
+
+```text
+cmake --build build-ps4-engine --target engine_client -j4
+[100%] Built target engine_client
+```
+
+The existing presentation executable also still links and produces its PS4
+binary from the same build tree, and all 14 host regression tests pass. No new
+package is staged for this compile-only gate because `engine_client` is not yet
+registered or initialized at runtime.
+
+This archive is deliberately not connected to the menu request yet. The next
+integration gate is to add its real `CreateInterface` factory to the static
+module registry, satisfy monolithic link closure, initialize the engine
+through `CAppSystemGroup`, and change the offline request lifecycle from
+`pending` only after the engine accepts the listen-server command. The game
+client and server archives follow that engine-factory gate.
+
 ### PS3 Scaleform UI cross-reference priorities
 
-The extracted PS3 movies and Kisak drivers confirm that the movie,
-ActionScript, controller-navigation, and three-stage boot layers are already
-structurally aligned. The remaining work is ordered against the first offline
-bot-match milestone rather than by raw command count:
+Full cross-reference report: `KISAK_PS3_UI_CROSSREFERENCE.md` in the Kisak
+root. The extracted PS3 movies (140 `.swf`/`.gfx`, 3,519 ActionScript files
+under `/Volumes/Untitled/Counter Strike Global Offensive/gfx_scripts/`) and
+the Kisak C++ drivers were compared menu-by-menu.
+
+#### Which side is outdated / lacking features
+
+The PS3 Scaleform UI is the **complete, finished, shipped console product**.
+All 140 movies are fully authored with the complete menu hierarchy (9 top-bar
+buttons, 4 dropdowns, all sub-panels), full controller navigation grid
+(`Lib.NavLayout`/`NavManager`), platform branches, safezone scaling, font
+system, and localization. Nothing there is missing or stubbed.
+
+**Kisak-Strike is the outdated and feature-lacking side.** The PS3 movies run
+unchanged on PS4 because `PlatformCode=2` and `wantControllerShown=true` are
+injected before the first advance (`scaleform_gfx_manager.cpp:1972-1974`), but
+the C++ side that should respond to the movies' commands is incomplete:
+
+| Area | PS3 (authentic) | Kisak-Strike | Verdict |
+|---|---|---|---|
+| Pause menu (Scaleform) | Full 11-button dynamic menu | **Stubbed** — `ShowScaleformPauseMenu`/`DismissPauseMenu`/`RestorePauseMenu` are `/* Removed for partner depot */` in `cstrike15basepanel.cpp:833-857` | Kisak missing |
+| Menu command routing (PS4) | All ~20 `BasePanelRunCommand` strings handled by engine | **Only 1 of ~20 wired** — just `OpenCreateSinglePlayerGameDialog`; the rest are logged but not actioned (`scaleform_menu_actions.h`) | Kisak severely lacking |
+| Options dialogs (PS4) | `optionsmenu.swf` widget system + 9 dialog types | `COptionsScaleform` enum exists but PS4 manager doesn't request any Options/Settings/Controller/Audio/Video Scaleform elements | Kisak not wired |
+| Legals audio | `valve_logo_music.mp3` plays on frame 2 | **Silent fallback** — `kCallbackPlayAudio` just logs once | Kisak missing |
+| Buy menu (Scaleform) | `buy-menu.swf` integrated | Scaleform path present but RocketUI fallback is the active PS4 path — split | Kisak inconsistent |
+| Pause menu (PS4) | Scaleform `pausemenu.swf` | RocketUI (`rkhud_pausemenu.cpp`) is the only live path — mismatch with Scaleform main menu | Kisak mismatched |
+
+The one PS3 feature that is **wrong on PS4** (not lacking, but unwanted): the
+PS3 movies' `IsPS3()` branches in `pausemenu.swf` add Motion Controller Move
+and Sharpshooter settings entries. Because PS4 injects `PlatformCode=2`, those
+entries will render on PS4's pause Help submenu — but DualShock 4 has no
+Move/Sharpshooter. This needs gating, not restoration.
+
+#### Priorities
+
+The remaining work is ordered against the first offline bot-match milestone
+rather than by raw command count:
 
 1. Finish `StartSinglePlayer` data population and translate its `OnOk` payload
    into an engine offline-listen-server launch.
@@ -5490,8 +5559,10 @@ bot-match milestone rather than by raw command count:
    credits commands incrementally, with an explicit element/callback contract
    and hardware gate for each group.
 5. Reject PS3 Move and Sharpshooter option dialog types on PS4 at the C++
-   boundary. Keep `PlatformCode=2` because the other PS3 presentation branches
-   are the desired console behavior.
+   boundary (`COptionsScaleform` should reject
+   `DIALOG_TYPE_MOTION_CONTROLLER_MOVE/SHARPSHOOTER` on PS4). Keep
+   `PlatformCode=2` because the other PS3 presentation branches are the
+   desired console behavior.
 6. Defer Steam party, matchmaking, profile, Workshop, inventory, community
    browser, and other online commands until offline play is stable and the
    multiplayer plan's authentication policy is satisfied.

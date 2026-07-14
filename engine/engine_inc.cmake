@@ -25,6 +25,9 @@ if( WINDOWS )
 endif()
 
 add_definitions(-DEXTRADEFINES -DUSE_CONVARS -DVOICE_OVER_IP -DBUMPMAP -D__USEA3D -D_ADD_EAX_ -DENGINE_DLL -DVERSION_SAFE_STEAM_API_INTERFACES -DPROTECTED_THINGS_ENABLE -DUSE_BREAKPAD_HANDLER)
+if( ORBIS )
+    add_definitions(-DNO_STEAM)
+endif()
 if( NOT POSIX AND NOT PS3 )
     add_definitions(-Dfopen=dont_use_fopen)
 endif()
@@ -451,9 +454,10 @@ if( (NOT DEFINED NO_STEAM) )
     #Looks like we have to include libsteam_api
     message("building with steam_api")
     target_link_libraries(${OUTBINNAME} ${LIBPUBLIC}/libsteam_api.so)
+elseif( ORBIS )
+    message(STATUS "Building the PS4 engine without the proprietary Steam API")
 else()
-    #message(FATAL_ERROR "CMake steam_api integration is disabled.")
-    message(FATAL_ERROR "We have to build with steam currently =(")
+    message(FATAL_ERROR "CMake steam_api integration is disabled on this platform")
 endif()
 
 #Link order actually does matter, so be careful if you cleanup these nasty if's

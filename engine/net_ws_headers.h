@@ -64,6 +64,9 @@ typedef int socklen_t;
 #include <sys/param.h>
 #include <sys/ioctl.h>
 #include <sys/uio.h>
+#if defined( ORBIS )
+#include <fcntl.h>
+#endif
 #define WSA_SOCKET_ERROR_CODE_FIXUP( ecode ) ecode
 #define WSAGetLastError() errno
 #endif

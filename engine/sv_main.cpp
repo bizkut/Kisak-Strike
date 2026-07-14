@@ -50,6 +50,10 @@
 #include "tier3/tier3.h"
 #include "voice.h"
 
+#if defined( POSIX )
+#include <signal.h>
+#endif
+
 #ifndef DEDICATED
 #include "vgui_baseui_interface.h"
 #endif
@@ -3245,6 +3249,8 @@ bool CGameServer::SpawnServer( char *mapname, char * mapGroupName, char *startsp
         event->SetString( "os", "OSX" );
 #elif defined ( _PS3 )
         event->SetString( "os", "PS3" );
+#elif defined ( ORBIS )
+        event->SetString( "os", "PS4" );
 #else
 #error
 #endif
@@ -3538,4 +3544,3 @@ void SV_SetSteamCrashComment( void )
 #endif
 	}
 }
-
