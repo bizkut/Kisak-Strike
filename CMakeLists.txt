@@ -225,6 +225,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
             add_subdirectory(raytrace)
             add_subdirectory(resourcefile)
             add_subdirectory(responserules/runtime)
+            add_subdirectory(scenefilecache)
             add_subdirectory(game/client)
             add_subdirectory(game/server)
         endif()
@@ -300,6 +301,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         engine_client
         client_client
         server_client
+        scenefilecache_client
         "${KISAK_OPENGNM_ROOT}/libopengnm.a"
         appframework_client
         libvstdlib_client

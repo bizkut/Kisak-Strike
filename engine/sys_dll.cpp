@@ -21,6 +21,9 @@
 #endif
 
 #include "quakedef.h"
+#if defined( PLATFORM_PS4 )
+#include "appframework/StaticModuleRegistry.h"
+#endif
 #include "igame.h"
 #include "errno.h"
 #include "host.h"
@@ -1213,14 +1216,22 @@ static bool LoadThisDll( char *szDllFilename, bool bServerOnly )
 	// Load DLL, ignore if cannot
 	// ensures that the game.dll is running under Steam
 	// this will have to be undone when we want mods to be able to run
-	if ((pDLL = g_pFileSystem->LoadModule(szDllFilename, "GAMEBIN", false)) == NULL)
+	#if defined( PLATFORM_PS4 )
+	g_ServerFactory = FindStaticModuleFactory( "server" );
+	pDLL = g_ServerFactory ? reinterpret_cast< CSysModule * >( 1 ) : NULL;
+	#else
+	pDLL = g_pFileSystem->LoadModule(szDllFilename, "GAMEBIN", false);
+	#endif
+	if ( pDLL == NULL )
 	{
 		ConMsg("Failed to load %s\n", szDllFilename);
 		goto IgnoreThisDLL;
 	}
 
 	// Load interface factory and any interfaces exported by the game .dll
+	#if !defined( PLATFORM_PS4 )
 	g_ServerFactory = Sys_GetFactory( pDLL );
+	#endif
 	if ( g_ServerFactory )
 	{
 		g_bServerGameDLLGreaterThanV5 = true;
@@ -1297,7 +1308,9 @@ static bool LoadThisDll( char *szDllFilename, bool bServerOnly )
 IgnoreThisDLL:
 	if (pDLL != NULL)
 	{
+		#if !defined( PLATFORM_PS4 )
 		g_pFileSystem->UnloadModule(pDLL);
+		#endif
 		serverGameDLL = NULL;
 		serverGameEnts = NULL;
 		serverGameClients = NULL;
@@ -1676,7 +1689,9 @@ void UnloadEntityDLLs( void )
 		return;
 
 	// Unlink the cvars associated with game DLL
+	#if !defined( PLATFORM_PS4 )
 	FileSystem_UnloadModule( g_GameDLL );
+	#endif
 	g_GameDLL = NULL;
 	serverGameDLL = NULL;
 	serverGameEnts = NULL;
@@ -1738,4 +1753,3 @@ static void errorcallstacks_length_callback( IConVar *var, const char *pOldValue
 }
 ConVar errorcallstacks_length( "errorcallstacks_length", "20", FCVAR_DEVELOPMENTONLY, "Length of automatic error callstacks", errorcallstacks_length_callback );
 #endif //#if defined( ENABLE_RUNTIME_STACK_TRANSLATION )
-

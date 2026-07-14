@@ -11,6 +11,7 @@ CreateInterfaceFn KisakEngineBootstrapFactory();
 CreateInterfaceFn KisakSourceEngineFactory();
 CreateInterfaceFn KisakGameClientFactory();
 CreateInterfaceFn KisakGameServerFactory();
+CreateInterfaceFn KisakSceneFileCacheFactory();
 CreateInterfaceFn KisakPs4ScaleformUIBootstrapFactory();
 CreateInterfaceFn KisakInputSystemFactory();
 CreateInterfaceFn KisakVPhysicsFactory();

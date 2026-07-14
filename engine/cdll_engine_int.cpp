@@ -10,6 +10,9 @@
 //===========================================================================//
 
 #include "client_pch.h"
+#if defined( PLATFORM_PS4 )
+#include "appframework/StaticModuleRegistry.h"
+#endif
 #include "getintersectingsurfaces_struct.h"
 #include "gl_model_private.h"
 #include "surfinfo.h"
@@ -2613,10 +2616,17 @@ bool ClientDLL_Load()
 
 	// loads the client.dll, but ensures that the client dll is running under Steam
 	// this will have to be undone when we want mods to be able to run
+	#if defined( PLATFORM_PS4 )
+	g_ClientFactory = FindStaticModuleFactory( "client" );
+	g_ClientDLLModule = g_ClientFactory ? reinterpret_cast< CSysModule * >( 1 ) : NULL;
+	#else
 	g_ClientDLLModule = g_pFileSystem->LoadModule( "client" DLL_EXT_STRING, "GAMEBIN", false );
+	#endif
 	if ( g_ClientDLLModule )
 	{
+		#if !defined( PLATFORM_PS4 )
 		g_ClientFactory = Sys_GetFactory( g_ClientDLLModule );
+		#endif
 		if ( g_ClientFactory )
 		{
 			g_ClientDLL = (IBaseClientDLL *)g_ClientFactory( CLIENT_DLL_INTERFACE_VERSION, NULL );
@@ -2907,7 +2917,9 @@ void ClientDLL_Unload()
 	// doesn't know about it.
 	ClientDLL_Disconnect();
 
+	#if !defined( PLATFORM_PS4 )
 	FileSystem_UnloadModule( g_ClientDLLModule );
+	#endif
 
 	g_ClientDLL = NULL;
 	g_ClientDLLModule = NULL;
@@ -3056,4 +3068,3 @@ void CEngineClient::PS3_ShowInviteOverlay( void )
 }
 
 #endif // _PS3
-

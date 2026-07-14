@@ -337,3 +337,10 @@ bool CSceneFileCache::GetSceneDataFromImage( const char *pFileName, int iScene, 
 
 static CSceneFileCache g_SceneFileCache;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CSceneFileCache, ISceneFileCache, SCENE_FILE_CACHE_INTERFACE_VERSION, g_SceneFileCache );
+
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakSceneFileCacheFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif

@@ -5550,6 +5550,38 @@ module names must switch only after that lifecycle reaches an initialized
 state; failed initialization must retain the presentation menu and a pending or
 explicitly failed request rather than reporting a false launch success.
 
+### v4.26 candidate: activate the Source runtime lifecycle
+
+The monolith now binds the live `engine`, `client`, and `server` module names to
+their genuine Source factories; the former presentation engine remains
+available as `presentation_engine` for rollback. `scenefilecache` is also linked
+and registered because it is a shared app-system dependency declared by both
+game DLLs. PS4 client/server loading resolves these static factories directly
+instead of asking the filesystem for nonexistent DLLs, and the offline
+milestone bypasses the unavailable Steam matchmaking module.
+
+The offline request bridge is now consumable from the real engine main loop.
+It atomically takes one validated request, translates the currently supported
+`classic/casual/mg_cs_office` selection into the Source console command stream,
+and records `lifecycle=accepted` before the map command executes. This is a
+deliberately narrow first map gate; other game modes and map groups must gain
+explicit metadata-driven mappings rather than silently inheriting Office.
+
+Marker: `kisak-ps4: build marker source_runtime_active_v426`. The next hardware
+run is a lifecycle probe. The log should reach `source engine connect entered`,
+`source engine init entered`, and `source engine run entered`, then reproduce
+the Scaleform menu through the engine-owned frame loop. Selecting Offline With
+Bots and pressing Cross should produce exactly one
+`engine offline request accepted ... lifecycle=accepted` breadcrumb and begin
+loading `cs_office`. If startup stops before the menu, the last lifecycle or
+app-system breadcrumb is the next blocker; do not interpret the active factory
+switch alone as proof that an offline match has started.
+
+The candidate package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`696febc2084a649846e79f36f7ff93023f35c02cb6ea59ab5e61062f03ff54f6`.
+The monolithic/FSELF/package build completes and all 14 host tests pass.
+
 ### PS3 Scaleform UI cross-reference priorities
 
 Full cross-reference report: `KISAK_PS3_UI_CROSSREFERENCE.md` in the Kisak

@@ -17,3 +17,6 @@ bool KisakPs4ParseOfflineLaunchRequest( const char *query, int botDifficulty,
 
 extern "C" bool KisakPs4SubmitOfflineLaunch(
     const char *query, int botDifficulty );
+
+extern "C" bool KisakPs4TakeOfflineLaunch(
+    KisakPs4OfflineLaunchRequest *request );

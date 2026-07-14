@@ -28,7 +28,7 @@ extern "C" bool KisakPs4ScaleformMovieInstanceProbe();
 namespace
 {
 KisakPs4OfflineLaunchRequest g_pendingOfflineLaunch = {};
-bool g_offlineLaunchPending = false;
+std::atomic< bool > g_offlineLaunchPending{ false };
 bool g_offlineLaunchObserved = false;
 
 struct Ps4SourceFrameContext
@@ -184,7 +184,7 @@ public:
 					break;
 				}
 			}
-			if ( g_offlineLaunchPending && !g_offlineLaunchObserved )
+			if ( g_offlineLaunchPending.load( std::memory_order_acquire ) && !g_offlineLaunchObserved )
 			{
 				char marker[320];
 				snprintf( marker, sizeof( marker ),
@@ -271,8 +271,17 @@ extern "C" bool KisakPs4SubmitOfflineLaunch(
         return false;
     }
     g_pendingOfflineLaunch = request;
-    g_offlineLaunchPending = true;
+    g_offlineLaunchPending.store( true, std::memory_order_release );
     g_offlineLaunchObserved = false;
+    return true;
+}
+
+extern "C" bool KisakPs4TakeOfflineLaunch(
+    KisakPs4OfflineLaunchRequest *request )
+{
+    if ( !request || !g_offlineLaunchPending.exchange( false, std::memory_order_acq_rel ) )
+        return false;
+    *request = g_pendingOfflineLaunch;
     return true;
 }
 

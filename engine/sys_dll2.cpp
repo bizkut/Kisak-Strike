@@ -409,6 +409,10 @@ const char *GetModDirFromPath( const char *pszPath )
 //-----------------------------------------------------------------------------
 #ifndef DEDICATED
 #include "gl_matsysiface.h"
+#if defined( PLATFORM_PS4 )
+#include "../ps4/offline_launch_request.h"
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#endif
 #endif
 
 //-----------------------------------------------------------------------------
@@ -545,6 +549,9 @@ CreateInterfaceFn KisakSourceEngineFactory()
 //-----------------------------------------------------------------------------
 bool CEngineAPI::Connect( CreateInterfaceFn factory ) 
 { 
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: source engine connect entered" );
+	#endif
 	// Store off the app system factory...
 	g_AppSystemFactory = factory;
 
@@ -852,6 +859,9 @@ bool CEngineAPI::SetStartupInfo( StartupInfo_t &info )
 //-----------------------------------------------------------------------------
 InitReturnVal_t CEngineAPI::Init() 
 {
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: source engine init entered" );
+	#endif
 	if ( CommandLine()->FindParm( "-sv_benchmark" ) != 0 )
 	{
 		Plat_SetBenchmarkMode( true );
@@ -1150,6 +1160,36 @@ bool CEngineAPI::MainLoop()
 	// Main message pump
 	while ( true )
 	{
+		#if defined( PLATFORM_PS4 )
+		KisakPs4OfflineLaunchRequest request = {};
+		if ( KisakPs4TakeOfflineLaunch( &request ) )
+		{
+			const bool supported = !Q_stricmp( request.gameType, "classic" ) &&
+				!Q_stricmp( request.gameMode, "casual" ) &&
+				!Q_stricmp( request.mapGroup, "mg_cs_office" );
+			if ( !supported )
+			{
+				char marker[320];
+				Q_snprintf( marker, sizeof( marker ),
+					"kisak-ps4: engine offline request unsupported type=%s mode=%s mapgroup=%s lifecycle=failed",
+					request.gameType, request.gameMode, request.mapGroup );
+				KisakPs4StartupBreadcrumb( marker );
+				continue;
+			}
+			const char *mapName = "cs_office";
+			char command[256];
+			Q_snprintf( command, sizeof( command ),
+				"game_type 0; game_mode 0; bot_difficulty %d; map %s\n",
+				request.botDifficulty, mapName );
+			Cbuf_AddText( Cbuf_GetCurrentPlayer(), command );
+			char marker[320];
+			Q_snprintf( marker, sizeof( marker ),
+				"kisak-ps4: engine offline request accepted type=%s mode=%s mapgroup=%s map=%s bot=%d lifecycle=accepted",
+				request.gameType, request.gameMode, request.mapGroup, mapName,
+				request.botDifficulty );
+			KisakPs4StartupBreadcrumb( marker );
+		}
+		#endif
 		// Pump messages unless someone wants to quit
 		if ( eng->GetQuitting() != IEngine::QUIT_NOTQUITTING )
 		{
@@ -1754,6 +1794,10 @@ extern "C" void __cdecl WriteMiniDump( void	);
 //-----------------------------------------------------------------------------
 int CEngineAPI::Run()
 {
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: source engine run entered" );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker source_runtime_active_v426" );
+	#endif
 	if ( CommandLine()->FindParm("-insecure") )
 	{
 		extern void Host_DisallowSecureServers();
@@ -1789,7 +1833,7 @@ int CEngineAPI::Run()
 	{
 		return RunListenServer();
 	}
-#elif defined( _PS3 )
+#elif defined( _PS3 ) || defined( PLATFORM_PS4 )
 	return RunListenServer();
 #else
 	Assert( !"Impl minidump handling on Posix" );
@@ -2195,6 +2239,7 @@ bool CModAppSystemGroup::Create()
 	//
 	// Matchmaking
 	//
+	#if !defined( PLATFORM_PS4 )
 
 	Assert ( !g_pMatchmakingDllModule );
 
@@ -2248,6 +2293,11 @@ bool CModAppSystemGroup::Create()
 	}
 
 	AddSystem( g_pIfaceMatchFramework, IMATCHFRAMEWORK_VERSION_STRING );
+	#else
+	// The first PS4 milestone is an offline listen server.  Steam matchmaking
+	// is neither linked nor required to load the client and server modules.
+	g_pMatchFramework = NULL;
+	#endif
 	
 	Host_SubscribeForProfileEvents( true );
 

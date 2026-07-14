@@ -56,7 +56,12 @@ void CMaterialProxyFactory::DeleteProxy( IMaterialProxy *pProxy )
 CreateInterfaceFn CMaterialProxyFactory::GetFactory()
 {
 #ifndef DEDICATED
+	#if defined( PLATFORM_PS4 )
+	extern CreateInterfaceFn g_ClientFactory;
+	return g_ClientFactory;
+	#else
 	return Sys_GetFactory( g_ClientDLLModule );
+	#endif
 #else
 	return NULL;
 #endif

@@ -57,10 +57,14 @@ extern "C" int KisakRegisterStaticModules()
     const bool vstdlib = RegisterStaticModule( "vstdlib", KisakVstdlibFactory() );
     const bool launcher = RegisterStaticModule( "launcher", KisakLauncherFactory() );
     const bool filesystem = RegisterStaticModule( "filesystem_stdio", KisakFilesystemFactory() );
-    const bool engine = RegisterStaticModule( "engine", KisakEngineBootstrapFactory() );
+    const bool presentationEngine = RegisterStaticModule( "presentation_engine", KisakEngineBootstrapFactory() );
+    const bool engine = RegisterStaticModule( "engine", KisakSourceEngineFactory() );
     const bool sourceEngine = RegisterStaticModule( "source_engine", KisakSourceEngineFactory() );
+    const bool client = RegisterStaticModule( "client", KisakGameClientFactory() );
     const bool gameClient = RegisterStaticModule( "source_client", KisakGameClientFactory() );
+    const bool server = RegisterStaticModule( "server", KisakGameServerFactory() );
     const bool gameServer = RegisterStaticModule( "source_server", KisakGameServerFactory() );
+    const bool sceneFileCache = RegisterStaticModule( "scenefilecache", KisakSceneFileCacheFactory() );
     const bool scaleformui = RegisterStaticModule( "scaleformui", KisakPs4ScaleformUIBootstrapFactory() );
     const bool inputsystem = RegisterStaticModule( "inputsystem", KisakInputSystemFactory() );
     const bool vphysics = RegisterStaticModule( "kisakvphysics", KisakVPhysicsFactory() );
@@ -74,5 +78,5 @@ extern "C" int KisakRegisterStaticModules()
     const bool vgui2 = RegisterStaticModule( "vgui2", KisakVGuiFactory() );
     const bool localize = RegisterStaticModule( "localize", KisakLocalizeFactory() );
     const bool vguimatsurface = RegisterStaticModule( "vguimatsurface", KisakVGuiMatSurfaceFactory() );
-    return tier0 && vstdlib && launcher && filesystem && engine && sourceEngine && gameClient && gameServer && scaleformui && inputsystem && vphysics && shaderapiempty && shaderapips4 && materialsystem && datacache && studiorender && soundemittersystem && vscript && vgui2 && localize && vguimatsurface ? 0 : -1;
+    return tier0 && vstdlib && launcher && filesystem && presentationEngine && engine && sourceEngine && client && gameClient && server && gameServer && sceneFileCache && scaleformui && inputsystem && vphysics && shaderapiempty && shaderapips4 && materialsystem && datacache && studiorender && soundemittersystem && vscript && vgui2 && localize && vguimatsurface ? 0 : -1;
 }

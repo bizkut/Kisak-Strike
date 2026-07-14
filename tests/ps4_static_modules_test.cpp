@@ -23,6 +23,7 @@ CreateInterfaceFn KisakEngineBootstrapFactory() { return TestFactory; }
 CreateInterfaceFn KisakSourceEngineFactory() { return TestFactory; }
 CreateInterfaceFn KisakGameClientFactory() { return TestFactory; }
 CreateInterfaceFn KisakGameServerFactory() { return TestFactory; }
+CreateInterfaceFn KisakSceneFileCacheFactory() { return TestFactory; }
 CreateInterfaceFn KisakRocketUIBootstrapFactory() { return TestFactory; }
 CreateInterfaceFn KisakInputSystemFactory() { return TestFactory; }
 CreateInterfaceFn KisakVPhysicsFactory() { return TestFactory; }
@@ -45,9 +46,14 @@ int main()
     assert( FindStaticModuleFactory( "vstdlib.dll" ) == KisakVstdlibFactory() );
     assert( FindStaticModuleFactory( "bin/launcher" ) == KisakLauncherFactory() );
     assert( FindStaticModuleFactory( "shaderapips4" ) == KisakShaderApiPs4Factory() );
+    assert( FindStaticModuleFactory( "presentation_engine" ) == KisakEngineBootstrapFactory() );
+    assert( FindStaticModuleFactory( "engine" ) == KisakSourceEngineFactory() );
     assert( FindStaticModuleFactory( "source_engine" ) == KisakSourceEngineFactory() );
+    assert( FindStaticModuleFactory( "client" ) == KisakGameClientFactory() );
     assert( FindStaticModuleFactory( "source_client" ) == KisakGameClientFactory() );
+    assert( FindStaticModuleFactory( "server" ) == KisakGameServerFactory() );
     assert( FindStaticModuleFactory( "source_server" ) == KisakGameServerFactory() );
+    assert( FindStaticModuleFactory( "scenefilecache" ) == KisakSceneFileCacheFactory() );
 
     int result = 1;
     assert( FindStaticModuleFactory( "launcher" )( "TestInterface001", &result ) == &g_QueryCount );
