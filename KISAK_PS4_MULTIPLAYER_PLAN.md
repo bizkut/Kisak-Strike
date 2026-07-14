@@ -5,6 +5,22 @@ Target: OpenOrbis PS4 homebrew, no PSN or Steam runtime dependency
 Priority: offline stability first, LAN second, Internet dedicated servers third,
 player-hosted NAT traversal last
 
+## Current protocol-version dependency
+
+Kisak PS4 v4.30 makes missing Steam metadata non-fatal for the deliberate
+`PLATFORM_PS4` + `NO_STEAM` build. A complete mounted `steam.inf` remains
+authoritative; otherwise the runtime uses the May 18, 2017 PC-content baseline:
+patch `1.35.8.0`, Source host protocol `13580`, client/server versions `500`,
+product `csgo`, and AppID `730`. This avoids the zero-version and PS3 AppID
+values that would make a listen server or LAN peer report a different protocol.
+
+This is only deterministic metadata, not multiplayer acceptance. Hardware must
+first pass the v4.30 startup boundary and the offline listen-server milestone.
+The networking phase must then assert protocol `13580` in loopback, demo/server
+headers, and a same-build Linux/community server before LAN compatibility is
+claimed. `GetSteamAppID()` has a separate legacy no-Steam fallback of 215; audit
+and replace that consumer path before exposing AppID-dependent discovery or UI.
+
 ## Recommendation
 
 Steam P2P will not be used on PS4. The replacement is an open, host-centric

@@ -1,0 +1,45 @@
+kisak-ps4: startup info storage ready
+kisak-ps4: startup info instance ready
+kisak-ps4: startup info base directory ready
+kisak-ps4: startup info before initial mod
+kisak-ps4: startup info initial mod ready
+kisak-ps4: startup info before initial game
+kisak-ps4: startup info initial game ready
+kisak-ps4: startup info before engine call
+kisak-ps4: engine startup info entered
+kisak-ps4: engine startup info text mode copied
+kisak-ps4: engine startup info base directory copied
+kisak-ps4: engine startup info structure copied
+kisak-ps4: engine startup info before filesystem init
+kisak-ps4: com filesystem entered
+kisak-ps4: com filesystem search info ready
+kisak-ps4: com filesystem interface ready
+kisak-ps4: com filesystem before search paths
+kisak-ps4: filesystem search paths entered
+kisak-ps4: filesystem search paths before game info
+kisak-ps4: filesystem search paths game info ready
+kisak-ps4: filesystem search paths before base directory
+kisak-ps4: filesystem search paths base directory ready
+kisak-ps4: filesystem search paths before entry
+kisak-ps4: filesystem search paths after entry
+kisak-ps4: filesystem search paths before entry
+kisak-ps4: filesystem search paths after entry
+kisak-ps4: filesystem search paths entries complete
+kisak-ps4: filesystem search paths game info released
+kisak-ps4: filesystem search paths platform ready
+kisak-ps4: filesystem search paths content tools skipped
+kisak-ps4: filesystem search paths complete
+kisak-ps4: com filesystem search paths ready
+kisak-ps4: com filesystem before absolute mod path
+kisak-ps4: com filesystem absolute mod path ready
+kisak-ps4: com filesystem base directory ready
+kisak-ps4: com filesystem before vgui directories
+kisak-ps4: com filesystem vgui directories ready
+kisak-ps4: com filesystem before log directory
+kisak-ps4: com filesystem complete
+kisak-ps4: engine startup info after filesystem init
+kisak-ps4: engine startup info before filesystem trace
+kisak-ps4: engine startup info after filesystem trace
+kisak-ps4: engine startup info before mod info
+kisak-ps4: engine startup info after mod info
+kisak-ps4: engine startup info before version

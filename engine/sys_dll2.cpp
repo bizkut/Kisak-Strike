@@ -1836,7 +1836,7 @@ int CEngineAPI::Run()
 {
 	#if defined( PLATFORM_PS4 )
 	KisakPs4StartupBreadcrumb( "kisak-ps4: source engine run entered" );
-	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker filesystem_absolute_game_v429" );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker steam_version_fallback_v430" );
 	#endif
 	if ( CommandLine()->FindParm("-insecure") )
 	{
@@ -1944,6 +1944,14 @@ static int VerToInt( const char *pszVersion )
 #define PRODUCT_STRING "valve"
 #define VERSION_STRING "1.0.1.0"
 #define FS_MAGIC_NUM_KEY "FSKey="
+
+#if defined( PLATFORM_PS4 ) && defined( NO_STEAM )
+static const char *const kPs4FallbackVersion = "1.35.8.0";
+static const char *const kPs4FallbackProduct = "csgo";
+static const int32 kPs4FallbackClientVersion = 500;
+static const int32 kPs4FallbackServerVersion = 500;
+static const AppId_t kPs4FallbackAppId = 730;
+#endif
 
 static CUtlString g_sVersionString;
 static CUtlString g_sProductString;
@@ -2162,10 +2170,33 @@ void Sys_Version( bool bDedicated )
 
 	uint64 unFSMagicNumber = 0;
 
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: version metadata before steam inf" );
+	#endif
 	if ( !ParseSteamInfFile( "steam.inf", g_unSteamAppID ) )
 	{
+		#if defined( PLATFORM_PS4 ) && defined( NO_STEAM )
+		// The PS4 homebrew package deliberately does not ship Steam metadata, and
+		// external content roots are allowed to omit it. Keep the normal parser as
+		// the authoritative path when a complete steam.inf is supplied, but use
+		// deterministic CS:GO defaults for the offline, Steam-free runtime.
+		g_sVersionString = kPs4FallbackVersion;
+		g_sProductString = kPs4FallbackProduct;
+		sHostVersion = VerToInt( kPs4FallbackVersion );
+		sClientVersion = kPs4FallbackClientVersion;
+		sServerVersion = kPs4FallbackServerVersion;
+		g_unSteamAppID = kPs4FallbackAppId;
+		KisakPs4StartupBreadcrumb( "kisak-ps4: version metadata fallback applied" );
+		#else
 		Sys_Error( "Unable to load version from steam.inf" );
+		#endif
 	}
+	#if defined( PLATFORM_PS4 )
+	else
+	{
+		KisakPs4StartupBreadcrumb( "kisak-ps4: version metadata steam inf loaded" );
+	}
+	#endif
 
 	// if we aren't launched by Steam try reading a local perforce inf file
 	// this lets us tell the internal staging/main builds to use the right app ids
@@ -2179,6 +2210,11 @@ void Sys_Version( bool bDedicated )
 
 	if ( g_unSteamAppID != k_uAppIdInvalid && ( !g_pFileSystem->IsSteam() || bDedicated || g_bRunningFromPerforce ) )
 	{
+		#if defined( PLATFORM_PS4 ) && defined( NO_STEAM )
+		// /app0 is read-only and the PS4 build has no Steam client to consume this
+		// desktop compatibility file.
+		KisakPs4StartupBreadcrumb( "kisak-ps4: version steam appid file skipped" );
+		#else
 		// steamclient.dll doesn't know about steam.inf files in mod folder,
 		// it excepts a steam_appid.txt in the root directory if the game is
 		// not started through Steam. So we create one there containing the
@@ -2191,6 +2227,7 @@ void Sys_Version( bool bDedicated )
 			fwrite( rgchAppID, Q_strlen(rgchAppID)+1, 1, f );
 			fclose( f );
 		}
+		#endif
 	}
 
 #ifdef _WIN32
@@ -2199,6 +2236,9 @@ void Sys_Version( bool bDedicated )
 		AssertMsg( !g_pFileSystem->FileExists( "perforce.inf" ), "<mod dir>\\perforce.inf included in a steam cache, remove it!" );
 	}
 #endif // _WIN32
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: version metadata complete" );
+	#endif
 #endif 
 }
 

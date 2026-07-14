@@ -11,7 +11,7 @@ OpenGNM is the only graphics backend. Linux ToGL/OpenGL and PS3 shader binaries
 are not part of the PS4 runtime. The first acceptance target is menu navigation
 and a complete offline bot match.
 
-## Current status — 2026-07-12
+## Current status — 2026-07-14
 
 The OpenOrbis bootstrap is hardware validated. Title `KISK00001` starts on PS4,
 creates `/data/kisak-strike/startup.log`, and remains stable in a one-second
@@ -23,15 +23,19 @@ Latest staged monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.04
-SHA-256: e3b03bef8e2a2263140a96915d14d417fd7426680e1f9777af044272436a8066
+Version: 3.05
+SHA-256: a6d500b47bc6025761407c36be7fbcd53a0913a6cff241505417edb0250d96a9
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
 Current hardware baseline:
 
-- The monolithic executable reaches `LauncherMain`, initializes the registered
-  Source app systems, runs RocketUI frame hooks, and shuts down cleanly.
+- The real monolithic Source runtime completes its priority and ordinary
+  constructor walks, registers and connects the launcher app systems, mounts
+  the external gameinfo search paths, and completes `COM_InitFilesystem`.
+  Hardware v4.29 then stopped inside `Sys_Version` because the supplied content
+  has no `steam.inf`; v4.30 is staged with a narrow Steam-free fallback and
+  awaits hardware validation.
 - OpenGNM opens two 1920x1080 VideoOut buffers and completes repeated VSYNC
   flips. The v1.78 run sustains approximately 60 FPS without a crash.
 - The presentation stress loop has reached at least frame 1200 with matching
@@ -5687,11 +5691,47 @@ continuing with an invalid `m_ModPath`.
 
 Marker: `kisak-ps4: build marker filesystem_absolute_game_v429`. The PS4
 monolith builds successfully and all 14 host tests pass. Hardware validation is
-pending; the packaged artifact is
+complete through all filesystem, VGUI-directory, trace, and mod-info markers;
+the packaged artifact was
 `build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
 `4500710c79b6fd73279f1a777301117ffb4b241e67f004d5eaf929d35a1a5d8a`.
-The next gate is `filesystem search paths game info ready`, followed by
-base-directory and individual search-entry markers.
+The fresh 3,350-line run reached `engine startup info before version` and no
+`after version` marker. Its exact final startup segment is preserved in
+`hardware-captures/logs/2026-07-14/kisak_v429_sys_version_crash.txt`.
+
+### v4.30 candidate: tolerate missing Steam version metadata on PS4
+
+The mounted `/data/kisak-strike/csgo` root has no `steam.inf`. The only loose
+PS3 reference file has three legacy keys (`1.0.0.41`, `cstrike15`, AppID 720),
+while Kisak's parser requires five keys and the port deliberately consumes the
+little-endian PC content baseline. Packaging that PS3 file would therefore
+still fail parsing and would identify the wrong platform application.
+
+`Sys_Version` now keeps a complete mounted `steam.inf` authoritative, but when
+both `PLATFORM_PS4` and `NO_STEAM` are defined it replaces any missing or
+partial result with the matching May 18, 2017 Kisak depot metadata: patch
+`1.35.8.0`, host protocol `13580`, client/server versions `500`, product
+`csgo`, and AppID `730`. Those values match the historical
+[tracked steam.inf](https://github.com/SteamTracking/GameTracking-CS2/blob/42288471be8289efd090cae322b1debd41f4a06a/csgo/steam.inf)
+for the asset manifest named by Kisak's README. Desktop and Steam-enabled builds
+retain the fatal missing-file behavior.
+
+The Steam-free PS4 branch also skips creation of desktop `steam_appid.txt` in
+read-only `/app0`. Bounded breadcrumbs distinguish pre-parse, complete-file,
+fallback, AppID-file skip, and completion stages. Marker:
+`kisak-ps4: build marker steam_version_fallback_v430`.
+
+The OpenOrbis monolith and package build successfully and all 14 host tests
+pass. The candidate is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`a6d500b47bc6025761407c36be7fbcd53a0913a6cff241505417edb0250d96a9`;
+the uploaded bytes match the local package. Hardware must now reach
+`version metadata fallback applied`, `version metadata complete`, and
+`engine startup info after version`. The next lifecycle gates are
+`startup info after engine call`, `app after preinit`, and genuine Source
+engine initialization. A future valid five-key `steam.inf` override and LAN
+loopback test must confirm protocol `13580`; `GetSteamAppID()`'s independent
+desktop fallback to 215 remains a later consumer audit, not part of this crash.
 
 ### PS3 Scaleform UI cross-reference priorities
 
