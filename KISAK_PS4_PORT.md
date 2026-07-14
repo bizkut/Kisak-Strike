@@ -24,7 +24,7 @@ Latest staged monolithic package:
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.05
-SHA-256: 46f46bac05aff1f3afdbc3b8478eb03fb3492e79dae33a233179f6d900ec8da1
+SHA-256: 063c37610d234b1f2ebd198798a5f402e6103518b9c306e2406d5c908405f319
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -48,8 +48,12 @@ Current hardware baseline:
   initialization. v4.34 splits `CGameServer::Init`, `CBaseServer::Init`, and
   `CBaseServer::Clear`; hardware reaches the successful rules-object allocation
   and then crashes inside the optional `gamerulescvars.txt` load or its failure
-  warning. v4.35 retains the empty rules object and all server initialization,
-  but skips that Steam-management-only file read on PS4 `NO_STEAM`.
+  warning. Hardware v4.35 validates the Steam-free skip, cvar callback,
+  `CBaseServer::Clear`, signon allocation, and complete `CGameServer::Init`.
+  It then stops immediately after the successful `sv.Init( bDedicated )`
+  trace. v4.36 brackets the next `SV_InitGameDLL` call from entry through
+  server-DLL `DLLInit`, plugin loading, send-table setup, tick/split-screen
+  queries, max-client setup, and the final command-buffer execution.
 - OpenGNM opens two 1920x1080 VideoOut buffers and completes repeated VSYNC
   flips. The v1.78 run sustains approximately 60 FPS without a crash.
 - The presentation stress loop has reached at least frame 1200 with matching
@@ -5935,6 +5939,47 @@ The package contains 895 prepared Scaleform assets and is staged at
 `46f46bac05aff1f3afdbc3b8478eb03fb3492e79dae33a233179f6d900ec8da1`.
 The next hardware log must reach `rules load skipped no steam` and will then
 use the retained v4.34 breadcrumbs to identify any later server-init boundary.
+
+Hardware v4.35 reaches every retained server-init breadcrumb:
+
+```text
+kisak-ps4: base server init rules load skipped no steam
+kisak-ps4: base server clear complete
+kisak-ps4: base server init complete
+kisak-ps4: game server init complete
+kisak-ps4: trace init after
+sv.Init( bDedicated )
+```
+
+The capture is preserved as
+`hardware-captures/logs/2026-07-14/kisak_v435_game_dll_entry_crash.txt`.
+This clears the rules-file workaround and all of `sv.Init`; the next
+untraced call in `Host_Init` is `SV_InitGameDLL()`.
+
+### v4.36: Trace game-DLL initialization
+
+Version 4.36 adds PS4-only startup breadcrumbs to `SV_InitGameDLL` without
+changing its control flow. It brackets the timestamp hook, Steam crash-comment
+hook, initial command-buffer execution, server-interface check, monolithic
+`serverGameDLL->DLLInit`, plugin loading, hostname/cvar setup, send-table
+initialization, tick interval, split-screen query, max-client setup, and final
+command-buffer execution.
+
+The server DLL is already registered through the monolithic static module
+factory. The first hardware run must therefore identify whether the fault is
+before entering `SV_InitGameDLL`, in an early Steam-free/helper call, in the
+first server-DLL virtual dispatch, or later in post-`DLLInit` setup. No game
+DLL, plugin, send-table, or networking behavior is bypassed in this build.
+
+Marker: `kisak-ps4: build marker game_dll_trace_v436`.
+
+The package contains 895 prepared Scaleform assets and is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`063c37610d234b1f2ebd198798a5f402e6103518b9c306e2406d5c908405f319`.
+The next hardware report should include the final `game dll ...` breadcrumb;
+if it stops between `before DLLInit` and `DLLInit complete`, the following
+build will split `game/server/gameinterface.cpp::DLLInit` internally rather
+than bypassing it.
 
 ### PS3 Scaleform UI cross-reference priorities
 

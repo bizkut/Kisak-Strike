@@ -24,9 +24,13 @@ and entry into the inner engine main. Hardware v4.33 validates both initial
 thread pools and every traced `Host_Init` subsystem through the Steam-free
 socket manager and game-event manager, then crashes inside
 `sv.Init( bDedicated )`. Hardware v4.34 narrows that failure to the optional
-`gamerulescvars.txt` load immediately after the rules object is allocated. The
-offline listen-server milestone therefore remains blocked specifically on
-game-server initialization. The networking
+`gamerulescvars.txt` load immediately after the rules object is allocated.
+Hardware v4.35 validates the Steam-free skip and completes both base- and
+game-server initialization, then stops immediately after the successful
+`sv.Init` trace. v4.36 now traces the next `SV_InitGameDLL` boundary,
+including the monolithic server DLL's `DLLInit`, send tables, and
+max-client setup. The offline listen-server milestone therefore remains
+blocked on game-DLL startup after server construction. The networking
 phase must then assert protocol `13580` in loopback, demo/server headers, and a
 same-build Linux/community server before LAN compatibility is claimed.
 `GetSteamAppID()` has a separate legacy no-Steam fallback of 215; audit and
@@ -38,6 +42,11 @@ skips only the Steam/master-server `gamerulescvars.txt` read on PS4 `NO_STEAM`
 and continues through the existing callback, `Clear()`, baseline, and signon
 breadcrumbs. It is staged as the KISK00002 monolithic package with SHA-256
 `46f46bac05aff1f3afdbc3b8478eb03fb3492e79dae33a233179f6d900ec8da1`.
+
+The v4.35 hardware capture proves that workaround and all server construction
+complete. The v4.36 diagnostic package preserves the full game-DLL path and is
+staged with SHA-256
+`063c37610d234b1f2ebd198798a5f402e6103518b9c306e2406d5c908405f319`.
 
 ## Recommendation
 

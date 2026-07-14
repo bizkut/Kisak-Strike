@@ -1026,16 +1026,23 @@ void ServerDLL_Unload()
 //-----------------------------------------------------------------------------
 void SV_InitGameDLL( void )
 {
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll init entered" );
     COM_TimestampedLog( "SV_InitGameDLL" );
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll timestamp logged" );
 
+	PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before crash comment" );
 	SV_SetSteamCrashComment();
+	PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll crash comment complete" );
 
     // Clear out the command buffer.
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before command execute" );
     Cbuf_Execute();
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll command execute complete" );
 
     // Don't initialize a second time
     if ( sv.dll_initialized )
     {
+        PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll already initialized" );
         return;
     }
 
@@ -1091,11 +1098,14 @@ void SV_InitGameDLL( void )
     }
 #endif
 
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before interface check" );
     if ( !serverGameDLL )
     {
+        PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll interface missing" );
         Warning( "Failed to load server binary\n" );
         return;
     }
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll interface ready" );
 
     // Flag that we've started the game .dll
     sv.dll_initialized = true;
@@ -1103,28 +1113,40 @@ void SV_InitGameDLL( void )
     COM_TimestampedLog( "serverGameDLL->DLLInit - Start" );
 
     // Tell the game DLL to start up
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before DLLInit" );
     if ( !serverGameDLL->DLLInit( g_GameSystemFactory, g_AppSystemFactory, g_AppSystemFactory, &g_ServerGlobalVariables ) )
     {
+        PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll DLLInit failed" );
         Sys_Error( "serverGameDLL->DLLInit() failed.\n");
     }
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll DLLInit complete" );
 
     COM_TimestampedLog( "serverGameDLL->DLLInit - Finish" );
 
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before plugin load" );
     if ( CommandLine()->FindParm( "-NoLoadPluginsForClient" ) == 0 )
         g_pServerPluginHandler->LoadPlugins(); // load 3rd party plugins
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll plugin load complete" );
     
 
     // let's not have any servers with no name
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before hostname" );
     Host_EnsureHostNameSet();
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll hostname ready" );
 
     sv_noclipduringpause = ( ConVar * )g_pCVar->FindVar( "sv_noclipduringpause" );
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll noclip cvar queried" );
 
     COM_TimestampedLog( "SV_InitSendTables" );
 
     // Make extra copies of data tables if they have SendPropExcludes.
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before send tables" );
     SV_InitSendTables( serverGameDLL->GetAllServerClasses() );
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll send tables ready" );
 
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before tick interval" );
     host_state.interval_per_tick = serverGameDLL->GetTickInterval();
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll tick interval ready" );
     if ( host_state.interval_per_tick < MINIMUM_TICK_INTERVAL ||
          host_state.interval_per_tick > MAXIMUM_TICK_INTERVAL )
     {
@@ -1136,7 +1158,9 @@ void SV_InitGameDLL( void )
     sv_maxupdaterate.SetValue(1.0f / host_state.interval_per_tick);
     sv_maxcmdrate.SetValue(1.0f / host_state.interval_per_tick);
 
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before split screen query" );
     host_state.max_splitscreen_players_clientdll = clamp( serverGameClients->GetMaxSplitscreenPlayers(), 1, MAX_SPLITSCREEN_CLIENTS );
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll split screen query complete" );
     host_state.max_splitscreen_players = host_state.max_splitscreen_players_clientdll;
     if ( CommandLine()->CheckParm( "-tools" ) )
     {
@@ -1152,10 +1176,14 @@ void SV_InitGameDLL( void )
     g_pCVar->SetMaxSplitScreenSlots( host_state.max_splitscreen_players );
 
     // set maxclients limit based on Mod or commandline settings
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before max clients" );
     sv.InitMaxClients();
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll max clients ready" );
 
     // Execute and server commands the game .dll added at startup
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before final command execute" );
     Cbuf_Execute();
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll init complete" );
 }
 
 //
