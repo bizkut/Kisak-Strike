@@ -50,7 +50,7 @@ extern int giPrecacheGrunt;
 
 extern bool IsInCommentaryMode( void );
 
-ConVar  *sv_cheats = NULL;
+ConVar *g_pServerSvCheats = NULL;
 static ConVar tv_relaytextchat( "tv_relaytextchat", "1", FCVAR_RELEASE, "Relay text chat data: 0=off, 1=say, 2=say+say_team" );
 
 void ClientKill( edict_t *pEdict, const Vector &vecForce, bool bExplode = false )
@@ -807,7 +807,7 @@ void kill_helper( const CCommand &args, bool bVector, bool bExplode )
 
 	CBasePlayer *pPlayer = NULL;
 
-	if ( bKillOther && sv_cheats->GetBool() )
+	if ( bKillOther && g_pServerSvCheats->GetBool() )
 	{
 		// Find the matching netname
 		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
@@ -842,7 +842,7 @@ void kill_helper( const CCommand &args, bool bVector, bool bExplode )
 	}
 #endif
 
-	if ( bVector && sv_cheats->GetBool() )
+	if ( bVector && g_pServerSvCheats->GetBool() )
 	{
 		int i = bKillOther ? 2 : 1;
 		Vector vecForce;
@@ -951,7 +951,7 @@ CON_COMMAND_F( give, "Give item to player.\n\tArguments: <item_name>", FCVAR_GAM
 {
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
 	if ( pPlayer 
-		&& (gpGlobals->maxClients == 1 || sv_cheats->GetBool()) 
+		&& (gpGlobals->maxClients == 1 || g_pServerSvCheats->GetBool())
 		&& args.ArgC() >= 2 )
 	{
 		char item_to_give[ 256 ];
@@ -1295,7 +1295,7 @@ void DisableNoClip( CBasePlayer *pPlayer )
 
 CON_COMMAND_F( noclip, "Toggle. Player becomes non-solid and flies.  Optional argument of 0 or 1 to force enable/disable", FCVAR_CHEAT )
 {
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 		return;
 
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
@@ -1333,7 +1333,7 @@ CON_COMMAND_F( noclip, "Toggle. Player becomes non-solid and flies.  Optional ar
 //------------------------------------------------------------------------------
 void CC_God_f (void)
 {
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 		return;
 
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
@@ -1355,7 +1355,7 @@ void CC_God_f (void)
 //------------------------------------------------------------------------------
 void CC_Gods_f (void)
 {
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 		return;
 	
 	// Decide how to toggle based on the state of the local player.
@@ -1386,7 +1386,7 @@ static ConCommand gods("gods", CC_Gods_f, "Toggle. All players become invulnerab
 
 CON_COMMAND_F( ent_setpos, "Move entity to position", FCVAR_CHEAT )
 {
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 		return;
 
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
@@ -1419,7 +1419,7 @@ CON_COMMAND_F( ent_setpos, "Move entity to position", FCVAR_CHEAT )
 
 CON_COMMAND_F( ent_setang, "Set entity angles", FCVAR_CHEAT )
 {
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 		return;
 
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
@@ -1455,7 +1455,7 @@ CON_COMMAND_F( ent_setang, "Set entity angles", FCVAR_CHEAT )
 //------------------------------------------------------------------------------
 CON_COMMAND_F( setpos, "Move player to specified origin (must have sv_cheats).", FCVAR_CHEAT )
 {
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 		return;
 
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
@@ -1489,7 +1489,7 @@ CON_COMMAND_F( setpos, "Move player to specified origin (must have sv_cheats).",
 //------------------------------------------------------------------------------
 CON_COMMAND_F( setpos_player, "Move specified player to specified origin (must have sv_cheats).", FCVAR_CHEAT )
 {
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 		return;
 
 	CBasePlayer *pCommandPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
@@ -1527,7 +1527,7 @@ CON_COMMAND_F( setpos_player, "Move specified player to specified origin (must h
 //------------------------------------------------------------------------------
 void CC_setang_f (const CCommand &args)
 {
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 		return;
 
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
@@ -1558,7 +1558,7 @@ static ConCommand setang("setang", CC_setang_f, "Snap player eyes to specified p
 //------------------------------------------------------------------------------
 CON_COMMAND_F( setpos_exact, "Move player to an exact specified origin (must have sv_cheats).", FCVAR_CHEAT )
 {
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 		return;
 
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
@@ -1593,7 +1593,7 @@ CON_COMMAND_F( setpos_exact, "Move player to an exact specified origin (must hav
 
 CON_COMMAND_F( setang_exact, "Snap player eyes and orientation to specified pitch yaw <roll:optional> (must have sv_cheats).", FCVAR_CHEAT )
 {
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 		return;
 
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
@@ -1627,7 +1627,7 @@ CON_COMMAND_F( setang_exact, "Snap player eyes and orientation to specified pitc
 //------------------------------------------------------------------------------
 void CC_Notarget_f (void)
 {
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 		return;
 
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
@@ -1651,7 +1651,7 @@ ConCommand notarget("notarget", CC_Notarget_f, "Toggle. Player becomes hidden to
 //------------------------------------------------------------------------------
 void CC_HurtMe_f(const CCommand &args)
 {
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 		return;
 
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
@@ -1801,7 +1801,7 @@ void ClientCommand( CBasePlayer *pPlayer, const CCommand &args )
 	
 	if ( FStrEq( pCmd, "killtarget" ) )
 	{
-		if ( g_pDeveloper->GetBool() && sv_cheats->GetBool() && UTIL_IsCommandIssuedByServerAdmin() )
+		if ( g_pDeveloper->GetBool() && g_pServerSvCheats->GetBool() && UTIL_IsCommandIssuedByServerAdmin() )
 		{
 			ConsoleKillTarget( pPlayer, args[1] );
 		}
@@ -1817,7 +1817,7 @@ void ClientCommand( CBasePlayer *pPlayer, const CCommand &args )
 	} 
 	else if ( FStrEq( pCmd, "te" ) )
 	{
-		if ( sv_cheats->GetBool() && UTIL_IsCommandIssuedByServerAdmin() )
+		if ( g_pServerSvCheats->GetBool() && UTIL_IsCommandIssuedByServerAdmin() )
 		{
 			if ( FStrEq( args[1], "stop" ) )
 			{

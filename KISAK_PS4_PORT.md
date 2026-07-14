@@ -19,13 +19,23 @@ kernel sleep loop. The first package returned from `main()` after writing all
 markers; the PS4 shell reported that normal return as an application crash.
 Commit `b8f56b31` fixed the behavior by keeping the bootstrap alive.
 
-Latest staged monolithic package:
+Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.05
 SHA-256: 9ea7fd80827a5d236085e67800ef37ff68387090530099a61c3e5a2b2a3924f6
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+```
+
+Latest host-built package awaiting hardware staging:
+
+```text
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.06
+SHA-256: 027063ab82ff5a335c385bf43f348727769bce774a96ebd9fb3dc46c269c59fe
+Local:    build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Staging:  pending; PS4 FTP 10.0.1.157:2121 was unavailable on 2026-07-14
 ```
 
 Current hardware baseline:
@@ -56,7 +66,11 @@ Current hardware baseline:
   unexpectedly returns, execution falls through and crashes inside unsupported
   third-party server-plugin loading. v4.37 identifies the exact failed
   server-DLL requirement, restores the initialized flag on failure, returns
-  defensively, and excludes only dynamic server plugins on PS4.
+  defensively, and excludes only dynamic server plugins on PS4. Hardware v4.39
+  retains the missing voice-server and engine-random interface registrars and
+  then stops immediately after assigning the server DLL's `sv_cheats` handle.
+  v4.40 isolates both client/server cached handles from the engine's real
+  `ConVar sv_cheats` object; hardware validation is pending.
 - OpenGNM opens two 1920x1080 VideoOut buffers and completes repeated VSYNC
   flips. The v1.78 run sustains approximately 60 FPS without a crash.
 - The presentation stress loop has reached at least frame 1200 with matching
@@ -6034,6 +6048,67 @@ The fact that `Plat_ExitProcess` returns remains a separate PS4 platform bug.
 It must eventually be made non-returning or replaced by an explicit fatal
 startup result, but changing global fatal-error semantics is deferred until the
 current game-DLL dependency has been identified.
+
+### v4.38-v4.39: Retain static interface-only translation units
+
+The monolithic ORBIS build links `engine_client` as a static archive. The
+translation units implementing `VoiceServer002` and `VEngineRandom001` contain
+only static `InterfaceReg` objects, so ordinary archive extraction does not
+select them when no exported symbol is referenced. PS4-only empty retention
+anchors now give the final executable explicit references to
+`voiceserver_impl.cpp` and `randomstream.cpp`. Pulling those objects from the
+archive also preserves their constructor records and therefore their Source
+interface registrations. PC and dynamic-module behavior is unchanged.
+
+Hardware v4.39 passes both interface requirements, enters
+`CServerGameDLL::DLLInit`, and stops after:
+
+```text
+kisak-ps4: server DLLInit before sv_cheats check
+```
+
+### v4.40: Isolate the server `sv_cheats` handle
+
+The monolithic executable previously contained three incompatible globals with
+the same C++ linkage name: `engine/sv_main.cpp` defines the real
+`ConVar sv_cheats` object, while `game/server/client.cpp` and
+`game/client/viewdebug.cpp` defined server/client pointer caches. Variable
+symbol mangling does not encode the type, and the PS4 monolithic link permits
+duplicate definitions. The engine object was selected first, so a cached
+pointer assignment could overwrite the start of that `ConVar`; the observed
+startup crash occurs at the server assignment's following check.
+
+The cached pointers and all shared client/server call sites are renamed to
+`g_pClientSvCheats` and `g_pServerSvCheats`; the registered cvar name remains
+exactly `"sv_cheats"`. The engine object is untouched. New bounded breadcrumbs
+distinguish successful cvar lookup from save/restore-handler registration:
+
+```text
+kisak-ps4: server DLLInit cvar references ready
+kisak-ps4: server DLLInit save restore handlers ready
+```
+
+The required link gate is that the final ELF contains distinct `sv_cheats`,
+`g_pClientSvCheats`, and `g_pServerSvCheats` symbols plus both PS4 retention
+anchors. The next hardware run must pass both new breadcrumbs; do not claim
+`DLLInit` success until the existing `server DLLInit complete` marker appears.
+
+Marker: `kisak-ps4: build marker server_sv_cheats_isolation_v440`.
+
+The Linux OpenOrbis build now completes through the final monolithic link and
+fself conversion. The final ELF proves the collision is removed: it contains
+three distinct symbols at distinct addresses (`sv_cheats`,
+`g_pClientSvCheats`, and `g_pServerSvCheats`) plus both retention anchors for
+`VEngineRandom001` and `VoiceServer002`. The Linux shader toolchain was also
+completed with host `glslc` and native `psbc`; all ten required diagnostic,
+cube, blit, and ordered-Scaleform shader binaries were regenerated.
+
+Version 3.06 packages 895 prepared Scaleform assets and passes the complete
+OpenOrbis `pkg_validate --verbose` hash/signature suite. Its SHA-256 is
+`027063ab82ff5a335c385bf43f348727769bce774a96ebd9fb3dc46c269c59fe`.
+The upload attempt failed only because the configured PS4 FTP endpoint was not
+listening, so hardware validation remains pending. Install/run only title
+`KISK00002`; the bootstrap title is not required for this checkpoint.
 
 ### PS3 Scaleform UI cross-reference priorities
 

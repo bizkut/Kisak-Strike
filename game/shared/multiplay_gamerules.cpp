@@ -1578,7 +1578,7 @@ CMultiplayRules::CMultiplayRules()
 
 	bool CMultiplayRules::IsLoadingBugBaitReport()
 	{
-		return ( !engine->IsDedicatedServer()&& CommandLine()->CheckParm( "-bugbait" ) && sv_cheats->GetBool() );
+		return ( !engine->IsDedicatedServer()&& CommandLine()->CheckParm( "-bugbait" ) && g_pServerSvCheats->GetBool() );
 	}
 
 	void CMultiplayRules::HaveAllPlayersSpeakConceptIfAllowed( int iConcept )

@@ -66,7 +66,7 @@ static ConVar c_thirdpersonshoulderaimdist( "c_thirdpersonshoulderaimdist", "120
 static kbutton_t cam_pitchup, cam_pitchdown, cam_yawleft, cam_yawright;
 static kbutton_t cam_in, cam_out; // -- "cam_move" is unused
 
-extern const ConVar *sv_cheats;
+extern const ConVar *g_pClientSvCheats;
 extern ConVar in_forceuser;
 extern ConVar sv_allow_thirdperson;
 
@@ -301,13 +301,13 @@ void CInput::CAM_Think( void )
 	ASSERT_LOCAL_PLAYER_RESOLVABLE();
 	PerUserInput_t &user = GetPerUser();
 
-	if ( !sv_cheats )
+	if ( !g_pClientSvCheats )
 	{
-		sv_cheats = cvar->FindVar( "sv_cheats" );
+		g_pClientSvCheats = cvar->FindVar( "sv_cheats" );
 	}
 
 	// If cheats have been disabled, pull us back out of third-person view.
-	if ( sv_cheats && !sv_cheats->GetBool() && user.m_fCameraInThirdPerson && GameRules() && !GameRules()->AllowThirdPersonCamera() )
+	if ( g_pClientSvCheats && !g_pClientSvCheats->GetBool() && user.m_fCameraInThirdPerson && GameRules() && !GameRules()->AllowThirdPersonCamera() )
 	{
 		CAM_ToFirstPerson();
 		return;

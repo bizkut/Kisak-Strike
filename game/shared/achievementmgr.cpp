@@ -337,7 +337,9 @@ void CAchievementMgr::InitializeAchievements( )
 }
 
 #ifdef CLIENT_DLL
-extern const ConVar *sv_cheats;
+extern const ConVar *g_pClientSvCheats;
+#else
+extern ConVar *g_pServerSvCheats;
 #endif
 
 //-----------------------------------------------------------------------------
@@ -2441,17 +2443,23 @@ void CAchievementMgr::ClearAchievementData( int nUserSlot )
 void CAchievementMgr::Update( float frametime )
 {
 #ifdef CLIENT_DLL
-	if ( !sv_cheats )
+	if ( !g_pClientSvCheats )
 	{
-		sv_cheats = cvar->FindVar( "sv_cheats" );
+		g_pClientSvCheats = cvar->FindVar( "sv_cheats" );
 	}
 #endif
 
 #ifndef _DEBUG
+	const ConVar *pSvCheats =
+#ifdef CLIENT_DLL
+		g_pClientSvCheats;
+#else
+		g_pServerSvCheats;
+#endif
 	// keep track if cheats have ever been turned on during this level
 	if ( !WereCheatsEverOn() )
 	{
-		if ( sv_cheats && sv_cheats->GetBool() )
+		if ( pSvCheats && pSvCheats->GetBool() )
 		{
 			m_bCheatsEverOn = true;
 		}

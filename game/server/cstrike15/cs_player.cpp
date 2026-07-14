@@ -3622,7 +3622,7 @@ void CCSPlayer::ImpulseCommands()
 	case 113:
 	case 114:
 		// If this player doesn't have a spraycan equipped then swallow the spray request (this probably doesn't work)
-		if ( sv_cheats->GetBool() )
+		if ( g_pServerSvCheats->GetBool() )
 		{
 			CCSUsrMsg_PlayerDecalDigitalSignature msg;
 			msg.mutable_data()->set_equipslot( iImpulse - 111 );
@@ -3642,7 +3642,7 @@ void CCSPlayer::CheatImpulseCommands( int iImpulse )
 	{
 		case 101:
 		{
-			if( sv_cheats->GetBool() )
+			if( g_pServerSvCheats->GetBool() )
 			{
 				extern int gEvilImpulse101;
 				gEvilImpulse101 = true;

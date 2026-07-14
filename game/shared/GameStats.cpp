@@ -32,7 +32,7 @@
 #include "vgui_int.h"
 #include "igameresources.h"
 #include "voice_status.h"
-extern const ConVar *sv_cheats;
+extern const ConVar *g_pClientSvCheats;
 #ifndef NO_STEAM
 #include "steamworks_gamestats_client.h"
 #endif
@@ -1539,9 +1539,9 @@ bool CBaseGameStats_Driver::AddBaseDataForSend( KeyValues *pKV, StatSendType_t s
 
 		// We want to know if a user is running with cheats on so that we can filter out their data
 		// depending on what we're looking for.
-		if ( NULL != sv_cheats  )
+		if ( NULL != g_pClientSvCheats  )
 		{
-			pKV->SetInt( "Cheats", sv_cheats->GetInt() );			
+			pKV->SetInt( "Cheats", g_pClientSvCheats->GetInt() );
 		}
 
 		
@@ -1897,4 +1897,3 @@ void CPointGamestatsCounter::InputDisable( inputdata_t &inputdata )
 }
 
 #endif // GAME_DLL
-

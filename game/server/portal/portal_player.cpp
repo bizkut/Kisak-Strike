@@ -1258,7 +1258,7 @@ void CPortal_Player::OnRestore( void )
 		TakeDamage( info );
 
 		// Force cheats on to make sure their score won't get recorded
-		sv_cheats->SetValue( true );
+		g_pServerSvCheats->SetValue( true );
 	}
 }
 
@@ -3233,7 +3233,7 @@ int CPortal_Player::FlashlightIsOn( void )
 //-----------------------------------------------------------------------------
 bool CPortal_Player::FlashlightTurnOn( bool playSound /*= false*/ )
 {
-	if ( sv_cheats->GetBool() == false )
+	if ( g_pServerSvCheats->GetBool() == false )
 		return false;
 
 	AddEffects( EF_DIMLIGHT );
@@ -3246,7 +3246,7 @@ bool CPortal_Player::FlashlightTurnOn( bool playSound /*= false*/ )
 //-----------------------------------------------------------------------------
 void CPortal_Player::FlashlightTurnOff( bool playSound /*= false*/ )
 {
-	if ( sv_cheats->GetBool() == false )
+	if ( g_pServerSvCheats->GetBool() == false )
 		return;
 
 	RemoveEffects( EF_DIMLIGHT );
@@ -3260,7 +3260,7 @@ void CPortal_Player::CheatImpulseCommands( int iImpulse )
 	{
 	case 101:
 		{
-			if( sv_cheats->GetBool() )
+			if( g_pServerSvCheats->GetBool() )
 			{
 				//GiveAllItems();
 				// FIXME: Bring this back for DLC2
@@ -4972,11 +4972,11 @@ void CPortal_Player::InitialSpawn( void )
 #endif
 }
 
-extern ConVar *sv_cheats;
+extern ConVar *g_pServerSvCheats;
 void CC_give_me_a_point( void )
 {
 	//static ConVarRef sv_cheatsref( "sv_cheats" );
-	if( sv_cheats->GetBool() )
+	if( g_pServerSvCheats->GetBool() )
 	{
 		UTIL_GetCommandClient()->IncrementFragCount( 1 );
 	}

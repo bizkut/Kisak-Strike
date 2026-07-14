@@ -914,15 +914,16 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	}
 	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit particle system ready" );
 
-	sv_cheats = g_pCVar->FindVar( "sv_cheats" );
+	g_pServerSvCheats = g_pCVar->FindVar( "sv_cheats" );
 	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before sv_cheats check" );
-	if ( !sv_cheats )
+	if ( !g_pServerSvCheats )
 		return false;
 
 	g_pcv_commentary = g_pCVar->FindVar( "commentary" );
 	g_pcv_ThreadMode = g_pCVar->FindVar( "host_thread_mode" );
 
 	sv_maxreplay = g_pCVar->FindVar( "sv_maxreplay" );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit cvar references ready" );
 
 	COM_TimestampedLog( "g_pGameSaveRestoreBlockSet" );
 
@@ -934,6 +935,7 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetCommentarySaveRestoreBlockHandler() );
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetEventQueueSaveRestoreBlockHandler() );
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetVScriptSaveRestoreBlockHandler() );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit save restore handlers ready" );
 
 #if defined( PORTAL2 )
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetPaintSaveRestoreBlockHandler() );

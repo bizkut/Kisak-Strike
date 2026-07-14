@@ -357,8 +357,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     )
 
     find_program(KISAK_CREATE_FSELF
-        NAMES create-fself-macos create-fself
-        HINTS "${OPENORBIS_ROOT}/bin/macos" "${OPENORBIS_ROOT}/bin"
+        NAMES create-fself create-fself-macos
+        HINTS "${OPENORBIS_ROOT}/bin/linux" "${OPENORBIS_ROOT}/bin/macos" "${OPENORBIS_ROOT}/bin"
     )
     if(KISAK_CREATE_FSELF)
         add_custom_command(TARGET kisak_ps4_monolithic POST_BUILD

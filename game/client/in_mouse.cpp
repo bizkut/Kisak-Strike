@@ -49,7 +49,7 @@
 extern ConVar lookstrafe;
 extern ConVar cl_pitchdown;
 extern ConVar cl_pitchup;
-extern const ConVar *sv_cheats;
+extern const ConVar *g_pClientSvCheats;
 
 #if defined PORTAL
 ConVar cl_mouselook_roll_compensation( "cl_mouselook_roll_compensation", "1", 0, "In Portal and Paint, if your view is being rolled, compensate for that. So mouse movements are always relative to the screen." );
@@ -66,8 +66,8 @@ public:
 	
 	virtual float GetFloat() const
 	{
-		if ( !sv_cheats )
-			sv_cheats = cvar->FindVar( "sv_cheats" );
+		if ( !g_pClientSvCheats )
+			g_pClientSvCheats = cvar->FindVar( "sv_cheats" );
 
 		float flBaseValue;
 		// If sv_cheats is on then it can be anything.
@@ -81,7 +81,7 @@ public:
 		{
 			flBaseValue = GetBaseFloatValue();
 		}
-		if ( !sv_cheats || sv_cheats->GetBool() )
+		if ( !g_pClientSvCheats || g_pClientSvCheats->GetBool() )
 			return flBaseValue;
 
 		// If sv_cheats is off than it can only be 0.022 or -0.022 (if they've reversed the mouse in the options).		

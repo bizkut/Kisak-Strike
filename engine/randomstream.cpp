@@ -46,3 +46,9 @@ public:
 static CEngineUniformRandomStream s_EngineRandomStream;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CEngineUniformRandomStream, IUniformRandomStream, 
 	VENGINE_CLIENT_RANDOM_INTERFACE_VERSION, s_EngineRandomStream );
+
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4RetainEngineRandomInterface()
+{
+}
+#endif

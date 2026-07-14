@@ -415,6 +415,8 @@ const char *GetModDirFromPath( const char *pszPath )
 #if defined( PLATFORM_PS4 )
 #include "../ps4/offline_launch_request.h"
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+extern "C" void KisakPs4RetainSourceVoiceServerInterface();
+extern "C" void KisakPs4RetainEngineRandomInterface();
 #endif
 #endif
 
@@ -1839,7 +1841,9 @@ int CEngineAPI::Run()
 {
 	#if defined( PLATFORM_PS4 )
 	KisakPs4StartupBreadcrumb( "kisak-ps4: source engine run entered" );
-	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker server_dll_requirements_v437" );
+	KisakPs4RetainSourceVoiceServerInterface();
+	KisakPs4RetainEngineRandomInterface();
+	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker server_sv_cheats_isolation_v440" );
 	#endif
 	if ( CommandLine()->FindParm("-insecure") )
 	{

@@ -7342,12 +7342,12 @@ float C_CSPlayer::GetFOV( void ) const
 
 	if ( flCurFOV == GetDefaultFOV() )
 	{
-		if ( !sv_cheats )
+		if ( !g_pClientSvCheats )
 		{
-			sv_cheats = cvar->FindVar( "sv_cheats" );
+			g_pClientSvCheats = cvar->FindVar( "sv_cheats" );
 		}
 
-		if ( sv_cheats->GetBool() && fov_cs_debug.GetInt() > 0 )
+		if ( g_pClientSvCheats->GetBool() && fov_cs_debug.GetInt() > 0 )
 		{
 			return fov_cs_debug.GetInt();
 		}

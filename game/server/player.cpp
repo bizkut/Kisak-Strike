@@ -3752,7 +3752,7 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 
 		// If no clipping and cheats enabled and sv_noclipduringpause enabled, then don't zero out movement part of CUserCmd
 		if ( GetMoveType() == MOVETYPE_NOCLIP &&
-			sv_cheats->GetBool() && 
+			g_pServerSvCheats->GetBool() &&
 			sv_noclipduringpause.GetBool() )
 		{
 			clear_angles = false;
@@ -6108,7 +6108,7 @@ void CBasePlayer::ImpulseCommands( )
 		break;
 
 	case 200:
-		if ( sv_cheats->GetBool() )
+		if ( g_pServerSvCheats->GetBool() )
 		{
 			CBaseCombatWeapon *pWeapon;
 
@@ -6256,7 +6256,7 @@ static ConCommand ch_createairboat( "ch_createairboat", CC_CH_CreateAirboat, "Sp
 void CBasePlayer::CheatImpulseCommands( int iImpulse )
 {
 #if !defined( HLDEMO_BUILD )
-	if ( !sv_cheats->GetBool() )
+	if ( !g_pServerSvCheats->GetBool() )
 	{
 		return;
 	}
@@ -6490,7 +6490,7 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 #ifdef _DEBUG
 	if( stricmp( cmd, "test_SmokeGrenade" ) == 0 )
 	{
-		if ( sv_cheats && sv_cheats->GetBool() )
+		if ( g_pServerSvCheats && g_pServerSvCheats->GetBool() )
 		{
 			ParticleSmokeGrenade *pSmoke = dynamic_cast<ParticleSmokeGrenade*>( CreateEntityByName(PARTICLESMOKEGRENADE_ENTITYNAME) );
 			if ( pSmoke )
@@ -6772,7 +6772,7 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 
 	else if ( stricmp( cmd, "spec_goto" ) == 0 ) // chase next player
 	{
-		if ( !sv_cheats->GetBool() && IsAlive()/* || (pPlayer->GetObserverMode() != OBS_MODE_ROAMING && pPlayer->GetObserverMode() != OBS_MODE_FIXED)*/ )
+		if ( !g_pServerSvCheats->GetBool() && IsAlive()/* || (pPlayer->GetObserverMode() != OBS_MODE_ROAMING && pPlayer->GetObserverMode() != OBS_MODE_FIXED)*/ )
 			return false;
 
 		if ( args.ArgC() < 6 )
@@ -6821,7 +6821,7 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 	}
 	else if ( stricmp( cmd, "spec_lerpto" ) == 0 )
 	{
-		if ( !sv_cheats->GetBool() && (IsAlive())/* || (pPlayer->GetObserverMode() != OBS_MODE_ROAMING && pPlayer->GetObserverMode() != OBS_MODE_FIXED)*/ )
+		if ( !g_pServerSvCheats->GetBool() && (IsAlive())/* || (pPlayer->GetObserverMode() != OBS_MODE_ROAMING && pPlayer->GetObserverMode() != OBS_MODE_FIXED)*/ )
 			return false;
 
 		if ( args.ArgC() < 7 )

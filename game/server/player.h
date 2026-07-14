@@ -146,7 +146,7 @@ enum AimResults
 };
 
 extern bool gInitHUD;
-extern ConVar *sv_cheats;
+extern ConVar *g_pServerSvCheats;
 
 class CBasePlayer;
 class CPlayerInfo : public IBotController, public IPlayerInfo

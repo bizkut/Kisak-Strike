@@ -68,3 +68,9 @@ public:
 
 
 EXPOSE_SINGLE_INTERFACE(CVoiceServer, IVoiceServer, INTERFACEVERSION_VOICESERVER);
+
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4RetainSourceVoiceServerInterface()
+{
+}
+#endif
