@@ -125,6 +125,13 @@
 #include "bot/bot.h"
 #endif
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_SERVER_DLL_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_SERVER_DLL_BREADCRUMB( line ) ((void)0)
+#endif
+
 #ifdef PORTAL
 #include "portal_base2d_shared.h"
 #include "portal_player.h"
@@ -709,15 +716,19 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 		CreateInterfaceFn physicsFactory, CreateInterfaceFn fileSystemFactory, 
 		CGlobalVars *pGlobals)
 {
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit entered" );
 	COM_TimestampedLog( "ConnectTier1/2/3Libraries - Start" );
 
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before tier libraries" );
 	ConnectTier1Libraries( &appSystemFactory, 1 );
 	ConnectTier2Libraries( &appSystemFactory, 1 );
 	ConnectTier3Libraries( &appSystemFactory, 1 );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit tier libraries ready" );
 
 	COM_TimestampedLog( "ConnectTier1/2/3Libraries - Finish" );
 
 	// Connected in ConnectTier1Libraries
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before cvar check" );
 	if ( cvar == NULL )
 		return false;
 
@@ -734,6 +745,7 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	COM_TimestampedLog( "Factories - Start" );
 
 	// init each (seperated for ease of debugging)
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before engine interface" );
 	if ( (engine = (IVEngineServer*)appSystemFactory(INTERFACEVERSION_VENGINESERVER, NULL)) == NULL )
 		return false;
 
@@ -755,43 +767,62 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
  	STEAMWORKS_TESTSECRETALWAYS();
  	STEAMWORKS_SELFCHECK();
 
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before voice interface" );
 	if ( (g_pVoiceServer = (IVoiceServer*)appSystemFactory(INTERFACEVERSION_VOICESERVER, NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before string table interface" );
 	if ( (networkstringtable = (INetworkStringTableContainer *)appSystemFactory(INTERFACENAME_NETWORKSTRINGTABLESERVER,NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before static prop interface" );
 	if ( (staticpropmgr = (IStaticPropMgrServer *)appSystemFactory(INTERFACEVERSION_STATICPROPMGR_SERVER,NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before random interface" );
 	if ( (random = (IUniformRandomStream *)appSystemFactory(VENGINE_SERVER_RANDOM_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before engine sound interface" );
 	if ( (enginesound = (IEngineSound *)appSystemFactory(IENGINESOUND_SERVER_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before spatial partition interface" );
 	if ( (::partition = (ISpatialPartition *)appSystemFactory(INTERFACEVERSION_SPATIALPARTITION, NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before model info interface" );
 	if ( (modelinfo = (IVModelInfo *)appSystemFactory(VMODELINFO_SERVER_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before engine trace interface" );
 	if ( (enginetrace = (IEngineTrace *)appSystemFactory(INTERFACEVERSION_ENGINETRACE_SERVER,NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before file logging interface" );
 	if ( (filelogginglistener = (IFileLoggingListener *)appSystemFactory(FILELOGGINGLISTENER_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before filesystem interface" );
 	if ( (filesystem = (IFileSystem *)fileSystemFactory(FILESYSTEM_INTERFACE_VERSION,NULL)) == NULL )
 		return false;
 
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before game event interface" );
 	if ( (gameeventmanager = (IGameEventManager2 *)appSystemFactory(INTERFACEVERSION_GAMEEVENTSMANAGER2,NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before data cache interface" );
 	if ( (datacache = (IDataCache*)appSystemFactory(DATACACHE_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before sound emitter interface" );
 	if ( (soundemitterbase = (ISoundEmitterSystemBase *)appSystemFactory(SOUNDEMITTERSYSTEM_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before game stats interface" );
 	if ( (gamestatsuploader = (IUploadGameStats *)appSystemFactory( INTERFACEVERSION_UPLOADGAMESTATS, NULL )) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before model cache check" );
 	if ( !mdlcache )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before plugin helpers interface" );
 	if ( (serverpluginhelpers = (IServerPluginHelpers *)appSystemFactory(INTERFACEVERSION_ISERVERPLUGINHELPERS, NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before scene cache interface" );
 	if ( (scenefilecache = (ISceneFileCache *)appSystemFactory( SCENE_FILE_CACHE_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before blackbox interface" );
 	if ( (blackboxrecorder = (IBlackBox *)appSystemFactory(BLACKBOX_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before xbox system interface" );
 	if ( (xboxsystem = (IXboxSystem *)appSystemFactory( XBOXSYSTEM_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
 
@@ -801,6 +832,7 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	}
 
 #if defined( CSTRIKE15 )
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before game types interface" );
 	if ( ( g_pGameTypes = (IGameTypes *)appSystemFactory( VENGINE_GAMETYPES_VERSION, NULL )) == NULL )
 		return false;
 #endif
@@ -828,6 +860,7 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 		return false;
 #endif
 
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before match framework check" );
 	if ( !g_pMatchFramework )
 		return false;
 	if ( IMatchExtensions *pIMatchExtensions = g_pMatchFramework->GetMatchExtensions() )
@@ -839,8 +872,10 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	COM_TimestampedLog( "soundemitterbase->Connect" );
 
 	// Yes, both the client and game .dlls will try to Connect, the soundemittersystem.dll will handle this gracefully
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before sound emitter connect" );
 	if ( !soundemitterbase->Connect( appSystemFactory ) )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit sound emitter connected" );
 
 	if ( CommandLine()->FindParm( "-headtracking" ) )
 		g_bHeadTrackingEnabled = true;
@@ -872,12 +907,15 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	COM_TimestampedLog( "g_pParticleSystemMgr->Init" );
 	// Initialize the particle system
 	bool bPrecacheParticles = IsPC() && !engine->IsCreatingXboxReslist();
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before particle system" );
 	if ( !g_pParticleSystemMgr->Init( g_pParticleSystemQuery, bPrecacheParticles ) )
 	{
 		return false;
 	}
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit particle system ready" );
 
 	sv_cheats = g_pCVar->FindVar( "sv_cheats" );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before sv_cheats check" );
 	if ( !sv_cheats )
 		return false;
 
@@ -945,6 +983,7 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	g_pGameTypes->Initialize();
 #endif
 
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit complete" );
 	return true;
 }
 

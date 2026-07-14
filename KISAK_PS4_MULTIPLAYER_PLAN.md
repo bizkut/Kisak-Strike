@@ -27,10 +27,13 @@ socket manager and game-event manager, then crashes inside
 `gamerulescvars.txt` load immediately after the rules object is allocated.
 Hardware v4.35 validates the Steam-free skip and completes both base- and
 game-server initialization, then stops immediately after the successful
-`sv.Init` trace. v4.36 now traces the next `SV_InitGameDLL` boundary,
-including the monolithic server DLL's `DLLInit`, send tables, and
-max-client setup. The offline listen-server milestone therefore remains
-blocked on game-DLL startup after server construction. The networking
+`sv.Init` trace. Hardware v4.36 reaches the monolithic server DLL, but its
+`DLLInit` returns false; the returning PS4 fatal-exit path then falls through
+and crashes in unsupported dynamic server-plugin loading. v4.37 traces each
+required server-DLL interface, prevents failed initialization from being
+reported as successful, and skips third-party plugins only on PS4. The offline
+listen-server milestone therefore remains blocked on the specific server-DLL
+dependency that the next hardware trace will name. The networking
 phase must then assert protocol `13580` in loopback, demo/server headers, and a
 same-build Linux/community server before LAN compatibility is claimed.
 `GetSteamAppID()` has a separate legacy no-Steam fallback of 215; audit and
@@ -47,6 +50,11 @@ The v4.35 hardware capture proves that workaround and all server construction
 complete. The v4.36 diagnostic package preserves the full game-DLL path and is
 staged with SHA-256
 `063c37610d234b1f2ebd198798a5f402e6103518b9c306e2406d5c908405f319`.
+
+Hardware v4.36 confirms that `serverGameDLL` is present but `DLLInit`
+returns false. v4.37 preserves that failure, traces the individual required
+interfaces, and is staged with SHA-256
+`9ea7fd80827a5d236085e67800ef37ff68387090530099a61c3e5a2b2a3924f6`.
 
 ## Recommendation
 

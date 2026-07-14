@@ -24,7 +24,7 @@ Latest staged monolithic package:
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.05
-SHA-256: 063c37610d234b1f2ebd198798a5f402e6103518b9c306e2406d5c908405f319
+SHA-256: 9ea7fd80827a5d236085e67800ef37ff68387090530099a61c3e5a2b2a3924f6
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -51,9 +51,12 @@ Current hardware baseline:
   warning. Hardware v4.35 validates the Steam-free skip, cvar callback,
   `CBaseServer::Clear`, signon allocation, and complete `CGameServer::Init`.
   It then stops immediately after the successful `sv.Init( bDedicated )`
-  trace. v4.36 brackets the next `SV_InitGameDLL` call from entry through
-  server-DLL `DLLInit`, plugin loading, send-table setup, tick/split-screen
-  queries, max-client setup, and the final command-buffer execution.
+  trace. Hardware v4.36 proves the server interface exists, then records
+  `serverGameDLL->DLLInit` returning false. Because PS4's fatal-exit primitive
+  unexpectedly returns, execution falls through and crashes inside unsupported
+  third-party server-plugin loading. v4.37 identifies the exact failed
+  server-DLL requirement, restores the initialized flag on failure, returns
+  defensively, and excludes only dynamic server plugins on PS4.
 - OpenGNM opens two 1920x1080 VideoOut buffers and completes repeated VSYNC
   flips. The v1.78 run sustains approximately 60 FPS without a crash.
 - The presentation stress loop has reached at least frame 1200 with matching
@@ -5980,6 +5983,57 @@ The next hardware report should include the final `game dll ...` breadcrumb;
 if it stops between `before DLLInit` and `DLLInit complete`, the following
 build will split `game/server/gameinterface.cpp::DLLInit` internally rather
 than bypassing it.
+
+Hardware v4.36 reaches the monolithic server interface and enters its
+`DLLInit`. The call returns false; the existing `Sys_Error` path invokes
+`Plat_ExitProcess`, but that PS4 implementation returns, so the unconditional
+post-call breadcrumb appears and startup reaches the dynamic plugin loader:
+
+```text
+kisak-ps4: game dll interface ready
+kisak-ps4: game dll before DLLInit
+kisak-ps4: game dll DLLInit failed
+kisak-ps4: game dll DLLInit complete
+kisak-ps4: game dll before plugin load
+```
+
+The process stops inside `g_pServerPluginHandler->LoadPlugins()`. The capture
+is preserved as
+`hardware-captures/logs/2026-07-14/kisak_v436_server_plugin_crash.txt`.
+
+### v4.37: Identify the failed server-DLL requirement
+
+Version 4.37 adds PS4-only breadcrumbs before each required engine interface
+and major fallible subsystem inside
+`game/server/gameinterface.cpp::CServerGameDLL::DLLInit`. The final
+`server DLLInit before ...` marker followed by the engine-level
+`DLLInit failed` marker will identify the exact missing interface or failed
+connection without changing successful initialization.
+
+If `Sys_Error` unexpectedly returns, the engine now clears
+`sv.dll_initialized` and returns from `SV_InitGameDLL` instead of logging
+success and entering later server setup with a partially initialized game DLL.
+This is a defensive failure path, not a substitute for the missing interface.
+
+Third-party server plugins remain enabled on PC. They are skipped only on
+`PLATFORM_PS4`, where the monolithic port deliberately has no `dlopen`, PRX,
+or proprietary runtime-module path. Core Source modules continue to resolve
+through the static module registry; this change does not bypass the server game
+DLL itself.
+
+Marker: `kisak-ps4: build marker server_dll_requirements_v437`.
+
+The package contains 895 prepared Scaleform assets and is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`9ea7fd80827a5d236085e67800ef37ff68387090530099a61c3e5a2b2a3924f6`.
+The next hardware capture must report the final `server DLLInit before ...`
+breadcrumb. Fix only that named dependency; do not mark `DLLInit` successful
+until it reaches `server DLLInit complete`.
+
+The fact that `Plat_ExitProcess` returns remains a separate PS4 platform bug.
+It must eventually be made non-returning or replaced by an explicit fatal
+startup result, but changing global fatal-error semantics is deferred until the
+current game-DLL dependency has been identified.
 
 ### PS3 Scaleform UI cross-reference priorities
 

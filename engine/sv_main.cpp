@@ -1118,15 +1118,22 @@ void SV_InitGameDLL( void )
     {
         PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll DLLInit failed" );
         Sys_Error( "serverGameDLL->DLLInit() failed.\n");
+		sv.dll_initialized = false;
+		PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll aborting after DLLInit failure" );
+		return;
     }
     PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll DLLInit complete" );
 
     COM_TimestampedLog( "serverGameDLL->DLLInit - Finish" );
 
+#if defined( PLATFORM_PS4 )
+    PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll plugin load skipped on PS4" );
+#else
     PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before plugin load" );
     if ( CommandLine()->FindParm( "-NoLoadPluginsForClient" ) == 0 )
         g_pServerPluginHandler->LoadPlugins(); // load 3rd party plugins
     PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll plugin load complete" );
+#endif
     
 
     // let's not have any servers with no name
