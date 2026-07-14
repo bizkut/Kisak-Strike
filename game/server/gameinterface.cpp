@@ -695,6 +695,13 @@ CEG_PROTECT_FUNCTION( InitGameSystems );
 CServerGameDLL g_ServerGameDLL;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameDLL, IServerGameDLL, INTERFACEVERSION_SERVERGAMEDLL, g_ServerGameDLL);
 
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakGameServerFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
+
 bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory, 
 		CreateInterfaceFn physicsFactory, CreateInterfaceFn fileSystemFactory, 
 		CGlobalVars *pGlobals)

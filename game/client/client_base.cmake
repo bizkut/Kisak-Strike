@@ -29,6 +29,10 @@ TargetBuildAndAddProto( ${OUTBINNAME} ${SRCDIR}/game/shared/base_gcmessages.prot
 if( LINUXALL )
     target_compile_options(${OUTBINNAME} PRIVATE -Wno-narrowing -Wno-ignored-attributes)
     target_link_libraries(${OUTBINNAME} rt)
+elseif( ORBIS )
+    # Source's reflection/datamap tables intentionally store 64-bit offsetof
+    # expressions in their legacy 32-bit descriptor fields.
+    target_compile_options(${OUTBINNAME} PRIVATE -Wno-c++11-narrowing)
 endif()
 
 #$Folder	"Source Files"
@@ -600,6 +604,8 @@ endif()
 #Linking is sloppy here and continued more in cstrike15
 target_link_libraries(${OUTBINNAME} bonesetup_client choreoobjects_client mathlib_extended_client )
 target_link_libraries(${OUTBINNAME} matsys_controls_client particles_client raytrace_client)
-target_link_libraries(${OUTBINNAME} ${LIBPUBLIC}/libsteam_api.so) # Link to proprietary steamapi
+if( NOT NO_STEAM )
+    target_link_libraries(${OUTBINNAME} ${LIBPUBLIC}/libsteam_api.so) # Link to proprietary steamapi
+endif()
 target_link_libraries(${OUTBINNAME} tier3_client vgui_controls_client videocfg_client vtf_client resourcefile_client )
 target_link_libraries(${OUTBINNAME} libprotobuf) #from /thirdparty

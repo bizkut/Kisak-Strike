@@ -21,6 +21,8 @@ CreateInterfaceFn Sys_GetFactoryThis()
 CreateInterfaceFn KisakFilesystemFactory() { return TestFactory; }
 CreateInterfaceFn KisakEngineBootstrapFactory() { return TestFactory; }
 CreateInterfaceFn KisakSourceEngineFactory() { return TestFactory; }
+CreateInterfaceFn KisakGameClientFactory() { return TestFactory; }
+CreateInterfaceFn KisakGameServerFactory() { return TestFactory; }
 CreateInterfaceFn KisakRocketUIBootstrapFactory() { return TestFactory; }
 CreateInterfaceFn KisakInputSystemFactory() { return TestFactory; }
 CreateInterfaceFn KisakVPhysicsFactory() { return TestFactory; }
@@ -44,6 +46,8 @@ int main()
     assert( FindStaticModuleFactory( "bin/launcher" ) == KisakLauncherFactory() );
     assert( FindStaticModuleFactory( "shaderapips4" ) == KisakShaderApiPs4Factory() );
     assert( FindStaticModuleFactory( "source_engine" ) == KisakSourceEngineFactory() );
+    assert( FindStaticModuleFactory( "source_client" ) == KisakGameClientFactory() );
+    assert( FindStaticModuleFactory( "source_server" ) == KisakGameServerFactory() );
 
     int result = 1;
     assert( FindStaticModuleFactory( "launcher" )( "TestInterface001", &result ) == &g_QueryCount );

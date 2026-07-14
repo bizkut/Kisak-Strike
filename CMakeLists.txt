@@ -163,6 +163,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     set(NO_STEAM ON CACHE BOOL "Disable proprietary Steam runtime on PS4" FORCE)
     option(KISAK_PS4_BUILD_SOURCE_ENGINE
         "Compile the real Source engine as the next monolithic integration gate" ON)
+    option(KISAK_PS4_BUILD_GAME_DLLS
+        "Compile the CS:GO client and listen-server archives for PS4" ON)
 
     set(KISAK_OPENGNM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../opengnm" CACHE PATH "OpenGNM PS4 source/build root")
 
@@ -214,6 +216,18 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         add_subdirectory(soundsystem/lowlevel)
         add_subdirectory(vgui2/matsys_controls)
         add_subdirectory(engine)
+        if(KISAK_PS4_BUILD_GAME_DLLS)
+            add_subdirectory(gcsdk)
+            add_subdirectory(bonesetup)
+            add_subdirectory(choreoobjects)
+            add_subdirectory(meshutils)
+            add_subdirectory(particles)
+            add_subdirectory(raytrace)
+            add_subdirectory(resourcefile)
+            add_subdirectory(responserules/runtime)
+            add_subdirectory(game/client)
+            add_subdirectory(game/server)
+        endif()
     endif()
 
     file(READ "${OPENORBIS_ROOT}/link.x" KISAK_OPENORBIS_LINK_SCRIPT)
@@ -233,6 +247,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         ps4/scaleform_asset_path.cpp
         ps4/offline_launch_request.cpp
         ps4/steam_api_stubs.cpp
+        ps4/gameui_desktop_stubs.cpp
         ps4/scaleform_gfx_manager.cpp
         ps4/scaleform_gnm_hal.cpp
     )
@@ -283,6 +298,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         --start-group
         launcher_client
         engine_client
+        client_client
+        server_client
         "${KISAK_OPENGNM_ROOT}/libopengnm.a"
         appframework_client
         libvstdlib_client

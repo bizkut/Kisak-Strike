@@ -5525,6 +5525,31 @@ factories under inactive aliases, then exercise the real `CAppSystemGroup`
 lifecycle before switching the live `engine` name. Only after the real engine
 accepts the listen-server command may the request transition from `pending`.
 
+That client/server link gate is now complete. The complete Source game client
+and listen-server archives cross-compile for `x86_64-ps4-elf` and link into the
+monolithic executable beside `engine_client`. Their genuine factories are
+registered as the inactive `source_client` and `source_server` aliases, while
+the live `client`, `server`, and `engine` module identities remain on the
+known-good presentation bootstrap. This deliberately does not change the
+hardware symptom yet: Cross submits the authentic offline request, but the
+active bootstrap still has no `CAppSystemGroup` consumer and therefore leaves
+the request pending.
+
+Closure work for this gate includes checked-in protobuf 2.5 output generated
+from the repository schemas, the game SDK/support archives, PS4-safe 64-bit
+file I/O and time handling, inert desktop GameUI ABI shims, exclusion of
+desktop-only dialogs, console input compilation fixes, and the remaining
+offline Steam C ABI entry points. The final monolithic link and FSELF creation
+complete, and all 14 host tests pass.
+
+The next milestone is no longer another input change. It is to instantiate the
+real app-system lifecycle against `source_engine`, `source_client`, and
+`source_server`, validate interface/version and init/shutdown ordering, and add
+a bounded consumer that accepts the queued listen-server request. The live
+module names must switch only after that lifecycle reaches an initialized
+state; failed initialization must retain the presentation menu and a pending or
+explicitly failed request rather than reporting a false launch success.
+
 ### PS3 Scaleform UI cross-reference priorities
 
 Full cross-reference report: `KISAK_PS3_UI_CROSSREFERENCE.md` in the Kisak

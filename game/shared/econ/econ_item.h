@@ -476,8 +476,10 @@ public:
 	virtual bool BParseFromMessage( const std::string &buffer ) OVERRIDE;
 	virtual bool BUpdateFromNetwork( const CSharedObject & objUpdate ) OVERRIDE;
 
-	virtual bool BAddToMessage( std::string *pBuffer ) const OVERRIDE; // short cut to remove an extra copy
-	virtual bool BAddDestroyToMessage( std::string *pBuffer ) const OVERRIDE;
+	// These are GC virtual overrides in coordinator builds and ordinary helper
+	// methods in the offline client/server build where CSharedObject omits them.
+	virtual bool BAddToMessage( std::string *pBuffer ) const; // short cut to remove an extra copy
+	virtual bool BAddDestroyToMessage( std::string *pBuffer ) const;
 
 	virtual bool BIsKeyLess( const CSharedObject & soRHS ) const ;
 	virtual void Copy( const CSharedObject & soRHS );

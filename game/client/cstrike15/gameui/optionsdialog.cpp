@@ -77,8 +77,13 @@ COptionsDialog::COptionsDialog(vgui::Panel *parent, OptionsDialogTabStyle iTabSt
 		}
 
 		// add the multiplay page last, if we're combo single/multi or just multi
-		if ( (ModInfo().IsMultiplayerOnly() && !ModInfo().IsSinglePlayerOnly()) ||
+		if (
+#if defined( PLATFORM_PS4 )
+			false &&
+#endif
+			((ModInfo().IsMultiplayerOnly() && !ModInfo().IsSinglePlayerOnly()) ||
 			 (!ModInfo().IsMultiplayerOnly() && !ModInfo().IsSinglePlayerOnly()) )
+			)
 		{
 			AddPage(new COptionsSubMultiplayer(this), "#GameUI_Multiplayer");
 		}

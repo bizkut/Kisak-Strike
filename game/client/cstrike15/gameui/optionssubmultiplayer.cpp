@@ -7,7 +7,7 @@
 
 #undef fopen
 
-#if !defined( _GAMECONSOLE ) && !defined( _OSX ) && !defined (LINUX)
+#if !defined( _GAMECONSOLE ) && !defined( _OSX ) && !defined( LINUX ) && !defined( PLATFORM_PS4 )
 #include <windows.h> // SRC only!!
 #endif
 
@@ -66,7 +66,7 @@
 #include "ivtex.h"
 // dgoodenough - io.h doesn't exist on the PS3
 // PS3_BUILDFIX
-#if !defined( _PS3 ) && !defined( _OSX ) && !defined (LINUX)
+#if !defined( _PS3 ) && !defined( _OSX ) && !defined( LINUX ) && !defined( PLATFORM_PS4 )
 #include <io.h>
 #endif
 
@@ -2713,4 +2713,3 @@ Panel *COptionsSubMultiplayer::CreateControlByName( const char *controlName )
 		return BaseClass::CreateControlByName( controlName );
 	}
 }
-

@@ -15,6 +15,9 @@ include(${CMAKE_MODULE_PATH}/source_lib_base.cmake)
 
 if( LINUXALL )
     target_compile_options(${OUTLIBNAME} PRIVATE -fpic -fno-semantic-interposition)
+elseif( ORBIS )
+    # Legacy particle unpack tables store offsetof(size_t) in int fields.
+    target_compile_options(${OUTLIBNAME} PRIVATE -Wno-c++11-narrowing)
 endif()
 
 target_sources(${OUTLIBNAME} PRIVATE "builtin_constraints.cpp")

@@ -653,7 +653,7 @@ void CInput::AccumulateMouse( int nSlot )
 
 		user.m_flAccumulatedMouseXMovement += current_posx - x;
 		user.m_flAccumulatedMouseYMovement += current_posy - y;
-#elif defined( _PS3 )
+#elif defined( _PS3 ) || defined( PLATFORM_PS4 )
 #else
 #error
 #endif

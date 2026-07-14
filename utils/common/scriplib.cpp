@@ -1290,8 +1290,8 @@ int CScriptLib::GetFileList( const char* pDirPath, const char* pPattern, CUtlVec
 		int j = fileList.AddToTail();
 		fileList[j].fileName.Set( fileName );
 		struct stat statbuf;
-		if ( stat( fileName, &statbuf ) )
-#ifdef LINUX
+		if ( stat( fileName, &statbuf ) == 0 )
+#if defined( LINUX ) || defined( PLATFORM_PS4 )
 			fileList[j].timeWrite = statbuf.st_mtime;
 #else
 			fileList[j].timeWrite = statbuf.st_mtimespec.tv_sec;

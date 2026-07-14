@@ -21,7 +21,7 @@
 #endif
 
 #define ASYNC_FILEIO
-#if defined( LINUX ) || defined ( OSX )
+#if defined( LINUX ) || defined( OSX ) || defined( PLATFORM_PS4 )
 // Linux hasn't got a good AIO library that we have found yet, so lets punt for now
 #undef ASYNC_FILEIO
 #endif
@@ -61,7 +61,7 @@
 // On OSX the native API file offset is always 64-bit
 // and things like stat64 are deprecated.
 // PS3 doesn't have anything other than the native API.
-#if defined(OSX) || defined(_PS3)
+#if defined(OSX) || defined(_PS3) || defined(PLATFORM_PS4)
 typedef off_t offBig_t;
 typedef struct stat statBig_t;
 typedef struct statvfs statvfsBig_t;
@@ -1736,7 +1736,7 @@ static char selectBuf[PATH_MAX];
 
 #if defined(OSX) && !defined(__MAC_10_8)
 static int FileSelect( direntBig_t *ent )
-#elif defined(LINUX) || defined(OSX)
+#elif defined(LINUX) || defined(OSX) || defined(PLATFORM_PS4)
 static int FileSelect( const direntBig_t *ent )
 #else
 #error
@@ -1929,4 +1929,3 @@ bool _findclose( int64 handle )
 
 #endif // !_PS3
 #endif
-

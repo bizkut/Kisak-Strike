@@ -59,6 +59,8 @@ extern "C" int KisakRegisterStaticModules()
     const bool filesystem = RegisterStaticModule( "filesystem_stdio", KisakFilesystemFactory() );
     const bool engine = RegisterStaticModule( "engine", KisakEngineBootstrapFactory() );
     const bool sourceEngine = RegisterStaticModule( "source_engine", KisakSourceEngineFactory() );
+    const bool gameClient = RegisterStaticModule( "source_client", KisakGameClientFactory() );
+    const bool gameServer = RegisterStaticModule( "source_server", KisakGameServerFactory() );
     const bool scaleformui = RegisterStaticModule( "scaleformui", KisakPs4ScaleformUIBootstrapFactory() );
     const bool inputsystem = RegisterStaticModule( "inputsystem", KisakInputSystemFactory() );
     const bool vphysics = RegisterStaticModule( "kisakvphysics", KisakVPhysicsFactory() );
@@ -72,5 +74,5 @@ extern "C" int KisakRegisterStaticModules()
     const bool vgui2 = RegisterStaticModule( "vgui2", KisakVGuiFactory() );
     const bool localize = RegisterStaticModule( "localize", KisakLocalizeFactory() );
     const bool vguimatsurface = RegisterStaticModule( "vguimatsurface", KisakVGuiMatSurfaceFactory() );
-    return tier0 && vstdlib && launcher && filesystem && engine && sourceEngine && scaleformui && inputsystem && vphysics && shaderapiempty && shaderapips4 && materialsystem && datacache && studiorender && soundemittersystem && vscript && vgui2 && localize && vguimatsurface ? 0 : -1;
+    return tier0 && vstdlib && launcher && filesystem && engine && sourceEngine && gameClient && gameServer && scaleformui && inputsystem && vphysics && shaderapiempty && shaderapips4 && materialsystem && datacache && studiorender && soundemittersystem && vscript && vgui2 && localize && vguimatsurface ? 0 : -1;
 }

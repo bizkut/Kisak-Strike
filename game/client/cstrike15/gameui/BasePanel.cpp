@@ -2780,7 +2780,7 @@ void CBaseModPanel::RunMenuCommand(const char *command)
 // dgoodenough - use Q_snprintf on PS3
 // PS3_BUILDFIX
 // @wge Fix for OSX too.
-#if defined( _PS3 ) || defined( _OSX ) || defined (LINUX)
+#if defined( _PS3 ) || defined( _OSX ) || defined( LINUX ) || defined( PLATFORM_PS4 )
 			Q_snprintf( szAppId, 50, "%d", engine->GetAppID() );
 			szAppId[49] = 0;
 #else
@@ -2792,7 +2792,7 @@ void CBaseModPanel::RunMenuCommand(const char *command)
 
 			// Set Steam URL for re-launch in registry. Launcher will check this registry key and exec it in order to re-load the game in the proper language
 			// @wge HACK FIXME - Windows specific registry code.
-#if !defined( _GAMECONSOLE ) && !defined( _OSX ) && !defined (LINUX)
+#if !defined( _GAMECONSOLE ) && !defined( _OSX ) && !defined( LINUX ) && !defined( PLATFORM_PS4 )
 			HKEY hKey;
 
 			if ( IsPC() && RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\Valve\\Source", NULL, KEY_WRITE, &hKey) == ERROR_SUCCESS )
@@ -3591,12 +3591,14 @@ void CBaseModPanel::OnOpenLoadGameDialog()
 //-----------------------------------------------------------------------------
 void CBaseModPanel::OnOpenLoadGameDialog_Xbox()
 {
+#if !defined( PLATFORM_PS4 )
 	if ( !m_hLoadGameDialog_Xbox.Get() )
 	{
 		m_hLoadGameDialog_Xbox = new CLoadGameDialogXbox(this);
 		PositionDialog( m_hLoadGameDialog_Xbox );
 	}
 	m_hLoadGameDialog_Xbox->Activate();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -3617,12 +3619,14 @@ void CBaseModPanel::OnOpenSaveGameDialog()
 //-----------------------------------------------------------------------------
 void CBaseModPanel::OnOpenSaveGameDialog_Xbox()
 {
+#if !defined( PLATFORM_PS4 )
 	if ( !m_hSaveGameDialog_Xbox.Get() )
 	{
 		m_hSaveGameDialog_Xbox = new CSaveGameDialogXbox(this);
 		PositionDialog( m_hSaveGameDialog_Xbox );
 	}
 	m_hSaveGameDialog_Xbox->Activate();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -3905,12 +3909,14 @@ void CBaseModPanel::CloseLeaderboardsDialog()
 //-----------------------------------------------------------------------------
 void CBaseModPanel::OnOpenChangeGameDialog()
 {
+#if !defined( PLATFORM_PS4 )
 	if (!m_hChangeGameDialog.Get())
 	{
 		m_hChangeGameDialog = new CChangeGameDialog(this);
 		PositionDialog(m_hChangeGameDialog);
 	}
 	m_hChangeGameDialog->Activate();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -5940,4 +5946,3 @@ bool CBaseModPanel::LoadingProgressWantsIsolatedRender( bool bContextValid )
     #endif
 	return false;
 }
-

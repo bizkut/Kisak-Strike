@@ -224,7 +224,7 @@ private:
 #endif
 	friend class CDirWatcherFriend;
 
-#ifdef LINUX
+#if defined( LINUX ) || defined( PLATFORM_PS4 )
 	void AddFileToChangeList( const char *pchFile );
 #endif
 #ifdef WIN32

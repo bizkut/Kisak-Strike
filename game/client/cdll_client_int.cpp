@@ -1070,6 +1070,13 @@ IBaseClientDLL *clientdll = &gHLClient;
 
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CHLClient, IBaseClientDLL, CLIENT_DLL_INTERFACE_VERSION, gHLClient );
 
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakGameClientFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
+
 
 //-----------------------------------------------------------------------------
 // Precaches a material
@@ -4975,4 +4982,3 @@ class CClientMaterialSystem : public IClientMaterialSystem
 static CClientMaterialSystem s_ClientMaterialSystem;
 IClientMaterialSystem *g_pClientMaterialSystem = &s_ClientMaterialSystem;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CClientMaterialSystem, IClientMaterialSystem, VCLIENTMATERIALSYSTEM_INTERFACE_VERSION, s_ClientMaterialSystem );
-

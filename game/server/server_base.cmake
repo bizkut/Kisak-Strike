@@ -20,6 +20,10 @@ include(${CMAKE_MODULE_PATH}/detect_platform.cmake)
 include(${CMAKE_MODULE_PATH}/source_dll_base.cmake)
 include(${CMAKE_MODULE_PATH}/protobuf_builder.cmake)
 
+if( ORBIS )
+    target_compile_options(${OUTBINNAME} PRIVATE -Wno-c++11-narrowing)
+endif()
+
 TargetBuildAndAddProto( ${OUTBINNAME} ${SRCDIR}/common/engine_gcmessages.proto ${GENERATED_PROTO_DIR} )
 TargetBuildAndAddProto( ${OUTBINNAME} ${SRCDIR}/common/netmessages.proto ${GENERATED_PROTO_DIR} )
 TargetBuildAndAddProto( ${OUTBINNAME} ${SRCDIR}/common/network_connection.proto ${GENERATED_PROTO_DIR} )
@@ -514,7 +518,9 @@ target_sources(${OUTBINNAME} PRIVATE "${SRCDIR}/common/CegClientWrapper.cpp")
 
 target_link_libraries(${OUTBINNAME} bonesetup_client choreoobjects_client mathlib_client mathlib_extended_client libtier0_client libvstdlib_client interfaces_client)
 target_link_libraries(${OUTBINNAME} particles_client tier3_client vgui_controls_client responserules_runtime_client )
-target_link_libraries(${OUTBINNAME} ${LIBPUBLIC}/libsteam_api.so) # Link to proprietary steamapi
+if( NOT NO_STEAM )
+    target_link_libraries(${OUTBINNAME} ${LIBPUBLIC}/libsteam_api.so) # Link to proprietary steamapi
+endif()
 target_link_libraries(${OUTBINNAME} kisak_gcsdk_client)
 target_link_libraries(${OUTBINNAME} libprotobuf) #from /thirdparty
 target_link_libraries(${OUTBINNAME} bitmap_client dmxloader_client tier2_client)

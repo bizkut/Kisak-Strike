@@ -19,6 +19,30 @@ HSteamPipe SteamAPI_GetHSteamPipe()
     return 0;
 }
 
+HSteamPipe GetHSteamPipe()
+{
+    return 0;
+}
+
+extern "C" HSteamUser S_CALLTYPE SteamGameServer_GetHSteamUser()
+{
+    return 0;
+}
+
+extern "C" HSteamPipe S_CALLTYPE SteamGameServer_GetHSteamPipe()
+{
+    return 0;
+}
+
+extern "C" bool S_CALLTYPE SteamAPI_InitSafe()
+{
+    return false;
+}
+
+void SteamAPI_SetTryCatchCallbacks( bool )
+{
+}
+
 void *S_CALLTYPE SteamInternal_CreateInterface( const char * )
 {
     return NULL;

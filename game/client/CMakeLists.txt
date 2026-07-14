@@ -155,7 +155,11 @@ target_sources(${OUTBINNAME} PRIVATE "${SRCDIR}/game/shared/cstrike15/gametypes.
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/basesavegamedialog.cpp")
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/bitmapimagepanel.cpp")
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/commandcheckbutton.cpp")
-    target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/contentcontroldialog.cpp")
+    if( NOT ORBIS )
+        # Desktop parental-control UI depends on Win32 registry APIs and is not
+        # part of the controller-first Scaleform console surface.
+        target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/contentcontroldialog.cpp")
+    endif()
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/createmultiplayergamebotpage.cpp")
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/createmultiplayergamedialog.cpp")
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/createmultiplayergamegameplaypage.cpp")
@@ -184,7 +188,10 @@ target_sources(${OUTBINNAME} PRIVATE "${SRCDIR}/game/shared/cstrike15/gametypes.
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/optionssubgame.cpp")
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/optionssubkeyboard.cpp")
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/optionssubmouse.cpp")
-    target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/optionssubmultiplayer.cpp")
+    if( NOT ORBIS )
+        # Spray import/conversion is a desktop-only Win32 bitmap path.
+        target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/optionssubmultiplayer.cpp")
+    endif()
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/optionssubportal.cpp")
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/optionssubvideo.cpp")
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/optionssubvoice.cpp")
@@ -192,7 +199,10 @@ target_sources(${OUTBINNAME} PRIVATE "${SRCDIR}/game/shared/cstrike15/gametypes.
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/playerlistdialog.cpp")
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/rungameengine.cpp")
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/scriptobject.cpp")
-    target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/sys_utils.cpp")
+    if( NOT ORBIS )
+        # Window enumeration, registry messaging, and desktop mutex helpers.
+        target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/sys_utils.cpp")
+    endif()
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/textentrybox.cpp")
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/urlbutton.cpp")
     target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/vcontrolslistpanel.cpp")
@@ -224,13 +234,19 @@ target_sources(${OUTBINNAME} PRIVATE "${SRCDIR}/game/shared/cstrike15/gametypes.
         target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/bonusmapsdialog.cpp")
         target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/commentarydialog.cpp")
         target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/commentaryexplanationdialog.cpp")
-        target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/loadgamedialog_xbox.cpp")
+        if( NOT ORBIS )
+            target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/loadgamedialog_xbox.cpp")
+        endif()
         target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/loadgamedialog.cpp")
         target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/newgamedialog.cpp")
-        target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/savegamedialog_xbox.cpp")
+        if( NOT ORBIS )
+            target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/savegamedialog_xbox.cpp")
+        endif()
         target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/savegamedialog.cpp")
         target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/loadcommentarydialog.cpp")
-        target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/changegamedialog.cpp")
+        if( NOT ORBIS )
+            target_sources(${OUTBINNAME} PRIVATE "cstrike15/gameui/changegamedialog.cpp")
+        endif()
     #}
 #}
 
@@ -375,8 +391,9 @@ if( USE_ROCKETUI )
     target_link_libraries(${OUTBINNAME} RmlCore)
 endif()
 target_link_libraries(${OUTBINNAME} matsys_controls_client)
-target_link_libraries(${OUTBINNAME} ${LIBPUBLIC}/libsteam_api.so) #proprietary steam api
+if( NOT NO_STEAM )
+    target_link_libraries(${OUTBINNAME} ${LIBPUBLIC}/libsteam_api.so) #proprietary steam api
+endif()
 target_link_libraries(${OUTBINNAME} kisak_gcsdk_client)
 target_link_libraries(${OUTBINNAME} tier2_client tier3_client vgui_controls_client vtf_client bzip2_client libvstdlib_client dmxloader_client bitmap_client mathlib_client tier2_client )
 #target_link_libraries(${OUTBINNAME} protobuf )
-
