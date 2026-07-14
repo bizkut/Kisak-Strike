@@ -94,7 +94,9 @@ void CopyBounded( char *destination, size_t destinationSize, const char *source 
 bool KisakPs4ParseOfflineLaunchRequest( const char *query, int botDifficulty,
     KisakPs4OfflineLaunchRequest *request )
 {
-    if ( !query || !request || botDifficulty < 0 || botDifficulty > 3 )
+    // GameModes.txt defines six console-facing choices (0 through 5),
+    // including harmless/dumb presets before the normal difficulty levels.
+    if ( !query || !request || botDifficulty < 0 || botDifficulty > 5 )
         return false;
     memset( request, 0, sizeof( *request ) );
 
@@ -117,8 +119,6 @@ bool KisakPs4ParseOfflineLaunchRequest( const char *query, int botDifficulty,
              sizeof( request->gameMode ) ) ||
          !FindValue( gameBegin, gameEnd, "mapgroupname", request->mapGroup,
              sizeof( request->mapGroup ) ) ||
-         !FindValue( gameBegin, gameEnd, "skirmishmode", skirmish,
-             sizeof( skirmish ) ) ||
          !FindValue( optionsBegin, optionsEnd, "action", action, sizeof( action ) ) )
     {
         return false;
@@ -126,7 +126,10 @@ bool KisakPs4ParseOfflineLaunchRequest( const char *query, int botDifficulty,
     if ( strcmp( network, "offline" ) != 0 || strcmp( action, "create" ) != 0 )
         return false;
 
-    request->skirmishMode = atoi( skirmish );
+    // Normal map groups omit skirmishmode. It is only present for a skirmish
+    // selection, and Source treats the absent setting as zero.
+    request->skirmishMode = FindValue( gameBegin, gameEnd, "skirmishmode",
+        skirmish, sizeof( skirmish ) ) ? atoi( skirmish ) : 0;
     request->botDifficulty = botDifficulty;
     CopyBounded( request->rawQuery, sizeof( request->rawQuery ), query );
     return true;

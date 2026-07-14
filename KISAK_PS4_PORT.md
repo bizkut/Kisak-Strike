@@ -5448,6 +5448,30 @@ All 14 host tests pass and the PS4 monolithic link/package build completes.
 The staged and remotely verified package SHA-256 is
 `23449e388508d72a651559b9dcdf1ef3d8e089c3968b98ae6ccba06a9e1bb504`.
 
+### v4.25: Accept the authentic normal-map and bot schemas
+
+The v4.24 capture resolves the rejection exactly. Casual on `mg_cs_office`
+emits a valid offline-create query without `Game/skirmishmode`; that field is
+only meaningful for an actual skirmish selection. The mounted GameModes data
+also exposes six bot presets indexed 0 through 5, including the harmless and
+dumb presets, rather than the parser's assumed four positions.
+
+The typed parser now defaults an absent skirmish mode to zero while continuing
+to require network, game type, game mode, map group, and create action. It
+accepts bot indices 0 through 5 and rejects values outside that authentic
+range. Host coverage includes the exact captured `mg_cs_office` payload with
+no skirmish field and the sixth bot position. Marker:
+`kisak-ps4: build marker offline_query_schema_v425`.
+
+The v4.25 hardware gate is one `submitted=1` callback followed by the typed
+engine pending breadcrumb for `classic/casual/mg_cs_office`, skirmish zero,
+and the selected bot index. Duplicate callbacks must not enqueue another
+request.
+
+All 14 host tests pass and the PS4 monolithic link/package build completes.
+The v4.25 package SHA-256 is
+`b0a0ab886c2f45eb8979dbd423616e672f9d24b5a6829a600a6a4717e781288f`.
+
 ### PS3 Scaleform UI cross-reference priorities
 
 The extracted PS3 movies and Kisak drivers confirm that the movie,

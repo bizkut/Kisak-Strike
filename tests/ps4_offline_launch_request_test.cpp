@@ -31,6 +31,15 @@ int main()
     assert( strcmp( request.gameMode, "casual" ) == 0 );
     assert( strcmp( request.mapGroup, "mg_bomb" ) == 0 );
 
+    const char *normalMapGroupQuery =
+        "System { network offline } "
+        "Game { type classic mode casual mapgroupname mg_cs_office } "
+        "Options { action create } Contexts {} Properties {}";
+    assert( KisakPs4ParseOfflineLaunchRequest(
+        normalMapGroupQuery, 5, &request ) );
+    assert( request.skirmishMode == 0 );
+    assert( request.botDifficulty == 5 );
+
     assert( !KisakPs4ParseOfflineLaunchRequest(
         "System { network LIVE } Game { type classic mode casual "
         "mapgroupname mg_de_dust2 skirmishmode 0 } Options { action create }",
@@ -38,6 +47,6 @@ int main()
     assert( !KisakPs4ParseOfflineLaunchRequest(
         "System { network offline } Game { type classic mode casual } "
         "Options { action create }", 1, &request ) );
-    assert( !KisakPs4ParseOfflineLaunchRequest( query, 4, &request ) );
+    assert( !KisakPs4ParseOfflineLaunchRequest( query, 6, &request ) );
     return 0;
 }
