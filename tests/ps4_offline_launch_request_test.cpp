@@ -19,6 +19,18 @@ int main()
     assert( request.botDifficulty == 2 );
     assert( strcmp( request.rawQuery, query ) == 0 );
 
+    const char *actionScriptQuery =
+        "System {\n network offline \n}\n"
+        "Game {\n type classic\n mode casual\n mapgroupname mg_bomb\n"
+        " skirmishmode 0\n}\n"
+        "Options {\n action create \n anytypemode 0 \n}\n"
+        "Contexts {\n\n}\nProperties {\n\n}\n";
+    assert( KisakPs4ParseOfflineLaunchRequest(
+        actionScriptQuery, 0, &request ) );
+    assert( strcmp( request.gameType, "classic" ) == 0 );
+    assert( strcmp( request.gameMode, "casual" ) == 0 );
+    assert( strcmp( request.mapGroup, "mg_bomb" ) == 0 );
+
     assert( !KisakPs4ParseOfflineLaunchRequest(
         "System { network LIVE } Game { type classic mode casual "
         "mapgroupname mg_de_dust2 skirmishmode 0 } Options { action create }",

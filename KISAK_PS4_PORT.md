@@ -5423,6 +5423,27 @@ PS4 monolithic link and package build complete. The v4.23 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its local SHA-256 is
 `007c8b254dd728a54fe8f307a72e523c56c0b3231d78455060084be0fc206499`.
 
+### v4.24: Diagnose the rejected runtime matchmaking query
+
+The v4.23 hardware run reaches the bot-difficulty overlay and controller
+confirm reaches `SinglePlayerAPI.OnOk`, but the typed boundary rejects every
+request. The runtime evidence is `query=1`, a valid bot index, and
+`submitted=0`; therefore this is neither a pad-navigation failure nor the
+later missing match-session lifecycle. It is a mismatch between the actual
+GFx query string and the validated offline-create schema.
+
+The rejection path now records one bounded, whitespace-collapsed copy of the
+runtime query with the bot index. Newlines and repeated whitespace are folded
+so the diagnostic remains a single startup-log record. A regression test also
+uses the exact multiline construction emitted by the decompiled
+`SinglePlayerDialog.as`, in addition to the compact parser cases. Marker:
+`kisak-ps4: build marker offline_query_diagnostic_v424`.
+
+The v4.24 hardware gate is a single rejected-query line that identifies the
+missing or malformed field. The following build must correct that field at its
+source and reach `submitted=1`; real session startup remains the subsequent
+milestone.
+
 ### PS3 Scaleform UI cross-reference priorities
 
 The extracted PS3 movies and Kisak drivers confirm that the movie,

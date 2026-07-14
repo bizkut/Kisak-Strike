@@ -137,7 +137,7 @@ public:
     int Run() override
     {
 		KisakPs4StartupBreadcrumb( "kisak-ps4: engine launcher bootstrap run" );
-    KisakPs4StartupBreadcrumb( "kisak-ps4: build marker offline_request_bridge_v423" );
+		KisakPs4StartupBreadcrumb( "kisak-ps4: build marker offline_query_diagnostic_v424" );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformSdkVersion() );
 		KisakPs4StartupBreadcrumb( KisakPs4ScaleformKernelSelfTest()
 			? "kisak-ps4: scaleform kernel self-test passed"
@@ -240,8 +240,34 @@ extern "C" bool KisakPs4SubmitOfflineLaunch(
     KisakPs4OfflineLaunchRequest request = {};
     if ( !KisakPs4ParseOfflineLaunchRequest( query, botDifficulty, &request ) )
     {
-        KisakPs4StartupBreadcrumb(
-            "kisak-ps4: engine offline request rejected invalid payload" );
+        char payload[384];
+        const char *source = query ? query : "<null>";
+        size_t output = 0;
+        bool previousWasSpace = false;
+        while ( source[0] && output + 1 < sizeof( payload ) )
+        {
+            const unsigned char ch = static_cast< unsigned char >( *source++ );
+            const bool whitespace = ch == '\r' || ch == '\n' || ch == '\t' || ch == ' ';
+            if ( whitespace )
+            {
+                if ( previousWasSpace )
+                    continue;
+                payload[output++] = ' ';
+                previousWasSpace = true;
+            }
+            else
+            {
+                payload[output++] = static_cast< char >( ch );
+                previousWasSpace = false;
+            }
+        }
+        payload[output] = '\0';
+
+        char marker[512];
+        snprintf( marker, sizeof( marker ),
+            "kisak-ps4: engine offline request rejected invalid payload bot=%d query=%s",
+            botDifficulty, payload );
+        KisakPs4StartupBreadcrumb( marker );
         return false;
     }
     g_pendingOfflineLaunch = request;
