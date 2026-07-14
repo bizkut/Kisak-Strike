@@ -5582,6 +5582,49 @@ The candidate package is staged at
 `696febc2084a649846e79f36f7ff93023f35c02cb6ea59ab5e61062f03ff54f6`.
 The monolithic/FSELF/package build completes and all 14 host tests pass.
 
+### v4.27 candidate: honor priority constructors before the Source runtime
+
+The first v4.26 hardware launch did not reach the Source lifecycle. The
+append-only startup log's final run contains only:
+
+```text
+kisak-ps4: bootstrap entered
+kisak-ps4: before ctor 1423
+```
+
+ELF relocation inspection resolves ordinary constructor slot 1423 to
+`_GLOBAL__sub_I_criteriaset.cpp`. Its `CUtlSymbolTable(1024, 1024, true)`
+initialization allocates through `g_pMemAlloc`. The allocator's deliberately
+early `_GLOBAL__I_000101` constructor was still at mixed-table slot 1312, so
+the reverse walker attempted 112 ordinary constructors before initializing
+`CStdMemAlloc`.
+
+The generated linker script now collects `.ctors.*` into a separate section,
+orders it with `SORT_BY_INIT_PRIORITY`, and leaves ordinary `.ctors` in the
+legacy reverse-walk section. Bootstrap executes the sorted priority range
+forward before reverse-walking the ordinary range. This restores the intended
+`CONSTRUCT_EARLY` contract globally instead of special-casing the response-rule
+symbol table or every future heap-using constructor.
+
+Marker: `kisak-ps4: build marker ctor_priority_order_v427`. The next hardware
+gate is `priority constructors complete`, followed by a complete ordinary
+constructor walk and the existing Source connect/init/run breadcrumbs. If the
+run stops inside another constructor, preserve its exact slot and relocation;
+do not revert to per-global allocator workarounds unless the priority allocator
+itself has already completed.
+
+Post-link inspection reports one priority entry and 1,423 ordinary entries.
+The priority relocation resolves to `_GLOBAL__I_000101` in `memstd.cpp`; the
+last ordinary relocation still resolves to `_GLOBAL__sub_I_criteriaset.cpp`,
+confirming the fix changes order rather than suppressing runtime state. The
+monolithic/FSELF/package pipeline completes and all 14 host tests pass.
+
+The v4.27 candidate is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`c79884cc1ed73ca68f66af170e13264248aa01676ac5352a41058d58fcd98bb2`.
+Hardware validation remains pending; constructor-order verification alone does
+not establish that the full Source lifecycle reaches the menu.
+
 ### PS3 Scaleform UI cross-reference priorities
 
 Full cross-reference report: `KISAK_PS3_UI_CROSSREFERENCE.md` in the Kisak

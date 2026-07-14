@@ -1796,7 +1796,7 @@ int CEngineAPI::Run()
 {
 	#if defined( PLATFORM_PS4 )
 	KisakPs4StartupBreadcrumb( "kisak-ps4: source engine run entered" );
-	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker source_runtime_active_v426" );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker ctor_priority_order_v427" );
 	#endif
 	if ( CommandLine()->FindParm("-insecure") )
 	{

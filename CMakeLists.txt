@@ -233,7 +233,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
 
     file(READ "${OPENORBIS_ROOT}/link.x" KISAK_OPENORBIS_LINK_SCRIPT)
     string(REPLACE "\t.data.sce_process_param"
-        "\t.kisak_ctors : {\n\t\t__kisak_ctors_start = .;\n\t\tKEEP(*(.ctors .ctors.*));\n\t\t__kisak_ctors_end = .;\n\t}\n\n\t.data.sce_process_param"
+        "\t.kisak_priority_ctors ALIGN(8) : {\n\t\t__kisak_priority_ctors_start = .;\n\t\tKEEP(*(SORT_BY_INIT_PRIORITY(.ctors.*)));\n\t\t__kisak_priority_ctors_end = .;\n\t}\n\n\t.kisak_ctors ALIGN(8) : {\n\t\t__kisak_ctors_start = .;\n\t\tKEEP(*(.ctors));\n\t\t__kisak_ctors_end = .;\n\t}\n\n\t.data.sce_process_param"
         KISAK_OPENORBIS_LINK_SCRIPT "${KISAK_OPENORBIS_LINK_SCRIPT}")
     set(KISAK_PS4_LINK_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/kisak-link.x")
     file(WRITE "${KISAK_PS4_LINK_SCRIPT}" "${KISAK_OPENORBIS_LINK_SCRIPT}")

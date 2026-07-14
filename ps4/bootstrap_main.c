@@ -9,6 +9,8 @@ extern int KisakRegisterStaticModules( void );
 extern int LauncherMain( int argc, char **argv );
 extern int KisakInitializeGlobalThreadPool( void );
 typedef void (*KisakConstructor)( void );
+extern KisakConstructor __kisak_priority_ctors_start[];
+extern KisakConstructor __kisak_priority_ctors_end[];
 extern KisakConstructor __kisak_ctors_start[];
 extern KisakConstructor __kisak_ctors_end[];
 #endif
@@ -44,8 +46,24 @@ int main( int argc, char **argv )
 {
     FILE *log = OpenStartupLog();
     LogLine( log, "kisak-ps4: bootstrap entered" );
+    LogLine( log, "kisak-ps4: build marker ctor_priority_order_v427" );
 
 #if defined( KISAK_PS4_MONOLITHIC )
+    KisakConstructor *priorityConstructor = __kisak_priority_ctors_start;
+    unsigned int priorityConstructorIndex = 0;
+    while ( priorityConstructor != __kisak_priority_ctors_end )
+    {
+        char marker[64];
+        snprintf( marker, sizeof( marker ), "kisak-ps4: before priority ctor %u", priorityConstructorIndex );
+        LogLine( log, marker );
+        (*priorityConstructor)();
+        snprintf( marker, sizeof( marker ), "kisak-ps4: after priority ctor %u", priorityConstructorIndex );
+        LogLine( log, marker );
+        ++priorityConstructor;
+        ++priorityConstructorIndex;
+    }
+    LogLine( log, "kisak-ps4: priority constructors complete" );
+
     KisakConstructor *constructor = __kisak_ctors_end;
     unsigned int constructorIndex = (unsigned int)(__kisak_ctors_end - __kisak_ctors_start);
     while ( constructor != __kisak_ctors_start )
