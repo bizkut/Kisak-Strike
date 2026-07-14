@@ -291,7 +291,7 @@ static void VoiceRecord_Stop()
 }
 
 // Hacked functions to create the inputs and codecs..
-#ifdef _PS3
+#if defined( _PS3 ) || defined( ORBIS )
 static IVoiceRecord*	CreateVoiceRecord_DSound(int nSamplesPerSec) { return NULL; }
 #else
 extern IVoiceRecord*	CreateVoiceRecord_DSound(int nSamplesPerSec);
@@ -2086,5 +2086,4 @@ IVoiceTweak g_VoiceTweakAPI =
 	VoiceTweak_IsStillTweaking,
 	VoiceTweak_IsControlFound,
 };
-
 

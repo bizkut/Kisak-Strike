@@ -65,7 +65,7 @@ int Audio_EnumerateDevices( eSubSystems_t nSubsystem, audio_device_description_t
 		nDeviceCount = Audio_EnumerateDSoundDevices( pDeviceListOut, nListCount );
 		break;
 #endif
-#ifdef POSIX
+#if defined( POSIX ) && !defined( ORBIS )
 	case AUDIO_SUBSYSTEM_SDL:
 		nDeviceCount = Audio_EnumerateSDLDevices( pDeviceListOut, nListCount );
 		break;
@@ -236,7 +236,7 @@ IAudioDevice2 *CAudioDeviceList::CreateDevice( audio_device_init_params_t &param
 	}
 #endif
 
-#ifdef POSIX
+#if defined( POSIX ) && !defined( ORBIS )
 	nSubsystem = AUDIO_SUBSYSTEM_SDL;
 
 	if ( nSubsystem == AUDIO_SUBSYSTEM_SDL )

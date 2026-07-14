@@ -206,7 +206,11 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         set(protobuf_WITH_ZLIB OFF CACHE BOOL "" FORCE)
         add_subdirectory(thirdparty/protobuf-2.5.0/cmake)
         add_subdirectory(utils/bzip2)
+        add_subdirectory(utils/jpeglib)
+        add_subdirectory(videocfg)
         add_subdirectory(thirdparty/quickhull)
+        set(DISABLE_ASM ON CACHE BOOL "Disable legacy Crypto++ inline assembly for OpenOrbis Clang" FORCE)
+        add_subdirectory(external/crypto++-5.61)
         add_subdirectory(soundsystem/lowlevel)
         add_subdirectory(vgui2/matsys_controls)
         add_subdirectory(engine)
@@ -228,6 +232,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         ps4/scaleformui_bootstrap.cpp
         ps4/scaleform_asset_path.cpp
         ps4/offline_launch_request.cpp
+        ps4/steam_api_stubs.cpp
         ps4/scaleform_gfx_manager.cpp
         ps4/scaleform_gnm_hal.cpp
     )
@@ -265,12 +270,19 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         "--script=${KISAK_PS4_LINK_SCRIPT}"
         --eh-frame-hdr
     )
+    if(KISAK_PS4_BUILD_SOURCE_ENGINE)
+        # Source's original DLLs intentionally repeat a small set of globals
+        # and helper implementations. The monolithic PS4 image resolves those
+        # to the first module in link order while PRX isolation is unavailable.
+        target_link_options(kisak_ps4_monolithic PRIVATE --allow-multiple-definition)
+    endif()
     target_link_directories(kisak_ps4_monolithic PRIVATE "${OPENORBIS_ROOT}/lib")
     target_link_libraries(kisak_ps4_monolithic PRIVATE
         "${OPENORBIS_ROOT}/lib/crt1.o"
         "${OPENORBIS_ROOT}/lib/crti.o"
         --start-group
         launcher_client
+        engine_client
         "${KISAK_OPENGNM_ROOT}/libopengnm.a"
         appframework_client
         libvstdlib_client
@@ -315,6 +327,7 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         SceVideoOut
         SceUserService
         ScePad
+        SceNet
         "${OPENORBIS_ROOT}/lib/crtn.o"
     )
 

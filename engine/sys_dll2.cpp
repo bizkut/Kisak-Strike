@@ -532,6 +532,13 @@ private:
 static CEngineAPI s_EngineAPI;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CEngineAPI, IEngineAPI, VENGINE_LAUNCHER_API_VERSION, s_EngineAPI );
 
+#if defined( PLATFORM_PS4 )
+CreateInterfaceFn KisakSourceEngineFactory()
+{
+	return Sys_GetFactoryThis();
+}
+#endif
+
 
 //-----------------------------------------------------------------------------
 // Connect, disconnect

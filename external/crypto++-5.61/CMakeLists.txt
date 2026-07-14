@@ -4,7 +4,7 @@
 #   please set up a Ubuntu 12.04 LTS system. Then, manually install Cmake 2.8.5
 #   from http://cmake.org/Wiki/CMake_Released_Versions.
 
-cmake_minimum_required(VERSION 2.8.5 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 project(cryptopp)
 
@@ -20,7 +20,7 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
 endif()
 
 #Kisak-strike specific options
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE AND NOT ORBIS)
 	#Downgrade ABI for kisakstrike
 	message(STATUS "Downgrading CXX11 ABI for kisakstrike!")
 	if(CMAKE_SYSTEM_PROCESSOR STREQUAL "e2k")

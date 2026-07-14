@@ -393,7 +393,7 @@ void FastSinCos( float x, float* s, float* c )  // any x
 	}
 }
 #endif
-#elif defined( _OSX ) || defined (LINUX) || defined( _WIN64 )
+#elif defined( _OSX ) || defined( LINUX ) || defined( _WIN64 ) || defined( ORBIS )
 // [will] - Note: could use optimization.
 void FastSinCos( float x, float* s, float* c )  // any x
 {
@@ -808,4 +808,3 @@ vec_t DotProduct (const vec_t *a, const vec_t *c)
 	}
 }
 */
-

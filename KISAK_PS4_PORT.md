@@ -5496,17 +5496,34 @@ cmake --build build-ps4-engine --target engine_client -j4
 [100%] Built target engine_client
 ```
 
-The existing presentation executable also still links and produces its PS4
-binary from the same build tree, and all 14 host regression tests pass. No new
-package is staged for this compile-only gate because `engine_client` is not yet
-registered or initialized at runtime.
+The real engine link-closure gate is also complete. The PS4 monolith now links
+`engine_client` and exposes its genuine `CreateInterface` factory through an
+inactive `source_engine` static-module alias. The live `engine` name remains
+bound to `CPs4EngineLauncher`, so this gate does not yet alter the known-good
+Scaleform boot/menu path or falsely consume an offline request. Supporting
+closure work added the offline Steam ABI stubs, Crypto++, JPEG/video-config
+dependencies, `SceNet`, and PS4 null voice/mixer controls required by the
+engine archive. The provisional monolithic link resolves Source's intentional
+cross-DLL duplicate definitions by first module in link order; this policy is
+scoped to `KISAK_PS4_BUILD_SOURCE_ENGINE` until PRX isolation is available.
 
-This archive is deliberately not connected to the menu request yet. The next
-integration gate is to add its real `CreateInterface` factory to the static
-module registry, satisfy monolithic link closure, initialize the engine
-through `CAppSystemGroup`, and change the offline request lifecycle from
-`pending` only after the engine accepts the listen-server command. The game
-client and server archives follow that engine-factory gate.
+Verification after link closure:
+
+```text
+cmake --build build-ps4-engine --target kisak_ps4_monolithic -j4
+[100%] Built target kisak_ps4_monolithic
+
+ctest --test-dir build-tests --output-on-failure
+100% tests passed, 0 tests failed out of 14
+```
+
+No new package is staged for this internal gate. Cross still correctly queues
+an offline request and leaves it pending because the active presentation
+launcher has no game client or listen-server consumer. The next safe gate is
+to cross-compile and link `client_client` and `server_client`, register their
+factories under inactive aliases, then exercise the real `CAppSystemGroup`
+lifecycle before switching the live `engine` name. Only after the real engine
+accepts the listen-server command may the request transition from `pending`.
 
 ### PS3 Scaleform UI cross-reference priorities
 
