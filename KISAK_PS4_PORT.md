@@ -5365,6 +5365,27 @@ The v4.22 package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its local SHA-256 is
 `b54368b6b12279896d6b47c18fdc1b19ad1a084317cdd1bcdcf6943024898827`.
 
+The v4.22 hardware run passes the data-population gate. The log reports
+`LoadKVFile file=GameModes.txt path=GAME loaded=1 data=1`, and the rendered
+Single Player screen contains the authored Arms Race, Demolition, Casual, and
+Competitive choices, localized descriptions, and map thumbnails instead of
+`undefined` rows. D-pad navigation also reaches the panel through the Source
+key hook.
+
+The next functional boundary is now explicit in the ActionScript. Before
+calling the zero-argument `OnOk`, `SinglePlayerDialog.OnOk` sends the bot index
+through `SetCustomBotDifficulty` and a complete KeyValues-style launch request
+through `SetMatchmakingQuery`. For offline play that request specifies
+`network offline`, game type, mode, map-group name, skirmish mode, and
+`action create`. The PS4 bridge currently discards both setters and only logs
+the final `OnOk`; preserving and handing this request to the engine is the next
+offline-match milestone.
+
+Presentation follow-ups remain visible but are not launch blockers: the
+`${cancel}`, `${confirm}`, and `${dpad}` navigation keywords are still literal,
+and this animated selection screen was captured near 30 FPS. They remain
+separate glyph-substitution and retained-tree performance tasks.
+
 ### PS3 Scaleform UI cross-reference priorities
 
 The extracted PS3 movies and Kisak drivers confirm that the movie,
