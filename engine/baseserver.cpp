@@ -3010,10 +3010,17 @@ void CBaseServer::Init( bool bIsDedicated )
 		PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init before rules allocation" );
 		g_pKVrulesConvars = new KeyValues( "NotifyRulesCvars" );
 		PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init rules allocated" );
+	#if defined( PLATFORM_PS4 ) && defined( NO_STEAM )
+		// This file only selects FCVAR_NOTIFY values for Steam master-server
+		// reporting.  Keep the empty object for callback dereferences, but avoid
+		// the optional filesystem read when Steam is deliberately absent.
+		PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init rules load skipped no steam" );
+	#else
 		if ( !g_pKVrulesConvars->LoadFromFile( g_pFullFileSystem, "gamerulescvars.txt", "MOD" ) )
 		{
 			Warning( "Failed to load gamerulescvars.txt, game rules cvars might not be reported to management tools.\n" );
 		}
+	#endif
 		PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init rules load complete" );
 	}
 	

@@ -1,0 +1,324 @@
+kisak-ps4: build marker server_init_trace_v434
+kisak-ps4: trace init dispatch
+MapReslistGenerator_Init()
+kisak-ps4: trace init before
+MapReslistGenerator_Init()
+kisak-ps4: trace init after
+MapReslistGenerator_Init()
+kisak-ps4: trace init dispatch
+DevShotGenerator_Init()
+kisak-ps4: trace init before
+DevShotGenerator_Init()
+kisak-ps4: trace init after
+DevShotGenerator_Init()
+kisak-ps4: app run entered
+kisak-ps4: app before startup
+kisak-ps4: app startup entered
+kisak-ps4: app before create
+kisak-ps4: mod create entered
+kisak-ps4: mod create before matchmaking factory
+kisak-ps4: mod create matchmaking factory ready
+kisak-ps4: mod create matchmaking interface ready
+kisak-ps4: mod create matchmaking add system complete
+kisak-ps4: mod create before client load
+kisak-ps4: client dll load entered
+kisak-ps4: client dll static factory ready
+kisak-ps4: client dll base interface ready
+kisak-ps4: client render targets ready
+kisak-ps4: client dll load complete
+kisak-ps4: mod create client load complete
+kisak-ps4: mod create client connect returned
+kisak-ps4: mod create before server load
+kisak-ps4: mod create server load complete
+kisak-ps4: mod create client shared systems ready
+kisak-ps4: mod create server shared systems ready
+kisak-ps4: mod create before shared add systems
+kisak-ps4: add system module
+soundemittersystem
+kisak-ps4: add system interface
+VSoundEmitter003
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: add system module
+scenefilecache
+kisak-ps4: add system interface
+SceneFileCache002
+kisak-ps4: add system module loaded
+kisak-ps4: add system complete
+kisak-ps4: mod create shared add systems complete
+kisak-ps4: mod create complete
+kisak-ps4: app after create
+kisak-ps4: app before dependencies
+kisak-ps4: dependency scan entered
+kisak-ps4: dependency owner
+MATCHFRAMEWORK_001
+kisak-ps4: dependency owner
+VSoundEmitter003
+kisak-ps4: dependency owner
+SceneFileCache002
+kisak-ps4: dependency owner
+VTOOLFRAMEWORKVERSION002
+kisak-ps4: dependency before ordering
+kisak-ps4: dependency scan complete
+kisak-ps4: app after dependencies
+kisak-ps4: app before connect
+kisak-ps4: connect system
+MATCHFRAMEWORK_001
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VSoundEmitter003
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+SceneFileCache002
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect system
+VTOOLFRAMEWORKVERSION002
+kisak-ps4: connect before call
+kisak-ps4: connect complete
+kisak-ps4: connect systems complete
+kisak-ps4: app after connect
+kisak-ps4: app before preinit
+kisak-ps4: app after preinit
+kisak-ps4: app before init systems
+kisak-ps4: init system
+MATCHFRAMEWORK_001
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VSoundEmitter003
+kisak-ps4: app before system init
+kisak-ps4: sound emitter init entered
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+SceneFileCache002
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: init system
+VTOOLFRAMEWORKVERSION002
+kisak-ps4: app before system init
+kisak-ps4: app after system init
+kisak-ps4: init complete
+kisak-ps4: app after init systems
+kisak-ps4: app before postinit
+kisak-ps4: app after postinit
+kisak-ps4: app after startup
+kisak-ps4: app before main
+kisak-ps4: trace init dispatch
+Sys_Init()
+kisak-ps4: trace init before
+Sys_Init()
+kisak-ps4: trace init after
+Sys_Init()
+kisak-ps4: trace init dispatch
+Sys_InitMemory()
+kisak-ps4: trace init before
+Sys_InitMemory()
+kisak-ps4: trace init after
+Sys_InitMemory()
+kisak-ps4: trace init dispatch
+Host_Init( s_bIsDedicated )
+kisak-ps4: trace init before
+Host_Init( s_bIsDedicated )
+kisak-ps4: thread pool start entered
+kisak-ps4: thread pool start capacity ready
+kisak-ps4: thread pool before worker allocation
+kisak-ps4: thread pool after worker allocation
+kisak-ps4: thread pool before worker start
+kisak-ps4: cthread start entered
+kisak-ps4: cthread start lock acquired
+kisak-ps4: cthread before create event
+kisak-ps4: cthread after create event
+kisak-ps4: cthread before pthread create
+kisak-ps4: cthread after pthread create
+kisak-ps4: cthread child entered
+kisak-ps4: cthread before create wait
+kisak-ps4: cthread child after thread id
+kisak-ps4: cthread child after current thread
+kisak-ps4: cthread child before init
+kisak-ps4: cthread child after init
+kisak-ps4: cthread child before success write
+kisak-ps4: cthread child after success write
+kisak-ps4: cthread child before create signal
+kisak-ps4: cthread child after create signal
+kisak-ps4: cthread child before run dispatch
+kisak-ps4: cthread child before run
+kisak-ps4: job worker run entered
+kisak-ps4: job worker before idle signal
+kisak-ps4: job worker after idle signal
+kisak-ps4: cthread after create wait
+kisak-ps4: thread pool after worker start
+kisak-ps4: thread pool worker idle
+kisak-ps4: thread pool before worker allocation
+kisak-ps4: thread pool after worker allocation
+kisak-ps4: thread pool before worker start
+kisak-ps4: cthread start entered
+kisak-ps4: cthread start lock acquired
+kisak-ps4: cthread before create event
+kisak-ps4: cthread after create event
+kisak-ps4: cthread before pthread create
+kisak-ps4: cthread after pthread create
+kisak-ps4: cthread child entered
+kisak-ps4: cthread before create wait
+kisak-ps4: cthread child after thread id
+kisak-ps4: cthread child after current thread
+kisak-ps4: cthread child before init
+kisak-ps4: cthread child after init
+kisak-ps4: cthread child before success write
+kisak-ps4: cthread child after success write
+kisak-ps4: cthread child before create signal
+kisak-ps4: cthread child after create signal
+kisak-ps4: cthread child before run dispatch
+kisak-ps4: cthread child before run
+kisak-ps4: job worker run entered
+kisak-ps4: job worker before idle signal
+kisak-ps4: job worker after idle signal
+kisak-ps4: cthread after create wait
+kisak-ps4: thread pool after worker start
+kisak-ps4: thread pool worker idle
+kisak-ps4: thread pool before worker allocation
+kisak-ps4: thread pool after worker allocation
+kisak-ps4: thread pool before worker start
+kisak-ps4: cthread start entered
+kisak-ps4: cthread start lock acquired
+kisak-ps4: cthread before create event
+kisak-ps4: cthread after create event
+kisak-ps4: cthread before pthread create
+kisak-ps4: cthread after pthread create
+kisak-ps4: cthread child entered
+kisak-ps4: cthread before create wait
+kisak-ps4: cthread child after thread id
+kisak-ps4: cthread child after current thread
+kisak-ps4: cthread child before init
+kisak-ps4: cthread child after init
+kisak-ps4: cthread child before success write
+kisak-ps4: cthread child after success write
+kisak-ps4: cthread child before create signal
+kisak-ps4: cthread child after create signal
+kisak-ps4: cthread child before run dispatch
+kisak-ps4: cthread child before run
+kisak-ps4: job worker run entered
+kisak-ps4: job worker before idle signal
+kisak-ps4: job worker after idle signal
+kisak-ps4: cthread after create wait
+kisak-ps4: thread pool after worker start
+kisak-ps4: thread pool worker idle
+kisak-ps4: thread pool start complete
+kisak-ps4: trace init dispatch
+Con_Init()
+kisak-ps4: trace init before
+Con_Init()
+kisak-ps4: trace init after
+Con_Init()
+kisak-ps4: trace init dispatch
+Memory_Init()
+kisak-ps4: trace init before
+Memory_Init()
+kisak-ps4: trace init after
+Memory_Init()
+kisak-ps4: trace init dispatch
+Cbuf_Init()
+kisak-ps4: trace init before
+Cbuf_Init()
+kisak-ps4: trace init after
+Cbuf_Init()
+kisak-ps4: trace init dispatch
+Cmd_Init()
+kisak-ps4: trace init before
+Cmd_Init()
+kisak-ps4: trace init after
+Cmd_Init()
+kisak-ps4: trace init dispatch
+g_pCVar->Init()
+kisak-ps4: trace init before
+g_pCVar->Init()
+kisak-ps4: trace init after
+g_pCVar->Init()
+kisak-ps4: trace init dispatch
+V_Init()
+kisak-ps4: trace init before
+V_Init()
+kisak-ps4: trace init after
+V_Init()
+kisak-ps4: trace init dispatch
+COM_Init()
+kisak-ps4: trace init before
+COM_Init()
+kisak-ps4: trace init after
+COM_Init()
+kisak-ps4: trace init dispatch
+saverestore->Init()
+kisak-ps4: trace init before
+saverestore->Init()
+kisak-ps4: thread pool members complete
+kisak-ps4: thread pool start entered
+kisak-ps4: thread pool start capacity ready
+kisak-ps4: thread pool before worker allocation
+kisak-ps4: thread pool after worker allocation
+kisak-ps4: thread pool before worker start
+kisak-ps4: cthread start entered
+kisak-ps4: cthread start lock acquired
+kisak-ps4: cthread before create event
+kisak-ps4: cthread after create event
+kisak-ps4: cthread before pthread create
+kisak-ps4: cthread after pthread create
+kisak-ps4: cthread before create wait
+kisak-ps4: cthread child entered
+kisak-ps4: cthread child after thread id
+kisak-ps4: cthread child after current thread
+kisak-ps4: cthread child before init
+kisak-ps4: cthread child after init
+kisak-ps4: cthread child before success write
+kisak-ps4: cthread child after success write
+kisak-ps4: cthread child before create signal
+kisak-ps4: cthread child after create signal
+kisak-ps4: cthread child before run dispatch
+kisak-ps4: cthread child before run
+kisak-ps4: job worker run entered
+kisak-ps4: job worker before idle signal
+kisak-ps4: job worker after idle signal
+kisak-ps4: cthread after create wait
+kisak-ps4: thread pool after worker start
+kisak-ps4: thread pool worker idle
+kisak-ps4: thread pool start complete
+kisak-ps4: trace init after
+saverestore->Init()
+kisak-ps4: trace init dispatch
+Filter_Init()
+kisak-ps4: trace init before
+Filter_Init()
+kisak-ps4: trace init after
+Filter_Init()
+kisak-ps4: trace init dispatch
+Key_Init()
+kisak-ps4: trace init before
+Key_Init()
+kisak-ps4: trace init after
+Key_Init()
+kisak-ps4: trace init dispatch
+g_pSteamSocketMgr->Init()
+kisak-ps4: trace init before
+g_pSteamSocketMgr->Init()
+kisak-ps4: trace init after
+g_pSteamSocketMgr->Init()
+kisak-ps4: trace init dispatch
+g_GameEventManager.Init()
+kisak-ps4: trace init before
+g_GameEventManager.Init()
+kisak-ps4: trace init after
+g_GameEventManager.Init()
+kisak-ps4: trace init dispatch
+sv.Init( bDedicated )
+kisak-ps4: trace init before
+sv.Init( bDedicated )
+kisak-ps4: game server init entered
+kisak-ps4: game server before base init
+kisak-ps4: base server init entered
+kisak-ps4: base server init signon named
+kisak-ps4: base server init before rules allocation
+kisak-ps4: base server init rules allocated

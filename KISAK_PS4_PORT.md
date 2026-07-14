@@ -24,7 +24,7 @@ Latest staged monolithic package:
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.05
-SHA-256: 344945e6fb63d1ba424f43ed63a55982c9029d019e1040b58537e933f6555e28
+SHA-256: 46f46bac05aff1f3afdbc3b8478eb03fb3492e79dae33a233179f6d900ec8da1
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -46,8 +46,10 @@ Current hardware baseline:
   game-event initialization. Its last marker is `trace init before` for
   `sv.Init( bDedicated )`, proving the crash is inside game-server
   initialization. v4.34 splits `CGameServer::Init`, `CBaseServer::Init`, and
-  `CBaseServer::Clear` around rules loading, cvar callback installation, the
-  virtual clear path, and signon-buffer setup.
+  `CBaseServer::Clear`; hardware reaches the successful rules-object allocation
+  and then crashes inside the optional `gamerulescvars.txt` load or its failure
+  warning. v4.35 retains the empty rules object and all server initialization,
+  but skips that Steam-management-only file read on PS4 `NO_STEAM`.
 - OpenGNM opens two 1920x1080 VideoOut buffers and completes repeated VSYNC
   flips. The v1.78 run sustains approximately 60 FPS without a crash.
 - The presentation stress loop has reached at least frame 1200 with matching
@@ -5897,6 +5899,42 @@ The package contains 895 prepared Scaleform assets and is staged at
 The next hardware log will distinguish the optional rules-file load, callback
 installation, virtual clear dispatch, baseline cleanup, and signon allocation.
 Only the operation named by the final breadcrumb should be changed.
+
+Hardware v4.34 enters both game-server initialization layers, names the signon
+writer, and allocates `g_pKVrulesConvars`. It stops before the next breadcrumb:
+
+```text
+kisak-ps4: base server init before rules allocation
+kisak-ps4: base server init rules allocated
+```
+
+The preserved capture is
+`hardware-captures/logs/2026-07-14/kisak_v434_rules_load_crash.txt`.
+`KeyValues::LoadFromFile` next calls `g_pFullFileSystem->Open` for the absent
+`gamerulescvars.txt`; the same interval also includes its informational
+`Warning` failure branch.
+
+### v4.35: Skip Steam rules metadata on the Steam-free PS4 build
+
+Version 4.35 keeps the allocated empty `NotifyRulesCvars` object so the global
+cvar callback can dereference it safely. On the exact `PLATFORM_PS4 &&
+NO_STEAM` configuration it skips only `gamerulescvars.txt` loading and emits a
+startup breadcrumb instead of using the potentially involved `Warning` path.
+All other builds retain the original file load and warning, while PS4 continues
+through callback installation, `Clear()`, baseline cleanup, and signon setup.
+
+This file only selects `FCVAR_NOTIFY` values for Steam/master-server management.
+The Steam-free callback sees an empty object and returns false; the full rules
+update returns when `SteamGameServer()` is null before its later object access.
+The underlying missing-file filesystem behavior remains tracked separately.
+
+Marker: `kisak-ps4: build marker server_rules_skip_v435`.
+
+The package contains 895 prepared Scaleform assets and is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`46f46bac05aff1f3afdbc3b8478eb03fb3492e79dae33a233179f6d900ec8da1`.
+The next hardware log must reach `rules load skipped no steam` and will then
+use the retained v4.34 breadcrumbs to identify any later server-init boundary.
 
 ### PS3 Scaleform UI cross-reference priorities
 

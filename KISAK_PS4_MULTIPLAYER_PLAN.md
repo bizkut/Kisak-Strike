@@ -23,19 +23,21 @@ real offline matchmaking framework, `mod create complete`, `app after create`,
 and entry into the inner engine main. Hardware v4.33 validates both initial
 thread pools and every traced `Host_Init` subsystem through the Steam-free
 socket manager and game-event manager, then crashes inside
-`sv.Init( bDedicated )`. The offline listen-server milestone therefore remains
-blocked specifically on game-server initialization. The networking
+`sv.Init( bDedicated )`. Hardware v4.34 narrows that failure to the optional
+`gamerulescvars.txt` load immediately after the rules object is allocated. The
+offline listen-server milestone therefore remains blocked specifically on
+game-server initialization. The networking
 phase must then assert protocol `13580` in loopback, demo/server headers, and a
 same-build Linux/community server before LAN compatibility is claimed.
 `GetSteamAppID()` has a separate legacy no-Steam fallback of 215; audit and
 replace that consumer path before exposing AppID-dependent discovery or UI.
 
-The v4.34 diagnostic retains the real `CMatchFramework`, restart-safe event
-dispatcher, and Steam-free app-system graph. It traces `CGameServer::Init`,
-`CBaseServer::Init`, the optional `gamerulescvars.txt` load, cvar callback
-installation, virtual `Clear()`, baseline cleanup, and signon-buffer setup. It
-is staged as the KISK00002 monolithic package with SHA-256
-`344945e6fb63d1ba424f43ed63a55982c9029d019e1040b58537e933f6555e28`.
+The v4.35 build retains the real `CMatchFramework`, restart-safe event
+dispatcher, Steam-free app-system graph, and empty rules `KeyValues` object. It
+skips only the Steam/master-server `gamerulescvars.txt` read on PS4 `NO_STEAM`
+and continues through the existing callback, `Clear()`, baseline, and signon
+breadcrumbs. It is staged as the KISK00002 monolithic package with SHA-256
+`46f46bac05aff1f3afdbc3b8478eb03fb3492e79dae33a233179f6d900ec8da1`.
 
 ## Recommendation
 
