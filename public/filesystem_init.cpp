@@ -42,6 +42,10 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include <tier0/memdbgon.h>
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#endif
+
 #if !defined( _X360 )
 #define GAMEINFO_FILENAME			"gameinfo.txt"
 #else
@@ -724,18 +728,33 @@ bool FileSystem_IsHldsUpdateToolDedicatedServer()
 
 FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 {
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths entered" );
+#endif
 	if ( !initInfo.m_pFileSystem || !initInfo.m_pDirectoryName )
 		return SetupFileSystemError( false, FS_INVALID_PARAMETERS, "FileSystem_LoadSearchPaths: Invalid parameters specified." );
 
 	KeyValues *pMainFile, *pFileSystemInfo, *pSearchPaths;
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths before game info" );
+#endif
 	FSReturnCode_t retVal = LoadGameInfoFile( initInfo.m_pDirectoryName, pMainFile, pFileSystemInfo, pSearchPaths );
 	if ( retVal != FS_OK )
 		return retVal;
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths game info ready" );
+#endif
 	
 	// All paths except those marked with |gameinfo_path| are relative to the base dir.
 	char baseDir[MAX_PATH];
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths before base directory" );
+#endif
 	if ( !FileSystem_GetBaseDir( baseDir, sizeof( baseDir ) ) )
 		return SetupFileSystemError( false, FS_INVALID_PARAMETERS, "FileSystem_GetBaseDir failed." );
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths base directory ready" );
+#endif
 
 	initInfo.m_ModPath[0] = 0;
 
@@ -747,6 +766,9 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 	
 	for ( KeyValues *pCur=pSearchPaths->GetFirstValue(); pCur; pCur=pCur->GetNextValue() )
 	{
+#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths before entry" );
+#endif
 		const char *pPathID = pCur->GetName();
 		const char *pLocation = pCur->GetString();
 		
@@ -786,7 +808,13 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 		{
 			FileSystem_AddLoadedSearchPath( initInfo, pPathID, &bFirstGamePath, baseDir, pLocation, bLowViolence );
 		}
+#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths after entry" );
+#endif
 	}
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths entries complete" );
+#endif
 
 #ifdef _PS3
 	// Always base GAMEBIN PRX location off of main PRX path (unless content and PRX paths are same)
@@ -805,6 +833,9 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 #endif
 
 	pMainFile->deleteThis();
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths game info released" );
+#endif
 
 	//
 	// Set up search paths for add-ons
@@ -812,7 +843,13 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 	if ( IsPC() )
 	{
 #ifdef ENGINE_DLL
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths before addons" );
+		#endif
 		FileSystem_UpdateAddonSearchPaths( initInfo.m_pFileSystem );
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths addons ready" );
+		#endif
 #endif
 	}
 
@@ -820,10 +857,16 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 	char pPlatformPath[MAX_PATH];
 	V_ComposeFileName( baseDir, "platform", pPlatformPath, sizeof(pPlatformPath) );
 	initInfo.m_pFileSystem->AddSearchPath( pPlatformPath, "GAME", PATH_ADD_TO_TAIL );
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths platform ready" );
+#endif
 
 	// these specialized tool paths are not used on 360 and cause a costly constant perf tax, so inhibited
 	if ( IsPC() )
 	{
+#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths before content paths" );
+#endif
 		// Create a content search path based on the game search path
 		char szContentRoot[MAX_PATH];
 		V_strncpy( szContentRoot, baseDir, sizeof(szContentRoot) );
@@ -865,6 +908,9 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 		// Also, mark specific path IDs as "by request only". That way, we won't waste time searching in them
 		// when people forget to specify a search path.
 		initInfo.m_pFileSystem->MarkPathIDByRequestOnly( "content", true );
+#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths content paths ready" );
+#endif
 	}
 
 	// Also, mark specific path IDs as "by request only". That way, we won't waste time searching in them
@@ -878,6 +924,9 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 	{
 		initInfo.m_pFileSystem->AddSearchPath( initInfo.m_ModPath, "DEFAULT_WRITE_PATH", PATH_ADD_TO_TAIL );
 	}
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: filesystem search paths complete" );
+#endif
 
 #ifdef _DEBUG	
 	initInfo.m_pFileSystem->PrintSearchPaths();

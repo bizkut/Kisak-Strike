@@ -1,0 +1,8 @@
+kisak-ps4: app before preinit
+kisak-ps4: content search paths mounted
+kisak-ps4: content packaged probe readable
+kisak-ps4: content gameinfo readable
+kisak-ps4: content sound manifest readable
+kisak-ps4: content vmt readable
+kisak-ps4: content vtf readable
+kisak-ps4: content bsp readable

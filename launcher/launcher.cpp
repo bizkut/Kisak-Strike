@@ -997,6 +997,7 @@ bool CSourceAppSystemGroup::PreInit()
 	Ps4ProbeContentFile( g_pFullFileSystem, "maps/de_dust2.bsp",
 		"kisak-ps4: content bsp readable",
 		"kisak-ps4: content bsp missing" );
+	Ps4LauncherBreadcrumb( "kisak-ps4: content probes complete" );
 #else // _PS3
 	CFSSteamSetupInfo steamInfo;
 	steamInfo.m_bToolsMode = false;
@@ -1062,14 +1063,38 @@ bool CSourceAppSystemGroup::PreInit()
 #endif // !_PS3
 
 	StartupInfo_t info;
+#if defined( PLATFORM_PS4 )
+	Ps4LauncherBreadcrumb( "kisak-ps4: startup info storage ready" );
+#endif
 	info.m_pInstance = GetAppInstance();
+#if defined( PLATFORM_PS4 )
+	Ps4LauncherBreadcrumb( "kisak-ps4: startup info instance ready" );
+#endif
 	info.m_pBaseDirectory = GetBaseDirectory();
+#if defined( PLATFORM_PS4 )
+	Ps4LauncherBreadcrumb( "kisak-ps4: startup info base directory ready" );
+	Ps4LauncherBreadcrumb( "kisak-ps4: startup info before initial mod" );
+#endif
 	info.m_pInitialMod = DetermineDefaultMod();
+#if defined( PLATFORM_PS4 )
+	Ps4LauncherBreadcrumb( "kisak-ps4: startup info initial mod ready" );
+	Ps4LauncherBreadcrumb( "kisak-ps4: startup info before initial game" );
+#endif
 	info.m_pInitialGame = DetermineDefaultGame();
+#if defined( PLATFORM_PS4 )
+	Ps4LauncherBreadcrumb( "kisak-ps4: startup info initial game ready" );
+#endif
 	info.m_pParentAppSystemGroup = this;
 	info.m_bTextMode = g_bTextMode;
 
+#if defined( PLATFORM_PS4 )
+	Ps4LauncherBreadcrumb( "kisak-ps4: startup info before engine call" );
+	bool startupInfoResult = g_pEngineAPI->SetStartupInfo( info );
+	Ps4LauncherBreadcrumb( "kisak-ps4: startup info after engine call" );
+	return startupInfoResult;
+#else
 	return g_pEngineAPI->SetStartupInfo( info );
+#endif
 }
 
 int CSourceAppSystemGroup::Main()

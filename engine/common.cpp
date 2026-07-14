@@ -46,6 +46,10 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#endif
+
 // Things in other C files.
 #define MAX_LOG_DIRECTORIES	10000
 
@@ -884,7 +888,13 @@ COM_InitFilesystem
 */
 void COM_InitFilesystem( const char *pFullModPath )
 {
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem entered" );
+#endif
 	CFSSearchPathsInit initInfo;
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem search info ready" );
+#endif
 
 #ifndef DEDICATED	
 	char language[128];
@@ -937,6 +947,9 @@ void COM_InitFilesystem( const char *pFullModPath )
 #endif
 	
 	initInfo.m_pFileSystem = g_pFileSystem;
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem interface ready" );
+#endif
 #if !defined(_PS3)
 	initInfo.m_pDirectoryName = pFullModPath;
 #else
@@ -956,22 +969,49 @@ void COM_InitFilesystem( const char *pFullModPath )
 	}
 
 	// Load gameinfo.txt and setup all the search paths, just like the tools do.
-	FileSystem_LoadSearchPaths( initInfo );
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem before search paths" );
+#endif
+	FSReturnCode_t searchPathResult = FileSystem_LoadSearchPaths( initInfo );
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( searchPathResult == FS_OK
+		? "kisak-ps4: com filesystem search paths ready"
+		: "kisak-ps4: com filesystem search paths failed" );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem before absolute mod path" );
+#endif
 
 	// The mod path becomes com_gamedir.
 	Q_MakeAbsolutePath( com_gamedir, sizeof( com_gamedir ), initInfo.m_ModPath );
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem absolute mod path ready" );
+#endif
 							  	
 	// Set com_basedir.
 	Q_strncpy ( com_basedir, GetBaseDirectory(), sizeof( com_basedir ) ); // the "root" directory where hl2.exe is
 	Q_strlower( com_basedir );
 	Q_FixSlashes( com_basedir );
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem base directory ready" );
+#endif
 	
 #ifndef DEDICATED
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem before vgui directories" );
+#endif
 	EngineVGui()->SetVGUIDirectories();
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem vgui directories ready" );
+#endif
 #endif
 
 	// Set LOGDIR to be something reasonable
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem before log directory" );
+	#endif
 	COM_SetupLogDir( NULL );
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: com filesystem complete" );
+	#endif
 }
 
 const char *COM_DXLevelToString( int dxlevel )

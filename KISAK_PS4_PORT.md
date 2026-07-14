@@ -5625,6 +5625,44 @@ The v4.27 candidate is staged at
 Hardware validation remains pending; constructor-order verification alone does
 not establish that the full Source lifecycle reaches the menu.
 
+### v4.28 candidate: split Source startup-info and filesystem preinitialization
+
+The v4.27 hardware run validates the constructor-order repair. Its 3,305-line
+fresh segment reaches the immediate v4.27 marker, executes the one priority
+allocator constructor, completes all 1,423 ordinary constructors, initializes
+the global and filesystem worker pools, connects every launcher app system,
+and enters the genuine Source engine factory. It then stops after:
+
+```text
+kisak-ps4: app before preinit
+kisak-ps4: content search paths mounted
+kisak-ps4: content packaged probe readable
+kisak-ps4: content gameinfo readable
+kisak-ps4: content sound manifest readable
+kisak-ps4: content vmt readable
+kisak-ps4: content vtf readable
+kisak-ps4: content bsp readable
+```
+
+The new boundary is between the launcher content probes and completion of
+`CSourceAppSystemGroup::PreInit`, not in constructors, static registration, or
+app-system connection. Version 4.28 adds bounded breadcrumbs across
+`StartupInfo_t` population, `CEngineAPI::SetStartupInfo`, trace registration,
+`COM_InitFilesystem`, gameinfo search-path loading, VGUI directory setup,
+mod-info loading, and version parsing. It preserves behavior while making the
+next hardware tail identify the exact failing call.
+
+Marker: `kisak-ps4: build marker source_preinit_focus_v428`. The next gate is
+`startup info after engine call` followed by `app after preinit`; a stop inside
+filesystem search-path setup should retain the nearest stage marker for a
+targeted PS4 branch rather than another broad startup probe.
+
+The v4.28 monolithic candidate builds successfully with the OpenOrbis LLVM 18
+toolchain and all 14 host tests pass. The packaged artifact is
+`build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`08fe55d100b3ca6e36f9b578c8aea10fc1869ca464aee7431fcd141e3dde5c29`.
+Hardware validation is pending.
+
 ### PS3 Scaleform UI cross-reference priorities
 
 Full cross-reference report: `KISAK_PS3_UI_CROSSREFERENCE.md` in the Kisak

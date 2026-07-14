@@ -673,13 +673,25 @@ static bool WantsFullMemoryDumps()
 //-----------------------------------------------------------------------------
 bool CEngineAPI::SetStartupInfo( StartupInfo_t &info ) 
 {
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info entered" );
+	#endif
 	g_bTextMode = info.m_bTextMode;
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info text mode copied" );
+	#endif
 
 	// Set up the engineparms_t which contains global information about the mod
 	host_parms.basedir = const_cast<char*>( info.m_pBaseDirectory );
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info base directory copied" );
+	#endif
 
 	// Copy off all the startup info
 	m_StartupInfo = info;
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info structure copied" );
+	#endif
 
 #if defined( _PS3 ) && !defined( NO_STEAM )
 	{
@@ -743,7 +755,16 @@ bool CEngineAPI::SetStartupInfo( StartupInfo_t &info )
 #endif
 
 	// Needs to be done prior to init material system config
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info before filesystem trace" );
+	TraceInit( "COM_InitFilesystem( m_StartupInfo.m_pInitialMod )", "COM_ShutdownFileSystem()", 0 );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info after filesystem trace" );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info before filesystem init" );
+	COM_InitFilesystem( m_StartupInfo.m_pInitialMod );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info after filesystem init" );
+	#else
 	TRACEINIT( COM_InitFilesystem( m_StartupInfo.m_pInitialMod ), COM_ShutdownFileSystem() );
+	#endif
 
 	//
 	// VPK content-shadowing overrides
@@ -767,6 +788,9 @@ bool CEngineAPI::SetStartupInfo( StartupInfo_t &info )
 	// server only does this if sv_pure is set
 	if ( IsPC() )
 	{
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info before mod info" );
+		#endif
 		KeyValues *modinfo = new KeyValues("ModInfo");
 		if ( modinfo->LoadFromFile( g_pFileSystem, "gameinfo.txt" ) )
 		{
@@ -783,6 +807,9 @@ bool CEngineAPI::SetStartupInfo( StartupInfo_t &info )
 			}
 		}
 		modinfo->deleteThis();
+		#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info after mod info" );
+		#endif
 	}
 
 	//
@@ -791,7 +818,13 @@ bool CEngineAPI::SetStartupInfo( StartupInfo_t &info )
 
 	// Parse AppID from steam.inf file
 	extern void Sys_Version( bool bDedicated );
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info before version" );
+	#endif
 	Sys_Version( false );
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info after version" );
+	#endif
 
 #if !defined( NO_STEAM ) && !defined( _GAMECONSOLE )
 	if ( !CommandLine()->FindParm( "-nobreakpad" ) )
@@ -850,6 +883,9 @@ bool CEngineAPI::SetStartupInfo( StartupInfo_t &info )
 	}
 #endif
 
+	#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: engine startup info complete" );
+	#endif
 	return true;
 }
 
@@ -1796,7 +1832,7 @@ int CEngineAPI::Run()
 {
 	#if defined( PLATFORM_PS4 )
 	KisakPs4StartupBreadcrumb( "kisak-ps4: source engine run entered" );
-	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker ctor_priority_order_v427" );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker source_preinit_focus_v428" );
 	#endif
 	if ( CommandLine()->FindParm("-insecure") )
 	{
