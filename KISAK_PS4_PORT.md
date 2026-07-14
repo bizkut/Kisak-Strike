@@ -5444,6 +5444,10 @@ missing or malformed field. The following build must correct that field at its
 source and reach `submitted=1`; real session startup remains the subsequent
 milestone.
 
+All 14 host tests pass and the PS4 monolithic link/package build completes.
+The staged and remotely verified package SHA-256 is
+`23449e388508d72a651559b9dcdf1ef3d8e089c3968b98ae6ccba06a9e1bb504`.
+
 ### PS3 Scaleform UI cross-reference priorities
 
 The extracted PS3 movies and Kisak drivers confirm that the movie,
