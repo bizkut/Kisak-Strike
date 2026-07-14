@@ -24,7 +24,7 @@ Latest staged monolithic package:
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.05
-SHA-256: eb131afe29cd0f8d21eea60f620fed87ad8b929fca2544c912d601906dd9bfa7
+SHA-256: 344945e6fb63d1ba424f43ed63a55982c9029d019e1040b58537e933f6555e28
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
@@ -40,9 +40,14 @@ Current hardware baseline:
   registrar in the monolith, adds exact client/server/shared-system gates, and
   makes the static matchmaking event dispatcher restart-safe. Hardware v4.32
   validates all of those gates plus app-system dependency ordering, Connect,
-  Init, PostInit, and entry into the inner engine main. It then crashes during
-  `Host_Init`, after the global and save-worker thread pools both report a
-  successful start.
+  Init, PostInit, and entry into the inner engine main. Hardware v4.33 then
+  validates the global and save-worker thread pools plus console, memory,
+  command, cvar, view, common, save/restore, filter, key, Steam-free socket, and
+  game-event initialization. Its last marker is `trace init before` for
+  `sv.Init( bDedicated )`, proving the crash is inside game-server
+  initialization. v4.34 splits `CGameServer::Init`, `CBaseServer::Init`, and
+  `CBaseServer::Clear` around rules loading, cvar callback installation, the
+  virtual clear path, and signon-buffer setup.
 - OpenGNM opens two 1920x1080 VideoOut buffers and completes repeated VSYNC
   flips. The v1.78 run sustains approximately 60 FPS without a crash.
 - The presentation stress loop has reached at least frame 1200 with matching
@@ -5861,6 +5866,37 @@ The package contains 895 prepared Scaleform assets and is staged at
 The next hardware log must end with an exact dispatch/before/after expression;
 that identifies tracker bookkeeping separately from the initialization call
 and becomes the next implementation boundary.
+
+Hardware v4.33 completed every traced `Host_Init` subsystem through
+`g_GameEventManager.Init()` and then stopped after:
+
+```text
+kisak-ps4: trace init dispatch
+sv.Init( bDedicated )
+kisak-ps4: trace init before
+sv.Init( bDedicated )
+```
+
+The preserved capture is
+`hardware-captures/logs/2026-07-14/kisak_v433_base_server_init_crash.txt`.
+
+### v4.34: Split game-server base initialization
+
+Version 4.34 adds bounded PS4-only breadcrumbs at entry and return of
+`CGameServer::Init` and `CBaseServer::Init`. The base-server split covers signon
+debug naming, allocation and optional loading of `gamerulescvars.txt`, global
+cvar callback installation, entry into the virtual `Clear()` path, baseline
+cleanup, signon-buffer capacity, and signon writer setup. This is diagnostic
+instrumentation; no server initialization behavior is bypassed yet.
+
+Marker: `kisak-ps4: build marker server_init_trace_v434`.
+
+The package contains 895 prepared Scaleform assets and is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`, SHA-256
+`344945e6fb63d1ba424f43ed63a55982c9029d019e1040b58537e933f6555e28`.
+The next hardware log will distinguish the optional rules-file load, callback
+installation, virtual clear dispatch, baseline cleanup, and signon allocation.
+Only the operation named by the final breadcrumb should be changed.
 
 ### PS3 Scaleform UI cross-reference priorities
 

@@ -73,6 +73,13 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_SERVER_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_SERVER_BREADCRUMB( line ) ((void)0)
+#endif
+
 CThreadFastMutex g_svInstanceBaselineMutex;
 
 // BUGBUG: JAY: Leaving this here for some of the matchmaking code.  I don't want to delete the code or enable it
@@ -2877,6 +2884,7 @@ void CBaseServer::ClearBaselineHandles( void )
 
 void CBaseServer::Clear( void )
 {
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server clear entered" );
 	if ( m_StringTables )
 	{
 		m_StringTables->RemoveAllTables();
@@ -2889,6 +2897,7 @@ void CBaseServer::Clear( void )
 	m_pServerStartupTable = NULL;
 
 	ClearBaselineHandles();
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server clear baselines complete" );
 	
 	m_State = ss_dead;
 	
@@ -2904,6 +2913,7 @@ void CBaseServer::Clear( void )
 	stringTableCRC = 0;
 
 	MEM_ALLOC_CREDIT();
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server clear before signon capacity" );
 
 	// Use a different limit on the signon buffer, so we can save some memory in SP (for xbox).
 	if ( IsMultiplayer() || IsDedicated() )
@@ -2914,12 +2924,16 @@ void CBaseServer::Clear( void )
 	{
 		m_SignonBuffer.EnsureCapacity( 16384 );
 	}
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server clear signon capacity ready" );
 	
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server clear before signon writer" );
 	m_Signon.StartWriting( m_SignonBuffer.Base(), m_SignonBuffer.Count() );
 	m_Signon.SetDebugName( "m_Signon" );
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server clear signon writer ready" );
 
 	serverclasses = 0;
 	serverclassbits = 0;
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server clear complete" );
 }
 
 /*
@@ -2978,6 +2992,7 @@ void CBaseServer::SetTimescale( float flTimescale )
 //-----------------------------------------------------------------------------
 void CBaseServer::Init( bool bIsDedicated )
 {
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init entered" );
 	m_nMaxclients = 0;
 	m_nSpawnCount = 0;
 	m_nUserid = 1;
@@ -2988,20 +3003,28 @@ void CBaseServer::Init( bool bIsDedicated )
 	m_Socket = NS_SERVER;	
 	
 	m_Signon.SetDebugName( "m_Signon" );
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init signon named" );
 
 	if ( !g_pKVrulesConvars )
 	{
+		PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init before rules allocation" );
 		g_pKVrulesConvars = new KeyValues( "NotifyRulesCvars" );
+		PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init rules allocated" );
 		if ( !g_pKVrulesConvars->LoadFromFile( g_pFullFileSystem, "gamerulescvars.txt", "MOD" ) )
 		{
 			Warning( "Failed to load gamerulescvars.txt, game rules cvars might not be reported to management tools.\n" );
 		}
+		PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init rules load complete" );
 	}
 	
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init before cvar callback" );
 	g_pCVar->InstallGlobalChangeCallback( ServerNotifyVarChangeCallback );
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init cvar callback ready" );
 	SetMasterServerRulesDirty();
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init before clear" );
 	
 	Clear();
+	PS4_SERVER_BREADCRUMB( "kisak-ps4: base server init complete" );
 }
 
 INetworkStringTable *CBaseServer::GetInstanceBaselineTable( void )
