@@ -23,32 +23,28 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.21
+Version: 3.22
 Size: 103,153,664 bytes
-SHA-256: 4776e95d3fba6ecc0779d7af294374ec28446e981dc28b0b4c1d4942a5345d24
-Hardware run: v4.55 (2026-07-15), reproduces the same corrupted key token
+SHA-256: a85bbe9d83d9d9c7ceb309d311c21edcb7792a3380628cee162eedcd7e7dc6cf
+Hardware run: v4.56 (2026-07-15), isolates a 200-byte logical input buffer
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.21
-Size: 103,153,664 bytes
-SHA-256: 4776e95d3fba6ecc0779d7af294374ec28446e981dc28b0b4c1d4942a5345d24
-Hardware result: v4.55 still sees `#SFUI_Game` instead of `gameModes`
-```
-
-Latest package staged for manual install and hardware test:
-
-```text
-Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.22
 Size: 103,153,664 bytes
 SHA-256: a85bbe9d83d9d9c7ceb309d311c21edcb7792a3380628cee162eedcd7e7dc6cf
-FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Staged: 2026-07-15
-Hardware target: v4.56 KeyValues raw-input and token-replay trace
+Hardware result: v4.56 proves replay is correct; fresh input stops at byte 200
+```
+
+Next manual package in preparation:
+
+```text
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.23
+Hardware target: v4.57 PS4 stream-size override and exact read metrics
 ```
 
 Current hardware baseline:
@@ -6899,7 +6895,7 @@ Before parsing, the PS4 diagnostic searches the loaded buffer for the exact
 `"#SFUI_GameTypeClassic"` scalar and following `"gameModes"` key and reports
 their byte offsets. The first 16 token operations then report whether each
 token came from a quoted, control, bare, or seek-back replay path, together with
-the operation number, actual buffer-read count, `CUtlBuffer::TellGet()`
+the operation number, cumulative fresh-token count, `CUtlBuffer::TellGet()`
 position, token length, quoted/conditional flags, and up to 160 characters of
 token text. This covers the root and opening braces, the `gameTypes` and
 `classic` sections, the `value` pair, the `nameID` look-ahead/replay pair, its
@@ -6928,7 +6924,34 @@ high addresses that do not round-trip through PS4's 44-bit descriptor fields.
 The PKG is FTP-staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
 103,153,664 bytes and a complete readback matches the local PKG SHA-256.
-Hardware installation and the v4.56 run remain manual.
+The v4.56 package was installed and run manually.
+
+The v4.56 hardware trace reports `full_value_offset=-1` and
+`game_modes_offset=-1` before parsing. Token operations 8 and 9 read and replay
+`nameID` identically at buffer position 186. Operation 10 is a fresh quoted
+read, not a replay, and already returns only `#SFUI_Game` with length 10 at
+position 200; operation 11 replays that same token unchanged. The token reader
+and seek-back path are therefore exonerated. The parser's logical input itself
+stops at byte 200.
+
+An exact FTP read of the installed
+`/data/kisak-strike/csgo/gamemodes.txt` proves that the stored file is intact:
+it is 99,836 bytes with SHA-256
+`c1f14870fd2f37179edc53f89d192ff2102bc06d1f03eeaba8700fbe587ed62c`.
+Its bytes contain the complete `"#SFUI_GameTypeClassic"` scalar beginning at
+offset 189 and the following `"gameModes"` key beginning at offset 219. The
+corruption therefore occurs while deriving or consuming the open stream's
+length, not in the installed asset.
+
+`KeyValues::LoadFromFile` asks the filesystem for `fileSize`, reads exactly that
+many bytes, and explicitly writes its terminator at `buffer[fileSize]`.
+`CStdioFile::FS_fopen` currently accepts `_stat().st_size` whenever `_stat`
+succeeds on PS4 and only derives the length from the open descriptor when
+`_stat` fails. The 200-byte logical end is consistent with a successful but
+incorrect PS4 `_stat` length. Version 3.23 will identify v4.57, always prefer the
+open descriptor's `SEEK_END` result on PS4, and record the stat length, stream
+length, requested size, returned byte count, final string length, and boundary
+bytes before parsing.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
