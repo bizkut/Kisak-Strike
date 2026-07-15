@@ -269,7 +269,11 @@ void GameTypes::ClearServerMapGroupInfo( void )
 // -------------------------------------------------------------------------------------------- //
 bool GameTypes::Initialize( bool force /* = false*/ )
 {
+#if defined( PLATFORM_PS4 )
+	const char *fileName = "gamemodes.txt";
+#else
 	const char *fileName = "GameModes.txt";
+#endif
 	PS4_GAMETYPES_BREADCRUMB( "initialize entered" );
 
 	if ( m_Initialized &&
@@ -300,7 +304,9 @@ bool GameTypes::Initialize( bool force /* = false*/ )
 	if ( !pKV->LoadFromFile( g_pFullFileSystem, fileName ) )
 	{
 		PS4_GAMETYPES_BREADCRUMB( "base file load failed" );
+#if !defined( PLATFORM_PS4 )
 		Warning( "GameTypes: error loading %s.", fileName );
+#endif
 		return false;
 	}
 	PS4_GAMETYPES_BREADCRUMB( "base file load ready" );

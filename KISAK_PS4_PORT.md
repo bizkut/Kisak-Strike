@@ -39,12 +39,15 @@ SHA-256: e69e4ae8ca2ee6e90c70fcc4547f1590cf6eb8c54d0c4c86e9b8f8e8215dffa8
 Hardware result: v4.50 fails to open `GameModes.txt` before client/UI startup
 ```
 
-Next manual-install package:
+Latest package staged and awaiting manual installation and launch:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.17
-Status: in preparation
+Size: 103,153,664 bytes
+SHA-256: 3033e455aed1eb279d64d067d20f23d3e8c455b99d705fca771fb8b0d4ca0f32
+Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
 Hardware target: v4.51 lowercase GameModes load
 ```
 
@@ -6635,6 +6638,41 @@ currently unsafe warning call if the required file is still unavailable. The
 older intro/menu diagnostics are not expected in this run: the real engine is
 still crashing during server initialization, before client and Scaleform UI
 startup.
+
+### v4.51: Use the shipped lowercase GameModes path on PS4
+
+The PS4 GameTypes copies now request `gamemodes.txt`, matching the loose file
+and VPK naming convention on the case-sensitive target. Other platforms retain
+the original `GameModes.txt` spelling. If the required file is unavailable on
+PS4, the existing static failure breadcrumb remains, but the function returns
+false without entering the warning formatter that crashed the v4.50 run.
+
+Package version 3.17 and build marker `gamemodes_lowercase_fix_v451` identify
+the next manual-install test. The v4.50 internal GameTypes trace remains so the
+hardware result will show whether the base file loads and how far the DLC,
+optional server override, game-type, map, map-group, and bot-difficulty phases
+advance. Reaching client/UI initialization is not yet assumed; this package
+first has to complete the real server initialization path.
+
+The Linux OpenOrbis build, final link, FSELF conversion, package creation, and
+verbose PkgTool validation complete. Every package check is `[OK]`, metadata
+contains version 3.17, the v4.51 marker and server GameTypes trace strings are
+present, and the retired development attach-gate marker is absent. Artifact
+identities:
+
+```text
+OELF: 135,927,592 bytes
+SHA-256: 7f40aaf0eb3c6ec6c05a32c50712a6f81c075b79d508fcfb996cc86c1a985260
+SELF: 83,044,160 bytes
+SHA-256: 6605b67e2cdb99dcff10204f05a5875f63263d358b2d1f7d6ddcc505ae960de6
+PKG: 103,153,664 bytes
+SHA-256: 3033e455aed1eb279d64d067d20f23d3e8c455b99d705fca771fb8b0d4ca0f32
+```
+
+The host suite remains at the established 11/14 baseline, with only the three
+Linux high-address OpenGNM descriptor failures. The PKG is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and a complete readback matches the local PKG SHA-256.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
