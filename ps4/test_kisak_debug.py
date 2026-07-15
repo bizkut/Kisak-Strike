@@ -331,22 +331,6 @@ class TargetTests(unittest.IsolatedAsyncioTestCase):
             )
         )
 
-    async def test_stop_attached_target_requires_confirmed_interrupt(self) -> None:
-        class NoStopInterruptContext:
-            def register_callback(self, callback):
-                self.callback = callback
-
-            async def stop_process(self):
-                return debug.ResponseCode.SUCCESS
-
-        previous_timeout = debug.ATTACH_STOP_TIMEOUT
-        debug.ATTACH_STOP_TIMEOUT = 0.001
-        try:
-            with self.assertRaisesRegex(debug.GuardError, "did not report"):
-                await debug._stop_attached_target(NoStopInterruptContext())
-        finally:
-            debug.ATTACH_STOP_TIMEOUT = previous_timeout
-
     async def test_find_title_process_uses_exact_title_id(self) -> None:
         client = FakeClient()
         client.processes = [
@@ -513,7 +497,7 @@ class TargetTests(unittest.IsolatedAsyncioTestCase):
             expected,
             gate,
             marker,
-            debug_port=755,
+            debug_port=17555,
         )
 
         gate_address = load_bias + gate.virtual_address
@@ -524,6 +508,8 @@ class TargetTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(client.debugger_calls[0][0], 20)
         self.assertFalse(client.debugger_calls[0][1]["resume"])
+        self.assertTrue(client.debugger_calls[0][1]["attach_stopped"])
+        self.assertEqual(client.debugger_calls[0][1]["port"], 17555)
 
     async def test_release_dev_gate_rejects_timed_out_gate_without_write(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -580,7 +566,7 @@ class TargetTests(unittest.IsolatedAsyncioTestCase):
                 debug.ResolvedImage(load_bias, ("unit_test_marker",)),
                 gate,
                 marker,
-                debug_port=755,
+                debug_port=17555,
             )
 
         self.assertEqual(client.writes, [])
@@ -659,7 +645,7 @@ class TargetTests(unittest.IsolatedAsyncioTestCase):
             debug.ResolvedImage(load_bias, ("unit_test_marker",)),
             gate,
             marker,
-            debug_port=755,
+            debug_port=17555,
             capture_timeout=1.0,
         )
 
@@ -668,6 +654,7 @@ class TargetTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["event"]["registers"]["rsp"], stack_address)
         self.assertEqual(result["stack"]["hex"], stack_data.hex())
         self.assertEqual(len(client.writes), 1)
+        self.assertTrue(client.debugger_calls[0][1]["attach_stopped"])
 
 
 if __name__ == "__main__":

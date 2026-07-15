@@ -24,7 +24,8 @@ from ps4debug import PS4Debug, PS4DebugException, ResponseCode, VMProtection
 DEFAULT_HOST = "10.0.1.157"
 DEFAULT_PORT = 744
 DEFAULT_TITLE_ID = "KISK00002"
-DEFAULT_PROTOCOL_VERSION = "1.3"
+DEFAULT_PROTOCOL_VERSION = "1.4"
+DEFAULT_DEBUG_PORT = 17555
 DEFAULT_OELF = "build-ps4-engine/kisak_ps4_monolithic.oelf"
 ELF_HEADER = struct.Struct("<16sHHIQQQIHHHHHH")
 PROGRAM_HEADER = struct.Struct("<IIQQQQQQ")
@@ -55,7 +56,6 @@ DEV_GATE_RELEASE = 0x4B4953414B474F21
 DEV_GATE_TIMEOUT = 0x4B4953414B54494D
 DEV_GATE_SIZE = 8
 STACK_CAPTURE_SIZE = 512
-ATTACH_STOP_TIMEOUT = 5.0
 REGISTER_NAMES = (
     "rax",
     "rbx",
@@ -770,9 +770,9 @@ async def release_dev_attach_gate(
         target.pid,
         port=debug_port,
         resume=False,
+        attach_stopped=True,
         event_read_timeout=None,
     ) as context:
-        await _stop_attached_target(context)
         mutation = await _release_dev_gate_while_stopped(
             client,
             target,
@@ -782,35 +782,6 @@ async def release_dev_attach_gate(
             marker,
         )
     return {**mutation, "resumed_by": "verified debugger detach"}
-
-
-async def _stop_attached_target(context: Any) -> Any:
-    """Deliver SIGSTOP and wait for its interrupt before guarded memory access."""
-    ready = asyncio.Event()
-    stopped: dict[str, Any] = {}
-
-    async def on_stop(event: Any) -> None:
-        event.resume = False
-        if "event" not in stopped:
-            stopped["event"] = event
-            ready.set()
-
-    context.register_callback(on_stop)
-    try:
-        status = await context.stop_process()
-        if status != ResponseCode.SUCCESS:
-            raise GuardError(f"debugger failed to stop attached target: {status}")
-        try:
-            await asyncio.wait_for(ready.wait(), timeout=ATTACH_STOP_TIMEOUT)
-        except TimeoutError as error:
-            raise GuardError(
-                "attached target did not report its requested stop; "
-                "refusing post-attach memory access"
-            ) from error
-        return stopped["event"]
-    finally:
-        context.register_callback(None)
-
 
 async def capture_first_debug_event(
     client: Any,
@@ -831,10 +802,9 @@ async def capture_first_debug_event(
         target.pid,
         port=debug_port,
         resume=False,
+        attach_stopped=True,
         event_read_timeout=None,
     ) as context:
-        await _stop_attached_target(context)
-
         async def on_event(event: Any) -> None:
             event.resume = False
             if "event" not in captured:
@@ -999,7 +969,7 @@ def build_parser() -> argparse.ArgumentParser:
     release_parser.add_argument("--expect-marker", action="append", default=[])
     release_parser.add_argument("--wait-timeout", type=float, default=60.0)
     release_parser.add_argument("--poll-interval", type=float, default=0.1)
-    release_parser.add_argument("--debug-port", type=int, default=755)
+    release_parser.add_argument("--debug-port", type=int, default=DEFAULT_DEBUG_PORT)
     release_parser.add_argument(
         "--allow-write",
         action="store_true",
@@ -1020,7 +990,7 @@ def build_parser() -> argparse.ArgumentParser:
     capture_parser.add_argument("--expect-marker", action="append", default=[])
     capture_parser.add_argument("--wait-timeout", type=float, default=60.0)
     capture_parser.add_argument("--poll-interval", type=float, default=0.1)
-    capture_parser.add_argument("--debug-port", type=int, default=755)
+    capture_parser.add_argument("--debug-port", type=int, default=DEFAULT_DEBUG_PORT)
     capture_parser.add_argument("--capture-timeout", type=float, default=60.0)
     capture_parser.add_argument(
         "--allow-write",
@@ -1042,8 +1012,8 @@ def _validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) ->
         parser.error("--wait-timeout must be positive")
     if hasattr(args, "poll_interval") and args.poll_interval <= 0:
         parser.error("--poll-interval must be positive")
-    if hasattr(args, "debug_port") and not 1 <= args.debug_port <= 65535:
-        parser.error("--debug-port must be between 1 and 65535")
+    if hasattr(args, "debug_port") and not 1024 <= args.debug_port <= 65535:
+        parser.error("--debug-port must be between 1024 and 65535")
     if hasattr(args, "capture_timeout") and args.capture_timeout <= 0:
         parser.error("--capture-timeout must be positive")
 
