@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.24
+Version: 3.25
 Size: 103,153,664 bytes
-SHA-256: 94a94ca7572fc7f6fd299ff542fd1ec31dc5c4f59277b1483a829d976c34c9d8
+SHA-256: 4c76ec60e65052b8c90256db99c83814824d2e8f1cfbf2978e0419c487709703
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-15
-Hardware result: v4.58 isolates the expected missing-mapgroups diagnostic
+Hardware target: v4.59 bypasses the server's optional mapgroupsSP warning
 ```
 
 Current hardware baseline:
@@ -7082,6 +7082,43 @@ this is not another client/server call-target collision. The next package will
 preserve the expected missing-key information as a PS4 startup breadcrumb on
 the server while avoiding the nonessential legacy warning path and redundant
 name lookups.
+
+### v4.59: Keep the expected server mapgroups miss off legacy Warning
+
+For PS4 `GAME_DLL` only, the absent `mapgroupsSP` branch now emits the existing
+structured GameTypes breadcrumb with phase `sp-mapgroups-missing`, type/mode
+indices, and the cached mode name. It then rejoins the common
+`sp-mapgroups-ready` path. The client and all non-PS4 builds retain the legacy
+`Warning`; those paths now use the names already read at the top of the loop
+instead of querying the same KeyValues nodes again. No data requirement,
+container mutation, or successful-key path changes.
+
+Package version 3.25 and build marker
+`gametypes_server_optional_warning_v459` identify the manual-install test.
+Post-link disassembly confirms that the server null branch calls
+`KisakPs4GameTypesDetailBreadcrumb`, while the client null branch retains its
+call to `Warning`. The server's other warning sites remain present. The OELF
+contains the v4.59 marker and `sp-mapgroups-missing` phase and does not contain
+the v4.58 marker. Artifact identities:
+
+```text
+OELF: 135,961,440 bytes
+SHA-256: 752ab04da9c047a74e9a315bc898c475669e70a3519a161ca11693ea4e0dd631
+SELF: 83,077,088 bytes
+SHA-256: 4e284999b5209542b0b603db3ea87ccff77ea0cd90a4569454dbc4812103d8c0
+PKG: 103,153,664 bytes
+SHA-256: 4c76ec60e65052b8c90256db99c83814824d2e8f1cfbf2978e0419c487709703
+```
+
+The client and server archives compile, the Linux OpenOrbis final link and
+FSELF conversion complete, and direct verbose PkgTool validation reports
+`[OK]` for every check. The host suite remains at the established 11/14
+baseline, with only `ps4_gnm_device`, `ps4_gnm_buffer`, and
+`ps4_gnm_constants` failing on Linux high addresses that do not round-trip
+through PS4's 44-bit descriptor fields. The PKG is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and a complete readback matches the local PKG SHA-256.
+Hardware installation and launch remain manual.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

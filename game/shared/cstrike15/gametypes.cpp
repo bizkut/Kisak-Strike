@@ -829,7 +829,11 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 				}
 				else
 				{
-					Warning( "GameTypes: missing %s entry for game type/mode (%s/%s).\n", mapgroupsEntrySP, pKV_GameType->GetName(), pKV_GameMode->GetName() );
+					#if defined( PLATFORM_PS4 ) && defined( GAME_DLL )
+					PS4_GAMETYPES_DETAIL_BREADCRUMB( "sp-mapgroups-missing", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, 0, pGameModeName );
+					#else
+					Warning( "GameTypes: missing %s entry for game type/mode (%s/%s).\n", mapgroupsEntrySP, pGameTypeName, pGameModeName );
+					#endif
 				}
 				PS4_GAMETYPES_DETAIL_BREADCRUMB( "sp-mapgroups-ready", this, pKV_MapGroupsSP, nGameTypeIndex, nGameModeIndex, pGameMode->m_MapGroupsSP.Count(), pGameModeName );
 
