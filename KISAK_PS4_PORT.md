@@ -23,32 +23,29 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.16
+Version: 3.17
 Size: 103,153,664 bytes
-SHA-256: e69e4ae8ca2ee6e90c70fcc4547f1590cf6eb8c54d0c4c86e9b8f8e8215dffa8
-Hardware run: v4.50 (2026-07-15), isolates the case-sensitive GameModes load
+SHA-256: 3033e455aed1eb279d64d067d20f23d3e8c455b99d705fca771fb8b0d4ca0f32
+Hardware run: v4.51 (2026-07-15), enters the lowercase gamemodes file load
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.16
-Size: 103,153,664 bytes
-SHA-256: e69e4ae8ca2ee6e90c70fcc4547f1590cf6eb8c54d0c4c86e9b8f8e8215dffa8
-Hardware result: v4.50 fails to open `GameModes.txt` before client/UI startup
-```
-
-Latest package staged and awaiting manual installation and launch:
-
-```text
-Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.17
 Size: 103,153,664 bytes
 SHA-256: 3033e455aed1eb279d64d067d20f23d3e8c455b99d705fca771fb8b0d4ca0f32
-Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
-Hardware target: v4.51 lowercase GameModes load
+Hardware result: v4.51 crashes inside `KeyValues::LoadFromFile`
+```
+
+Next manual-install package:
+
+```text
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.18
+Status: in preparation
+Hardware target: v4.52 gamemodes KeyValues file-pipeline trace
 ```
 
 Current hardware baseline:
@@ -6673,6 +6670,15 @@ The host suite remains at the established 11/14 baseline, with only the three
 Linux high-address OpenGNM descriptor failures. The PKG is FTP-staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
 103,153,664 bytes and a complete readback matches the local PKG SHA-256.
+
+The v4.51 hardware run reaches `server gametypes before base file load` but
+records neither `base file load failed` nor `base file load ready`. This proves
+the lowercase change moved execution past the former missing-file result and
+that the crash is now inside `KeyValues::LoadFromFile`. The loose file is
+99,836 bytes with SHA-256
+`c1f14870fd2f37179edc53f89d192ff2102bc06d1f03eeaba8700fbe587ed62c`.
+Version 3.18 will trace only this resource through filesystem open, size query,
+optimal-buffer sizing and allocation, read, close, text parse, and buffer free.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
