@@ -22,6 +22,7 @@ class FakeClient:
         self.memory = {}
         self.writes = []
         self.debugger_calls = []
+        self.debug_event = None
 
     async def get_processes(self):
         return self.processes
@@ -41,15 +42,27 @@ class FakeClient:
 
     def debugger(self, pid, **kwargs):
         self.debugger_calls.append((pid, kwargs))
-        return FakeDebuggerContext()
+        return FakeDebuggerContext(self)
 
 
 class FakeDebuggerContext:
+    def __init__(self, client):
+        self.client = client
+        self.callback = None
+
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, exception_type, exception, traceback):
         return False
+
+    def register_callback(self, callback):
+        self.callback = callback
+
+    async def resume_process(self):
+        if self.client.debug_event is not None and self.callback is not None:
+            await self.callback(self.client.debug_event)
+        return debug.ResponseCode.SUCCESS
 
 
 def make_oelf(directory: pathlib.Path, marker: str = "unit_test_marker"):
@@ -241,7 +254,7 @@ class OelfTests(unittest.TestCase):
             with self.assertRaisesRegex(debug.GuardError, "SHA-256 mismatch"):
                 debug.inspect_oelf(path, expected_sha256="0" * 64)
 
-    def test_parser_exposes_only_read_only_commands(self) -> None:
+    def test_parser_requires_explicit_guards_for_mutation_commands(self) -> None:
         parser = debug.build_parser()
         commands = next(
             action.choices
@@ -250,16 +263,23 @@ class OelfTests(unittest.TestCase):
         )
         self.assertEqual(
             set(commands),
-            {"probe", "wait-process", "maps", "release-dev-gate"},
+            {
+                "probe",
+                "wait-process",
+                "maps",
+                "release-dev-gate",
+                "capture-crash",
+            },
         )
-        release = commands["release-dev-gate"]
-        required = {
-            action.dest
-            for action in release._actions
-            if getattr(action, "required", False)
-        }
-        self.assertIn("expect_oelf_sha256", required)
-        self.assertIn("allow_write", required)
+        for command in ("release-dev-gate", "capture-crash"):
+            guarded_parser = commands[command]
+            required = {
+                action.dest
+                for action in guarded_parser._actions
+                if getattr(action, "required", False)
+            }
+            self.assertIn("expect_oelf_sha256", required)
+            self.assertIn("allow_write", required)
 
     def test_resolve_gate_symbols_and_validate_segments(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -512,6 +532,90 @@ class TargetTests(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(client.writes, [])
+
+    async def test_capture_crash_keeps_debugger_attached_for_first_event(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path, build_marker = make_gate_oelf(pathlib.Path(temporary))
+            identity = debug.inspect_oelf(path)
+            gate = debug.resolve_elf_symbol(path, debug.DEV_GATE_SYMBOL)
+            marker = debug.resolve_elf_symbol(path, debug.DEV_GATE_MARKER_SYMBOL)
+
+        target = debug.TargetProcess(
+            20,
+            "eboot.bin",
+            "/app0/eboot.bin",
+            debug.DEFAULT_TITLE_ID,
+            "content",
+        )
+        load_bias = 0x10000000 - 0x400000
+        stack_address = load_bias + 0x500080
+        stack_data = bytes(range(0x80))
+        client = FakeClient()
+        client.maps = [
+            types.SimpleNamespace(
+                name="eboot.bin",
+                start=load_bias + 0x400000,
+                end=load_bias + 0x400600,
+                offset=0,
+                prot=VMProtection.READ | VMProtection.EXECUTE,
+            ),
+            types.SimpleNamespace(
+                name="eboot.bin",
+                start=load_bias + 0x500000,
+                end=load_bias + 0x500100,
+                offset=0x1000,
+                prot=VMProtection.READ | VMProtection.WRITE,
+            ),
+        ]
+        client.infos[20] = types.SimpleNamespace(
+            path=target.path,
+            title_id=target.title_id,
+            content_id=target.content_id,
+        )
+        client.memory[
+            (20, load_bias + identity.markers[0].virtual_address, len(build_marker))
+        ] = build_marker
+        client.memory[
+            (20, load_bias + marker.virtual_address, len(debug.DEV_GATE_MARKER))
+        ] = debug.DEV_GATE_MARKER
+        client.memory[(20, load_bias + gate.virtual_address, debug.DEV_GATE_SIZE)] = (
+            struct.pack("<Q", debug.DEV_GATE_HOLD)
+        )
+        client.memory[(20, stack_address, len(stack_data))] = stack_data
+        register_values = {name: 1 for name in debug.REGISTER_NAMES}
+        register_values.update(
+            {"rip": load_bias + 0x401000, "rsp": stack_address, "trapno": 13, "err": 0}
+        )
+        client.debug_event = types.SimpleNamespace(
+            resume=True,
+            kind=types.SimpleNamespace(name="FAULT"),
+            index=-1,
+            watchpoint_index=None,
+            interrupt=types.SimpleNamespace(
+                lwpid=99,
+                status=5,
+                name="main",
+                regs=types.SimpleNamespace(**register_values),
+                db_regs=types.SimpleNamespace(dr6=0),
+            ),
+        )
+
+        result = await debug.capture_first_debug_event(
+            client,
+            target,
+            identity,
+            debug.ResolvedImage(load_bias, ("unit_test_marker",)),
+            gate,
+            marker,
+            debug_port=755,
+            capture_timeout=1.0,
+        )
+
+        self.assertFalse(client.debug_event.resume)
+        self.assertEqual(result["event"]["kind"], "FAULT")
+        self.assertEqual(result["event"]["registers"]["rsp"], stack_address)
+        self.assertEqual(result["stack"]["hex"], stack_data.hex())
+        self.assertEqual(len(client.writes), 1)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ import time
 from collections.abc import Sequence
 from typing import Any
 
-from ps4debug import PS4Debug, PS4DebugException, VMProtection
+from ps4debug import PS4Debug, PS4DebugException, ResponseCode, VMProtection
 
 
 DEFAULT_HOST = "10.0.1.157"
@@ -54,6 +54,29 @@ DEV_GATE_HOLD = 0x4B4953414B484F4C
 DEV_GATE_RELEASE = 0x4B4953414B474F21
 DEV_GATE_TIMEOUT = 0x4B4953414B54494D
 DEV_GATE_SIZE = 8
+STACK_CAPTURE_SIZE = 512
+REGISTER_NAMES = (
+    "rax",
+    "rbx",
+    "rcx",
+    "rdx",
+    "rsi",
+    "rdi",
+    "rbp",
+    "rsp",
+    "r8",
+    "r9",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r15",
+    "rip",
+    "rflags",
+    "trapno",
+    "err",
+)
 
 
 class GuardError(RuntimeError):
@@ -649,6 +672,84 @@ def validate_dev_gate_symbols(
         raise GuardError(f"{DEV_GATE_MARKER_SYMBOL} is not in a readable segment")
 
 
+async def _release_dev_gate_while_stopped(
+    client: Any,
+    target: TargetProcess,
+    identity: OelfIdentity,
+    expected_image: ResolvedImage,
+    gate: ElfSymbol,
+    marker: ElfSymbol,
+) -> dict[str, Any]:
+    """Revalidate and release a gate while the caller holds the target stopped."""
+    validate_dev_gate_symbols(identity, gate, marker)
+
+    maps = await get_guarded_maps(client, target)
+    resolved = await resolve_running_image(client, target, maps, identity)
+    if resolved != expected_image:
+        raise GuardError("runtime image changed between polling and debugger attach")
+
+    gate_address = resolved.load_bias + gate.virtual_address
+    marker_address = resolved.load_bias + marker.virtual_address
+    if not _range_is_covered(
+        maps,
+        gate_address,
+        gate_address + DEV_GATE_SIZE,
+        int(VMProtection.READ | VMProtection.WRITE),
+    ):
+        raise GuardError("runtime development gate is not readable/writable")
+    if not _range_is_covered(
+        maps,
+        marker_address,
+        marker_address + len(DEV_GATE_MARKER),
+        int(VMProtection.READ),
+    ):
+        raise GuardError("runtime development-gate marker is not readable")
+
+    remote_marker = await client.read_memory(
+        target.pid,
+        marker_address,
+        len(DEV_GATE_MARKER),
+    )
+    if remote_marker != DEV_GATE_MARKER:
+        raise GuardError("runtime development-gate marker does not match the OELF")
+
+    current_data = await client.read_memory(
+        target.pid,
+        gate_address,
+        DEV_GATE_SIZE,
+    )
+    if len(current_data) != DEV_GATE_SIZE:
+        raise GuardError("development-gate read returned an unexpected length")
+    current = struct.unpack("<Q", current_data)[0]
+    if current != DEV_GATE_HOLD:
+        if current == DEV_GATE_TIMEOUT:
+            state = "timed out"
+        elif current == DEV_GATE_RELEASE:
+            state = "already released"
+        else:
+            state = f"unexpected value {current:#018x}"
+        raise GuardError(f"development gate is not held: {state}")
+
+    await client.write_memory(
+        target.pid,
+        gate_address,
+        struct.pack("<Q", DEV_GATE_RELEASE),
+    )
+    readback = await client.read_memory(
+        target.pid,
+        gate_address,
+        DEV_GATE_SIZE,
+    )
+    if readback != struct.pack("<Q", DEV_GATE_RELEASE):
+        raise GuardError("development-gate release write did not verify")
+
+    return {
+        "gate_address": gate_address,
+        "previous_value": DEV_GATE_HOLD,
+        "released_value": DEV_GATE_RELEASE,
+    }
+
+
 async def release_dev_attach_gate(
     client: Any,
     target: TargetProcess,
@@ -660,80 +761,118 @@ async def release_dev_attach_gate(
     debug_port: int,
 ) -> dict[str, Any]:
     """Attach stopped, revalidate every guard, release once, then detach/resume."""
-    validate_dev_gate_symbols(identity, gate, marker)
-
     async with client.debugger(
         target.pid,
         port=debug_port,
         resume=False,
         event_read_timeout=None,
     ):
+        mutation = await _release_dev_gate_while_stopped(
+            client,
+            target,
+            identity,
+            expected_image,
+            gate,
+            marker,
+        )
+    return {**mutation, "resumed_by": "verified debugger detach"}
+
+
+async def capture_first_debug_event(
+    client: Any,
+    target: TargetProcess,
+    identity: OelfIdentity,
+    expected_image: ResolvedImage,
+    gate: ElfSymbol,
+    marker: ElfSymbol,
+    *,
+    debug_port: int,
+    capture_timeout: float,
+) -> dict[str, Any]:
+    """Release the held target while attached and capture its first interrupt."""
+    ready = asyncio.Event()
+    captured: dict[str, Any] = {}
+
+    async with client.debugger(
+        target.pid,
+        port=debug_port,
+        resume=False,
+        event_read_timeout=None,
+    ) as context:
+        async def on_event(event: Any) -> None:
+            event.resume = False
+            if "event" not in captured:
+                captured["event"] = event
+                ready.set()
+
+        context.register_callback(on_event)
+        mutation = await _release_dev_gate_while_stopped(
+            client,
+            target,
+            identity,
+            expected_image,
+            gate,
+            marker,
+        )
+        status = await context.resume_process()
+        if status != ResponseCode.SUCCESS:
+            raise GuardError(f"debugger failed to resume released target: {status}")
+
+        try:
+            await asyncio.wait_for(ready.wait(), timeout=capture_timeout)
+        except TimeoutError as error:
+            raise GuardError(
+                f"no debug interrupt arrived within {capture_timeout:g}s"
+            ) from error
+
+        event = captured["event"]
+        interrupt = event.interrupt
+        registers = {
+            name: int(getattr(interrupt.regs, name)) for name in REGISTER_NAMES
+        }
+        stack: dict[str, Any] = {
+            "address": registers["rsp"],
+            "size": 0,
+            "hex": "",
+        }
         maps = await get_guarded_maps(client, target)
-        resolved = await resolve_running_image(client, target, maps, identity)
-        if resolved != expected_image:
-            raise GuardError("runtime image changed between polling and debugger attach")
+        for memory_map in maps:
+            if (
+                memory_map.start <= registers["rsp"] < memory_map.end
+                and _map_protection(memory_map) & int(VMProtection.READ)
+            ):
+                stack_size = min(
+                    STACK_CAPTURE_SIZE,
+                    memory_map.end - registers["rsp"],
+                )
+                stack_data = await client.read_memory(
+                    target.pid,
+                    registers["rsp"],
+                    stack_size,
+                )
+                stack = {
+                    "address": registers["rsp"],
+                    "size": len(stack_data),
+                    "hex": stack_data.hex(),
+                }
+                break
 
-        gate_address = resolved.load_bias + gate.virtual_address
-        marker_address = resolved.load_bias + marker.virtual_address
-        if not _range_is_covered(
-            maps,
-            gate_address,
-            gate_address + DEV_GATE_SIZE,
-            int(VMProtection.READ | VMProtection.WRITE),
-        ):
-            raise GuardError("runtime development gate is not readable/writable")
-        if not _range_is_covered(
-            maps,
-            marker_address,
-            marker_address + len(DEV_GATE_MARKER),
-            int(VMProtection.READ),
-        ):
-            raise GuardError("runtime development-gate marker is not readable")
+        result = {
+            **mutation,
+            "event": {
+                "kind": event.kind.name,
+                "breakpoint_index": event.index,
+                "watchpoint_index": event.watchpoint_index,
+                "lwpid": interrupt.lwpid,
+                "status": interrupt.status,
+                "thread_name": interrupt.name,
+                "dr6": interrupt.db_regs.dr6,
+                "registers": registers,
+            },
+            "stack": stack,
+        }
 
-        remote_marker = await client.read_memory(
-            target.pid,
-            marker_address,
-            len(DEV_GATE_MARKER),
-        )
-        if remote_marker != DEV_GATE_MARKER:
-            raise GuardError("runtime development-gate marker does not match the OELF")
-
-        current_data = await client.read_memory(
-            target.pid,
-            gate_address,
-            DEV_GATE_SIZE,
-        )
-        if len(current_data) != DEV_GATE_SIZE:
-            raise GuardError("development-gate read returned an unexpected length")
-        current = struct.unpack("<Q", current_data)[0]
-        if current != DEV_GATE_HOLD:
-            if current == DEV_GATE_TIMEOUT:
-                state = "timed out"
-            elif current == DEV_GATE_RELEASE:
-                state = "already released"
-            else:
-                state = f"unexpected value {current:#018x}"
-            raise GuardError(f"development gate is not held: {state}")
-
-        await client.write_memory(
-            target.pid,
-            gate_address,
-            struct.pack("<Q", DEV_GATE_RELEASE),
-        )
-        readback = await client.read_memory(
-            target.pid,
-            gate_address,
-            DEV_GATE_SIZE,
-        )
-        if readback != struct.pack("<Q", DEV_GATE_RELEASE):
-            raise GuardError("development-gate release write did not verify")
-
-    return {
-        "gate_address": gate_address,
-        "previous_value": DEV_GATE_HOLD,
-        "released_value": DEV_GATE_RELEASE,
-        "resumed_by": "verified debugger detach",
-    }
+    return {**result, "post_capture": "verified debugger detach"}
 
 
 def _target_dict(target: TargetProcess) -> dict[str, Any]:
@@ -831,6 +970,28 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="acknowledge the single guarded 8-byte gate release write",
     )
+
+    capture_parser = subparsers.add_parser(
+        "capture-crash",
+        help="release the verified gate while attached and capture one interrupt",
+    )
+    capture_parser.add_argument(
+        "--oelf",
+        type=pathlib.Path,
+        default=repository / DEFAULT_OELF,
+    )
+    capture_parser.add_argument("--expect-oelf-sha256", required=True)
+    capture_parser.add_argument("--expect-marker", action="append", default=[])
+    capture_parser.add_argument("--wait-timeout", type=float, default=60.0)
+    capture_parser.add_argument("--poll-interval", type=float, default=0.1)
+    capture_parser.add_argument("--debug-port", type=int, default=755)
+    capture_parser.add_argument("--capture-timeout", type=float, default=60.0)
+    capture_parser.add_argument(
+        "--allow-write",
+        action="store_true",
+        required=True,
+        help="acknowledge the single guarded 8-byte gate release write",
+    )
     return parser
 
 
@@ -847,6 +1008,8 @@ def _validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) ->
         parser.error("--poll-interval must be positive")
     if hasattr(args, "debug_port") and not 1 <= args.debug_port <= 65535:
         parser.error("--debug-port must be between 1 and 65535")
+    if hasattr(args, "capture_timeout") and args.capture_timeout <= 0:
+        parser.error("--capture-timeout must be positive")
 
 
 async def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -877,7 +1040,7 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             "target": _target_dict(target),
         }
 
-    if args.command in {"maps", "release-dev-gate"}:
+    if args.command in {"maps", "release-dev-gate", "capture-crash"}:
         identity = inspect_oelf(
             args.oelf,
             expected_sha256=args.expect_oelf_sha256,
@@ -885,7 +1048,7 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
         )
 
         gate = marker = None
-        if args.command == "release-dev-gate":
+        if args.command in {"release-dev-gate", "capture-crash"}:
             gate = resolve_elf_symbol(identity.path, DEV_GATE_SYMBOL)
             marker = resolve_elf_symbol(identity.path, DEV_GATE_MARKER_SYMBOL)
             validate_dev_gate_symbols(identity, gate, marker)
@@ -938,6 +1101,33 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             "load_bias": resolved.load_bias,
             "verified_markers": list(resolved.verified_markers),
             **mutation,
+        }
+
+    if args.command == "capture-crash":
+        assert gate is not None and marker is not None
+        capture = await capture_first_debug_event(
+            client,
+            target,
+            identity,
+            resolved,
+            gate,
+            marker,
+            debug_port=args.debug_port,
+            capture_timeout=args.capture_timeout,
+        )
+        return {
+            "mode": "guarded-capture",
+            "protocol_version": version,
+            "target": _target_dict(target),
+            "oelf": {
+                "path": str(identity.path),
+                "size": identity.size,
+                "sha256": identity.sha256,
+                "markers": sorted({item.name for item in identity.markers}),
+            },
+            "load_bias": resolved.load_bias,
+            "verified_markers": list(resolved.verified_markers),
+            **capture,
         }
 
     raise GuardError(f"unsupported command: {args.command}")
