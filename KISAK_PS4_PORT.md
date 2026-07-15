@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.23
+Version: 3.24
 Size: 103,153,664 bytes
-SHA-256: 961cba2bebdfe199042df5100d129ff8422f623219fdd15f27ad7cc882d361e1
-Hardware run: v4.57 (2026-07-15), reaches server structured game-type loading
+SHA-256: 94a94ca7572fc7f6fd299ff542fd1ec31dc5c4f59277b1483a829d976c34c9d8
+Hardware run: v4.58 (2026-07-15), isolates the custom mapgroupsSP warning path
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.23
+Version: 3.24
 Size: 103,153,664 bytes
-SHA-256: 961cba2bebdfe199042df5100d129ff8422f623219fdd15f27ad7cc882d361e1
-Hardware result: v4.57 parses the complete file; server LoadGameTypes crashes
+SHA-256: 94a94ca7572fc7f6fd299ff542fd1ec31dc5c4f59277b1483a829d976c34c9d8
+Hardware result: v4.58 reaches custom/custom's absent optional mapgroupsSP
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,153,664 bytes
 SHA-256: 94a94ca7572fc7f6fd299ff542fd1ec31dc5c4f59277b1483a829d976c34c9d8
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-15
-Hardware target: v4.58 traces the server structured game-type load
+Hardware result: v4.58 isolates the expected missing-mapgroups diagnostic
 ```
 
 Current hardware baseline:
@@ -7061,6 +7061,27 @@ The PKG is FTP-staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
 103,153,664 bytes and a complete readback matches the local PKG SHA-256.
 Hardware installation and launch remain manual.
+
+The v4.58 package was installed and run manually. The client and isolated
+server copies enter their own `LoadGameTypes` bodies with distinct `this`
+addresses. Both load all classic modes, all gungame modes, and the training
+mode. The server then reaches type 3/mode 0 (`custom`/`custom`), copies the exec
+configuration, and reports a null `mapgroupsSP` lookup. Its exact final line is:
+
+```text
+kisak-ps4: server gametypes detail phase=sp-mapgroups-find this=0x4bcd860 kv=0 type=3 mode=0 count=-1 name=custom
+```
+
+The client follows the same expected-null branch and immediately emits
+`sp-mapgroups-ready ... count=0`, then completes the custom mode and the full
+initializer. In the server source, the only expression between the final line
+and that ready marker reevaluates the already-readable type/mode names and
+passes the missing optional key to `Warning`. Post-link disassembly shows that
+both compiled bodies call the same `Warning` implementation at `0x1658580`, so
+this is not another client/server call-target collision. The next package will
+preserve the expected missing-key information as a PS4 startup breadcrumb on
+the server while avoiding the nonessential legacy warning path and redundant
+name lookups.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
