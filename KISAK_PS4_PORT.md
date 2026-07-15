@@ -39,11 +39,15 @@ SHA-256: a85bbe9d83d9d9c7ceb309d311c21edcb7792a3380628cee162eedcd7e7dc6cf
 Hardware result: v4.56 proves replay is correct; fresh input stops at byte 200
 ```
 
-Next manual package in preparation:
+Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.23
+Size: 103,153,664 bytes
+SHA-256: 961cba2bebdfe199042df5100d129ff8422f623219fdd15f27ad7cc882d361e1
+FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Staged: 2026-07-15
 Hardware target: v4.57 PS4 stream-size override and exact read metrics
 ```
 
@@ -6952,6 +6956,49 @@ incorrect PS4 `_stat` length. Version 3.23 will identify v4.57, always prefer th
 open descriptor's `SEEK_END` result on PS4, and record the stat length, stream
 length, requested size, returned byte count, final string length, and boundary
 bytes before parsing.
+
+### v4.57: Prefer the open PS4 stream size over `_stat`
+
+On PS4, `CStdioFile::FS_fopen` now measures every opened stream through its
+descriptor even when `_stat` succeeds. It saves the current descriptor offset,
+seeks to `SEEK_END`, restores the original offset, and uses the stream end as
+the cached file length only after the restore succeeds. If that path is not
+usable, it repeats the measurement through `ftell`/`fseek`. Other platforms
+retain their existing `_stat` behavior.
+
+For the exact lowercase `gamemodes.txt` path, the stdio layer records the
+resolved filename, `_stat` result and size, descriptor, original/end/restored
+offsets, and selected size. `KeyValues::LoadFromFile` separately records the
+selected file size, optimal buffer size, returned `ReadEx` byte count, resulting
+string length, and hexadecimal bytes 188 through 223. The v4.56 raw-input,
+first-16-token, and bounded key traces remain enabled, so hardware will show
+whether the selected size becomes 99,836, the buffer contains the expected
+bytes through `gameModes`, and parsing advances beyond the former byte-200 end.
+
+Package version 3.23 and build marker `gamemodes_ps4_stream_size_v457` identify
+the manual-install test. The Linux OpenOrbis build, final link, FSELF conversion,
+package creation, and direct verbose PkgTool validation complete. Every package
+check is `[OK]`; metadata contains version 3.23, both new metric formats and the
+v4.57 marker are present, the retired development attach-gate marker is absent,
+and the final OELF retains one 32 KiB static KeyValues token buffer. Artifact
+identities:
+
+```text
+OELF: 135,944,888 bytes
+SHA-256: 33f6bf9286b8904a46e1d81cd383db1b87ad331dbf45929596bd591eed692e66
+SELF: 83,060,672 bytes
+SHA-256: ea5f3bc28c7bfa5c202b64bb9eb3ca0115b0eb8c94b3161c1ef722d52b98b9e7
+PKG: 103,153,664 bytes
+SHA-256: 961cba2bebdfe199042df5100d129ff8422f623219fdd15f27ad7cc882d361e1
+```
+
+The host suite remains at the established 11/14 baseline, with only
+`ps4_gnm_device`, `ps4_gnm_buffer`, and `ps4_gnm_constants` failing on Linux
+high addresses that do not round-trip through PS4's 44-bit descriptor fields.
+The PKG is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and a complete readback matches the local PKG SHA-256.
+Hardware installation and the v4.57 run remain manual.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

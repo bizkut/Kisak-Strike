@@ -1180,31 +1180,49 @@ CStdioFile *CStdioFile::FS_fopen( const char *filename, const char *options, int
 			*size = buf.st_size;
 		}
 #if defined( PLATFORM_PS4 )
-		else
+		const int64 nStatSize = rt == 0 ? static_cast< int64 >( buf.st_size ) : -1;
+		const long stdioOriginalPosition = ftell( pFile );
+		const int descriptor = fileno( pFile );
+		const off_t originalOffset = descriptor >= 0
+			? lseek( descriptor, 0, SEEK_CUR ) : static_cast< off_t >( -1 );
+		const off_t endOffset = descriptor >= 0
+			? lseek( descriptor, 0, SEEK_END ) : static_cast< off_t >( -1 );
+		off_t restoredOffset = static_cast< off_t >( -1 );
+		bool bDescriptorSizeReady = false;
+		if ( endOffset >= 0 && originalOffset >= 0 )
 		{
-			const int descriptor = fileno( pFile );
-			const off_t originalOffset = descriptor >= 0
-				? lseek( descriptor, 0, SEEK_CUR ) : static_cast< off_t >( -1 );
-			const off_t endOffset = descriptor >= 0
-				? lseek( descriptor, 0, SEEK_END ) : static_cast< off_t >( -1 );
-			if ( endOffset >= 0 )
+			restoredOffset = lseek( descriptor, originalOffset, SEEK_SET );
+			if ( restoredOffset == originalOffset )
 			{
 				*size = static_cast< int64 >( endOffset );
-				if ( originalOffset >= 0 )
-					lseek( descriptor, originalOffset, SEEK_SET );
 				clearerr( pFile );
+				bDescriptorSizeReady = true;
 			}
-			else
+		}
+
+		if ( !bDescriptorSizeReady )
+		{
+			if ( stdioOriginalPosition >= 0 && fseek( pFile, 0, SEEK_END ) == 0 )
 			{
-				const long originalPosition = ftell( pFile );
-				if ( originalPosition >= 0 && fseek( pFile, 0, SEEK_END ) == 0 )
+				const long endPosition = ftell( pFile );
+				if ( endPosition >= 0 && fseek( pFile, stdioOriginalPosition, SEEK_SET ) == 0 )
 				{
-					const long endPosition = ftell( pFile );
-					if ( endPosition >= 0 )
-						*size = static_cast< int64 >( endPosition );
-					fseek( pFile, originalPosition, SEEK_SET );
+					*size = static_cast< int64 >( endPosition );
+					clearerr( pFile );
 				}
 			}
+		}
+
+		if ( strstr( filename, "gamemodes.txt" ) )
+		{
+			CFmtStrN<512> line(
+				"kisak-ps4: gamemodes stdio path=%.180s stat_result=%d stat_size=%lld descriptor=%d original=%lld end=%lld restored=%lld selected=%lld",
+				filename, rt, static_cast< long long >( nStatSize ), descriptor,
+				static_cast< long long >( originalOffset ),
+				static_cast< long long >( endOffset ),
+				static_cast< long long >( restoredOffset ),
+				static_cast< long long >( *size ) );
+			KisakPs4StartupBreadcrumb( line.Get() );
 		}
 #endif
 	}

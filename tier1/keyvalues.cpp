@@ -42,6 +42,8 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 	do { if ( enabled ) KisakPs4GameModesKeyBreadcrumb( name, depth ); } while ( 0 )
 #define PS4_KEYVALUES_INPUT_BREADCRUMB( enabled, buffer ) \
 	do { if ( enabled ) KisakPs4GameModesInputBreadcrumb( buffer ); } while ( 0 )
+#define PS4_KEYVALUES_READ_BREADCRUMB( enabled, buffer, fileSize, bufferSize, bytesRead ) \
+	do { if ( enabled ) KisakPs4GameModesReadBreadcrumb( buffer, fileSize, bufferSize, bytesRead ); } while ( 0 )
 #define PS4_KEYVALUES_TOKEN_BREADCRUMB( enabled, phase, token, operation, reads, position, quoted, conditional ) \
 	do { if ( enabled ) KisakPs4GameModesTokenBreadcrumb( phase, token, operation, reads, position, quoted, conditional ); } while ( 0 )
 #else
@@ -50,6 +52,7 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 #define PS4_KEYVALUES_RESET_KEY_TRACE( enabled ) ((void)(enabled))
 #define PS4_KEYVALUES_KEY_BREADCRUMB( enabled, name, depth ) ((void)(enabled))
 #define PS4_KEYVALUES_INPUT_BREADCRUMB( enabled, buffer ) ((void)(enabled))
+#define PS4_KEYVALUES_READ_BREADCRUMB( enabled, buffer, fileSize, bufferSize, bytesRead ) ((void)(enabled))
 #define PS4_KEYVALUES_TOKEN_BREADCRUMB( enabled, phase, token, operation, reads, position, quoted, conditional ) ((void)(enabled))
 #endif
 
@@ -85,6 +88,34 @@ static void KisakPs4GameModesInputBreadcrumb( const char *pBuffer )
 		"kisak-ps4: gamemodes input full_value_offset=%d game_modes_offset=%d",
 		pFullValue ? static_cast<int>( pFullValue - pBuffer ) : -1,
 		pNextKey ? static_cast<int>( pNextKey - pBuffer ) : -1 );
+	KisakPs4StartupBreadcrumb( line );
+}
+
+static void KisakPs4GameModesReadBreadcrumb( const char *pBuffer, int nFileSize,
+	unsigned nBufferSize, int nBytesRead )
+{
+	static const char s_pHexDigits[] = "0123456789abcdef";
+	char boundary[128];
+	int nBoundaryLength = 0;
+	const int nBoundaryStart = 188;
+	const int nBoundaryEnd = nFileSize + 1 < 224 ? nFileSize + 1 : 224;
+	for ( int i = nBoundaryStart; i < nBoundaryEnd && nBoundaryLength + 3 < static_cast<int>( sizeof( boundary ) ); ++i )
+	{
+		const unsigned char value = static_cast<unsigned char>( pBuffer[i] );
+		if ( nBoundaryLength > 0 )
+		{
+			boundary[nBoundaryLength++] = ' ';
+		}
+		boundary[nBoundaryLength++] = s_pHexDigits[value >> 4];
+		boundary[nBoundaryLength++] = s_pHexDigits[value & 0x0f];
+	}
+	boundary[nBoundaryLength] = 0;
+
+	char line[512];
+	V_snprintf( line, sizeof( line ),
+		"kisak-ps4: gamemodes read file_size=%d buffer_size=%u bytes_read=%d string_length=%d boundary_start=%d boundary=%s",
+		nFileSize, nBufferSize, nBytesRead, pBuffer ? V_strlen( pBuffer ) : -1,
+		nBoundaryStart, boundary );
 	KisakPs4StartupBreadcrumb( line );
 }
 
@@ -857,7 +888,8 @@ bool KeyValues::LoadFromFile( IBaseFileSystem *filesystem, const char *resourceN
 
 	// read into local buffer
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues before read" );
-	bool bRetOK = ( ((IFileSystem *)filesystem)->ReadEx( buffer, bufSize, fileSize, f ) != 0 );
+	int nBytesRead = ((IFileSystem *)filesystem)->ReadEx( buffer, bufSize, fileSize, f );
+	bool bRetOK = ( nBytesRead != 0 );
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, bRetOK
 		? "kisak-ps4: gamemodes keyvalues read ready"
 		: "kisak-ps4: gamemodes keyvalues read failed" );
@@ -870,6 +902,7 @@ bool KeyValues::LoadFromFile( IBaseFileSystem *filesystem, const char *resourceN
 	{
 		buffer[fileSize] = 0; // null terminate file as EOF
 		buffer[fileSize+1] = 0; // double NULL terminating in case this is a unicode file
+		PS4_KEYVALUES_READ_BREADCRUMB( bTracePs4GameModes, buffer, fileSize, bufSize, nBytesRead );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues before text parse" );
 		bRetOK = LoadFromBuffer( resourceName, buffer, filesystem, pathID, pfnEvaluateSymbolProc );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, bRetOK
