@@ -39,12 +39,15 @@ SHA-256: 3033e455aed1eb279d64d067d20f23d3e8c455b99d705fca771fb8b0d4ca0f32
 Hardware result: v4.51 crashes inside `KeyValues::LoadFromFile`
 ```
 
-Next manual-install package:
+Latest package staged and awaiting manual installation and launch:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.18
-Status: in preparation
+Size: 103,153,664 bytes
+SHA-256: a94eb44bf2af9cc7e7c72970f113985ad571adb989b97434d4e1081ebe6f39e9
+Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
 Hardware target: v4.52 gamemodes KeyValues file-pipeline trace
 ```
 
@@ -6679,6 +6682,36 @@ that the crash is now inside `KeyValues::LoadFromFile`. The loose file is
 `c1f14870fd2f37179edc53f89d192ff2102bc06d1f03eeaba8700fbe587ed62c`.
 Version 3.18 will trace only this resource through filesystem open, size query,
 optimal-buffer sizing and allocation, read, close, text parse, and buffer free.
+
+### v4.52: Trace the gamemodes KeyValues file pipeline
+
+`KeyValues::LoadFromFile` now detects only the exact PS4 resource
+`gamemodes.txt` and brackets its filesystem open, file-size query, optimal-read
+size, buffer allocation, read, close, text parse, and buffer release. Other
+KeyValues resources do not emit these markers. The full v4.51 GameTypes trace
+remains around the call so the next hardware log can correlate the inner file
+boundary with the outer structured-load phase.
+
+Package version 3.18 and build marker `gamemodes_keyvalues_trace_v452` identify
+the manual-install test. The Linux OpenOrbis build, final link, FSELF conversion,
+package creation, and verbose PkgTool validation complete. Every package check
+is `[OK]`, metadata contains version 3.18, the scoped trace and build marker are
+present, and the retired development attach-gate marker is absent. Artifact
+identities:
+
+```text
+OELF: 135,943,976 bytes
+SHA-256: 584d40973cf9f09bc92a0f8f8a22e6ed604aa00ab661963d96ecb5e445b8b1ae
+SELF: 83,060,576 bytes
+SHA-256: d4da6f99138d2e17f7b94d1251ad81880904270a30cfb50fbfc6610c0d0eb009
+PKG: 103,153,664 bytes
+SHA-256: a94eb44bf2af9cc7e7c72970f113985ad571adb989b97434d4e1081ebe6f39e9
+```
+
+The host suite remains at the established 11/14 baseline, with only the three
+Linux high-address OpenGNM descriptor failures. The PKG is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and a complete readback matches the local PKG SHA-256.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

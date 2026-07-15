@@ -30,6 +30,14 @@
 #include "utlhash.h"
 #include "tier0/vprof.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_KEYVALUES_LOAD_BREADCRUMB( enabled, line ) \
+	do { if ( enabled ) KisakPs4StartupBreadcrumb( line ); } while ( 0 )
+#else
+#define PS4_KEYVALUES_LOAD_BREADCRUMB( enabled, line ) ((void)(enabled))
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include <tier0/memdbgon.h>
 
@@ -724,33 +732,64 @@ void KeyValues::UsesEscapeSequences(bool state)
 bool KeyValues::LoadFromFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID, GetSymbolProc_t pfnEvaluateSymbolProc )
 {
 	//TM_ZONE_FILTERED( TELEMETRY_LEVEL0, 50, TMZF_NONE, "%s %s", __FUNCTION__, tmDynamicString( TELEMETRY_LEVEL0, resourceName ) );
+	#if defined( PLATFORM_PS4 )
+	const bool bTracePs4GameModes = resourceName && V_strcmp( resourceName, "gamemodes.txt" ) == 0;
+	#else
+	const bool bTracePs4GameModes = false;
+	#endif
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues load entered" );
 
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues before open" );
 	FileHandle_t f = filesystem->Open(resourceName, "rb", pathID);
 	if ( !f )
+	{
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues open failed" );
 		return false;
+	}
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues open ready" );
 
 	s_LastFileLoadingFrom = (char*)resourceName;
 
 	// load file into a null-terminated buffer
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues before size" );
 	int fileSize = filesystem->Size( f );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues size ready" );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues before optimal size" );
 	unsigned bufSize = ((IFileSystem *)filesystem)->GetOptimalReadSize( f, fileSize + 2 );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues optimal size ready" );
 
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues before buffer allocation" );
 	char *buffer = (char*)((IFileSystem *)filesystem)->AllocOptimalReadBuffer( f, bufSize );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, buffer
+		? "kisak-ps4: gamemodes keyvalues buffer allocation ready"
+		: "kisak-ps4: gamemodes keyvalues buffer allocation failed" );
 	Assert( buffer );
 
 	// read into local buffer
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues before read" );
 	bool bRetOK = ( ((IFileSystem *)filesystem)->ReadEx( buffer, bufSize, fileSize, f ) != 0 );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, bRetOK
+		? "kisak-ps4: gamemodes keyvalues read ready"
+		: "kisak-ps4: gamemodes keyvalues read failed" );
 
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues before close" );
 	filesystem->Close( f );	// close file after reading
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues close ready" );
 
 	if ( bRetOK )
 	{
 		buffer[fileSize] = 0; // null terminate file as EOF
 		buffer[fileSize+1] = 0; // double NULL terminating in case this is a unicode file
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues before text parse" );
 		bRetOK = LoadFromBuffer( resourceName, buffer, filesystem, pathID, pfnEvaluateSymbolProc );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, bRetOK
+			? "kisak-ps4: gamemodes keyvalues text parse ready"
+			: "kisak-ps4: gamemodes keyvalues text parse failed" );
 	}
 
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues before buffer free" );
 	((IFileSystem *)filesystem)->FreeOptimalReadBuffer( buffer );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues buffer free ready" );
 
 	return bRetOK;
 }
@@ -3983,4 +4022,3 @@ bool CKeyValuesDumpContextAsDevMsg::KvWriteText( char const *szText )
 	}
 	return true;
 }
-
