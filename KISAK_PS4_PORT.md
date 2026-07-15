@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.25
+Version: 3.26
 Size: 103,153,664 bytes
-SHA-256: 4c76ec60e65052b8c90256db99c83814824d2e8f1cfbf2978e0419c487709703
+SHA-256: 46f3ef04ae032d21c890bc6599bac8fa1805959cf0175d2e5cbba9d45edce7e8
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-15
-Hardware result: v4.59 validates GameTypes and stops in InitMaterialSystem
+Hardware result: awaiting manual install/run of v4.60 material-init trace
 ```
 
 Current hardware baseline:
@@ -7143,6 +7143,41 @@ There is no matching `trace init after`. The current crash is therefore inside
 bookkeeping. The next package will split material-system initialization into
 its existing setup operations without changing backend selection or rendering
 behavior.
+
+### v4.60: Split the material-system initialization crash boundary
+
+Package version 3.26 and build marker `material_init_trace_v460` identify a
+diagnostics-only split of `InitMaterialSystem`. PS4 startup breadcrumbs report
+whether the material-system, hardware-config, client-render-target, and tool
+interfaces are ready, then bracket release/restore callback registration,
+`PreferZPrepass`, the fast-Z convar update, material configuration, render-target
+allocation, and debug-material creation. The nested traces identify every major
+render target and each loaded or procedural debug material. Non-PS4 builds
+compile the breadcrumbs away, and the runtime calls retain their original order
+and arguments.
+
+The client engine archive, complete OpenOrbis monolith, FSELF, and package build
+successfully. The OELF contains the v4.60 marker and terminal material-init
+breadcrumbs and does not contain the v4.59 marker. Direct verbose PkgTool
+validation reports `[OK]` for every size, digest, and signature check. Artifact
+identities:
+
+```text
+OELF: 126,223,248 bytes
+SHA-256: f93e712accc215e50ab099e61dd9efa5f69ef2de5e1367c4ec4e22b687b74944
+SELF: 83,077,088 bytes
+SHA-256: edd828d74a2fb2a8d114a67d369ebcd6d5b291285ec8ce58522cdbc18c1b3551
+PKG: 103,153,664 bytes
+SHA-256: 46f3ef04ae032d21c890bc6599bac8fa1805959cf0175d2e5cbba9d45edce7e8
+```
+
+The host suite remains at the established 11/14 baseline. Only
+`ps4_gnm_device`, `ps4_gnm_buffer`, and `ps4_gnm_constants` fail on Linux high
+addresses that do not round-trip through PS4's 44-bit descriptor fields. The
+PKG is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its remote size is
+103,153,664 bytes and a complete readback matches the local PKG SHA-256. Manual
+installation and launch are the remaining hardware gate.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

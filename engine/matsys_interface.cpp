@@ -60,6 +60,13 @@ extern IFileSystem *g_pFileSystem;
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_MATSYS_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_MATSYS_BREADCRUMB( line ) ((void)0)
+#endif
+
 // Start the frame count at one so stuff gets updated the first frame
 int	r_framecount = 1;               // used for dlight + lightstyle push checking
 int	d_lightstylevalue[256];
@@ -536,20 +543,28 @@ void InitMaterialSystemConfig( bool bInEditMode )
 //-----------------------------------------------------------------------------
 void UpdateMaterialSystemConfig( void )
 {
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material config entered" );
 	// INFESTED_DLL - Alien Swarm doesn't want fullbright turned on when there are no lights (since it uses dynamic lights and skips vrad)
 	static char gamedir[MAX_OSPATH];
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material config before game directory base" );
 	Q_FileBase( com_gamedir, gamedir, sizeof( gamedir ) );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material config game directory base ready" );
 	if ( host_state.worldbrush && !host_state.worldbrush->lightdata && Q_stricmp( gamedir, "infested" ) )
 	{
 		mat_fullbright.SetValue( 1 );
 	}
 	
 	// apply the settings in the material system
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material config before update config" );
 	bool bLightmapsNeedReloading = materials->UpdateConfig( false );
+	PS4_MATSYS_BREADCRUMB( bLightmapsNeedReloading
+		? "kisak-ps4: material config update config ready reload=1"
+		: "kisak-ps4: material config update config ready reload=0" );
 	if ( bLightmapsNeedReloading )
 	{
 		s_bConfigLightingChanged = true;
 	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material config complete" );
 }
 
 
@@ -866,6 +881,7 @@ static ITexture *CreateFullFrameDepthTexture( void )
 void InitWellKnownRenderTargets( void )
 {
 #if !defined( DEDICATED )
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets entered" );
 
 	if ( mat_debugalttab.GetBool() )
 	{
@@ -873,25 +889,33 @@ void InitWellKnownRenderTargets( void )
 	}
 
 	// Begin block in which all render targets should be allocated
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before begin allocation" );
 	materials->BeginRenderTargetAllocation();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets begin allocation ready" );
 
 	// Create the render targets upon which mods may rely
 
 	if ( IsPC() )
 	{
 		// Create for all mods as vgui2 uses it for 3D painting
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before power-of-two" );
 		g_PowerOfTwoFBTexture.Init( CreatePowerOfTwoFBTexture() );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets power-of-two ready" );
 	}
 
 	// Create these for all mods because the engine references them
 	if ( IsPC() && g_pMaterialSystemHardwareConfig->GetHDRType() == HDR_TYPE_FLOAT )
 	{
 		// Used for building HDR Cubemaps
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before hdr cubemap" );
 		g_BuildCubemaps16BitTexture.Init( CreateBuildCubemaps16BitTexture() );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets hdr cubemap ready" );
 	}
 
 	// Used in Bloom effects
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before quarter 0" );
 	g_QuarterSizedFBTexture0.Init( CreateQuarterSizedFBTexture( 0, 0 ) );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets quarter 0 ready" );
 
 	/*
 	// Commenting out this texture aliasing because it breaks the paint screenspace effect in Portal 2.
@@ -900,10 +924,16 @@ void InitWellKnownRenderTargets( void )
 	else
 	g_QuarterSizedFBTexture1.Init( CreateQuarterSizedFBTexture( 1, 0 ) );			
 	*/
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before quarter 1" );
 	g_QuarterSizedFBTexture1.Init( CreateQuarterSizedFBTexture( 1, 0 ) );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets quarter 1 ready" );
 #if ! ( defined( LEFT4DEAD ) || defined( CSTRIKE15 ) )
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before quarter 2" );
 	g_QuarterSizedFBTexture2.Init( CreateQuarterSizedFBTexture( 2, 0 ) );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets quarter 2 ready" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before quarter 3" );
 	g_QuarterSizedFBTexture3.Init( CreateQuarterSizedFBTexture( 3, 0 ) );			
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets quarter 3 ready" );
 #endif
 
 
@@ -917,9 +947,15 @@ void InitWellKnownRenderTargets( void )
 
 	if ( IsPC() )
 	{
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before teeny 0" );
 		g_TeenyFBTexture0.Init( CreateTeenyFBTexture( 0 ) );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets teeny 0 ready" );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before teeny 1" );
 		g_TeenyFBTexture1.Init( CreateTeenyFBTexture( 1 ) );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets teeny 1 ready" );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before teeny 2" );
 		g_TeenyFBTexture2.Init( CreateTeenyFBTexture( 2 ) );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets teeny 2 ready" );
 	}
 
 #ifdef _PS3
@@ -941,13 +977,17 @@ void InitWellKnownRenderTargets( void )
 		CREATERENDERTARGETFLAGS_NOEDRAM ) );
 #endif
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before full frame 0" );
 	g_FullFrameFBTexture0.Init( CreateFullFrameFBTexture( 0 ) );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets full frame 0 ready" );
 
 	// Since the tools may not draw the world, we don't want depth buffer effects
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before tool mode query" );
 	if ( toolframework->InToolMode() )
 	{
 		mat_resolveFullFrameDepth.SetValue( 0 );
 	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets tool mode query ready" );
 
 #if defined( LEFT4DEAD )
 	if ( IsPC() )	
@@ -956,33 +996,52 @@ void InitWellKnownRenderTargets( void )
 	}
 #else
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before full frame 1" );
 	g_FullFrameFBTexture1.Init( CreateFullFrameFBTexture( 1, CREATERENDERTARGETFLAGS_TEMP ) );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets full frame 1 ready" );
 
 #endif
 
 #ifndef _PS3
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before full frame depth" );
 	g_FullFrameDepth.Init( CreateFullFrameDepthTexture() );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets full frame depth ready" );
 #endif
 
 	// Allow the client to init their own mod-specific render targets
 	if ( g_pClientRenderTargets )
 	{
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before client targets" );
 		g_pClientRenderTargets->InitClientRenderTargets( materials, g_pMaterialSystemHardwareConfig );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets client targets ready" );
 	}
 	else
 	{
 		// If this mod doesn't define the interface, fallback to initializing the standard render textures 
 		// NOTE: these should match up with the 'Get' functions in cl_dll/rendertexture.h/cpp
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before fallback reflection" );
 		g_WaterReflectionTexture.Init( CreateWaterReflectionTexture() );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets fallback reflection ready" );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before fallback refraction" );
 		g_WaterRefractionTexture.Init( CreateWaterRefractionTexture() );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets fallback refraction ready" );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before fallback camera" );
 		g_CameraTexture.Init( CreateCameraTexture() );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets fallback camera ready" );
 	}
 
 	// End block in which all render targets should be allocated (kicking off an Alt-Tab type behavior)
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before end allocation" );
 	materials->EndRenderTargetAllocation();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets end allocation ready" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before render context" );
 	CMatRenderContextPtr pRenderContext( g_pMaterialSystem );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets render context ready" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets before temp fullscreen buffer" );
 	pRenderContext->SetNonInteractiveTempFullscreenBuffer( g_FullFrameFBTexture0, MATERIAL_NON_INTERACTIVE_MODE_LEVEL_LOAD );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets temp fullscreen buffer ready" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material targets complete" );
 #endif
 }
 
@@ -1057,107 +1116,172 @@ void ShutdownWellKnownRenderTargets( void )
 //-----------------------------------------------------------------------------
 static void InitDebugMaterials( void )
 {
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials entered" );
 	if ( IsPC() && mat_debugalttab.GetBool() )
 	{
 		Warning( "mat_debugalttab: InitDebugMaterials\n" );
 	}
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials before debugempty" );
 	g_materialEmpty = GL_LoadMaterial( "debug/debugempty", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials debugempty ready" );
 #ifndef DEDICATED
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials before debugwireframe" );
 	g_materialWireframe = GL_LoadMaterial( "debug/debugwireframe", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials debugwireframe ready" );
 	g_materialTranslucentSingleColor = GL_LoadMaterial( "debug/debugtranslucentsinglecolor", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials translucent single color ready" );
 	g_materialTranslucentVertexColor = GL_LoadMaterial( "debug/debugtranslucentvertexcolor", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials translucent vertex color ready" );
 	g_materialWorldWireframe = GL_LoadMaterial( "debug/debugworldwireframe", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials world wireframe ready" );
 	g_materialWorldWireframeZBuffer = GL_LoadMaterial( "debug/debugworldwireframezbuffer", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials world wireframe z ready" );
 	g_materialWorldWireframeGreen = GL_LoadMaterial( "debug/debugworldwireframegreen", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials world wireframe green ready" );
 
 	g_materialBrushWireframe = GL_LoadMaterial( "debug/debugbrushwireframe", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials brush wireframe ready" );
 	g_materialDecalWireframe = GL_LoadMaterial( "debug/debugdecalwireframe", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials decal wireframe ready" );
 	g_materialDebugLightmap = GL_LoadMaterial( "debug/debuglightmap", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials lightmap ready" );
 	g_materialDebugLightmapZBuffer = GL_LoadMaterial( "debug/debuglightmapzbuffer", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials lightmap z ready" );
 	g_materialDebugLuxels = GL_LoadMaterial( "debug/debugluxels", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials luxels ready" );
 
 	g_materialLeafVisWireframe = GL_LoadMaterial( "debug/debugleafviswireframe", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials leaf vis ready" );
 	g_pMaterialWireframeVertexColor = GL_LoadMaterial( "debug/debugwireframevertexcolor", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials wireframe vertex color ready" );
 	g_pMaterialWireframeVertexColorIgnoreZ = GL_LoadMaterial( "debug/debugwireframevertexcolorignorez", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials wireframe vertex ignore z ready" );
 	g_pMaterialLightSprite = GL_LoadMaterial( "engine/lightsprite", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials light sprite ready" );
 	g_pMaterialShadowBuild = GL_LoadMaterial( "engine/shadowbuild", TEXTURE_GROUP_OTHER);
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials shadow build ready" );
 	g_pMaterialMRMWireframe = GL_LoadMaterial( "debug/debugmrmwireframe", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials mrm wireframe ready" );
 	g_pMaterialDebugFlat = GL_LoadMaterial( "debug/debugdrawflattriangles", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials flat ready" );
 
 	g_pMaterialAmbientCube = GL_LoadMaterial( "debug/debugambientcube", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials ambient cube ready" );
 
 	g_pMaterialWriteZ = GL_LoadMaterial( "engine/writez", TEXTURE_GROUP_OTHER );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials write z ready" );
 
 	// Materials for writing to shadow depth buffer
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials before depth write 00" );
 	KeyValues *pVMTKeyValues = new KeyValues( "DepthWrite" );
 	pVMTKeyValues->SetInt( "$no_fullbright", 1 );
 	pVMTKeyValues->SetInt( "$alphatest", 0 );
 	pVMTKeyValues->SetInt( "$nocull", 0 );
 	pVMTKeyValues->SetInt( "$color_depth", 0 );
 	g_pMaterialDepthWrite[0][0] = g_pMaterialSystem->FindProceduralMaterial("__DepthWrite00", TEXTURE_GROUP_OTHER, pVMTKeyValues);
+	PS4_MATSYS_BREADCRUMB( g_pMaterialDepthWrite[0][0]
+		? "kisak-ps4: debug materials depth write 00 found"
+		: "kisak-ps4: debug materials depth write 00 null" );
 	g_pMaterialDepthWrite[0][0]->IncrementReferenceCount();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials depth write 00 ready" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials before depth write 01" );
 	pVMTKeyValues = new KeyValues( "DepthWrite" );
 	pVMTKeyValues->SetInt( "$no_fullbright", 1 );
 	pVMTKeyValues->SetInt( "$alphatest", 0 );
 	pVMTKeyValues->SetInt( "$nocull", 1 );
 	pVMTKeyValues->SetInt("$color_depth", 0);
 	g_pMaterialDepthWrite[0][1] = g_pMaterialSystem->FindProceduralMaterial("__DepthWrite01", TEXTURE_GROUP_OTHER, pVMTKeyValues);
+	PS4_MATSYS_BREADCRUMB( g_pMaterialDepthWrite[0][1]
+		? "kisak-ps4: debug materials depth write 01 found"
+		: "kisak-ps4: debug materials depth write 01 null" );
 	g_pMaterialDepthWrite[0][1]->IncrementReferenceCount();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials depth write 01 ready" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials before depth write 10" );
 	pVMTKeyValues = new KeyValues( "DepthWrite" );
 	pVMTKeyValues->SetInt( "$no_fullbright", 1 );
 	pVMTKeyValues->SetInt( "$alphatest", 1 );
 	pVMTKeyValues->SetInt( "$nocull", 0 );
 	pVMTKeyValues->SetInt("$color_depth", 0);
 	g_pMaterialDepthWrite[1][0] = g_pMaterialSystem->FindProceduralMaterial("__DepthWrite10", TEXTURE_GROUP_OTHER, pVMTKeyValues);
+	PS4_MATSYS_BREADCRUMB( g_pMaterialDepthWrite[1][0]
+		? "kisak-ps4: debug materials depth write 10 found"
+		: "kisak-ps4: debug materials depth write 10 null" );
 	g_pMaterialDepthWrite[1][0]->IncrementReferenceCount();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials depth write 10 ready" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials before depth write 11" );
 	pVMTKeyValues = new KeyValues( "DepthWrite" );
 	pVMTKeyValues->SetInt( "$no_fullbright", 1 );
 	pVMTKeyValues->SetInt( "$alphatest", 1 );
 	pVMTKeyValues->SetInt( "$nocull", 1 );
 	pVMTKeyValues->SetInt("$color_depth", 0);
 	g_pMaterialDepthWrite[1][1] = g_pMaterialSystem->FindProceduralMaterial("__DepthWrite11", TEXTURE_GROUP_OTHER, pVMTKeyValues);
+	PS4_MATSYS_BREADCRUMB( g_pMaterialDepthWrite[1][1]
+		? "kisak-ps4: debug materials depth write 11 found"
+		: "kisak-ps4: debug materials depth write 11 null" );
 	g_pMaterialDepthWrite[1][1]->IncrementReferenceCount();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials depth write 11 ready" );
 
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials before color depth write 00" );
 	pVMTKeyValues = new KeyValues( "DepthWrite" );
 	pVMTKeyValues->SetInt( "$no_fullbright", 1 );
 	pVMTKeyValues->SetInt( "$alphatest", 0 );
 	pVMTKeyValues->SetInt( "$nocull", 0 );
 	pVMTKeyValues->SetInt( "$color_depth", 1 );
 	g_pMaterialSSAODepthWrite[ 0 ][ 0 ] = g_pMaterialSystem->FindProceduralMaterial( "__ColorDepthWrite00", TEXTURE_GROUP_OTHER, pVMTKeyValues );
+	PS4_MATSYS_BREADCRUMB( g_pMaterialSSAODepthWrite[0][0]
+		? "kisak-ps4: debug materials color depth write 00 found"
+		: "kisak-ps4: debug materials color depth write 00 null" );
 	g_pMaterialSSAODepthWrite[ 0 ][ 0 ]->IncrementReferenceCount();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials color depth write 00 ready" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials before color depth write 01" );
 	pVMTKeyValues = new KeyValues( "DepthWrite" );
 	pVMTKeyValues->SetInt( "$no_fullbright", 1 );
 	pVMTKeyValues->SetInt( "$alphatest", 0 );
 	pVMTKeyValues->SetInt( "$nocull", 1 );
 	pVMTKeyValues->SetInt( "$color_depth", 1 );
 	g_pMaterialSSAODepthWrite[ 0 ][ 1 ] = g_pMaterialSystem->FindProceduralMaterial( "__ColorDepthWrite01", TEXTURE_GROUP_OTHER, pVMTKeyValues );
+	PS4_MATSYS_BREADCRUMB( g_pMaterialSSAODepthWrite[0][1]
+		? "kisak-ps4: debug materials color depth write 01 found"
+		: "kisak-ps4: debug materials color depth write 01 null" );
 	g_pMaterialSSAODepthWrite[ 0 ][ 1 ]->IncrementReferenceCount();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials color depth write 01 ready" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials before color depth write 10" );
 	pVMTKeyValues = new KeyValues( "DepthWrite" );
 	pVMTKeyValues->SetInt( "$no_fullbright", 1 );
 	pVMTKeyValues->SetInt( "$alphatest", 1 );
 	pVMTKeyValues->SetInt( "$nocull", 0 );
 	pVMTKeyValues->SetInt( "$color_depth", 1 );
 	g_pMaterialSSAODepthWrite[ 1 ][ 0 ] = g_pMaterialSystem->FindProceduralMaterial( "__ColorDepthWrite10", TEXTURE_GROUP_OTHER, pVMTKeyValues );
+	PS4_MATSYS_BREADCRUMB( g_pMaterialSSAODepthWrite[1][0]
+		? "kisak-ps4: debug materials color depth write 10 found"
+		: "kisak-ps4: debug materials color depth write 10 null" );
 	g_pMaterialSSAODepthWrite[ 1 ][ 0 ]->IncrementReferenceCount();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials color depth write 10 ready" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials before color depth write 11" );
 	pVMTKeyValues = new KeyValues( "DepthWrite" );
 	pVMTKeyValues->SetInt( "$no_fullbright", 1 );
 	pVMTKeyValues->SetInt( "$alphatest", 1 );
 	pVMTKeyValues->SetInt( "$nocull", 1 );
 	pVMTKeyValues->SetInt( "$color_depth", 1 );
 	g_pMaterialSSAODepthWrite[ 1 ][ 1 ] = g_pMaterialSystem->FindProceduralMaterial( "__ColorDepthWrite11", TEXTURE_GROUP_OTHER, pVMTKeyValues );
+	PS4_MATSYS_BREADCRUMB( g_pMaterialSSAODepthWrite[1][1]
+		? "kisak-ps4: debug materials color depth write 11 found"
+		: "kisak-ps4: debug materials color depth write 11 null" );
 	g_pMaterialSSAODepthWrite[ 1 ][ 1 ]->IncrementReferenceCount();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials color depth write 11 ready" );
 
 
 
 #endif
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: debug materials complete" );
 }
 
 //-----------------------------------------------------------------------------
@@ -1300,16 +1424,51 @@ extern ConVar r_fastzreject;
 
 void InitMaterialSystem( void )
 {
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init entered" );
+	PS4_MATSYS_BREADCRUMB( materials
+		? "kisak-ps4: material init materials ready"
+		: "kisak-ps4: material init materials null" );
+	PS4_MATSYS_BREADCRUMB( g_pMaterialSystem
+		? "kisak-ps4: material init material system ready"
+		: "kisak-ps4: material init material system null" );
+	PS4_MATSYS_BREADCRUMB( g_pMaterialSystemHardwareConfig
+		? "kisak-ps4: material init hardware config ready"
+		: "kisak-ps4: material init hardware config null" );
+	PS4_MATSYS_BREADCRUMB( g_pClientRenderTargets
+		? "kisak-ps4: material init client render targets ready"
+		: "kisak-ps4: material init client render targets null" );
+	PS4_MATSYS_BREADCRUMB( toolframework
+		? "kisak-ps4: material init tool framework ready"
+		: "kisak-ps4: material init tool framework null" );
+
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init before add release func" );
 	materials->AddReleaseFunc( ReleaseMaterialSystemObjects );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init add release func ready" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init before add restore func" );
 	materials->AddRestoreFunc( RestoreMaterialSystemObjects );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init add restore func ready" );
 
-	r_fastzreject.SetValue( g_pMaterialSystemHardwareConfig->PreferZPrepass() );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init before prefer z prepass" );
+	bool bPreferZPrepass = g_pMaterialSystemHardwareConfig->PreferZPrepass();
+	PS4_MATSYS_BREADCRUMB( bPreferZPrepass
+		? "kisak-ps4: material init prefer z prepass ready value=1"
+		: "kisak-ps4: material init prefer z prepass ready value=0" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init before fast z reject" );
+	r_fastzreject.SetValue( bPreferZPrepass );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init fast z reject ready" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init before update config" );
 	UpdateMaterialSystemConfig();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init update config ready" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init before render targets" );
 	InitWellKnownRenderTargets();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init render targets ready" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init before debug materials" );
 	InitDebugMaterials();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init debug materials ready" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: material init complete" );
 }
 
 void ShutdownMaterialSystem( void )
