@@ -23,32 +23,29 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.14
+Version: 3.15
 Size: 103,153,664 bytes
-SHA-256: c419aa8936fe2da79cc39cbecc6b6db6b2606c37375a3148796c9de3f12a9291
-Hardware run: v4.48 (2026-07-15), proves an sv_maxreplay symbol-size collision
+SHA-256: 32e0e7324f0358db1ce2ee91e99270c4cb31076349a113890b2f64a2b0cb2845
+Hardware run: v4.49 (2026-07-15), validates the sv_maxreplay symbol separation
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.14
-Size: 103,153,664 bytes
-SHA-256: c419aa8936fe2da79cc39cbecc6b6db6b2606c37375a3148796c9de3f12a9291
-Hardware result: v4.48 reaches the corrupt sv_maxreplay pending-list node
-```
-
-Latest package staged and awaiting manual installation and launch:
-
-```text
-Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.15
 Size: 103,153,664 bytes
 SHA-256: 32e0e7324f0358db1ce2ee91e99270c4cb31076349a113890b2f64a2b0cb2845
-Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
-Hardware target: v4.49 sv_maxreplay symbol separation
+Hardware result: v4.49 reaches the GameTypes initialization call
+```
+
+Next manual-install package:
+
+```text
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.16
+Status: in preparation
+Hardware target: v4.50 internal GameTypes initialization trace
 ```
 
 Current hardware baseline:
@@ -96,6 +93,13 @@ Current hardware baseline:
   Hardware v4.46 validates both new markers and `constructors complete`, then
   reaches `server DLLInit before sv_cheats check`. Its
   `g_pCVar->FindVar( "sv_cheats" )` result is null, so `DLLInit` returns false.
+  Hardware v4.48 then proves that a server pointer named `sv_maxreplay` collided
+  with the engine's 144-byte ConVar and corrupted the pending cvar list. v4.49
+  separates those symbols and validates the repair on hardware: cvar registration
+  completes, all 1,062 particle definitions parse, the server game-system pass
+  returns, and debug-overlay plus game-stats initialization both complete. The
+  final marker is `server DLLInit game stats connection ready`; the next source
+  operation is `g_pGameTypes->Initialize()`, and its post-call marker is absent.
 - OpenGNM opens two 1920x1080 VideoOut buffers and completes repeated VSYNC
   flips. The v1.78 run sustains approximately 60 FPS without a crash.
 - The presentation stress loop has reached at least frame 1200 with matching
@@ -6555,6 +6559,24 @@ The host suite remains at its established 11/14 baseline with only the three
 Linux high-address OpenGNM descriptor failures. The PKG is FTP-staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its remote size is
 103,153,664 bytes and a complete readback matches the local PKG SHA-256.
+
+The v4.49 hardware run validates the symbol fix. Cvar registration advances
+past the former corrupt pending node, `sv_cheats` lookup succeeds, all 1,062
+particle definitions parse, and the server game-system pass returns. The log
+then records both `server DLLInit debug overlay query ready` and
+`server DLLInit game stats connection ready`. It does not record
+`server DLLInit game types ready`, so the new crash boundary is the intervening
+`g_pGameTypes->Initialize()` call.
+
+Final-link inspection finds two deliberately separate GameTypes singletons and
+two localized `g_pGameTypes` slots, one for each isolated module. The server
+DLL uses its slot at `0x4571160`. Both GameTypes vtables have a valid
+`Initialize(bool)` entry at offset `0x10`, targeting `0x6c6880` and
+`0x19c5dd0` respectively. This does not reproduce the malformed storage or
+vtable evidence from the `sv_maxreplay` collision. Version 3.16 will therefore
+trace entry, container cleanup, KeyValues allocation, base `GameModes.txt`
+loading, server override loading, and each structured load phase before making
+a behavioral change.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
