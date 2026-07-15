@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Guarded, read-only diagnostics for a Kisak process on ps4debug."""
+"""Guarded diagnostics and opt-in development-gate release for Kisak."""
 
 from __future__ import annotations
 
@@ -28,11 +28,17 @@ DEFAULT_PROTOCOL_VERSION = "1.3"
 DEFAULT_OELF = "build-ps4-engine/kisak_ps4_monolithic.oelf"
 ELF_HEADER = struct.Struct("<16sHHIQQQIHHHHHH")
 PROGRAM_HEADER = struct.Struct("<IIQQQQQQ")
+SECTION_HEADER = struct.Struct("<IIQQQQIIQQ")
+SYMBOL_ENTRY = struct.Struct("<IBBHQQ")
 ELF_MAGIC = b"\x7fELF"
 ELF_CLASS_64 = 2
 ELF_DATA_LITTLE_ENDIAN = 1
 ELF_MACHINE_X86_64 = 62
 PT_LOAD = 1
+SHT_STRTAB = 3
+SHT_SYMTAB = 2
+SHN_UNDEF = 0
+STT_OBJECT = 1
 PF_EXECUTE = 1
 PF_WRITE = 2
 PF_READ = 4
@@ -41,6 +47,13 @@ MARKER_PATTERN = re.compile(
     rb"kisak-ps4: build marker ([A-Za-z0-9_.:+/-]{1,128})"
 )
 TITLE_ID_PATTERN = re.compile(r"^[A-Z]{4}[0-9]{5}$")
+DEV_GATE_SYMBOL = "g_KisakPs4DevAttachGate"
+DEV_GATE_MARKER_SYMBOL = "g_KisakPs4DevAttachGateMarker"
+DEV_GATE_MARKER = b"kisak-ps4: dev attach gate v1\0"
+DEV_GATE_HOLD = 0x4B4953414B484F4C
+DEV_GATE_RELEASE = 0x4B4953414B474F21
+DEV_GATE_TIMEOUT = 0x4B4953414B54494D
+DEV_GATE_SIZE = 8
 
 
 class GuardError(RuntimeError):
@@ -69,6 +82,19 @@ class MarkerReference:
     @property
     def data(self) -> bytes:
         return f"kisak-ps4: build marker {self.name}".encode("ascii")
+
+
+@dataclasses.dataclass(frozen=True)
+class ElfSymbol:
+    name: str
+    virtual_address: int
+    size: int
+    info: int
+    section_index: int
+
+    @property
+    def symbol_type(self) -> int:
+        return self.info & 0x0F
 
 
 @dataclasses.dataclass(frozen=True)
@@ -186,6 +212,107 @@ def _read_load_segments(path: pathlib.Path) -> tuple[LoadSegment, ...]:
     if not any(segment.executable for segment in segments):
         raise GuardError("OELF has no executable load segment")
     return tuple(segments)
+
+
+def resolve_elf_symbol(path: pathlib.Path, name: str) -> ElfSymbol:
+    """Resolve one exact, defined symbol from an ELF64 static symbol table."""
+    target_name = name.encode("ascii")
+    file_size = path.stat().st_size
+    matches: list[ElfSymbol] = []
+
+    with path.open("rb") as source:
+        header_data = source.read(ELF_HEADER.size)
+        if len(header_data) != ELF_HEADER.size:
+            raise GuardError("OELF is too small to contain an ELF64 header")
+        header = ELF_HEADER.unpack(header_data)
+        section_header_offset = header[6]
+        section_header_size = header[11]
+        section_header_count = header[12]
+
+        if section_header_size != SECTION_HEADER.size:
+            raise GuardError(
+                f"unexpected ELF section-header size: {section_header_size}"
+            )
+        if not 1 <= section_header_count <= 65535:
+            raise GuardError(
+                f"invalid ELF section-header count: {section_header_count}"
+            )
+        section_table_end = (
+            section_header_offset + section_header_count * section_header_size
+        )
+        if section_header_offset < ELF_HEADER.size or section_table_end > file_size:
+            raise GuardError("ELF section-header table is outside the OELF")
+
+        source.seek(section_header_offset)
+        sections = []
+        for _ in range(section_header_count):
+            data = source.read(SECTION_HEADER.size)
+            if len(data) != SECTION_HEADER.size:
+                raise GuardError("truncated ELF section-header table")
+            sections.append(SECTION_HEADER.unpack(data))
+
+        for section in sections:
+            section_type = section[1]
+            if section_type != SHT_SYMTAB:
+                continue
+            symbol_offset = section[4]
+            symbol_size = section[5]
+            string_section_index = section[6]
+            symbol_entry_size = section[9]
+            if symbol_entry_size != SYMBOL_ENTRY.size:
+                raise GuardError(
+                    f"unexpected ELF symbol-entry size: {symbol_entry_size}"
+                )
+            if symbol_size % symbol_entry_size != 0:
+                raise GuardError("ELF symbol table has a partial entry")
+            if symbol_offset + symbol_size > file_size:
+                raise GuardError("ELF symbol table is outside the OELF")
+            if not 0 <= string_section_index < len(sections):
+                raise GuardError("ELF symbol table has an invalid string-table link")
+
+            string_section = sections[string_section_index]
+            if string_section[1] != SHT_STRTAB:
+                raise GuardError("ELF symbol table does not link to a string table")
+            string_offset = string_section[4]
+            string_size = string_section[5]
+            if string_offset + string_size > file_size:
+                raise GuardError("ELF string table is outside the OELF")
+            source.seek(string_offset)
+            strings = source.read(string_size)
+            if len(strings) != string_size:
+                raise GuardError("truncated ELF string table")
+
+            source.seek(symbol_offset)
+            for _ in range(symbol_size // symbol_entry_size):
+                data = source.read(SYMBOL_ENTRY.size)
+                if len(data) != SYMBOL_ENTRY.size:
+                    raise GuardError("truncated ELF symbol table")
+                (
+                    name_offset,
+                    info,
+                    _other,
+                    section_index,
+                    virtual_address,
+                    size,
+                ) = SYMBOL_ENTRY.unpack(data)
+                if name_offset >= len(strings):
+                    raise GuardError("ELF symbol name is outside the string table")
+                name_end = strings.find(b"\0", name_offset)
+                if name_end < 0:
+                    raise GuardError("ELF symbol name is not NUL-terminated")
+                if strings[name_offset:name_end] != target_name:
+                    continue
+                if section_index == SHN_UNDEF:
+                    continue
+                matches.append(
+                    ElfSymbol(name, virtual_address, size, info, section_index)
+                )
+
+    if not matches:
+        raise GuardError(f"OELF has no defined symbol named {name}")
+    if len(matches) != 1:
+        raise GuardError(f"OELF has multiple defined symbols named {name}")
+    return matches[0]
 
 
 def _find_loaded_markers(
@@ -316,6 +443,17 @@ def _map_protection(memory_map: Any) -> int:
     return int(memory_map.prot)
 
 
+def _segment_protection(segment: LoadSegment) -> int:
+    protection = 0
+    if segment.flags & PF_READ:
+        protection |= int(VMProtection.READ)
+    if segment.flags & PF_WRITE:
+        protection |= int(VMProtection.WRITE)
+    if segment.flags & PF_EXECUTE:
+        protection |= int(VMProtection.EXECUTE)
+    return protection
+
+
 def _range_is_covered(
     maps: Sequence[Any],
     start: int,
@@ -356,10 +494,12 @@ def candidate_load_biases(
             continue
 
         valid = True
-        for segment in executable_segments:
+        for segment in identity.segments:
+            if segment.memory_size == 0:
+                continue
             start = bias + segment.virtual_address
             end = start + segment.memory_size
-            required = int(VMProtection.READ | VMProtection.EXECUTE)
+            required = _segment_protection(segment)
             if not _range_is_covered(maps, start, end, required):
                 valid = False
                 break
@@ -420,11 +560,180 @@ async def get_guarded_maps(
             raise GuardError(f"invalid process map range: {memory_map!r}")
 
     refreshed = await client.get_process_info(target.pid)
-    if refreshed.title_id != target.title_id:
+    if (
+        refreshed.title_id != target.title_id
+        or refreshed.path != target.path
+        or refreshed.content_id != target.content_id
+    ):
         raise GuardError(
             "process identity changed while maps were being collected; refusing PID"
         )
     return maps
+
+
+async def wait_for_running_image(
+    client: Any,
+    title_id: str,
+    identity: OelfIdentity,
+    *,
+    timeout: float,
+    interval: float,
+) -> tuple[TargetProcess, list[Any], ResolvedImage]:
+    """Wait until the exact title is running the verified local OELF image."""
+    deadline = time.monotonic() + timeout
+    last_error: Exception | None = None
+    while True:
+        target = await find_title_process(client, title_id)
+        if target is not None:
+            try:
+                maps = await get_guarded_maps(client, target)
+                resolved = await resolve_running_image(client, target, maps, identity)
+                return target, maps, resolved
+            except (GuardError, OSError, PS4DebugException, ValueError) as error:
+                last_error = error
+
+        if time.monotonic() >= deadline:
+            detail = f": last image guard failed: {last_error}" if last_error else ""
+            raise GuardError(
+                f"timed out after {timeout:g}s waiting for verified {title_id} image"
+                f"{detail}"
+            )
+        await asyncio.sleep(min(interval, max(0.0, deadline - time.monotonic())))
+
+
+def _symbol_has_segment_protection(
+    identity: OelfIdentity,
+    symbol: ElfSymbol,
+    required_protection: int,
+) -> bool:
+    end = symbol.virtual_address + symbol.size
+    for segment in identity.segments:
+        segment_end = segment.virtual_address + segment.memory_size
+        if (
+            segment.virtual_address <= symbol.virtual_address
+            and end <= segment_end
+            and (_segment_protection(segment) & required_protection)
+            == required_protection
+        ):
+            return True
+    return False
+
+
+def validate_dev_gate_symbols(
+    identity: OelfIdentity,
+    gate: ElfSymbol,
+    marker: ElfSymbol,
+) -> None:
+    if gate.symbol_type != STT_OBJECT or gate.size != DEV_GATE_SIZE:
+        raise GuardError(
+            f"{DEV_GATE_SYMBOL} must be an {DEV_GATE_SIZE}-byte ELF object"
+        )
+    if gate.virtual_address % DEV_GATE_SIZE != 0:
+        raise GuardError(f"{DEV_GATE_SYMBOL} is not {DEV_GATE_SIZE}-byte aligned")
+    if not _symbol_has_segment_protection(
+        identity,
+        gate,
+        int(VMProtection.READ | VMProtection.WRITE),
+    ):
+        raise GuardError(f"{DEV_GATE_SYMBOL} is not in a readable/writable segment")
+
+    if marker.symbol_type != STT_OBJECT or marker.size != len(DEV_GATE_MARKER):
+        raise GuardError(
+            f"{DEV_GATE_MARKER_SYMBOL} has an unexpected ELF type or size"
+        )
+    if not _symbol_has_segment_protection(
+        identity,
+        marker,
+        int(VMProtection.READ),
+    ):
+        raise GuardError(f"{DEV_GATE_MARKER_SYMBOL} is not in a readable segment")
+
+
+async def release_dev_attach_gate(
+    client: Any,
+    target: TargetProcess,
+    identity: OelfIdentity,
+    expected_image: ResolvedImage,
+    gate: ElfSymbol,
+    marker: ElfSymbol,
+    *,
+    debug_port: int,
+) -> dict[str, Any]:
+    """Attach stopped, revalidate every guard, release once, then detach/resume."""
+    validate_dev_gate_symbols(identity, gate, marker)
+
+    async with client.debugger(
+        target.pid,
+        port=debug_port,
+        resume=False,
+        event_read_timeout=None,
+    ):
+        maps = await get_guarded_maps(client, target)
+        resolved = await resolve_running_image(client, target, maps, identity)
+        if resolved != expected_image:
+            raise GuardError("runtime image changed between polling and debugger attach")
+
+        gate_address = resolved.load_bias + gate.virtual_address
+        marker_address = resolved.load_bias + marker.virtual_address
+        if not _range_is_covered(
+            maps,
+            gate_address,
+            gate_address + DEV_GATE_SIZE,
+            int(VMProtection.READ | VMProtection.WRITE),
+        ):
+            raise GuardError("runtime development gate is not readable/writable")
+        if not _range_is_covered(
+            maps,
+            marker_address,
+            marker_address + len(DEV_GATE_MARKER),
+            int(VMProtection.READ),
+        ):
+            raise GuardError("runtime development-gate marker is not readable")
+
+        remote_marker = await client.read_memory(
+            target.pid,
+            marker_address,
+            len(DEV_GATE_MARKER),
+        )
+        if remote_marker != DEV_GATE_MARKER:
+            raise GuardError("runtime development-gate marker does not match the OELF")
+
+        current_data = await client.read_memory(
+            target.pid,
+            gate_address,
+            DEV_GATE_SIZE,
+        )
+        if len(current_data) != DEV_GATE_SIZE:
+            raise GuardError("development-gate read returned an unexpected length")
+        current = struct.unpack("<Q", current_data)[0]
+        if current != DEV_GATE_HOLD:
+            if current == DEV_GATE_TIMEOUT:
+                state = "timed out"
+            elif current == DEV_GATE_RELEASE:
+                state = "already released"
+            else:
+                state = f"unexpected value {current:#018x}"
+            raise GuardError(f"development gate is not held: {state}")
+
+        await client.write_memory(
+            target.pid,
+            gate_address,
+            struct.pack("<Q", DEV_GATE_RELEASE),
+        )
+        readback = await client.read_memory(
+            target.pid,
+            gate_address,
+            DEV_GATE_SIZE,
+        )
+        if readback != struct.pack("<Q", DEV_GATE_RELEASE):
+            raise GuardError("development-gate release write did not verify")
+
+    return {
+        "gate_address": gate_address,
+        "previous_value": DEV_GATE_HOLD,
+        "released_value": DEV_GATE_RELEASE,
+        "resumed_by": "verified debugger detach",
+    }
 
 
 def _target_dict(target: TargetProcess) -> dict[str, Any]:
@@ -449,7 +758,12 @@ def _emit(value: dict[str, Any], *, as_json: bool) -> None:
     for key, item in value.items():
         if isinstance(item, (dict, list)):
             print(f"{key}: {json.dumps(item, sort_keys=True)}")
-        elif isinstance(item, int) and key in {"load_bias"}:
+        elif isinstance(item, int) and key in {
+            "load_bias",
+            "gate_address",
+            "previous_value",
+            "released_value",
+        }:
             print(f"{key}: {item:#x}")
         else:
             print(f"{key}: {item}")
@@ -459,8 +773,9 @@ def build_parser() -> argparse.ArgumentParser:
     repository = pathlib.Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(
         description=(
-            "Read-only, title-aware Kisak diagnostics through ps4debug. "
-            "No write, RPC, payload, kill, reboot, or injection operations exist."
+            "Title- and image-aware Kisak diagnostics through ps4debug. "
+            "The only mutation is an explicitly enabled, guarded development-gate "
+            "release. No RPC, payload, kill, reboot, or injection command exists."
         )
     )
     parser.add_argument(
@@ -495,6 +810,27 @@ def build_parser() -> argparse.ArgumentParser:
     maps_parser.add_argument("--expect-marker", action="append", default=[])
     maps_parser.add_argument("--wait-timeout", type=float, default=10.0)
     maps_parser.add_argument("--poll-interval", type=float, default=0.25)
+
+    release_parser = subparsers.add_parser(
+        "release-dev-gate",
+        help="attach stopped and release one verified development gate",
+    )
+    release_parser.add_argument(
+        "--oelf",
+        type=pathlib.Path,
+        default=repository / DEFAULT_OELF,
+    )
+    release_parser.add_argument("--expect-oelf-sha256", required=True)
+    release_parser.add_argument("--expect-marker", action="append", default=[])
+    release_parser.add_argument("--wait-timeout", type=float, default=60.0)
+    release_parser.add_argument("--poll-interval", type=float, default=0.1)
+    release_parser.add_argument("--debug-port", type=int, default=755)
+    release_parser.add_argument(
+        "--allow-write",
+        action="store_true",
+        required=True,
+        help="acknowledge the single guarded 8-byte gate release write",
+    )
     return parser
 
 
@@ -509,6 +845,8 @@ def _validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) ->
         parser.error("--wait-timeout must be positive")
     if hasattr(args, "poll_interval") and args.poll_interval <= 0:
         parser.error("--poll-interval must be positive")
+    if hasattr(args, "debug_port") and not 1 <= args.debug_port <= 65535:
+        parser.error("--debug-port must be between 1 and 65535")
 
 
 async def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -526,27 +864,41 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             "protocol_version": version,
         }
 
-    target = await wait_for_title_process(
-        client,
-        args.title_id,
-        timeout=args.wait_timeout,
-        interval=args.poll_interval,
-    )
     if args.command == "wait-process":
+        target = await wait_for_title_process(
+            client,
+            args.title_id,
+            timeout=args.wait_timeout,
+            interval=args.poll_interval,
+        )
         return {
             "mode": "read-only",
             "protocol_version": version,
             "target": _target_dict(target),
         }
 
-    if args.command == "maps":
+    if args.command in {"maps", "release-dev-gate"}:
         identity = inspect_oelf(
             args.oelf,
             expected_sha256=args.expect_oelf_sha256,
             expected_markers=args.expect_marker,
         )
-        maps = await get_guarded_maps(client, target)
-        resolved = await resolve_running_image(client, target, maps, identity)
+
+        gate = marker = None
+        if args.command == "release-dev-gate":
+            gate = resolve_elf_symbol(identity.path, DEV_GATE_SYMBOL)
+            marker = resolve_elf_symbol(identity.path, DEV_GATE_MARKER_SYMBOL)
+            validate_dev_gate_symbols(identity, gate, marker)
+
+        target, maps, resolved = await wait_for_running_image(
+            client,
+            args.title_id,
+            identity,
+            timeout=args.wait_timeout,
+            interval=args.poll_interval,
+        )
+
+    if args.command == "maps":
         return {
             "mode": "read-only",
             "protocol_version": version,
@@ -560,6 +912,32 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             "load_bias": resolved.load_bias,
             "verified_markers": list(resolved.verified_markers),
             "maps": [_map_dict(memory_map) for memory_map in maps],
+        }
+
+    if args.command == "release-dev-gate":
+        assert gate is not None and marker is not None
+        mutation = await release_dev_attach_gate(
+            client,
+            target,
+            identity,
+            resolved,
+            gate,
+            marker,
+            debug_port=args.debug_port,
+        )
+        return {
+            "mode": "guarded-write",
+            "protocol_version": version,
+            "target": _target_dict(target),
+            "oelf": {
+                "path": str(identity.path),
+                "size": identity.size,
+                "sha256": identity.sha256,
+                "markers": sorted({item.name for item in identity.markers}),
+            },
+            "load_bias": resolved.load_bias,
+            "verified_markers": list(resolved.verified_markers),
+            **mutation,
         }
 
     raise GuardError(f"unsupported command: {args.command}")

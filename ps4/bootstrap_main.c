@@ -19,6 +19,7 @@ extern KisakConstructor __kisak_ctors_end[];
 #if defined( KISAK_PS4_DEV_ATTACH_GATE )
 #define KISAK_PS4_DEV_ATTACH_GATE_HOLD UINT64_C( 0x4b4953414b484f4c )
 #define KISAK_PS4_DEV_ATTACH_GATE_RELEASE UINT64_C( 0x4b4953414b474f21 )
+#define KISAK_PS4_DEV_ATTACH_GATE_TIMEOUT UINT64_C( 0x4b4953414b54494d )
 #define KISAK_PS4_DEV_ATTACH_GATE_POLL_US 10000u
 #define KISAK_PS4_DEV_ATTACH_GATE_TIMEOUT_POLLS 12000u
 
@@ -37,7 +38,10 @@ static int KisakPs4WaitForDevAttach( void )
         sceKernelUsleep( KISAK_PS4_DEV_ATTACH_GATE_POLL_US );
         --remainingPolls;
     }
-    return g_KisakPs4DevAttachGate == KISAK_PS4_DEV_ATTACH_GATE_RELEASE;
+    if ( g_KisakPs4DevAttachGate == KISAK_PS4_DEV_ATTACH_GATE_RELEASE )
+        return 1;
+    g_KisakPs4DevAttachGate = KISAK_PS4_DEV_ATTACH_GATE_TIMEOUT;
+    return 0;
 }
 #endif
 
