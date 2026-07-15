@@ -772,7 +772,7 @@ async def release_dev_attach_gate(
         resume=False,
         attach_stopped=True,
         event_read_timeout=None,
-    ) as context:
+    ):
         mutation = await _release_dev_gate_while_stopped(
             client,
             target,
