@@ -64,6 +64,11 @@ class FakeDebuggerContext:
             await self.callback(self.client.debug_event)
         return debug.ResponseCode.SUCCESS
 
+    async def stop_process(self):
+        if self.callback is not None:
+            await self.callback(types.SimpleNamespace(resume=True))
+        return debug.ResponseCode.SUCCESS
+
 
 def make_oelf(directory: pathlib.Path, marker: str = "unit_test_marker"):
     path = directory / "kisak.oelf"

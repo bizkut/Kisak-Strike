@@ -55,6 +55,7 @@ DEV_GATE_RELEASE = 0x4B4953414B474F21
 DEV_GATE_TIMEOUT = 0x4B4953414B54494D
 DEV_GATE_SIZE = 8
 STACK_CAPTURE_SIZE = 512
+ATTACH_STOP_TIMEOUT = 5.0
 REGISTER_NAMES = (
     "rax",
     "rbx",
@@ -766,7 +767,8 @@ async def release_dev_attach_gate(
         port=debug_port,
         resume=False,
         event_read_timeout=None,
-    ):
+    ) as context:
+        await _stop_attached_target(context)
         mutation = await _release_dev_gate_while_stopped(
             client,
             target,
@@ -776,6 +778,34 @@ async def release_dev_attach_gate(
             marker,
         )
     return {**mutation, "resumed_by": "verified debugger detach"}
+
+
+async def _stop_attached_target(context: Any) -> Any:
+    """Deliver SIGSTOP and wait for its interrupt before guarded memory access."""
+    ready = asyncio.Event()
+    stopped: dict[str, Any] = {}
+
+    async def on_stop(event: Any) -> None:
+        event.resume = False
+        if "event" not in stopped:
+            stopped["event"] = event
+            ready.set()
+
+    context.register_callback(on_stop)
+    try:
+        status = await context.stop_process()
+        if status != ResponseCode.SUCCESS:
+            raise GuardError(f"debugger failed to stop attached target: {status}")
+        try:
+            await asyncio.wait_for(ready.wait(), timeout=ATTACH_STOP_TIMEOUT)
+        except TimeoutError as error:
+            raise GuardError(
+                "attached target did not report its requested stop; "
+                "refusing post-attach memory access"
+            ) from error
+        return stopped["event"]
+    finally:
+        context.register_callback(None)
 
 
 async def capture_first_debug_event(
@@ -799,6 +829,8 @@ async def capture_first_debug_event(
         resume=False,
         event_read_timeout=None,
     ) as context:
+        await _stop_attached_target(context)
+
         async def on_event(event: Any) -> None:
             event.resume = False
             if "event" not in captured:
