@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.13
+Version: 3.14
 Size: 103,153,664 bytes
-SHA-256: da5d34f16bbf8d43a50471d687babbe954e3e87350bf49e4711bcb6921cd0ac3
-Hardware run: v4.47 (2026-07-15), stops inside the VEngineCvar007 Connect call
+SHA-256: c419aa8936fe2da79cc39cbecc6b6db6b2606c37375a3148796c9de3f12a9291
+Hardware run: v4.48 (2026-07-15), proves an sv_maxreplay symbol-size collision
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.13
+Version: 3.14
 Size: 103,153,664 bytes
-SHA-256: da5d34f16bbf8d43a50471d687babbe954e3e87350bf49e4711bcb6921cd0ac3
-Hardware result: v4.47 stops inside the VEngineCvar007 Connect call
+SHA-256: c419aa8936fe2da79cc39cbecc6b6db6b2606c37375a3148796c9de3f12a9291
+Hardware result: v4.48 reaches the corrupt sv_maxreplay pending-list node
 ```
 
 Latest package staged and awaiting manual installation and launch:
@@ -6493,6 +6493,25 @@ Install and launch version 3.14 manually. The first acceptance boundary is
 failed interface registration, query factory call, DLL-identifier allocation,
 pending ConCommand initialization, or post-registration operation without
 requiring ps4debug or an executable upload.
+
+Hardware v4.48 enters `CCvar::Connect`, completes tier-1 interface registration,
+uses the default cvar-query implementation, allocates the cvar DLL identifier,
+and successfully initializes hundreds of pending commands. The final complete
+command is `sv_mincmdrate`. The next node's `GetName` result consists of the first
+16 machine-code bytes of `_ZThn48_N6ConVar8SetValueE5Color`, followed by a crash
+in the node's original virtual operations.
+
+The final OELF explains the exact corruption. Engine `sv_main.cpp` defines
+`sv_maxreplay` as a 144-byte `ConVar`, while isolated server
+`gameinterface.cpp` defines the same external C++ symbol as an 8-byte `ConVar *`.
+Only the 8-byte local hidden symbol remains in the monolith at `0x468dba0`, eight
+bytes before the 144-byte server `sv_comp_mode_allow_dc` object at `0x468dba8`.
+The engine constructor therefore builds `sv_maxreplay` across both allocations;
+the adjacent ConVar construction overwrites its state. Its parent pointer becomes
+the ConVar secondary vtable, whose entry at the observed offset is the exact
+`SetValue(Color)` thunk recorded in the hardware log. The next package must give
+the server lookup pointer a distinct symbol and verify that the final OELF again
+contains a 144-byte engine `sv_maxreplay` object.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
