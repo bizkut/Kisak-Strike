@@ -39,11 +39,15 @@ SHA-256: a94eb44bf2af9cc7e7c72970f113985ad571adb989b97434d4e1081ebe6f39e9
 Hardware result: v4.52 completes file I/O and crashes inside `KeyValues::LoadFromBuffer`
 ```
 
-Next manual package in preparation:
+Latest package staged and awaiting manual installation and launch:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.19
+Size: 103,153,664 bytes
+SHA-256: 968a2ef0394b1a5276d300cc6d2ff844acb009dab0ab8eba8a59a52a69ca418a
+Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
 Hardware target: v4.53 gamemodes KeyValues parser-entry trace
 ```
 
@@ -6717,10 +6721,46 @@ the active crash is inside the `KeyValues::LoadFromBuffer` call, before it
 returns to `KeyValues::LoadFromFile`.
 
 Version 3.19 will identify v4.53 and add resource-scoped parser-entry markers
-around the shared KeyValues mutex, the console/binary probe, token-reader
-construction, first root token, root name assignment, opening-brace token, and
-recursive text parser entry. This preserves the manual package install and
-launch workflow while narrowing the first failing parser operation.
+around the text-wrapper binary probe, length scan and `CUtlBuffer` construction;
+the shared KeyValues mutex; the core console/binary probe; token-reader
+construction; first root token, root name assignment and opening-brace token;
+and the first recursive key and child-section entry. This preserves the manual
+package install and launch workflow while narrowing the first failing parser
+operation.
+
+### v4.53: Trace the gamemodes KeyValues parser entry
+
+The exact `gamemodes.txt` resource now emits breadcrumbs through both
+`KeyValues::LoadFromBuffer` overloads. The outer text wrapper brackets its
+binary marker probe, length scan, `CUtlBuffer` construction, Unicode probe, and
+handoff to the parser core. The core overload brackets the shared KeyValues
+mutex, console/binary probe, token reader, error filename, first root token,
+root name, opening brace, and recursive root call. The recursive loader traces
+only its root context and first key/child-section path, avoiding per-token log
+volume across the complete 99,836-byte file.
+
+Package version 3.19 and build marker `gamemodes_parser_trace_v453` identify the
+manual-install test. The Linux OpenOrbis build, final link, FSELF conversion,
+package creation, and verbose PkgTool validation complete. Every package check
+is `[OK]`, metadata contains version 3.19, all scoped trace strings and the build
+marker are present, and the retired development attach-gate marker is absent.
+Artifact identities:
+
+```text
+OELF: 135,943,976 bytes
+SHA-256: 2a25e39738c99580b10bfc7b82652d9844798f75d5a04b56bda458c60c505352
+SELF: 83,060,576 bytes
+SHA-256: ce39d7f0405bc26c752e9cda55f08a1e78d8faafd980da85df6f958cb61af486
+PKG: 103,153,664 bytes
+SHA-256: 968a2ef0394b1a5276d300cc6d2ff844acb009dab0ab8eba8a59a52a69ca418a
+```
+
+The host suite remains at the established 11/14 baseline, with only
+`ps4_gnm_device`, `ps4_gnm_buffer`, and `ps4_gnm_constants` failing on Linux
+high addresses that do not round-trip through PS4's 44-bit descriptor fields.
+The PKG is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and a complete readback matches the local PKG SHA-256.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

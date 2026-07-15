@@ -32,9 +32,12 @@
 
 #if defined( PLATFORM_PS4 )
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) \
+	( ( resourceName ) && V_strcmp( ( resourceName ), "gamemodes.txt" ) == 0 )
 #define PS4_KEYVALUES_LOAD_BREADCRUMB( enabled, line ) \
 	do { if ( enabled ) KisakPs4StartupBreadcrumb( line ); } while ( 0 )
 #else
+#define PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) false
 #define PS4_KEYVALUES_LOAD_BREADCRUMB( enabled, line ) ((void)(enabled))
 #endif
 
@@ -732,11 +735,7 @@ void KeyValues::UsesEscapeSequences(bool state)
 bool KeyValues::LoadFromFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID, GetSymbolProc_t pfnEvaluateSymbolProc )
 {
 	//TM_ZONE_FILTERED( TELEMETRY_LEVEL0, 50, TMZF_NONE, "%s %s", __FUNCTION__, tmDynamicString( TELEMETRY_LEVEL0, resourceName ) );
-	#if defined( PLATFORM_PS4 )
-	const bool bTracePs4GameModes = resourceName && V_strcmp( resourceName, "gamemodes.txt" ) == 0;
-	#else
-	const bool bTracePs4GameModes = false;
-	#endif
+	const bool bTracePs4GameModes = PS4_KEYVALUES_TRACE_GAMEMODES( resourceName );
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues load entered" );
 
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues before open" );
@@ -2332,8 +2331,13 @@ static CThreadFastMutex g_KVMutex;
 //-----------------------------------------------------------------------------
 bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem* pFileSystem, const char *pPathID, GetSymbolProc_t pfnEvaluateSymbolProc )
 {
+	const bool bTracePs4GameModes = PS4_KEYVALUES_TRACE_GAMEMODES( resourceName );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser entered" );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser before mutex" );
 	AUTO_LOCK_FM( g_KVMutex );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser mutex ready" );
 
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser before console probe" );
 	if ( IsGameConsole() )
 	{
 		// Let's not crash if the buffer is empty
@@ -2351,6 +2355,7 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 			return ReadAsBinaryPooledFormat( buf, pFileSystem, poolKey, pfnEvaluateSymbolProc );
 		}
 	}
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser console probe ready" );
 
 	KeyValues *pPreviousKey = NULL;
 	KeyValues *pCurrentKey = this;
@@ -2358,15 +2363,24 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 	CUtlVector< KeyValues * > baseKeys;
 	bool wasQuoted;
 	bool wasConditional;
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser before token reader" );
 	CKeyValuesTokenReader tokenReader( this, buf );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser token reader ready" );
 
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser before error filename" );
 	g_KeyValuesErrorStack.SetFilename( resourceName );	
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser error filename ready" );
+	bool bTracePs4FirstRoot = bTracePs4GameModes;
 	do 
 	{
+		const bool bTracePs4ThisRoot = bTracePs4FirstRoot;
+		bTracePs4FirstRoot = false;
 		bool bAccepted = true;
 
 		// the first thing must be a key
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisRoot, "kisak-ps4: gamemodes parser before root token" );
 		const char *s = tokenReader.ReadToken( wasQuoted, wasConditional );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisRoot, "kisak-ps4: gamemodes parser root token ready" );
 		if ( !buf.IsValid() || !s )
 			break;
 
@@ -2424,11 +2438,15 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 		}
 		else
 		{
+			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisRoot, "kisak-ps4: gamemodes parser before root name" );
 			pCurrentKey->SetName( s );
+			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisRoot, "kisak-ps4: gamemodes parser root name ready" );
 		}
 
 		// get the '{'
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisRoot, "kisak-ps4: gamemodes parser before root brace" );
 		s = tokenReader.ReadToken( wasQuoted, wasConditional );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisRoot, "kisak-ps4: gamemodes parser root brace ready" );
 
 		if ( wasConditional )
 		{
@@ -2441,7 +2459,9 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 		if ( s && *s == '{' && !wasQuoted )
 		{
 			// header is valid so load the file
+			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisRoot, "kisak-ps4: gamemodes parser before recursive root" );
 			pCurrentKey->RecursiveLoadFromBuffer( resourceName, tokenReader, pfnEvaluateSymbolProc );
+			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisRoot, "kisak-ps4: gamemodes parser recursive root ready" );
 		}
 		else
 		{
@@ -2497,9 +2517,12 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 //-----------------------------------------------------------------------------
 bool KeyValues::LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID, GetSymbolProc_t pfnEvaluateSymbolProc )
 {
+	const bool bTracePs4GameModes = PS4_KEYVALUES_TRACE_GAMEMODES( resourceName );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer entered" );
 	if ( !pBuffer )
 		return true;
 
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer before binary probe" );
 	if ( IsGameConsole() && (unsigned int)((unsigned char *)pBuffer)[0] == KV_BINARY_POOLED_FORMAT )
 	{
 		// bad, got a binary compiled KV file through an unexpected text path
@@ -2509,10 +2532,16 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, const char *pBuffer, I
 		Assert( 0 );
 		return false;
 	}
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer binary probe ready" );
 
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer before length" );
 	int nLen = V_strlen( pBuffer );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer length ready" );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer before utl buffer" );
 	CUtlBuffer buf( pBuffer, nLen, CUtlBuffer::READ_ONLY | CUtlBuffer::TEXT_BUFFER );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer utl buffer ready" );
 	// Translate Unicode files into UTF-8 before proceeding
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer before unicode probe" );
 	if ( nLen > 2 && (uint8)pBuffer[0] == 0xFF && (uint8)pBuffer[1] == 0xFE )
 	{
 		int nUTF8Len = V_UnicodeToUTF8( (wchar_t*)(pBuffer+2), NULL, 0 );
@@ -2520,7 +2549,11 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, const char *pBuffer, I
 		V_UnicodeToUTF8( (wchar_t*)(pBuffer+2), pUTF8Buf, nUTF8Len );
 		buf.AssumeMemory( pUTF8Buf, nUTF8Len, nUTF8Len, CUtlBuffer::READ_ONLY | CUtlBuffer::TEXT_BUFFER );
 	}
-	return LoadFromBuffer( resourceName, buf, pFileSystem, pPathID, pfnEvaluateSymbolProc );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer unicode probe ready" );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer before parser core" );
+	const bool bLoaded = LoadFromBuffer( resourceName, buf, pFileSystem, pPathID, pfnEvaluateSymbolProc );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer parser core ready" );
+	return bLoaded;
 }
 
 //-----------------------------------------------------------------------------
@@ -2529,6 +2562,8 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, const char *pBuffer, I
 void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTokenReader &tokenReader, GetSymbolProc_t pfnEvaluateSymbolProc )
 {
 	CKeyErrorContext errorReport( GetNameSymbolCaseSensitive() );
+	const bool bTracePs4RootGameModes = PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) && errorReport.GetStackLevel() == 0;
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4RootGameModes, "kisak-ps4: gamemodes recursive error context ready" );
 	bool wasQuoted;
 	bool wasConditional;
 	if ( errorReport.GetStackLevel() > 100 )
@@ -2539,19 +2574,26 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 
 	// keep this out of the stack until a key is parsed
 	CKeyErrorContext errorKey( INVALID_KEY_SYMBOL );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4RootGameModes, "kisak-ps4: gamemodes recursive key context ready" );
 
 	// Locate the last child.  (Almost always, we will not have any children.)
 	// We maintain the pointer to the last child here, so we don't have to re-locate
 	// it each time we append the next subkey, which causes O(N^2) time
 	KeyValues *pLastChild = FindLastSubKey();
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4RootGameModes, "kisak-ps4: gamemodes recursive last child ready" );
 
 	// Keep parsing until we hit the closing brace which terminates this block, or a parse error
+	bool bTracePs4FirstKey = bTracePs4RootGameModes;
 	while ( 1 )
 	{
+		const bool bTracePs4ThisKey = bTracePs4FirstKey;
+		bTracePs4FirstKey = false;
 		bool bAccepted = true;
 
 		// get the key name
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive before first key token" );
 		const char * name = tokenReader.ReadToken( wasQuoted, wasConditional );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive first key token ready" );
 
 		if ( !name )	// EOF stop reading
 		{
@@ -2570,12 +2612,16 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 
 		// Always create the key; note that this could potentially
 		// cause some duplication, but that's what we want sometimes
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive before first child" );
 		KeyValues *dat = CreateKeyUsingKnownLastChild( name, pLastChild );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive first child ready" );
 
 		errorKey.Reset( dat->GetNameSymbolCaseSensitive() );
 
 		// get the value
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive before first value token" );
 		const char * value = tokenReader.ReadToken( wasQuoted, wasConditional );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive first value token ready" );
 
 		bool bFoundConditional = wasConditional;
 		if ( wasConditional && value )
@@ -2635,7 +2681,9 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 			// this isn't a key, it's a section
 			errorKey.Reset( INVALID_KEY_SYMBOL );
 			// sub value list
+			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive before first child section" );
 			dat->RecursiveLoadFromBuffer( resourceName, tokenReader, pfnEvaluateSymbolProc );
+			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive first child section ready" );
 		}
 		else 
 		{
