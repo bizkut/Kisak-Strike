@@ -23,32 +23,28 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.17
+Version: 3.18
 Size: 103,153,664 bytes
-SHA-256: 3033e455aed1eb279d64d067d20f23d3e8c455b99d705fca771fb8b0d4ca0f32
-Hardware run: v4.51 (2026-07-15), enters the lowercase gamemodes file load
+SHA-256: a94eb44bf2af9cc7e7c72970f113985ad571adb989b97434d4e1081ebe6f39e9
+Hardware run: v4.52 (2026-07-15), crashes inside the gamemodes text parser
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.17
-Size: 103,153,664 bytes
-SHA-256: 3033e455aed1eb279d64d067d20f23d3e8c455b99d705fca771fb8b0d4ca0f32
-Hardware result: v4.51 crashes inside `KeyValues::LoadFromFile`
-```
-
-Latest package staged and awaiting manual installation and launch:
-
-```text
-Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.18
 Size: 103,153,664 bytes
 SHA-256: a94eb44bf2af9cc7e7c72970f113985ad571adb989b97434d4e1081ebe6f39e9
-Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
-Hardware target: v4.52 gamemodes KeyValues file-pipeline trace
+Hardware result: v4.52 completes file I/O and crashes inside `KeyValues::LoadFromBuffer`
+```
+
+Next manual package in preparation:
+
+```text
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.19
+Hardware target: v4.53 gamemodes KeyValues parser-entry trace
 ```
 
 Current hardware baseline:
@@ -6712,6 +6708,19 @@ The host suite remains at the established 11/14 baseline, with only the three
 Linux high-address OpenGNM descriptor failures. The PKG is FTP-staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
 103,153,664 bytes and a complete readback matches the local PKG SHA-256.
+
+The v4.52 hardware run reaches every scoped file-pipeline completion marker:
+open, size query, optimal-size query, buffer allocation, read, close, and the
+final `before text parse` boundary. It records neither `text parse ready` nor
+`text parse failed`. The 99,836-byte file is therefore available and fully read;
+the active crash is inside the `KeyValues::LoadFromBuffer` call, before it
+returns to `KeyValues::LoadFromFile`.
+
+Version 3.19 will identify v4.53 and add resource-scoped parser-entry markers
+around the shared KeyValues mutex, the console/binary probe, token-reader
+construction, first root token, root name assignment, opening-brace token, and
+recursive text parser entry. This preserves the manual package install and
+launch workflow while narrowing the first failing parser operation.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
