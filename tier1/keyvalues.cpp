@@ -198,10 +198,8 @@ private:
 	bool m_bUsePriorToken;
 	bool m_bPriorTokenWasQuoted;
 	bool m_bPriorTokenWasConditional;
-	static char s_pTokenBuf[KEYVALUES_TOKEN_SIZE];
+	char m_pTokenBuf[KEYVALUES_TOKEN_SIZE];
 };
-
-char CKeyValuesTokenReader::s_pTokenBuf[KEYVALUES_TOKEN_SIZE];
 
 CKeyValuesTokenReader::CKeyValuesTokenReader( KeyValues *pKeyValues, CUtlBuffer &buf ) : 
 	m_Buffer( buf )
@@ -218,7 +216,7 @@ const char* CKeyValuesTokenReader::ReadToken( bool &wasQuoted, bool &wasConditio
 		m_bUsePriorToken = false;
 		wasQuoted = m_bPriorTokenWasQuoted;
 		wasConditional = m_bPriorTokenWasConditional;
-		return s_pTokenBuf;
+		return m_pTokenBuf;
 	}
 
 	m_bPriorTokenWasQuoted = wasQuoted = false;
@@ -252,20 +250,20 @@ const char* CKeyValuesTokenReader::ReadToken( bool &wasQuoted, bool &wasConditio
 	{
 		m_bPriorTokenWasQuoted = wasQuoted = true;
 		m_Buffer.GetDelimitedString( m_pKeyValues->m_bHasEscapeSequences ? GetCStringCharConversion() : GetNoEscCharConversion(), 
-			s_pTokenBuf, KEYVALUES_TOKEN_SIZE );
+			m_pTokenBuf, KEYVALUES_TOKEN_SIZE );
 
 		++m_nTokensRead;
-		return s_pTokenBuf;
+		return m_pTokenBuf;
 	}
 
 	if ( *c == '{' || *c == '}' || *c == '=' )
 	{
 		// it's a control char, just add this one char and stop reading
-		s_pTokenBuf[0] = *c;
-		s_pTokenBuf[1] = 0;
+		m_pTokenBuf[0] = *c;
+		m_pTokenBuf[1] = 0;
 		m_Buffer.GetChar();
 		++m_nTokensRead;
-		return s_pTokenBuf;
+		return m_pTokenBuf;
 	}
 
 	// read in the token until we hit a whitespace or a control character
@@ -299,7 +297,7 @@ const char* CKeyValuesTokenReader::ReadToken( bool &wasQuoted, bool &wasConditio
 
 		if (nCount < (KEYVALUES_TOKEN_SIZE-1) )
 		{
-			s_pTokenBuf[nCount++] = *c;	// add char to buffer
+			m_pTokenBuf[nCount++] = *c;	// add char to buffer
 		}
 		else if ( !bReportedError )
 		{
@@ -309,10 +307,10 @@ const char* CKeyValuesTokenReader::ReadToken( bool &wasQuoted, bool &wasConditio
 
 		m_Buffer.GetChar();
 	}
-	s_pTokenBuf[ nCount ] = 0;
+	m_pTokenBuf[ nCount ] = 0;
 	++m_nTokensRead;
 
-	return s_pTokenBuf;
+	return m_pTokenBuf;
 }
 
 void CKeyValuesTokenReader::SeekBackOneToken()
@@ -2350,7 +2348,7 @@ bool KeyValues::EvaluateConditional( const char *pExpressionString, GetSymbolPro
 	return bResult;
 }
 
-// prevent two threads from entering this at the same time and trying to share the global error reporting and parse buffers
+// prevent two threads from entering this at the same time and trying to share global parser state
 static CThreadFastMutex g_KVMutex;
 //-----------------------------------------------------------------------------
 // Read from a buffer...

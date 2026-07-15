@@ -1843,7 +1843,7 @@ int CEngineAPI::Run()
 	KisakPs4StartupBreadcrumb( "kisak-ps4: source engine run entered" );
 	KisakPs4RetainSourceVoiceServerInterface();
 	KisakPs4RetainEngineRandomInterface();
-	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker gamemodes_key_trace_v454" );
+	KisakPs4StartupBreadcrumb( "kisak-ps4: build marker gamemodes_reader_buffer_v455" );
 	#endif
 	if ( CommandLine()->FindParm("-insecure") )
 	{

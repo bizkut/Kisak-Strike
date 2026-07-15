@@ -39,11 +39,15 @@ SHA-256: 0396bcc7b2dd09e4234efaf345f91d46851e45e2eec9cd93e4d1ef5565a28dd4
 Hardware result: v4.54 sees `#SFUI_Game` where the next key must be `gameModes`
 ```
 
-Next manual package in preparation:
+Latest package staged and awaiting manual installation and launch:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.21
+Size: 103,153,664 bytes
+SHA-256: 4776e95d3fba6ecc0779d7af294374ec28446e981dc28b0b4c1d4942a5345d24
+Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
 Hardware target: v4.55 reader-local KeyValues token buffer
 ```
 
@@ -6833,6 +6837,39 @@ Version 3.21 will identify v4.55 and move the 32 KiB token array from the static
 reader. The bounded per-key trace remains enabled so hardware can prove whether
 the sequence advances from `nameID` to `gameModes` and whether the complete
 file parse returns.
+
+### v4.55: Give each KeyValues token reader its own buffer
+
+`CKeyValuesTokenReader` now owns its 32 KiB token array as an instance member
+instead of exposing one process-global static array. The class is constructed
+once in the mutex-protected core `LoadFromBuffer` scope and passed by reference
+through recursive sections, so look-ahead and `SeekBackOneToken` replay the
+active reader's storage. No parsing API changes. The v4.54 bounded key trace
+remains enabled for the exact `gamemodes.txt` resource.
+
+Package version 3.21 and build marker `gamemodes_reader_buffer_v455` identify
+the manual-install test. The Linux OpenOrbis build, final link, FSELF
+conversion, package creation, and verbose PkgTool validation complete. Every
+package check is `[OK]`, metadata contains version 3.21, the v4.55 marker and
+key-trace format are present, the former
+`CKeyValuesTokenReader::s_pTokenBuf` OELF symbol is absent, and the retired
+development attach-gate marker is absent. Artifact identities:
+
+```text
+OELF: 135,944,032 bytes
+SHA-256: 8f5d1700eb2c3db03708b3cf1dd05cc050a7894f0bb0d7c25a99ece40db3591b
+SELF: 83,060,576 bytes
+SHA-256: e722eac95a222b54f8b8165f239c41c1800f3ad9f7a9821ebf2d9363ec755336
+PKG: 103,153,664 bytes
+SHA-256: 4776e95d3fba6ecc0779d7af294374ec28446e981dc28b0b4c1d4942a5345d24
+```
+
+The host suite remains at the established 11/14 baseline, with only
+`ps4_gnm_device`, `ps4_gnm_buffer`, and `ps4_gnm_constants` failing on Linux
+high addresses that do not round-trip through PS4's 44-bit descriptor fields.
+The PKG is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and a complete readback matches the local PKG SHA-256.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
