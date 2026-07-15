@@ -8,6 +8,7 @@ import struct
 import tempfile
 import types
 import unittest
+from unittest import mock
 
 from ps4debug import VMProtection
 
@@ -272,6 +273,7 @@ class OelfTests(unittest.TestCase):
                 "probe",
                 "wait-process",
                 "maps",
+                "qualify-attach",
                 "release-dev-gate",
                 "capture-crash",
             },
@@ -285,6 +287,13 @@ class OelfTests(unittest.TestCase):
             }
             self.assertIn("expect_oelf_sha256", required)
             self.assertIn("allow_write", required)
+
+        qualify_required = {
+            action.dest
+            for action in commands["qualify-attach"]._actions
+            if getattr(action, "required", False)
+        }
+        self.assertEqual(qualify_required, {"expect_oelf_sha256"})
 
     def test_resolve_gate_symbols_and_validate_segments(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -510,6 +519,47 @@ class TargetTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(client.debugger_calls[0][1]["resume"])
         self.assertTrue(client.debugger_calls[0][1]["attach_stopped"])
         self.assertEqual(client.debugger_calls[0][1]["port"], 17555)
+
+    async def test_qualify_attach_runs_two_cycles_without_writing(self) -> None:
+        client = FakeClient()
+        target = debug.TargetProcess(
+            20,
+            "eboot.bin",
+            "/app0/eboot.bin",
+            debug.DEFAULT_TITLE_ID,
+            "content",
+        )
+        verification = {
+            "gate_address": 0x10500000,
+            "gate_value": debug.DEV_GATE_HOLD,
+        }
+
+        with mock.patch.object(
+            debug,
+            "_verify_dev_gate_while_stopped",
+            new=mock.AsyncMock(return_value=verification),
+        ) as verify:
+            result = await debug.qualify_dev_attach_gate(
+                client,
+                target,
+                mock.sentinel.identity,
+                mock.sentinel.expected_image,
+                mock.sentinel.gate,
+                mock.sentinel.marker,
+                debug_port=17555,
+            )
+
+        self.assertEqual(verify.await_count, 2)
+        self.assertEqual(result["attach_cycles"], 2)
+        self.assertEqual(result["gate_value"], debug.DEV_GATE_HOLD)
+        self.assertEqual(client.writes, [])
+        self.assertEqual(len(client.debugger_calls), 2)
+        for pid, kwargs in client.debugger_calls:
+            self.assertEqual(pid, 20)
+            self.assertFalse(kwargs["resume"])
+            self.assertTrue(kwargs["attach_stopped"])
+            self.assertIsNone(kwargs["event_read_timeout"])
+            self.assertEqual(kwargs["port"], 17555)
 
     async def test_release_dev_gate_rejects_timed_out_gate_without_write(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

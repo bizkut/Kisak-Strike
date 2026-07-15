@@ -677,7 +677,7 @@ def validate_dev_gate_symbols(
         raise GuardError(f"{DEV_GATE_MARKER_SYMBOL} is not in a readable segment")
 
 
-async def _release_dev_gate_while_stopped(
+async def _verify_dev_gate_while_stopped(
     client: Any,
     target: TargetProcess,
     identity: OelfIdentity,
@@ -685,7 +685,7 @@ async def _release_dev_gate_while_stopped(
     gate: ElfSymbol,
     marker: ElfSymbol,
 ) -> dict[str, Any]:
-    """Revalidate and release a gate while the caller holds the target stopped."""
+    """Revalidate a held gate while the caller holds the target stopped."""
     validate_dev_gate_symbols(identity, gate, marker)
 
     maps = await get_guarded_maps(client, target)
@@ -735,6 +735,31 @@ async def _release_dev_gate_while_stopped(
             state = f"unexpected value {current:#018x}"
         raise GuardError(f"development gate is not held: {state}")
 
+    return {
+        "gate_address": gate_address,
+        "gate_value": current,
+    }
+
+
+async def _release_dev_gate_while_stopped(
+    client: Any,
+    target: TargetProcess,
+    identity: OelfIdentity,
+    expected_image: ResolvedImage,
+    gate: ElfSymbol,
+    marker: ElfSymbol,
+) -> dict[str, Any]:
+    """Revalidate and release a gate while the caller holds the target stopped."""
+    verification = await _verify_dev_gate_while_stopped(
+        client,
+        target,
+        identity,
+        expected_image,
+        gate,
+        marker,
+    )
+    gate_address = verification["gate_address"]
+
     await client.write_memory(
         target.pid,
         gate_address,
@@ -750,7 +775,7 @@ async def _release_dev_gate_while_stopped(
 
     return {
         "gate_address": gate_address,
-        "previous_value": DEV_GATE_HOLD,
+        "previous_value": verification["gate_value"],
         "released_value": DEV_GATE_RELEASE,
     }
 
@@ -782,6 +807,46 @@ async def release_dev_attach_gate(
             marker,
         )
     return {**mutation, "resumed_by": "verified debugger detach"}
+
+
+async def qualify_dev_attach_gate(
+    client: Any,
+    target: TargetProcess,
+    identity: OelfIdentity,
+    expected_image: ResolvedImage,
+    gate: ElfSymbol,
+    marker: ElfSymbol,
+    *,
+    debug_port: int,
+) -> dict[str, Any]:
+    """Prove two stopped attach/detach cycles without releasing the held gate."""
+    verification: dict[str, Any] | None = None
+    for _ in range(2):
+        async with client.debugger(
+            target.pid,
+            port=debug_port,
+            resume=False,
+            attach_stopped=True,
+            event_read_timeout=None,
+        ):
+            current = await _verify_dev_gate_while_stopped(
+                client,
+                target,
+                identity,
+                expected_image,
+                gate,
+                marker,
+            )
+            if verification is not None and current != verification:
+                raise GuardError("development-gate state changed between attach cycles")
+            verification = current
+
+    assert verification is not None
+    return {
+        **verification,
+        "attach_cycles": 2,
+        "resumed_by": "confirmed debugger detach",
+    }
 
 async def capture_first_debug_event(
     client: Any,
@@ -956,6 +1021,21 @@ def build_parser() -> argparse.ArgumentParser:
     maps_parser.add_argument("--wait-timeout", type=float, default=10.0)
     maps_parser.add_argument("--poll-interval", type=float, default=0.25)
 
+    qualify_parser = subparsers.add_parser(
+        "qualify-attach",
+        help="prove two stopped attach/detach cycles without writing the gate",
+    )
+    qualify_parser.add_argument(
+        "--oelf",
+        type=pathlib.Path,
+        default=repository / DEFAULT_OELF,
+    )
+    qualify_parser.add_argument("--expect-oelf-sha256", required=True)
+    qualify_parser.add_argument("--expect-marker", action="append", default=[])
+    qualify_parser.add_argument("--wait-timeout", type=float, default=60.0)
+    qualify_parser.add_argument("--poll-interval", type=float, default=0.1)
+    qualify_parser.add_argument("--debug-port", type=int, default=DEFAULT_DEBUG_PORT)
+
     release_parser = subparsers.add_parser(
         "release-dev-gate",
         help="attach stopped and release one verified development gate",
@@ -1046,7 +1126,12 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             "target": _target_dict(target),
         }
 
-    if args.command in {"maps", "release-dev-gate", "capture-crash"}:
+    if args.command in {
+        "maps",
+        "qualify-attach",
+        "release-dev-gate",
+        "capture-crash",
+    }:
         identity = inspect_oelf(
             args.oelf,
             expected_sha256=args.expect_oelf_sha256,
@@ -1054,7 +1139,7 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
         )
 
         gate = marker = None
-        if args.command in {"release-dev-gate", "capture-crash"}:
+        if args.command in {"qualify-attach", "release-dev-gate", "capture-crash"}:
             gate = resolve_elf_symbol(identity.path, DEV_GATE_SYMBOL)
             marker = resolve_elf_symbol(identity.path, DEV_GATE_MARKER_SYMBOL)
             validate_dev_gate_symbols(identity, gate, marker)
@@ -1081,6 +1166,32 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             "load_bias": resolved.load_bias,
             "verified_markers": list(resolved.verified_markers),
             "maps": [_map_dict(memory_map) for memory_map in maps],
+        }
+
+    if args.command == "qualify-attach":
+        assert gate is not None and marker is not None
+        qualification = await qualify_dev_attach_gate(
+            client,
+            target,
+            identity,
+            resolved,
+            gate,
+            marker,
+            debug_port=args.debug_port,
+        )
+        return {
+            "mode": "read-only-attach",
+            "protocol_version": version,
+            "target": _target_dict(target),
+            "oelf": {
+                "path": str(identity.path),
+                "size": identity.size,
+                "sha256": identity.sha256,
+                "markers": sorted({item.name for item in identity.markers}),
+            },
+            "load_bias": resolved.load_bias,
+            "verified_markers": list(resolved.verified_markers),
+            **qualification,
         }
 
     if args.command == "release-dev-gate":
