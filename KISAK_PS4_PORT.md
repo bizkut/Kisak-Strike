@@ -6722,9 +6722,10 @@ claim two-agent review coverage. The detach sequence was instead checked against
 the authoritative FreeBSD `ptrace(2)` contract and encoded in the host-stub
 tests.
 
-#### Hardware recovery and qualification plan
+#### Historical hardware recovery and qualification plan
 
-Do not reuse the legacy payload for gate release. The next supervised session is:
+This plan was attempted once and is retained only as historical context. Do not
+resume it unless the development workflow is explicitly reconsidered:
 
 1. Manually restore the console/Remote Play and load the locally patched
    `/home/bizkut/OpenOrbis/ps4debug/ps4debug.bin`, not the unmodified upstream
@@ -6745,7 +6746,39 @@ Do not reuse the legacy payload for gate release. The next supervised session is
    collection. Arbitrary writes, kernel operations, kill, reboot, or unattended
    recovery remain out of scope.
 
-### Development-stage network `eboot.bin` loading
+#### Protocol 1.4 hardware result and workflow decision — 2026-07-15
+
+The patched payload reported protocol `1.4`, and PS4Load accepted the exact
+83,044,160-byte gated SELF with SHA-256
+`60238326f04c79271a16e8f0fbbad336e61577c0b004c5cfb396182601b3df7e` as a
+22,910,890-byte zlib stream. The receiver closed the transfer socket cleanly.
+Read-only inspection then selected PID 73 under title `LOAD00044`, matched OELF
+SHA-256 `4b6f86fa0ee58fa3b852cc8ff288997fc849f2213baa00ea861faf8bb7cfa58e`,
+verified all three current build markers, and resolved load bias `0x400000`.
+
+The first `qualify-attach` cycle failed with
+`AttachDebuggerV2Command failed: ERROR`. The qualifier stopped immediately: it
+did not write the development gate, issue `STOPGO`, release the target, or
+attempt crash capture. A subsequent read-only map pass still found the same PID,
+image identity, markers, and load bias, which confirms that the server-side
+failure path rolled the attempted attach back without replacing the process.
+The Linux host is on `10.1.1.15` while the PS4 and Chiaki Mac are on
+`10.0.1.x`; callback routing is the leading explanation, but it was not proven
+and no further attach experiment is authorized by this decision.
+
+The combined PS4Load SELF-upload plus ps4debug early-attach workflow is now
+retired. Development hardware tests return to the established manual package
+workflow: build the normal Kisak `.pkg`, have the operator install and launch
+it, then retrieve the startup log and visual result. Do not send another SELF,
+open debugger callback/control tunnels, release the attach gate, or capture a
+debug event unless this decision is explicitly reversed. The temporary tunnel
+used during diagnosis was closed and both its Linux control listener and Mac
+callback listener were verified absent.
+
+### Retired development-stage network `eboot.bin` loading
+
+Status: historical implementation record only. The manual `.pkg` install and
+launch workflow above is active.
 
 Directly replacing the installed title's `/app0/eboot.bin` over FTP is not the
 development strategy. The packaging scripts copy the executable into the GP4
