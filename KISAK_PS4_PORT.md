@@ -6110,6 +6110,39 @@ The package was staged successfully at `/data/pkg/IV0000-KISK00002_00-KISAKMONOL
 on 2026-07-15, so hardware validation remains pending. Install/run only title
 `KISK00002`; the bootstrap title is not required for this checkpoint.
 
+### v4.41: Isolate post-save/restore server initialization
+
+Hardware v4.40 confirms the monolithic `sv_cheats` collision is fixed: the
+server passes both `cvar references ready` and `save restore handlers ready`.
+The process then stops before `server DLLInit complete`, narrowing the current
+fault to the following synchronous initialization window. PS4 deliberately
+keeps `IsGameConsole()==false`, so `sv_threaded_init` defaults to zero and
+the expected path is `ParseParticleEffects(false)` followed by
+`InitGameSystems(appSystemFactory)`.
+
+Version 3.07 adds bounded breadcrumbs without bypassing any initialization.
+They distinguish the threaded-init cvar read, particle parsing, game-system
+initialization, debug-overlay query, game-stats connection, and game-types
+initialization. The decisive expected sequence begins with:
+
+```text
+kisak-ps4: build marker server_particle_init_probe_v441
+kisak-ps4: server DLLInit before threaded init cvar
+kisak-ps4: server DLLInit threaded init disabled
+kisak-ps4: server DLLInit before particle parse
+```
+
+The first missing following marker identifies the next concrete fault boundary.
+Do not skip server particle parsing unless hardware proves that call is the
+fault; particle definitions are required later for networked effect indices.
+
+The Linux OpenOrbis build and fself conversion complete, the packaged eboot
+contains every new marker, and the 92,733,440-byte package has SHA-256
+`c484ba2075bc1447179138fceb564e0da2f59a43db924850360c15ce46b9a249`.
+Version 3.07 was staged to
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` on 2026-07-15.
+Install/run title `KISK00002`; the bootstrap package remains unnecessary.
+
 ### PS3 Scaleform UI cross-reference priorities
 
 Full cross-reference report: `KISAK_PS3_UI_CROSSREFERENCE.md` in the Kisak

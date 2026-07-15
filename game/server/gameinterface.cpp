@@ -936,13 +936,18 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetEventQueueSaveRestoreBlockHandler() );
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetVScriptSaveRestoreBlockHandler() );
 	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit save restore handlers ready" );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before threaded init cvar" );
 
 #if defined( PORTAL2 )
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetPaintSaveRestoreBlockHandler() );
 #endif
 
 	bool bInitSuccess = false;
-	if ( sv_threaded_init.GetBool() )
+	const bool bThreadedInit = sv_threaded_init.GetBool();
+	PS4_SERVER_DLL_BREADCRUMB( bThreadedInit
+		? "kisak-ps4: server DLLInit threaded init enabled"
+		: "kisak-ps4: server DLLInit threaded init disabled" );
+	if ( bThreadedInit )
 	{
 		CFunctorJob *pGameJob = new CFunctorJob( CreateFunctor( ParseParticleEffects, false ) );
 		g_pThreadPool->AddJob( pGameJob );
@@ -969,20 +974,27 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	else
 	{
 		COM_TimestampedLog( "ParseParticleEffects" );
+		PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before particle parse" );
 		ParseParticleEffects( false );
+		PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit particle parse ready" );
 		COM_TimestampedLog( "InitGameSystems - Start" );
+		PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before game systems" );
 		bInitSuccess = InitGameSystems( appSystemFactory );
+		PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit game systems ready" );
 		COM_TimestampedLog( "InitGameSystems - Finish" );
 	}
 	// try to get debug overlay, may be NULL if on HLDS
 	debugoverlay = (IVDebugOverlay *)appSystemFactory( VDEBUG_OVERLAY_INTERFACE_VERSION, NULL );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit debug overlay query ready" );
 
 	// init the gamestatsupload connection
 	gamestatsuploader->InitConnection();
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit game stats connection ready" );
 
 #if defined( CSTRIKE15 )
 	// Load the game types.
 	g_pGameTypes->Initialize();
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit game types ready" );
 #endif
 
 	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit complete" );
