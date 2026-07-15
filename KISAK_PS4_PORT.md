@@ -39,11 +39,15 @@ SHA-256: 968a2ef0394b1a5276d300cc6d2ff844acb009dab0ab8eba8a59a52a69ca418a
 Hardware result: v4.53 enters the first `gameTypes` child section but does not return
 ```
 
-Next manual package in preparation:
+Latest package staged and awaiting manual installation and launch:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.20
+Size: 103,153,664 bytes
+SHA-256: 0396bcc7b2dd09e4234efaf345f91d46851e45e2eec9cd93e4d1ef5565a28dd4
+Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
 Hardware target: v4.54 bounded per-key gamemodes parser trace
 ```
 
@@ -6774,6 +6778,39 @@ parser stack depth, and key name. A 4,096-entry ceiling covers the 2,713 lines
 in the current file that begin with a quoted key while preventing an unbounded
 trace if the input changes. The last breadcrumb will identify the concrete key
 being processed when the recursive parser crashes.
+
+### v4.54: Trace each gamemodes key token
+
+The exact `gamemodes.txt` parse now resets a resource-scoped key counter when
+the core buffer parser starts. After every recursive key token passes the null,
+empty, and closing-brace checks, PS4 emits one breadcrumb containing the global
+key index, current KeyValues error-stack depth, and key name. The trace stops
+after 4,096 keys; other KeyValues resources and non-PS4 builds retain no runtime
+trace work. The v4.53 entry breadcrumbs remain around the parser setup and first
+recursive child.
+
+Package version 3.20 and build marker `gamemodes_key_trace_v454` identify the
+manual-install test. The Linux OpenOrbis build, final link, FSELF conversion,
+package creation, and verbose PkgTool validation complete. Every package check
+is `[OK]`, metadata contains version 3.20, the dynamic key-trace format and build
+marker are present, and the retired development attach-gate marker is absent.
+Artifact identities:
+
+```text
+OELF: 135,944,096 bytes
+SHA-256: 91fc2fa4fe8ab81e091548199119dcbe900f65547e62f8341c5cedc45b6ad5b8
+SELF: 83,060,576 bytes
+SHA-256: 2632fecd135eb44544f9fc37bf2426c6c0557dbc8f096807b169b2e565b34f17
+PKG: 103,153,664 bytes
+SHA-256: 0396bcc7b2dd09e4234efaf345f91d46851e45e2eec9cd93e4d1ef5565a28dd4
+```
+
+The host suite remains at the established 11/14 baseline, with only
+`ps4_gnm_device`, `ps4_gnm_buffer`, and `ps4_gnm_constants` failing on Linux
+high addresses that do not round-trip through PS4's 44-bit descriptor fields.
+The PKG is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and a complete readback matches the local PKG SHA-256.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

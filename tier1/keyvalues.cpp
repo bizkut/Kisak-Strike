@@ -36,13 +36,39 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 	( ( resourceName ) && V_strcmp( ( resourceName ), "gamemodes.txt" ) == 0 )
 #define PS4_KEYVALUES_LOAD_BREADCRUMB( enabled, line ) \
 	do { if ( enabled ) KisakPs4StartupBreadcrumb( line ); } while ( 0 )
+#define PS4_KEYVALUES_RESET_KEY_TRACE( enabled ) \
+	do { if ( enabled ) s_nKisakPs4GameModesKeyTraceCount = 0; } while ( 0 )
+#define PS4_KEYVALUES_KEY_BREADCRUMB( enabled, name, depth ) \
+	do { if ( enabled ) KisakPs4GameModesKeyBreadcrumb( name, depth ); } while ( 0 )
 #else
 #define PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) false
 #define PS4_KEYVALUES_LOAD_BREADCRUMB( enabled, line ) ((void)(enabled))
+#define PS4_KEYVALUES_RESET_KEY_TRACE( enabled ) ((void)(enabled))
+#define PS4_KEYVALUES_KEY_BREADCRUMB( enabled, name, depth ) ((void)(enabled))
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include <tier0/memdbgon.h>
+
+#if defined( PLATFORM_PS4 )
+static int s_nKisakPs4GameModesKeyTraceCount = 0;
+static const int k_nKisakPs4GameModesKeyTraceLimit = 4096;
+
+static void KisakPs4GameModesKeyBreadcrumb( const char *pName, int nDepth )
+{
+	if ( s_nKisakPs4GameModesKeyTraceCount >= k_nKisakPs4GameModesKeyTraceLimit )
+	{
+		return;
+	}
+
+	char line[512];
+	V_snprintf( line, sizeof( line ),
+		"kisak-ps4: gamemodes parse key index=%d depth=%d name=%s",
+		s_nKisakPs4GameModesKeyTraceCount, nDepth, pName ? pName : "" );
+	++s_nKisakPs4GameModesKeyTraceCount;
+	KisakPs4StartupBreadcrumb( line );
+}
+#endif
 
 //////// VPROF? //////////////////
 // For an example of how to mark up this file with VPROF nodes, see 
@@ -2335,6 +2361,7 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser entered" );
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser before mutex" );
 	AUTO_LOCK_FM( g_KVMutex );
+	PS4_KEYVALUES_RESET_KEY_TRACE( bTracePs4GameModes );
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser mutex ready" );
 
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser before console probe" );
@@ -2561,8 +2588,9 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, const char *pBuffer, I
 //-----------------------------------------------------------------------------
 void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTokenReader &tokenReader, GetSymbolProc_t pfnEvaluateSymbolProc )
 {
+	const bool bTracePs4GameModes = PS4_KEYVALUES_TRACE_GAMEMODES( resourceName );
 	CKeyErrorContext errorReport( GetNameSymbolCaseSensitive() );
-	const bool bTracePs4RootGameModes = PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) && errorReport.GetStackLevel() == 0;
+	const bool bTracePs4RootGameModes = bTracePs4GameModes && errorReport.GetStackLevel() == 0;
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4RootGameModes, "kisak-ps4: gamemodes recursive error context ready" );
 	bool wasQuoted;
 	bool wasConditional;
@@ -2609,6 +2637,8 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 
 		if ( *name == '}' && !wasQuoted )	// top level closed, stop reading
 			break;
+
+		PS4_KEYVALUES_KEY_BREADCRUMB( bTracePs4GameModes, name, errorReport.GetStackLevel() );
 
 		// Always create the key; note that this could potentially
 		// cause some duplication, but that's what we want sometimes
