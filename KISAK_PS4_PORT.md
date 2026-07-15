@@ -39,7 +39,7 @@ SHA-256: fb158b6fbb6e643b3e3bd437fb889f55848da10ff422ab11b643ef038c4e2dd9
 Staged:   /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
 ```
 
-Latest package awaiting manual installation and launch:
+Latest package staged and awaiting manual installation and launch:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
@@ -47,6 +47,7 @@ Version: 3.13
 Size: 103,153,664 bytes
 SHA-256: da5d34f16bbf8d43a50471d687babbe954e3e87350bf49e4711bcb6921cd0ac3
 Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
 Hardware target: v4.47 canonical engine sv_cheats bridge
 ```
 
@@ -6404,6 +6405,8 @@ and does not contain the development attach-gate marker. Both manual package
 entry points force `KISAK_PS4_DEV_ATTACH_GATE=0`; the final qualification build
 set the outer environment to `1` deliberately and still produced a gate-free
 SELF, proving that a stale debugger environment cannot contaminate a package.
+The FTP-staged package reports the same 103,153,664-byte size, and a complete
+readback matches the local package SHA-256.
 
 Artifact identities:
 
