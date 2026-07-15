@@ -39,12 +39,15 @@ SHA-256: 32e0e7324f0358db1ce2ee91e99270c4cb31076349a113890b2f64a2b0cb2845
 Hardware result: v4.49 reaches the GameTypes initialization call
 ```
 
-Next manual-install package:
+Latest package staged and awaiting manual installation and launch:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.16
-Status: in preparation
+Size: 103,153,664 bytes
+SHA-256: e69e4ae8ca2ee6e90c70fcc4547f1590cf6eb8c54d0c4c86e9b8f8e8215dffa8
+Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
 Hardware target: v4.50 internal GameTypes initialization trace
 ```
 
@@ -6577,6 +6580,47 @@ vtable evidence from the `sv_maxreplay` collision. Version 3.16 will therefore
 trace entry, container cleanup, KeyValues allocation, base `GameModes.txt`
 loading, server override loading, and each structured load phase before making
 a behavioral change.
+
+### v4.50: Trace the complete GameTypes initialization pipeline
+
+Package version 3.16 and build marker `gametypes_initialize_trace_v450`
+identify this manual-install test. `CServerGameDLL::DLLInit` now records an
+explicit pre-call marker, and each PS4 GameTypes copy uses a role-specific
+prefix so hardware can distinguish server and client virtual dispatch. The
+trace brackets entry, repeat initialization, container cleanup, server map-info
+cleanup, KeyValues allocation, base `GameModes.txt` loading, DLC merge, optional
+server override loading and merging, and the game-type, map, map-group, and bot
+difficulty structured loaders.
+
+A read-only FTP content check finds the loose lowercase `gamemodes.txt` under
+the mounted `csgo` root and confirms that `gamemodes_server.txt` is absent;
+only its example file is installed. The optional override should therefore take
+the traced missing-file branch. If no role-specific entry marker follows the
+new server pre-call marker, dispatch or runtime object state remains the fault.
+Otherwise the last internal marker identifies the exact operation to inspect.
+
+The Linux OpenOrbis build, final link, FSELF conversion, package creation, and
+verbose PkgTool validation complete. Every package check is `[OK]`, metadata
+contains version 3.16, both client and server entry strings plus the v4.50 build
+marker are present, and the retired development attach-gate marker is absent.
+The final OELF retains two separate localized `g_pGameTypes` slots and two
+matching 3,557-byte `GameTypes::Initialize(bool)` bodies. Artifact identities:
+
+```text
+OELF: 135,927,592 bytes
+SHA-256: 29c556d18f078a578239a1855ea68c4b8dbc4ede18e716474f452682b5fe76db
+SELF: 83,044,160 bytes
+SHA-256: 4d87e587c3b3f48f4720f74a738795e4160b59f27bc969f6388f1f44a28c7aa3
+PKG: 103,153,664 bytes
+SHA-256: e69e4ae8ca2ee6e90c70fcc4547f1590cf6eb8c54d0c4c86e9b8f8e8215dffa8
+```
+
+The host suite remains at the established 11/14 baseline. Only
+`ps4_gnm_device`, `ps4_gnm_buffer`, and `ps4_gnm_constants` fail because Linux
+high addresses do not round-trip through PS4's 44-bit descriptor fields. The
+PKG is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and a complete readback matches the local PKG SHA-256.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

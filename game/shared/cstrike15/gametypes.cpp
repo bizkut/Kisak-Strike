@@ -37,6 +37,19 @@
 
 #include "fmtstr.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#if defined( GAME_DLL )
+#define PS4_GAMETYPES_BREADCRUMB( suffix ) KisakPs4StartupBreadcrumb( "kisak-ps4: server gametypes " suffix )
+#elif defined( CLIENT_DLL )
+#define PS4_GAMETYPES_BREADCRUMB( suffix ) KisakPs4StartupBreadcrumb( "kisak-ps4: client gametypes " suffix )
+#else
+#define PS4_GAMETYPES_BREADCRUMB( suffix ) KisakPs4StartupBreadcrumb( "kisak-ps4: matchmaking gametypes " suffix )
+#endif
+#else
+#define PS4_GAMETYPES_BREADCRUMB( suffix ) ((void)0)
+#endif
+
 // NOTE: This has to be the last file included!
 #include "tier0/memdbgon.h"
 
@@ -257,36 +270,46 @@ void GameTypes::ClearServerMapGroupInfo( void )
 bool GameTypes::Initialize( bool force /* = false*/ )
 {
 	const char *fileName = "GameModes.txt";
+	PS4_GAMETYPES_BREADCRUMB( "initialize entered" );
 
 	if ( m_Initialized &&
 		 !force )
 	{
+		PS4_GAMETYPES_BREADCRUMB( "already initialized" );
 		return true;
 	}
 
+	PS4_GAMETYPES_BREADCRUMB( "before container purges" );
 	m_GameTypes.PurgeAndDeleteElements();
 	m_Maps.PurgeAndDeleteElements();
 	m_CustomBotDifficulties.PurgeAndDeleteElements();
+	PS4_GAMETYPES_BREADCRUMB( "container purges ready" );
 
 	ClearServerMapGroupInfo();
+	PS4_GAMETYPES_BREADCRUMB( "server map info clear ready" );
 
 	KeyValues *pKV = new KeyValues( "" );
+	PS4_GAMETYPES_BREADCRUMB( "base keyvalues allocated" );
 
 	KeyValues::AutoDelete autodelete( pKV );
 
 	DevMsg( "GameTypes: initializing game types interface from %s.\n", fileName );
 
 	// Load the key values from the disc.
+	PS4_GAMETYPES_BREADCRUMB( "before base file load" );
 	if ( !pKV->LoadFromFile( g_pFullFileSystem, fileName ) )
 	{
+		PS4_GAMETYPES_BREADCRUMB( "base file load failed" );
 		Warning( "GameTypes: error loading %s.", fileName );
 		return false;
 	}
+	PS4_GAMETYPES_BREADCRUMB( "base file load ready" );
 
 //	pKV->SaveToFile( g_pFullFileSystem, "maps/gamemodes-pre.txt", "GAME" );
 
 	// Load key values from any DLC on disc.
 	DLCHelper::AppendDLCKeyValues( pKV, fileName );
+	PS4_GAMETYPES_BREADCRUMB( "DLC merge ready" );
 
 	// Merge map sidecar files ( map.kv )
 	// Map sidecar loading has been moved to CCSGameRules::InitializeGameTypeAndMode
@@ -301,14 +324,19 @@ bool GameTypes::Initialize( bool force /* = false*/ )
 
 	if ( !svfileName )
 		svfileName = "gamemodes_server.txt";
+	PS4_GAMETYPES_BREADCRUMB( "server override filename ready" );
 
 	DevMsg( "GameTypes: merging game types interface from %s.\n", svfileName );
 
 	KeyValues *pKV_sv = new KeyValues( "" );
+	PS4_GAMETYPES_BREADCRUMB( "server override keyvalues allocated" );
 
+	PS4_GAMETYPES_BREADCRUMB( "before server override load" );
 	if ( pKV_sv->LoadFromFile( g_pFullFileSystem, svfileName ) )
 	{
+		PS4_GAMETYPES_BREADCRUMB( "server override load ready" );
 		// Merge the section that exec's configs in a special way
+		PS4_GAMETYPES_BREADCRUMB( "before server exec merge" );
 		for ( KeyValues *psvGameType = pKV_sv->FindKey( "gametypes" )->GetFirstTrueSubKey();
 			psvGameType; psvGameType = psvGameType->GetNextTrueSubKey() )
 		{
@@ -332,8 +360,10 @@ bool GameTypes::Initialize( bool force /* = false*/ )
 				}
 			}
 		}
+		PS4_GAMETYPES_BREADCRUMB( "server exec merge ready" );
 
 		// for modes that have weapon progressions remove pre-existing weapon progressions if the server file has them
+		PS4_GAMETYPES_BREADCRUMB( "before server progression merge" );
 		for ( KeyValues *psvGameType = pKV_sv->FindKey( "gametypes" )->GetFirstTrueSubKey();
 			psvGameType; psvGameType = psvGameType->GetNextTrueSubKey() )
 		{
@@ -360,11 +390,14 @@ bool GameTypes::Initialize( bool force /* = false*/ )
 				}
 			}
 		}
+		PS4_GAMETYPES_BREADCRUMB( "server progression merge ready" );
 
 		pKV->MergeFrom( pKV_sv, KeyValues::MERGE_KV_UPDATE );
+		PS4_GAMETYPES_BREADCRUMB( "server override merge ready" );
 	}
 	else
 	{
+		PS4_GAMETYPES_BREADCRUMB( "server override load missing" );
 		DevMsg( "Failed to load %s\n", svfileName );
 	}
 
@@ -373,32 +406,46 @@ bool GameTypes::Initialize( bool force /* = false*/ )
 		pKV_sv->deleteThis();
 		pKV_sv = NULL;
 	}
+	PS4_GAMETYPES_BREADCRUMB( "server override keyvalues released" );
 
 	// Load the game types.
+	PS4_GAMETYPES_BREADCRUMB( "before structured game types load" );
 	if ( !LoadGameTypes( pKV ) )
 	{
+		PS4_GAMETYPES_BREADCRUMB( "structured game types load failed" );
 		return false;
 	}
+	PS4_GAMETYPES_BREADCRUMB( "structured game types load ready" );
 
 	// Load the maps.
+	PS4_GAMETYPES_BREADCRUMB( "before structured maps load" );
 	if ( !LoadMaps( pKV ) )
 	{
+		PS4_GAMETYPES_BREADCRUMB( "structured maps load failed" );
 		return false;
 	}
+	PS4_GAMETYPES_BREADCRUMB( "structured maps load ready" );
 
 	// Load the map groups.
+	PS4_GAMETYPES_BREADCRUMB( "before structured map groups load" );
 	if ( !LoadMapGroups( pKV ) )
 	{
+		PS4_GAMETYPES_BREADCRUMB( "structured map groups load failed" );
 		return false;
 	}
+	PS4_GAMETYPES_BREADCRUMB( "structured map groups load ready" );
 
 	// Load the bot difficulty levels for Offline games.
+	PS4_GAMETYPES_BREADCRUMB( "before structured bot difficulty load" );
 	if ( !LoadCustomBotDifficulties( pKV ) )
 	{
+		PS4_GAMETYPES_BREADCRUMB( "structured bot difficulty load failed" );
 		return false;
 	}
+	PS4_GAMETYPES_BREADCRUMB( "structured bot difficulty load ready" );
 
 	m_Initialized = true;
+	PS4_GAMETYPES_BREADCRUMB( "initialize complete" );
 
 	return true;
 }

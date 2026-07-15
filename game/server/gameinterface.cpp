@@ -1039,6 +1039,7 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 
 #if defined( CSTRIKE15 )
 	// Load the game types.
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before game types" );
 	g_pGameTypes->Initialize();
 	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit game types ready" );
 #endif
