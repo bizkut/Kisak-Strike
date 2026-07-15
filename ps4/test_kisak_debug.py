@@ -300,6 +300,22 @@ class OelfTests(unittest.TestCase):
 
 
 class TargetTests(unittest.IsolatedAsyncioTestCase):
+    async def test_stop_attached_target_requires_confirmed_interrupt(self) -> None:
+        class NoStopInterruptContext:
+            def register_callback(self, callback):
+                self.callback = callback
+
+            async def stop_process(self):
+                return debug.ResponseCode.SUCCESS
+
+        previous_timeout = debug.ATTACH_STOP_TIMEOUT
+        debug.ATTACH_STOP_TIMEOUT = 0.001
+        try:
+            with self.assertRaisesRegex(debug.GuardError, "did not report"):
+                await debug._stop_attached_target(NoStopInterruptContext())
+        finally:
+            debug.ATTACH_STOP_TIMEOUT = previous_timeout
+
     async def test_find_title_process_uses_exact_title_id(self) -> None:
         client = FakeClient()
         client.processes = [
