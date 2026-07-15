@@ -39,19 +39,43 @@
 
 #if defined( PLATFORM_PS4 )
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+static void KisakPs4GameTypesDetailBreadcrumb( const char *pRole, const char *pPhase,
+	const void *pObject, const void *pKeyValues, int nGameType, int nGameMode,
+	int nCount, const char *pName );
 #if defined( GAME_DLL )
+#define PS4_GAMETYPES_ROLE "server"
 #define PS4_GAMETYPES_BREADCRUMB( suffix ) KisakPs4StartupBreadcrumb( "kisak-ps4: server gametypes " suffix )
 #elif defined( CLIENT_DLL )
+#define PS4_GAMETYPES_ROLE "client"
 #define PS4_GAMETYPES_BREADCRUMB( suffix ) KisakPs4StartupBreadcrumb( "kisak-ps4: client gametypes " suffix )
 #else
+#define PS4_GAMETYPES_ROLE "matchmaking"
 #define PS4_GAMETYPES_BREADCRUMB( suffix ) KisakPs4StartupBreadcrumb( "kisak-ps4: matchmaking gametypes " suffix )
 #endif
+#define PS4_GAMETYPES_DETAIL_BREADCRUMB( phase, object, keyValues, gameType, gameMode, count, name ) \
+	KisakPs4GameTypesDetailBreadcrumb( PS4_GAMETYPES_ROLE, phase, object, keyValues, gameType, gameMode, count, name )
 #else
 #define PS4_GAMETYPES_BREADCRUMB( suffix ) ((void)0)
+#define PS4_GAMETYPES_DETAIL_BREADCRUMB( phase, object, keyValues, gameType, gameMode, count, name ) \
+	do { (void)(phase); (void)(object); (void)(keyValues); (void)(gameType); (void)(gameMode); (void)(count); (void)(name); } while ( 0 )
 #endif
 
 // NOTE: This has to be the last file included!
 #include "tier0/memdbgon.h"
+
+#if defined( PLATFORM_PS4 )
+static void KisakPs4GameTypesDetailBreadcrumb( const char *pRole, const char *pPhase,
+	const void *pObject, const void *pKeyValues, int nGameType, int nGameMode,
+	int nCount, const char *pName )
+{
+	char line[512];
+	V_snprintf( line, sizeof( line ),
+		"kisak-ps4: %s gametypes detail phase=%s this=%p kv=%p type=%d mode=%d count=%d name=%.128s",
+		pRole ? pRole : "unknown", pPhase ? pPhase : "unknown", pObject,
+		pKeyValues, nGameType, nGameMode, nCount, pName ? pName : "" );
+	KisakPs4StartupBreadcrumb( line );
+}
+#endif
 
 void DisplayGameModeConvars( void );
 
@@ -596,34 +620,53 @@ int GameTypes::FindWeaponProgressionIndex( CUtlVector< WeaponProgression > & vec
 // -------------------------------------------------------------------------------------------- //
 bool GameTypes::LoadGameTypes( KeyValues *pKV )
 {
+	PS4_GAMETYPES_BREADCRUMB( "load game types entered" );
+	PS4_GAMETYPES_DETAIL_BREADCRUMB( "entry", this, pKV, -1, -1, -1, NULL );
 	Assert( pKV );
 	if ( !pKV )
 	{
+		PS4_GAMETYPES_BREADCRUMB( "load game types null keyvalues" );
 		return false;
 	}
 
-	Assert( m_GameTypes.Count() == 0 );
-	if ( m_GameTypes.Count() > 0 )
+	PS4_GAMETYPES_BREADCRUMB( "load game types before container count" );
+	const int nInitialGameTypeCount = m_GameTypes.Count();
+	PS4_GAMETYPES_DETAIL_BREADCRUMB( "initial-container", this, pKV, -1, -1, nInitialGameTypeCount, NULL );
+	Assert( nInitialGameTypeCount == 0 );
+	if ( nInitialGameTypeCount > 0 )
 	{
+		PS4_GAMETYPES_BREADCRUMB( "load game types before container purge" );
 		m_GameTypes.PurgeAndDeleteElements();
+		PS4_GAMETYPES_BREADCRUMB( "load game types container purge ready" );
 	}
 
 	// Get the game types.
 	const char *gameTypesEntry = "gameTypes";
+	PS4_GAMETYPES_BREADCRUMB( "load game types before root find" );
 	KeyValues *pKV_GameTypes = pKV->FindKey( gameTypesEntry );
+	PS4_GAMETYPES_DETAIL_BREADCRUMB( "root-find", this, pKV_GameTypes, -1, -1, -1, gameTypesEntry );
 	if ( !pKV_GameTypes )
 	{
+		PS4_GAMETYPES_BREADCRUMB( "load game types root missing" );
 		Warning( "GameTypes: could not find entry %s.\n", gameTypesEntry );
 		return false;
 	}
 
 	// Parse the game types.
+	int nGameTypeIndex = 0;
+	PS4_GAMETYPES_BREADCRUMB( "load game types before first type" );
 	for ( KeyValues *pKV_GameType = pKV_GameTypes->GetFirstTrueSubKey(); pKV_GameType; pKV_GameType = pKV_GameType->GetNextTrueSubKey() )
 	{
+		PS4_GAMETYPES_DETAIL_BREADCRUMB( "type-key", this, pKV_GameType, nGameTypeIndex, -1, m_GameTypes.Count(), NULL );
+		const char *pGameTypeName = pKV_GameType->GetName();
+		PS4_GAMETYPES_DETAIL_BREADCRUMB( "type-name", this, pKV_GameType, nGameTypeIndex, -1, -1, pGameTypeName );
+		PS4_GAMETYPES_BREADCRUMB( "load game types before type allocation" );
 		GameType *pGameType = new GameType();
+		PS4_GAMETYPES_DETAIL_BREADCRUMB( "type-allocated", this, pKV_GameType, nGameTypeIndex, -1, -1, pGameTypeName );
 
 		// Set the name.
-		V_strncpy( pGameType->m_Name, pKV_GameType->GetName(), sizeof( pGameType->m_Name ) );
+		V_strncpy( pGameType->m_Name, pGameTypeName, sizeof( pGameType->m_Name ) );
+		PS4_GAMETYPES_DETAIL_BREADCRUMB( "type-name-copied", this, pKV_GameType, nGameTypeIndex, -1, -1, pGameType->m_Name );
 
 		// Set the name ID.
 		const char *nameIDEntry = "nameID";
@@ -636,18 +679,29 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 		{
 			Warning( "GameTypes: missing %s entry for game type %s.\n", nameIDEntry, pKV_GameType->GetName() );
 		}
+		PS4_GAMETYPES_DETAIL_BREADCRUMB( "type-name-id-ready", this, pKV_GameType, nGameTypeIndex, -1, -1, pTypeNameID );
 
 		// Get the modes.
 		const char *gameModesEntry = "gameModes";
+		PS4_GAMETYPES_BREADCRUMB( "load game types before modes find" );
 		KeyValues *pKV_GameModes = pKV_GameType->FindKey( gameModesEntry );
+		PS4_GAMETYPES_DETAIL_BREADCRUMB( "modes-find", this, pKV_GameModes, nGameTypeIndex, -1, -1, pGameTypeName );
 		if ( pKV_GameModes )
 		{
+			int nGameModeIndex = 0;
+			PS4_GAMETYPES_BREADCRUMB( "load game types before first mode" );
 			for ( KeyValues *pKV_GameMode = pKV_GameModes->GetFirstTrueSubKey(); pKV_GameMode; pKV_GameMode = pKV_GameMode->GetNextTrueSubKey() )
 			{
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "mode-key", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, pGameType->m_GameModes.Count(), NULL );
+				const char *pGameModeName = pKV_GameMode->GetName();
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "mode-name", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, -1, pGameModeName );
+				PS4_GAMETYPES_BREADCRUMB( "load game types before mode allocation" );
 				GameMode *pGameMode = new GameMode();
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "mode-allocated", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, -1, pGameModeName );
 
 				// Set the name.
-				V_strncpy( pGameMode->m_Name, pKV_GameMode->GetName(), sizeof( pGameMode->m_Name ) );
+				V_strncpy( pGameMode->m_Name, pGameModeName, sizeof( pGameMode->m_Name ) );
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "mode-name-copied", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, -1, pGameMode->m_Name );
 
 				// Set the name ID.
 				const char *pModeNameID = pKV_GameMode->GetString( nameIDEntry );
@@ -659,6 +713,7 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 				{
 					Warning( "GameTypes: missing %s entry for game type/mode (%s/%s).\n", nameIDEntry, pKV_GameType->GetName(), pKV_GameMode->GetName() );
 				}
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "mode-name-id-ready", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, -1, pModeNameID );
 
 				// Set the SP name ID.
 				const char *nameIDEntrySP = "nameID_SP";
@@ -674,6 +729,7 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 						V_strncpy( pGameMode->m_NameID_SP, pModeNameID, sizeof( pGameMode->m_NameID_SP ) );
 					}	
 				}
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "mode-name-id-sp-ready", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, -1, pModeNameID_SP );
 
 				// Set the description ID.
 				const char *descIDEntry = "descID";
@@ -686,6 +742,7 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 				{
 					Warning( "GameTypes: missing %s entry for game type/mode (%s/%s).\n", descIDEntry, pKV_GameType->GetName(), pKV_GameMode->GetName() );
 				}
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "mode-desc-id-ready", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, -1, pDescID );
 
 				// Set the SP name ID.
 				const char *descIDEntrySP = "descID_SP";
@@ -701,9 +758,12 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 						V_strncpy( pGameMode->m_DescID_SP, pDescID, sizeof( pGameMode->m_DescID_SP ) );
 					}	
 				}
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "mode-desc-id-sp-ready", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, -1, pDescID_SP );
 
 				// check for the command line override first. Otherwise use gamemodes.txt values.
+				PS4_GAMETYPES_BREADCRUMB( "load game types before command line" );
 				int maxplayers_override = CommandLine()->ParmValue( "-maxplayers_override", -1 );
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "command-line-ready", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, maxplayers_override, pGameModeName );
 
 				if ( maxplayers_override >= 1 )
 				{
@@ -725,14 +785,19 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 					}
 
 				}
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "maxplayers-ready", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, pGameMode->m_MaxPlayers, pGameModeName );
 
 
 				// Get the single player convars.
 				const char *configsEntry = "exec";
+				PS4_GAMETYPES_BREADCRUMB( "load game types before exec find" );
 				KeyValues *pKVExecConfig = pKV_GameMode->FindKey( configsEntry );
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "exec-find", this, pKVExecConfig, nGameTypeIndex, nGameModeIndex, -1, pGameModeName );
 				if ( pKVExecConfig )
 				{
+					PS4_GAMETYPES_BREADCRUMB( "load game types before exec copy" );
 					pGameMode->m_pExecConfings = pKVExecConfig->MakeCopy();
+					PS4_GAMETYPES_BREADCRUMB( "load game types exec copy ready" );
 				}
 				else
 				{
@@ -741,7 +806,9 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 
 				// Get the single player mapgroups.
 				const char *mapgroupsEntrySP = "mapgroupsSP";
+				PS4_GAMETYPES_BREADCRUMB( "load game types before sp mapgroups find" );
 				KeyValues *pKV_MapGroupsSP = pKV_GameMode->FindKey( mapgroupsEntrySP );
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "sp-mapgroups-find", this, pKV_MapGroupsSP, nGameTypeIndex, nGameModeIndex, -1, pGameModeName );
 				if ( pKV_MapGroupsSP )
 				{
 					for ( KeyValues *pKV_MapGroup = pKV_MapGroupsSP->GetFirstValue(); pKV_MapGroup; pKV_MapGroup = pKV_MapGroup->GetNextValue() )
@@ -764,10 +831,13 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 				{
 					Warning( "GameTypes: missing %s entry for game type/mode (%s/%s).\n", mapgroupsEntrySP, pKV_GameType->GetName(), pKV_GameMode->GetName() );
 				}
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "sp-mapgroups-ready", this, pKV_MapGroupsSP, nGameTypeIndex, nGameModeIndex, pGameMode->m_MapGroupsSP.Count(), pGameModeName );
 
 				// Get the multiplayer mapgroups.
 				const char *mapgroupsEntryMP = "mapgroupsMP";
+				PS4_GAMETYPES_BREADCRUMB( "load game types before mp mapgroups find" );
 				KeyValues *pKV_MapGroupsMP = pKV_GameMode->FindKey( mapgroupsEntryMP );
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "mp-mapgroups-find", this, pKV_MapGroupsMP, nGameTypeIndex, nGameModeIndex, -1, pGameModeName );
 				if ( pKV_MapGroupsMP )
 				{
 					for ( KeyValues *pKV_MapGroup = pKV_MapGroupsMP->GetFirstValue(); pKV_MapGroup; pKV_MapGroup = pKV_MapGroup->GetNextValue() )
@@ -781,13 +851,18 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 						pGameMode->m_MapGroupsMP.CopyAndAddToTail( pKV_MapGroup->GetName() );
 					}
 				}
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "mp-mapgroups-ready", this, pKV_MapGroupsMP, nGameTypeIndex, nGameModeIndex, pGameMode->m_MapGroupsMP.Count(), pGameModeName );
 				
 				// Get the CT weapon progression (optional).
+				PS4_GAMETYPES_BREADCRUMB( "load game types before ct weapon progression" );
 				KeyValues * pKV_WeaponProgressionCT = pKV_GameMode->FindKey( "weaponprogression_ct" );
 				LoadWeaponProgression( pKV_WeaponProgressionCT, pGameMode->m_WeaponProgressionCT, pKV_GameType->GetName(), pKV_GameMode->GetName() );
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "ct-weapon-progression-ready", this, pKV_WeaponProgressionCT, nGameTypeIndex, nGameModeIndex, pGameMode->m_WeaponProgressionCT.Count(), pGameModeName );
 
+				PS4_GAMETYPES_BREADCRUMB( "load game types before t weapon progression" );
 				KeyValues * pKV_WeaponProgressionT = pKV_GameMode->FindKey( "weaponprogression_t" );
 				LoadWeaponProgression( pKV_WeaponProgressionT, pGameMode->m_WeaponProgressionT, pKV_GameType->GetName(), pKV_GameMode->GetName() );
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "t-weapon-progression-ready", this, pKV_WeaponProgressionT, nGameTypeIndex, nGameModeIndex, pGameMode->m_WeaponProgressionT.Count(), pGameModeName );
 
 				KeyValues * pKV_noResetVoteThresholdT = pKV_GameMode->FindKey( "no_reset_vote_threshold_t" );	
 				if ( pKV_noResetVoteThresholdT )
@@ -800,10 +875,15 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 				{
 					pGameMode->m_NoResetVoteThresholdCT = FindWeaponProgressionIndex( pGameMode->m_WeaponProgressionCT, pKV_noResetVoteThresholdCT->GetString() );
 				}		
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "vote-thresholds-ready", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, -1, pGameModeName );
 
+				PS4_GAMETYPES_BREADCRUMB( "load game types before mode append" );
 				pGameMode->m_Index = pGameType->m_GameModes.Count();
 				pGameType->m_GameModes.AddToTail( pGameMode );
+				PS4_GAMETYPES_DETAIL_BREADCRUMB( "mode-appended", this, pKV_GameMode, nGameTypeIndex, nGameModeIndex, pGameType->m_GameModes.Count(), pGameModeName );
+				++nGameModeIndex;
 			}				
+			PS4_GAMETYPES_DETAIL_BREADCRUMB( "modes-complete", this, pKV_GameModes, nGameTypeIndex, -1, pGameType->m_GameModes.Count(), pGameTypeName );
 		}
 		else
 		{
@@ -815,8 +895,11 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 			Warning( "GameTypes: empty %s entry for game type %s.\n", gameModesEntry, pKV_GameType->GetName() );
 		}
 
+		PS4_GAMETYPES_BREADCRUMB( "load game types before type append" );
 		pGameType->m_Index = m_GameTypes.Count();
 		m_GameTypes.AddToTail( pGameType );
+		PS4_GAMETYPES_DETAIL_BREADCRUMB( "type-appended", this, pKV_GameType, nGameTypeIndex, -1, m_GameTypes.Count(), pGameTypeName );
+		++nGameTypeIndex;
 	}
 
 	if ( m_GameTypes.Count() == 0 )
@@ -824,6 +907,7 @@ bool GameTypes::LoadGameTypes( KeyValues *pKV )
 		Warning( "GameTypes: empty %s entry.\n", gameTypesEntry );
 	}
 
+	PS4_GAMETYPES_DETAIL_BREADCRUMB( "complete", this, pKV_GameTypes, nGameTypeIndex, -1, m_GameTypes.Count(), gameTypesEntry );
 	return true;
 }
 

@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.23
+Version: 3.24
 Size: 103,153,664 bytes
-SHA-256: 961cba2bebdfe199042df5100d129ff8422f623219fdd15f27ad7cc882d361e1
+SHA-256: 94a94ca7572fc7f6fd299ff542fd1ec31dc5c4f59277b1483a829d976c34c9d8
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-15
-Hardware result: v4.57 validates the stream-size override and moves the boundary
+Hardware target: v4.58 traces the server structured game-type load
 ```
 
 Current hardware baseline:
@@ -7018,6 +7018,49 @@ breadcrumb. The crash has therefore moved into the server copy of
 package will distinguish an entry/call-target problem from the first container
 or `FindKey(\"gameTypes\")` operation and will compare the server/client body and
 object linkage in the monolithic image.
+
+### v4.58: Trace the isolated server structured game-type load
+
+Post-link inspection rejects a client/server cross-call as the immediate
+v4.57 failure. The OELF contains two local `GameTypes::Initialize` bodies and
+two local `GameTypes::LoadGameTypes` bodies. The isolated server call at
+`0x6c73d3` targets its own body at `0x6c7660`; the client call at `0x19c7813`
+targets its own body at `0x19c7aa0`. The image also retains two local
+`s_GameTypes` objects and two local `g_pGameTypes` variables.
+
+`LoadGameTypes` now records an entry breadcrumb before touching `pKV` or the
+container, then records the `this` and KeyValues addresses, initial container
+count, `gameTypes` root lookup, each type and mode index/name, allocation and
+string-field stages, command-line lookup, exec copy, SP/MP map groups, weapon
+progressions, vote thresholds, and vector appends. The server/client prefix on
+every record preserves the distinction between the two compiled copies. The
+full parser-key trace is reduced from 4,096 to the first 16 entries because
+v4.57 already proved complete parsing; the exact file/read/input and token
+metrics remain available.
+
+Package version 3.24 and build marker
+`gametypes_server_load_trace_v458` identify the manual-install test. The client
+and server archives compile, the Linux OpenOrbis final link and FSELF conversion
+complete, and direct verbose PkgTool validation reports `[OK]` for every check.
+The OELF contains the new marker and detail format and does not contain the
+v4.57 marker. Artifact identities:
+
+```text
+OELF: 135,961,440 bytes
+SHA-256: 27312218ce690f9f175c0bbb6d3049923c232e20f82f3eebdf6add1936af8ee8
+SELF: 83,077,088 bytes
+SHA-256: a2430868ef25f1b393c04ea0c3d082616a074f1569f0061665e3f101e0c94452
+PKG: 103,153,664 bytes
+SHA-256: 94a94ca7572fc7f6fd299ff542fd1ec31dc5c4f59277b1483a829d976c34c9d8
+```
+
+The host suite remains at the established 11/14 baseline, with only
+`ps4_gnm_device`, `ps4_gnm_buffer`, and `ps4_gnm_constants` failing on Linux
+high addresses that do not round-trip through PS4's 44-bit descriptor fields.
+The PKG is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and a complete readback matches the local PKG SHA-256.
+Hardware installation and launch remain manual.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

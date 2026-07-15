@@ -61,7 +61,7 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 
 #if defined( PLATFORM_PS4 )
 static int s_nKisakPs4GameModesKeyTraceCount = 0;
-static const int k_nKisakPs4GameModesKeyTraceLimit = 4096;
+static const int k_nKisakPs4GameModesKeyTraceLimit = 16;
 static const int k_nKisakPs4GameModesTokenTraceLimit = 16;
 
 static void KisakPs4GameModesKeyBreadcrumb( const char *pName, int nDepth )
