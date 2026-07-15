@@ -6431,6 +6431,16 @@ registration from a broader isolated `ICvar` view. If the fallback marker is
 absent or the old failure repeats, stop at that exact boundary; do not
 reintroduce process-memory correction or the retired debugger workflow.
 
+Hardware v4.47 completes the entire 1,736-entry ordinary-constructor walk,
+initializes the global thread pool, enters `LauncherMain`, creates the Steam
+application systems, and resolves the dependency order for `VEngineCvar007`
+and `VFileSystem017`. The run stops after `connect system VEngineCvar007` and
+`connect before call`, without printing the corresponding post-call marker.
+It therefore crashes inside the cvar system's `Connect` call, before
+`CEngineAPI::Run`, the `server_cvar_bridge_v447` runtime marker, or server
+`DLLInit`. This hardware result does not exercise the `sv_cheats` bridge; the
+next package must diagnose the earlier cvar-system connection boundary first.
+
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
 Status: retained for diagnostic history only. Manual package installation and
