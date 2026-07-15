@@ -31,6 +31,62 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+
+static bool s_bKisakPs4ParticleParseProbeEnabled = false;
+static int s_nKisakPs4ParticleParseDetailCount = 0;
+static const int k_nKisakPs4ParticleParseDetailLimit = 256;
+
+static void KisakPs4FormatParticleParseBreadcrumb( const char *pPhase,
+	const char *pName, int nValue )
+{
+	char line[512];
+	V_snprintf( line, sizeof( line ),
+		pName && pName[0]
+			? "kisak-ps4: particle parse %s value=%d name=%s"
+			: "kisak-ps4: particle parse %s value=%d",
+		pPhase ? pPhase : "unknown", nValue, pName ? pName : "" );
+	KisakPs4StartupBreadcrumb( line );
+}
+
+void KisakPs4SetParticleParseProbeEnabled( bool bEnabled )
+{
+	s_bKisakPs4ParticleParseProbeEnabled = bEnabled;
+	s_nKisakPs4ParticleParseDetailCount = 0;
+}
+
+static void KisakPs4ResetParticleParseDetail()
+{
+	s_nKisakPs4ParticleParseDetailCount = 0;
+}
+
+void KisakPs4ParticleParseBreadcrumb( const char *pPhase, const char *pName, int nValue )
+{
+	if ( s_bKisakPs4ParticleParseProbeEnabled )
+	{
+		KisakPs4FormatParticleParseBreadcrumb( pPhase, pName, nValue );
+	}
+}
+
+static void KisakPs4ParticleParseDetail( const char *pPhase, const char *pName,
+	int nValue )
+{
+	if ( !s_bKisakPs4ParticleParseProbeEnabled ||
+		s_nKisakPs4ParticleParseDetailCount >= k_nKisakPs4ParticleParseDetailLimit )
+	{
+		return;
+	}
+
+	++s_nKisakPs4ParticleParseDetailCount;
+	KisakPs4FormatParticleParseBreadcrumb( pPhase, pName, nValue );
+}
+#else
+#define KisakPs4ParticleParseBreadcrumb( phase, name, value ) ((void)0)
+#define KisakPs4ParticleParseDetail( phase, name, value ) ((void)0)
+#define KisakPs4ResetParticleParseDetail() ((void)0)
+#endif
+
 
 
 
@@ -202,12 +258,16 @@ void CParticleSystemDictionary::DestroyExistingElement( CDmxElement *pElement )
 //-----------------------------------------------------------------------------
 CParticleSystemDefinition* CParticleSystemDictionary::AddParticleSystem( CDmxElement *pParticleSystem )
 {
+	KisakPs4ParticleParseDetail( "dictionary add entered", pParticleSystem->GetName(), 0 );
 	if ( Q_stricmp( pParticleSystem->GetTypeString(), "DmeParticleSystemDefinition" ) )
 		return NULL;
 
+	KisakPs4ParticleParseDetail( "before existing definition destroy", pParticleSystem->GetName(), 0 );
 	DestroyExistingElement( pParticleSystem );
+	KisakPs4ParticleParseDetail( "existing definition destroyed", pParticleSystem->GetName(), 0 );
 
 	CParticleSystemDefinition *pDef = new CParticleSystemDefinition;
+	KisakPs4ParticleParseDetail( "definition allocated", pParticleSystem->GetName(), 0 );
 
 	// Must add the def to the maps before Read() because Read() may create new child particle systems
 	bool bPreventNameBasedLookup = pParticleSystem->GetValue<bool>( "preventNameBasedLookup" );
@@ -220,7 +280,9 @@ CParticleSystemDefinition* CParticleSystemDictionary::AddParticleSystem( CDmxEle
 		m_ParticleIdMap.AddToTail( pDef );
 	}
 
+	KisakPs4ParticleParseDetail( "before definition read", pParticleSystem->GetName(), 0 );
 	pDef->Read( pParticleSystem );
+	KisakPs4ParticleParseDetail( "definition read ready", pParticleSystem->GetName(), 0 );
 	return pDef;
 }
 
@@ -625,9 +687,12 @@ void CParticleSystemDefinition::ParseChildren( CDmxElement *pElement )
 
 void CParticleSystemDefinition::Read( CDmxElement *pElement )
 {
+	KisakPs4ParticleParseDetail( "definition read entered", pElement->GetName(), 0 );
 	m_Name = pElement->GetName();
 	CopyUniqueId( pElement->GetId(), &m_Id );
+	KisakPs4ParticleParseDetail( "before definition unpack", pElement->GetName(), 0 );
 	pElement->UnpackIntoStructure( this, s_pParticleSystemDefinitionUnpack );
+	KisakPs4ParticleParseDetail( "definition unpack ready", pElement->GetName(), 0 );
 
 	if ( m_nInitialParticles < 0 )
 	{
@@ -644,14 +709,23 @@ void CParticleSystemDefinition::Read( CDmxElement *pElement )
 		m_nControlPointReadMask |= 1ULL << m_nCullControlPoint;
 	}
 
+	KisakPs4ParticleParseDetail( "before renderers", pElement->GetName(), 0 );
 	ParseOperators( "renderers", FUNCTION_RENDERER, pElement, m_Renderers );
+	KisakPs4ParticleParseDetail( "before operators", pElement->GetName(), 0 );
 	ParseOperators( "operators", FUNCTION_OPERATOR, pElement, m_Operators );
+	KisakPs4ParticleParseDetail( "before initializers", pElement->GetName(), 0 );
 	ParseOperators( "initializers", FUNCTION_INITIALIZER, pElement, m_Initializers );
+	KisakPs4ParticleParseDetail( "before emitters", pElement->GetName(), 0 );
 	ParseOperators( "emitters", FUNCTION_EMITTER, pElement, m_Emitters );
+	KisakPs4ParticleParseDetail( "before children", pElement->GetName(), 0 );
 	ParseChildren( pElement );
+	KisakPs4ParticleParseDetail( "before forces", pElement->GetName(), 0 );
 	ParseOperators( "forces", FUNCTION_FORCEGENERATOR, pElement, m_ForceGenerators );
+	KisakPs4ParticleParseDetail( "before constraints", pElement->GetName(), 0 );
 	ParseOperators( "constraints", FUNCTION_CONSTRAINT, pElement, m_Constraints );
+	KisakPs4ParticleParseDetail( "before context setup", pElement->GetName(), 0 );
 	SetupContextData();
+	KisakPs4ParticleParseDetail( "context setup ready", pElement->GetName(), 0 );
 }
 
 IMaterial *CParticleSystemDefinition::GetMaterial() const
@@ -3957,17 +4031,36 @@ void CParticleSystemMgr::GetParticleSystemsInBuffer( CUtlBuffer &buf, CUtlVector
 bool CParticleSystemMgr::ReadParticleDefinitions( CUtlBuffer &buf, const char *pFileName, bool bPrecache, bool bDecommitTempMemory )
 {
 	DECLARE_DMX_CONTEXT_DECOMMIT( bDecommitTempMemory );
+	KisakPs4ParticleParseBreadcrumb( "definitions entered", pFileName, 0 );
 
-	CDmxElement *pRoot;
+	CDmxElement *pRoot = NULL;
+	KisakPs4ParticleParseBreadcrumb( "before dmx unserialize", pFileName, 0 );
 	if ( !UnserializeDMX( buf, &pRoot, pFileName ) )
 	{
+		KisakPs4ParticleParseBreadcrumb( "dmx unserialize failed", pFileName, 0 );
+#if defined( PLATFORM_PS4 )
+		if ( !s_bKisakPs4ParticleParseProbeEnabled )
+#endif
 		Warning( "Unable to read particle definition %s! UtlBuffer is probably the wrong type!\n", pFileName );
 		return false;
 	}
 
+	if ( !pRoot )
+	{
+		KisakPs4ParticleParseBreadcrumb( "dmx root missing", pFileName, 0 );
+#if defined( PLATFORM_PS4 )
+		if ( !s_bKisakPs4ParticleParseProbeEnabled )
+#endif
+		Warning( "Particles: Empty or unresolvable DMX root in '%s'\n", pFileName );
+		return false;
+	}
+	KisakPs4ParticleParseBreadcrumb( "dmx unserialize ready", pRoot->GetName(), 0 );
+
 	if ( !Q_stricmp( pRoot->GetTypeString(), "DmeParticleSystemDefinition" ) )
 	{
+		KisakPs4ParticleParseDetail( "before root definition add", pRoot->GetName(), 0 );
 		CParticleSystemDefinition *pDef = m_pParticleSystemDictionary->AddParticleSystem( pRoot );
+		KisakPs4ParticleParseDetail( "root definition add ready", pRoot->GetName(), pDef ? 1 : 0 );
 		if ( pDef && bPrecache )
 		{
 			pDef->m_bAlwaysPrecache = true;
@@ -3989,9 +4082,12 @@ bool CParticleSystemMgr::ReadParticleDefinitions( CUtlBuffer &buf, const char *p
 
 	const CUtlVector< CDmxElement* >& definitions = pDefinitions->GetArray<CDmxElement*>( );
 	int nCount = definitions.Count();
+	KisakPs4ParticleParseBreadcrumb( "definition array ready", pFileName, nCount );
 	for ( int i = 0; i < nCount; ++i )
 	{
+		KisakPs4ParticleParseDetail( "before array definition add", definitions[i]->GetName(), i );
 		CParticleSystemDefinition *pDef = m_pParticleSystemDictionary->AddParticleSystem( definitions[i] );
+		KisakPs4ParticleParseDetail( "array definition add ready", definitions[i]->GetName(), i );
 		if ( pDef && bPrecache )
 		{
 			pDef->m_bAlwaysPrecache = true;
@@ -4145,6 +4241,8 @@ bool CParticleSystemMgr::ReadParticleConfigFile( CUtlBuffer &buf, bool bPrecache
 //-----------------------------------------------------------------------------
 bool CParticleSystemMgr::ReadParticleConfigFile( const char *pFileName, bool bPrecache, bool bDecommitTempMemory )
 {
+	KisakPs4ResetParticleParseDetail();
+	KisakPs4ParticleParseBreadcrumb( "config entered", pFileName, 0 );
 	// Names starting with a '!' are always precached.
 	if ( pFileName[0] == '!' )
 	{
@@ -4212,11 +4310,19 @@ bool CParticleSystemMgr::ReadParticleConfigFile( const char *pFileName, bool bPr
 		buf.ActivateByteSwapping( true );
 	}
 
+	KisakPs4ParticleParseBreadcrumb( "before filesystem read", pFileName, 0 );
 	if ( g_pFullFileSystem->ReadFile( pFileName, "GAME", buf ) )
 	{
-		return ReadParticleConfigFile( buf, bPrecache, bDecommitTempMemory, pFileName );
+		KisakPs4ParticleParseBreadcrumb( "filesystem read ready", pFileName, buf.TellPut() );
+		const bool bRead = ReadParticleConfigFile( buf, bPrecache, bDecommitTempMemory, pFileName );
+		KisakPs4ParticleParseBreadcrumb( bRead ? "definitions ready" : "definitions failed", pFileName, 0 );
+		return bRead;
 	}
 
+	KisakPs4ParticleParseBreadcrumb( "filesystem read failed", pFileName, 0 );
+#if defined( PLATFORM_PS4 )
+	if ( !s_bKisakPs4ParticleParseProbeEnabled )
+#endif
 	Warning( "Particles: Missing '%s'\n", pFileName );
 	return false;
 }

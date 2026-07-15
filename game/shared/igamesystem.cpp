@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright ï¿½ 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Deals with singleton  
 //
@@ -19,6 +19,19 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+
+static void KisakPs4TraceServerGameSystem( const char *phase, int index, const char *name, int value )
+{
+	char line[256];
+	Q_snprintf( line, sizeof( line ),
+		"kisak-ps4: server game system %s index=%d name=%s value=%d",
+		phase, index, name ? name : "<null>", value );
+	KisakPs4StartupBreadcrumb( line );
+}
+#endif
 
 // enable this #define (here or in your vpc) to have 
 // each GameSystem accounted for individually in the vprof.
@@ -177,11 +190,20 @@ bool IGameSystem::InitAllSystems()
 {
 	int i;
 
+#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: server game system init all entered" );
+#endif
+
 	{
 		// first add any auto systems to the end
 		CAutoGameSystem *pSystem = s_pSystemList;
+		int autoSystemIndex = 0;
 		while ( pSystem )
 		{
+#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+			if ( autoSystemIndex < 256 )
+				KisakPs4TraceServerGameSystem( "auto before add", autoSystemIndex, pSystem->Name(), 0 );
+#endif
 			if ( s_GameSystems.Find( pSystem ) == s_GameSystems.InvalidIndex() )
 			{
 				Add( pSystem );
@@ -191,14 +213,23 @@ bool IGameSystem::InitAllSystems()
 				DevWarning( 1, "AutoGameSystem already added to game system list!!!\n" );
 			}
 			pSystem = pSystem->m_pNext;
+			++autoSystemIndex;
 		}
 		s_pSystemList = NULL;
+#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+		KisakPs4TraceServerGameSystem( "auto list ready", autoSystemIndex, NULL, s_GameSystems.Count() );
+#endif
 	}
 
 	{
 		CAutoGameSystemPerFrame *pSystem = s_pPerFrameSystemList;
+		int perFrameSystemIndex = 0;
 		while ( pSystem )
 		{
+#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+			if ( perFrameSystemIndex < 256 )
+				KisakPs4TraceServerGameSystem( "per-frame before add", perFrameSystemIndex, pSystem->Name(), 0 );
+#endif
 			if ( s_GameSystems.Find( pSystem ) == s_GameSystems.InvalidIndex() )
 			{
 				Add( pSystem );
@@ -209,8 +240,12 @@ bool IGameSystem::InitAllSystems()
 			}
 
 			pSystem = pSystem->m_pNext;
+			++perFrameSystemIndex;
 		}
 		s_pSystemList = NULL;
+#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+		KisakPs4TraceServerGameSystem( "per-frame list ready", perFrameSystemIndex, NULL, s_GameSystems.Count() );
+#endif
 	}
 	// Now remember that we are initted so new CAutoGameSystems will add themselves automatically.
 	s_bSystemsInitted = true;
@@ -218,10 +253,17 @@ bool IGameSystem::InitAllSystems()
 	// PS3: haul the fontlib into memory; some systems (eg vgui) need it.
 	for ( i = 0; i < s_GameSystems.Count(); ++i )
 	{
+#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+		KisakPs4TraceServerGameSystem( "before mdlcache lock", i, NULL, s_GameSystems.Count() );
+#endif
 		MDLCACHE_COARSE_LOCK();
 		MDLCACHE_CRITICAL_SECTION();
 
 		IGameSystem *sys = s_GameSystems[i];
+
+#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+		KisakPs4TraceServerGameSystem( "before init", i, sys->Name(), s_GameSystems.Count() );
+#endif
 
 #if defined( _GAMECONSOLE )
 		char sz[128];
@@ -229,6 +271,10 @@ bool IGameSystem::InitAllSystems()
 		COM_TimestampedLog( sz );
 #endif
 		bool valid = sys->Init();
+
+#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+		KisakPs4TraceServerGameSystem( "after init", i, sys->Name(), valid ? 1 : 0 );
+#endif
 
 #if defined( _GAMECONSOLE )
 		Q_snprintf( sz, sizeof( sz ), "%s->Init():Finish", sys->Name() );
@@ -444,5 +490,4 @@ void InvokeMethodReverseOrder( GameSystemFunc_t f )
 		(sys->*f)();
 	}
 }
-
 

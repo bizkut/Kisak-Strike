@@ -79,7 +79,7 @@ int main( int argc, char **argv )
 #endif
     FILE *log = OpenStartupLog();
     LogLine( log, "kisak-ps4: bootstrap entered" );
-    LogLine( log, "kisak-ps4: build marker server_sv_cheats_isolation_v440" );
+    LogLine( log, "kisak-ps4: build marker server_shared_protobuf_v446" );
 #if defined( KISAK_PS4_DEV_ATTACH_GATE )
     LogLine( log, devAttachReleased
         ? "kisak-ps4: dev attach gate released"

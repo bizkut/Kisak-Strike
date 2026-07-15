@@ -23,19 +23,31 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.05
-SHA-256: 9ea7fd80827a5d236085e67800ef37ff68387090530099a61c3e5a2b2a3924f6
-Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.12
+Size: 103,153,664 bytes
+SHA-256: fb158b6fbb6e643b3e3bd437fb889f55848da10ff422ab11b643ef038c4e2dd9
+Hardware run: v4.46 (2026-07-15), constructor fix validated; server DLLInit fails at sv_cheats lookup
 ```
 
-Latest staged package awaiting hardware validation:
+Current installed and last FTP-staged package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.06
-SHA-256: 027063ab82ff5a335c385bf43f348727769bce774a96ebd9fb3dc46c269c59fe
-Local:    build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.12
+Size: 103,153,664 bytes
+SHA-256: fb158b6fbb6e643b3e3bd437fb889f55848da10ff422ab11b643ef038c4e2dd9
 Staged:   /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
+```
+
+Latest package awaiting manual installation and launch:
+
+```text
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.13
+Size: 103,153,664 bytes
+SHA-256: da5d34f16bbf8d43a50471d687babbe954e3e87350bf49e4711bcb6921cd0ac3
+Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Hardware target: v4.47 canonical engine sv_cheats bridge
 ```
 
 Current hardware baseline:
@@ -70,7 +82,19 @@ Current hardware baseline:
   retains the missing voice-server and engine-random interface registrars and
   then stops immediately after assigning the server DLL's `sv_cheats` handle.
   v4.40 isolates both client/server cached handles from the engine's real
-  `ConVar sv_cheats` object; hardware validation is pending.
+  `ConVar sv_cheats` object. Hardware v4.43 then completes the server particle
+  manifest with 1,062 definitions. Hardware v4.44 registers every explicit
+  server game system and reaches `server game systems before init all`, but
+  never enters the first statement of the server `IGameSystem::InitAllSystems`.
+  Static link inspection proves the monolith selected the client's duplicate
+  lifecycle body at that call boundary; v4.45 isolates the server module.
+  Hardware v4.45 then crashes earlier at ordinary constructor 480 because the
+  whole-archived server module introduced a second protobuf registration for
+  `cstrike15_usermessages.pb.cc`. v4.46 keeps server isolation but reuses the
+  canonical generated-protobuf objects already selected by the static link.
+  Hardware v4.46 validates both new markers and `constructors complete`, then
+  reaches `server DLLInit before sv_cheats check`. Its
+  `g_pCVar->FindVar( "sv_cheats" )` result is null, so `DLLInit` returns false.
 - OpenGNM opens two 1920x1080 VideoOut buffers and completes repeated VSYNC
   flips. The v1.78 run sustains approximately 60 FPS without a crash.
 - The presentation stress loop has reached at least frame 1200 with matching
@@ -6360,7 +6384,54 @@ before the isolated server `IGameSystem::InitAllSystems` call. The next debug
 session must explain or temporarily correct that lookup without another
 breadcrumb-only package iteration.
 
-### Autonomous PyPS4debug crash-debugging plan — 2026-07-15
+### v4.47: Bridge the isolated server to canonical engine `sv_cheats`
+
+Hardware v4.46 proves that the canonical engine `sv_cheats` object is
+constructed but the isolated server's `ICvar` lookup cannot find it. The PS4
+build now exports one C-linkage accessor from the defining engine translation
+unit and uses it only when the normal server lookup returns null. Other
+platforms and the normal registered-cvar path are unchanged. The returned
+pointer has process lifetime because it addresses the same engine-global
+`ConVar` used by the rest of the engine.
+
+The build marker is `server_cvar_bridge_v447`, and package version 3.13 is the
+first manual-install experiment after retiring the network-loader/debugger
+workflow. The Linux OpenOrbis build, isolated-server link, FSELF conversion,
+package creation, and verbose PkgTool validation all complete. The final OELF
+contains exactly one `KisakPs4GetEngineSvCheats` definition and the canonical
+`sv_cheats` object. The release artifact contains both v4.47 and v4.46 markers
+and does not contain the development attach-gate marker. Both manual package
+entry points force `KISAK_PS4_DEV_ATTACH_GATE=0`; the final qualification build
+set the outer environment to `1` deliberately and still produced a gate-free
+SELF, proving that a stale debugger environment cannot contaminate a package.
+
+Artifact identities:
+
+```text
+OELF: 135,927,544 bytes
+SHA-256: 051dd921c116ee88638927d2afd7f66535132e9178aa665e84be00178f488821
+SELF: 83,044,160 bytes
+SHA-256: d7ead487a7272e7959e9664a4276432cd1576048ec623049c4a269c97cdfae72
+PKG: 103,153,664 bytes
+SHA-256: da5d34f16bbf8d43a50471d687babbe954e3e87350bf49e4711bcb6921cd0ac3
+```
+
+The host suite retains its established result: 11/14 pass, while the same
+three OpenGNM descriptor tests reject high Linux virtual addresses that cannot
+round-trip through the PS4 44-bit address field. Install and launch version
+3.13 manually. The acceptance sequence is
+`server DLLInit using canonical engine sv_cheats`,
+the `sv_cheats registered` state, the individual `commentary`,
+`host_thread_mode`, and `sv_maxreplay` lookup results, then entry into the
+server game-system sequence. These extra results distinguish the one missing
+registration from a broader isolated `ICvar` view. If the fallback marker is
+absent or the old failure repeats, stop at that exact boundary; do not
+reintroduce process-memory correction or the retired debugger workflow.
+
+### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
+
+Status: retained for diagnostic history only. Manual package installation and
+launch is the active hardware-test workflow.
 
 #### Live feasibility result
 

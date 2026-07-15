@@ -302,6 +302,60 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         "${CMAKE_CURRENT_SOURCE_DIR}/common"
         "${KISAK_OPENGNM_ROOT}/include"
     )
+    set(KISAK_PS4_GAME_SERVER_LINK_INPUT server_client)
+    set(KISAK_PS4_GAME_SERVER_LINK_LIBRARIES)
+    if(KISAK_PS4_BUILD_SOURCE_ENGINE AND TARGET client_client AND TARGET server_client)
+        foreach(KISAK_PS4_ARCHIVE_TOOL CMAKE_LINKER CMAKE_NM CMAKE_OBJCOPY CMAKE_AR)
+            if(NOT DEFINED ${KISAK_PS4_ARCHIVE_TOOL} OR
+               NOT EXISTS "${${KISAK_PS4_ARCHIVE_TOOL}}")
+                message(FATAL_ERROR "${KISAK_PS4_ARCHIVE_TOOL} is required to isolate the PS4 game server archive")
+            endif()
+        endforeach()
+
+        set(KISAK_PS4_ISOLATED_SERVER_OBJECT
+            "${CMAKE_CURRENT_BINARY_DIR}/server_client_isolated.o")
+        add_custom_command(
+            OUTPUT "${KISAK_PS4_ISOLATED_SERVER_OBJECT}"
+            COMMAND "${CMAKE_COMMAND}" -E env LC_ALL=C bash
+                "${CMAKE_CURRENT_SOURCE_DIR}/cmake/isolate_static_archive_symbols.sh"
+                "$<TARGET_FILE:client_client>"
+                "$<TARGET_FILE:server_client>"
+                "${KISAK_PS4_ISOLATED_SERVER_OBJECT}"
+                "${CMAKE_LINKER}"
+                "${CMAKE_NM}"
+                "${CMAKE_OBJCOPY}"
+                "${CMAKE_AR}"
+                "${CMAKE_CURRENT_SOURCE_DIR}"
+            DEPENDS
+                client_client
+                server_client
+                "${CMAKE_CURRENT_SOURCE_DIR}/cmake/isolate_static_archive_symbols.sh"
+            BYPRODUCTS
+                "${KISAK_PS4_ISOLATED_SERVER_OBJECT}.partial"
+                "${KISAK_PS4_ISOLATED_SERVER_OBJECT}.filtered.a"
+                "${KISAK_PS4_ISOLATED_SERVER_OBJECT}.client-symbols"
+                "${KISAK_PS4_ISOLATED_SERVER_OBJECT}.server-symbols"
+                "${KISAK_PS4_ISOLATED_SERVER_OBJECT}.localize-symbols"
+                "${KISAK_PS4_ISOLATED_SERVER_OBJECT}.client-members"
+                "${KISAK_PS4_ISOLATED_SERVER_OBJECT}.server-members"
+                "${KISAK_PS4_ISOLATED_SERVER_OBJECT}.shared-protobuf-members"
+            COMMENT "Isolating overlapping client/server game symbols"
+            VERBATIM
+        )
+        set_source_files_properties("${KISAK_PS4_ISOLATED_SERVER_OBJECT}"
+            PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+        target_sources(kisak_ps4_monolithic PRIVATE
+            "${KISAK_PS4_ISOLATED_SERVER_OBJECT}")
+        add_dependencies(kisak_ps4_monolithic client_client server_client)
+
+        get_target_property(KISAK_PS4_GAME_SERVER_LINK_LIBRARIES
+            server_client LINK_LIBRARIES)
+        if(KISAK_PS4_GAME_SERVER_LINK_LIBRARIES STREQUAL
+           "KISAK_PS4_GAME_SERVER_LINK_LIBRARIES-NOTFOUND")
+            set(KISAK_PS4_GAME_SERVER_LINK_LIBRARIES)
+        endif()
+        set(KISAK_PS4_GAME_SERVER_LINK_INPUT)
+    endif()
     target_link_options(kisak_ps4_monolithic PRIVATE
         -m elf_x86_64
         -pie
@@ -309,9 +363,9 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         --eh-frame-hdr
     )
     if(KISAK_PS4_BUILD_SOURCE_ENGINE)
-        # Source's original DLLs intentionally repeat a small set of globals
-        # and helper implementations. The monolithic PS4 image resolves those
-        # to the first module in link order while PRX isolation is unavailable.
+        # Source's original DLLs intentionally repeat globals and helpers. The
+        # client/server game overlap is isolated above; remaining static modules
+        # still resolve their intentional duplicates to the first link input.
         target_link_options(kisak_ps4_monolithic PRIVATE --allow-multiple-definition)
     endif()
     target_link_directories(kisak_ps4_monolithic PRIVATE "${OPENORBIS_ROOT}/lib")
@@ -322,7 +376,8 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         launcher_client
         engine_client
         client_client
-        server_client
+        ${KISAK_PS4_GAME_SERVER_LINK_INPUT}
+        ${KISAK_PS4_GAME_SERVER_LINK_LIBRARIES}
         matchmaking_client
         matchmakingbase
         scenefilecache_client

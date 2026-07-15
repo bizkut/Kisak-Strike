@@ -261,6 +261,12 @@ ConVar	sv_pure_consensus( "sv_pure_consensus", "99999999", FCVAR_RELEASE, "Minim
 ConVar	sv_pure_retiretime( "sv_pure_retiretime", "900", FCVAR_RELEASE, "Seconds of server idle time to flush the sv_pure file hash cache." );
 
 ConVar  sv_cheats( "sv_cheats", "0", FCVAR_NOTIFY|FCVAR_REPLICATED | FCVAR_RELEASE, "Allow cheats on server", SV_CheatsChanged_f );
+#if defined( PLATFORM_PS4 )
+extern "C" ConVar *KisakPs4GetEngineSvCheats()
+{
+	return &sv_cheats;
+}
+#endif
 ConVar  sv_lan( "sv_lan", "0", FCVAR_RELEASE, "Server is a lan server ( no heartbeat, no authentication, no non-class C addresses )" );
 
 

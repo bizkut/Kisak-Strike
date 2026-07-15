@@ -27,10 +27,17 @@ fi
 PACKAGE_DIR="$BUILD_DIR/package"
 DOTNET_BUNDLE_EXTRACT_BASE_DIR="${DOTNET_BUNDLE_EXTRACT_BASE_DIR:-$BUILD_DIR/dotnet-bundle}"
 export DOTNET_BUNDLE_EXTRACT_BASE_DIR
+DOTNET_SYSTEM_GLOBALIZATION_INVARIANT="${DOTNET_SYSTEM_GLOBALIZATION_INVARIANT:-1}"
+export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+OPENORBIS_LIBSSL11_DIR="${OPENORBIS_LIBSSL11_DIR:-$ROOT_DIR/../.host-tools/libssl11/root/usr/lib/x86_64-linux-gnu}"
+if [[ -d "$OPENORBIS_LIBSSL11_DIR" ]]; then
+    LD_LIBRARY_PATH="$OPENORBIS_LIBSSL11_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    export LD_LIBRARY_PATH
+fi
 PACKAGE="$CONTENT_ID.pkg"
 
 if [[ -z "${OO_PS4_TOOLCHAIN:-}" ]]; then
-    SETUP="$ROOT_DIR/../tools/setup_openorbis_llvm18_macos.sh"
+    SETUP="$ROOT_DIR/../tools/setup_openorbis_llvm18_linux.sh"
     if [[ ! -x "$SETUP" ]]; then
         echo "Set OO_PS4_TOOLCHAIN to the OpenOrbis SDK root." >&2
         exit 1
@@ -40,18 +47,18 @@ if [[ -z "${OO_PS4_TOOLCHAIN:-}" ]]; then
 fi
 
 if [[ "$VARIANT" == "monolithic" ]]; then
-    KISAK_PS4_DEV_ATTACH_GATE=0 "$ROOT_DIR/build-ps4-monolithic.sh"
+    KISAK_PS4_DEV_ATTACH_GATE=0 "$ROOT_DIR/build-ps4-monolithic-linux.sh"
 else
-    "$ROOT_DIR/build-ps4-bootstrap.sh"
+    "$ROOT_DIR/build-ps4-bootstrap-linux.sh"
 fi
 
-CREATE_GP4="${CREATE_GP4:-$OO_PS4_TOOLCHAIN/bin/macos/create-gp4}"
-PKGTOOL="${PKGTOOL:-$OO_PS4_TOOLCHAIN/bin/macos/PkgTool.Core}"
+CREATE_GP4="${CREATE_GP4:-$OO_PS4_TOOLCHAIN/bin/linux/create-gp4}"
+PKGTOOL="${PKGTOOL:-$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core}"
 RUNTIME_MODULE_DIR="${RUNTIME_MODULE_DIR:-$OO_PS4_TOOLCHAIN/src/modules}"
 ASSET_DIR="${KISAK_PS4_ASSET_DIR:-$ROOT_DIR/../freegnm-examples/videoout-linear/sce_sys}"
 ICON_PATH="${KISAK_PS4_ICON_PATH:-$ROOT_DIR/ps4/sce_sys/icon0.png}"
 SHADER_MANIFEST="${KISAK_PS4_SHADER_MANIFEST:-$ROOT_DIR/ps4/shaders/kisak_diagnostic.manifest}"
-SCALEFORM_ASSET_ROOT="${KISAK_PS4_SCALEFORM_ASSET_ROOT:-/Volumes/Untitled/CSGO/csgo}"
+SCALEFORM_ASSET_ROOT="${KISAK_PS4_SCALEFORM_ASSET_ROOT:-/home/bizkut/CSGO/reversed/extracted_FIX/NPUB30589_00-HDDBOOTCSGO00001/USRDIR/csgo/zip1_xzp2}"
 SCALEFORM_ASSET_MODE="${KISAK_PS4_SCALEFORM_ASSET_MODE:-closure}"
 PYTHON3="${PYTHON3:-python3}"
 SCALEFORM_FLASH_FILES=(

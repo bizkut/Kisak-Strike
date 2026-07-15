@@ -1,4 +1,4 @@
-//====== Copyright © 1996-2005, Valve Corporation, All rights reserved. =======
+//====== Copyright ï¿½ 1996-2005, Valve Corporation, All rights reserved. =======
 //
 // Purpose: 
 //
@@ -9,6 +9,15 @@
 #include <keyvalues.h>
 #include "particle_parse.h"
 #include "particles/particles.h"
+
+#if defined( PLATFORM_PS4 )
+void KisakPs4SetParticleParseProbeEnabled( bool bEnabled );
+void KisakPs4ParticleParseBreadcrumb( const char *pPhase, const char *pName, int nValue );
+#define PS4_PARTICLE_PARSE_BREADCRUMB( phase, name, value ) \
+	KisakPs4ParticleParseBreadcrumb( phase, name, value )
+#else
+#define PS4_PARTICLE_PARSE_BREADCRUMB( phase, name, value ) ((void)0)
+#endif
 
 #ifdef GAME_DLL
 #include "te_effect_dispatch.h"
@@ -62,18 +71,38 @@ void ParseParticleEffects( bool bLoadSheets )
 {
 	MEM_ALLOC_CREDIT();
 
+#if defined( PLATFORM_PS4 )
+	const bool bProbeServerParse = !bLoadSheets;
+	KisakPs4SetParticleParseProbeEnabled( bProbeServerParse );
+#endif
+	PS4_PARTICLE_PARSE_BREADCRUMB( "entered", NULL,
+		g_pParticleSystemMgr->GetParticleSystemCount() );
+
+	PS4_PARTICLE_PARSE_BREADCRUMB( "before sheet policy", NULL, bLoadSheets ? 1 : 0 );
 	g_pParticleSystemMgr->ShouldLoadSheets( bLoadSheets );
+	PS4_PARTICLE_PARSE_BREADCRUMB( "sheet policy ready", NULL, bLoadSheets ? 1 : 0 );
 
 	CUtlVector<CUtlString> files;
+	PS4_PARTICLE_PARSE_BREADCRUMB( "before manifest", NULL, 0 );
 	GetParticleManifest( files );
 
 	int nCount = files.Count();
+	PS4_PARTICLE_PARSE_BREADCRUMB( "manifest ready", NULL, nCount );
 	for ( int i = 0; i < nCount; ++i )
 	{
-		g_pParticleSystemMgr->ReadParticleConfigFile( files[i], false, false );
+		PS4_PARTICLE_PARSE_BREADCRUMB( "before config", files[i].String(), i );
+		const bool bRead = g_pParticleSystemMgr->ReadParticleConfigFile( files[i], false, false );
+		PS4_PARTICLE_PARSE_BREADCRUMB( bRead ? "config ready" : "config failed",
+			files[i].String(), i );
 	}
 
+	PS4_PARTICLE_PARSE_BREADCRUMB( "before temp decommit", NULL, nCount );
 	g_pParticleSystemMgr->DecommitTempMemory();
+	PS4_PARTICLE_PARSE_BREADCRUMB( "complete", NULL,
+		g_pParticleSystemMgr->GetParticleSystemCount() );
+#if defined( PLATFORM_PS4 )
+	KisakPs4SetParticleParseProbeEnabled( false );
+#endif
 }
 
 

@@ -127,6 +127,7 @@
 
 #if defined( PLATFORM_PS4 )
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+extern "C" ConVar *KisakPs4GetEngineSvCheats();
 #define PS4_SERVER_DLL_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
 #else
 #define PS4_SERVER_DLL_BREADCRUMB( line ) ((void)0)
@@ -631,23 +632,30 @@ static ConVar sv_threaded_init("sv_threaded_init", IsGameConsole() ? "1" : "0");
 
 CEG_NOINLINE static bool InitGameSystems( CreateInterfaceFn appSystemFactory )
 {
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems entered" );
 	// The string system must init first + shutdown last
 	IGameSystem::Add( GameStringSystem() );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems string registered" );
 
 	// Physics must occur before the sound envelope manager
 	IGameSystem::Add( PhysicsGameSystem() );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems physics registered" );
 
 	// Precache system must be next (requires physics game system)
 	IGameSystem::Add( g_pPrecacheRegister );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems precache registered" );
 
 	// Used to service deferred navigation queries for NPCs
 	IGameSystem::Add( (IGameSystem *) PostFrameNavigationSystem() );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems navigation registered" );
 
 	// Add game log system
 	IGameSystem::Add( GameLogSystem() );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems log registered" );
 
 	// Add HLTV director 
 	IGameSystem::Add( HLTVDirectorSystem() );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems hltv registered" );
 
 #ifdef DOTA_DLL
 	IGameSystem::Add( DOTAPlayerCommanderSystem() );
@@ -660,6 +668,7 @@ CEG_NOINLINE static bool InitGameSystems( CreateInterfaceFn appSystemFactory )
 
 	// Add sound emitter
 	IGameSystem::Add( SoundEmitterSystem() );
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems sound registered" );
 
 #ifdef SERVER_USES_VGUI
 	// Startup vgui
@@ -671,31 +680,45 @@ CEG_NOINLINE static bool InitGameSystems( CreateInterfaceFn appSystemFactory )
 #endif // SERVER_USES_VGUI
 
 	// load Mod specific game events ( MUST be before InitAllSystems() so it can pickup the mod specific events)
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems before mod events" );
 	gameeventmanager->LoadEventsFromFile("resource/ModEvents.res");
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems mod events ready" );
 
 #ifdef CSTRIKE_DLL // BOTPORT: TODO: move these ifdefs out
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems before bot control" );
 	InstallBotControl();
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems bot control ready" );
 #endif
 
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems before init all" );
 	if ( !IGameSystem::InitAllSystems() )
 		return false;
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems init all ready" );
 
 	// Due to dependencies, these are not autogamesystems
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems before model sounds" );
 	if ( !ModelSoundsCacheInit() )
 	{
 		return false;
 	}
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems model sounds ready" );
 
 	// Parse the particle manifest file & register the effects within it
 //	ParseParticleEffects( false );
 
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems before query cache invalidation" );
 	InvalidateQueryCache();
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems query cache invalidation ready" );
 
 	// create the Navigation Mesh interface
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems before nav mesh" );
 	TheNavMesh = NavMeshFactory();
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems nav mesh ready" );
 
 	// init the gamestatsupload connection
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems before stats connection" );
 	gamestatsuploader->InitConnection();
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server game systems stats connection ready" );
 
 	return true;
 }
@@ -915,14 +938,37 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit particle system ready" );
 
 	g_pServerSvCheats = g_pCVar->FindVar( "sv_cheats" );
+#if defined( PLATFORM_PS4 )
+	if ( !g_pServerSvCheats )
+	{
+		PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit using canonical engine sv_cheats" );
+		g_pServerSvCheats = KisakPs4GetEngineSvCheats();
+	}
+#endif
 	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit before sv_cheats check" );
 	if ( !g_pServerSvCheats )
 		return false;
+#if defined( PLATFORM_PS4 )
+	PS4_SERVER_DLL_BREADCRUMB( g_pServerSvCheats->IsRegistered()
+		? "kisak-ps4: server DLLInit sv_cheats registered"
+		: "kisak-ps4: server DLLInit sv_cheats unregistered" );
+#endif
 
 	g_pcv_commentary = g_pCVar->FindVar( "commentary" );
 	g_pcv_ThreadMode = g_pCVar->FindVar( "host_thread_mode" );
 
 	sv_maxreplay = g_pCVar->FindVar( "sv_maxreplay" );
+#if defined( PLATFORM_PS4 )
+	PS4_SERVER_DLL_BREADCRUMB( g_pcv_commentary
+		? "kisak-ps4: server DLLInit commentary cvar ready"
+		: "kisak-ps4: server DLLInit commentary cvar missing" );
+	PS4_SERVER_DLL_BREADCRUMB( g_pcv_ThreadMode
+		? "kisak-ps4: server DLLInit host_thread_mode cvar ready"
+		: "kisak-ps4: server DLLInit host_thread_mode cvar missing" );
+	PS4_SERVER_DLL_BREADCRUMB( sv_maxreplay
+		? "kisak-ps4: server DLLInit sv_maxreplay cvar ready"
+		: "kisak-ps4: server DLLInit sv_maxreplay cvar missing" );
+#endif
 	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit cvar references ready" );
 
 	COM_TimestampedLog( "g_pGameSaveRestoreBlockSet" );

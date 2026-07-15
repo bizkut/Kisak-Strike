@@ -8,9 +8,18 @@ if(NOT PS4 OR NOT POSIX OR NOT STATIC_LINK OR NOT _DLL_EXT STREQUAL "")
 endif()
 
 enable_testing()
+set(KISAK_OPENGNM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../opengnm"
+    CACHE PATH "OpenGNM source root")
+if(NOT EXISTS "${KISAK_OPENGNM_ROOT}/include" AND
+   EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../OpenGNM/include")
+    set(KISAK_OPENGNM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../OpenGNM")
+endif()
+if(NOT EXISTS "${KISAK_OPENGNM_ROOT}/include")
+    message(FATAL_ERROR "OpenGNM source root not found: ${KISAK_OPENGNM_ROOT}")
+endif()
 set_source_files_properties(
-    ../../opengnm/src/dataformat.c
-    ../../opengnm/src/error.c
+    ${KISAK_OPENGNM_ROOT}/src/dataformat.c
+    ${KISAK_OPENGNM_ROOT}/src/error.c
     PROPERTIES LANGUAGE CXX)
 add_executable(static_module_registry_test
     static_module_registry_test.cpp
@@ -71,36 +80,36 @@ add_executable(ps4_gnm_device_test
     ../materialsystem/ps4gnm/ps4_gnm_memory.cpp
     ../materialsystem/ps4gnm/ps4_gnm_runtime.cpp
     ../materialsystem/ps4gnm/ps4_gnm_vertex_declaration.cpp
-    ../../opengnm/src/dataformat.c
-    ../../opengnm/src/error.c
+    ${KISAK_OPENGNM_ROOT}/src/dataformat.c
+    ${KISAK_OPENGNM_ROOT}/src/error.c
 )
 target_include_directories(ps4_gnm_device_test PRIVATE
     ../materialsystem/ps4gnm
-    ../../opengnm/include)
+    ${KISAK_OPENGNM_ROOT}/include)
 set_target_properties(ps4_gnm_device_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_gnm_device COMMAND ps4_gnm_device_test)
 
 add_executable(ps4_gnm_buffer_test
     ps4_gnm_buffer_test.cpp
     ../materialsystem/ps4gnm/ps4_gnm_buffer.cpp
-    ../../opengnm/src/dataformat.c
-    ../../opengnm/src/error.c
+    ${KISAK_OPENGNM_ROOT}/src/dataformat.c
+    ${KISAK_OPENGNM_ROOT}/src/error.c
 )
 target_include_directories(ps4_gnm_buffer_test PRIVATE
     ../materialsystem/ps4gnm
-    ../../opengnm/include)
+    ${KISAK_OPENGNM_ROOT}/include)
 set_target_properties(ps4_gnm_buffer_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_gnm_buffer COMMAND ps4_gnm_buffer_test)
 
 add_executable(ps4_gnm_vertex_declaration_test
     ps4_gnm_vertex_declaration_test.cpp
     ../materialsystem/ps4gnm/ps4_gnm_vertex_declaration.cpp
-    ../../opengnm/src/dataformat.c
-    ../../opengnm/src/error.c
+    ${KISAK_OPENGNM_ROOT}/src/dataformat.c
+    ${KISAK_OPENGNM_ROOT}/src/error.c
 )
 target_include_directories(ps4_gnm_vertex_declaration_test PRIVATE
     ../materialsystem/ps4gnm
-    ../../opengnm/include)
+    ${KISAK_OPENGNM_ROOT}/include)
 set_target_properties(ps4_gnm_vertex_declaration_test PROPERTIES
     CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_gnm_vertex_declaration COMMAND ps4_gnm_vertex_declaration_test)
@@ -109,12 +118,12 @@ add_executable(ps4_gnm_constants_test
     ps4_gnm_constants_test.cpp
     ../materialsystem/ps4gnm/ps4_gnm_constants.cpp
     ../materialsystem/ps4gnm/ps4_gnm_memory.cpp
-    ../../opengnm/src/dataformat.c
-    ../../opengnm/src/error.c
+    ${KISAK_OPENGNM_ROOT}/src/dataformat.c
+    ${KISAK_OPENGNM_ROOT}/src/error.c
 )
 target_include_directories(ps4_gnm_constants_test PRIVATE
     ../materialsystem/ps4gnm
-    ../../opengnm/include)
+    ${KISAK_OPENGNM_ROOT}/include)
 set_target_properties(ps4_gnm_constants_test PROPERTIES
     CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
 add_test(NAME ps4_gnm_constants COMMAND ps4_gnm_constants_test)
@@ -126,7 +135,7 @@ add_executable(ps4_shadow_state_translate_test
 target_include_directories(ps4_shadow_state_translate_test PRIVATE
     ../public
     ../materialsystem/ps4gnm
-    ../../opengnm/include
+    ${KISAK_OPENGNM_ROOT}/include
 )
 target_compile_definitions(ps4_shadow_state_translate_test PRIVATE POSIX _POSIX GNUC COMPILER_GCC)
 set_target_properties(ps4_shadow_state_translate_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES)
@@ -155,7 +164,7 @@ add_executable(ps4_scaleform_hal_test
 target_include_directories(ps4_scaleform_hal_test PRIVATE
     ..
     ../ps4
-    ../../opengnm/include)
+    ${KISAK_OPENGNM_ROOT}/include)
 target_compile_definitions(ps4_scaleform_hal_test PRIVATE
     POSIX _POSIX GNUC COMPILER_GCC)
 set_target_properties(ps4_scaleform_hal_test PROPERTIES
