@@ -138,7 +138,7 @@ ConVar	sv_noclipduringpause( "sv_noclipduringpause", "0", FCVAR_REPLICATED | FCV
 
 extern ConVar sv_maxunlag;
 extern ConVar sv_turbophysics;
-extern ConVar *sv_maxreplay;
+extern ConVar *g_pServerSvMaxReplay;
 
 extern ConVar sv_coaching_enabled;
 
@@ -2736,7 +2736,7 @@ void CBasePlayer::AttemptToExitFreezeCam( void )
 
 bool CBasePlayer::StartReplayMode( float fDelay, float fDuration, int iEntity )
 {
-	if ( ( sv_maxreplay == NULL ) || ( sv_maxreplay->GetFloat() <= 0 ) )
+	if ( ( g_pServerSvMaxReplay == NULL ) || ( g_pServerSvMaxReplay->GetFloat() <= 0 ) )
 		return false;
 
 	m_fDelay = fDelay;
@@ -9946,6 +9946,5 @@ uint64 CBasePlayer::GetSteamIDAsUInt64( void )
 		return steamIDForPlayer.ConvertToUint64();
 	return 0;
 }
-
 
 

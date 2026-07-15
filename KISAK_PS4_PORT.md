@@ -43,12 +43,12 @@ Latest package staged and awaiting manual installation and launch:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.14
+Version: 3.15
 Size: 103,153,664 bytes
-SHA-256: c419aa8936fe2da79cc39cbecc6b6db6b2606c37375a3148796c9de3f12a9291
+SHA-256: 32e0e7324f0358db1ce2ee91e99270c4cb31076349a113890b2f64a2b0cb2845
 Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
-Hardware target: v4.48 cvar-system connection trace
+Hardware target: v4.49 sv_maxreplay symbol separation
 ```
 
 Current hardware baseline:
@@ -6512,6 +6512,49 @@ the ConVar secondary vtable, whose entry at the observed offset is the exact
 `SetValue(Color)` thunk recorded in the hardware log. The next package must give
 the server lookup pointer a distinct symbol and verify that the final OELF again
 contains a 144-byte engine `sv_maxreplay` object.
+
+### v4.49: Separate the server replay lookup from engine `sv_maxreplay`
+
+The server's cached lookup pointer is renamed from `sv_maxreplay` to
+`g_pServerSvMaxReplay` in both defining and consuming translation units. The
+console variable's lookup string remains `"sv_maxreplay"`, so dynamic-module and
+runtime behavior is unchanged. The source-level change only removes the external
+C++ symbol collision that is invalid in the PS4 monolith.
+
+Package version 3.15 and build marker `sv_maxreplay_symbol_fix_v449` identify the
+next manual-install test. The v4.48 cvar breadcrumbs remain for this run so that
+the hardware log proves whether the repaired 144-byte engine object and the rest
+of the pending registration list complete before the earlier server DLLInit
+`sv_cheats` experiment resumes.
+
+The Linux OpenOrbis build, final link, FSELF conversion, package creation, and
+verbose PkgTool validation complete. Every reported package check is `[OK]`, the
+metadata contains version 3.15, the v4.49 marker is present, and the development
+attach-gate marker is absent. Exact OELF symbols now show the required separation:
+
+```text
+0x468dba0   8 bytes  g_pServerSvMaxReplay
+0x468dba8 144 bytes  sv_comp_mode_allow_dc
+0x480ff78 144 bytes  sv_maxreplay
+```
+
+The engine `sv_maxreplay` static initializer loads `0x480ff78` before calling the
+bounded `ConVar` constructor and registers the same address for destruction. It
+no longer references or overlaps the server pointer. Artifact identities:
+
+```text
+OELF: 135,927,592 bytes
+SHA-256: ec92f636b31cf5a0f0140ec8a58fa1aa0cb4059dcad81e8ad1daca4c3a442eac
+SELF: 83,044,160 bytes
+SHA-256: 948445ba3db301a32b0b14d568e6c805be6a5fddc8e6b13668596165570b7149
+PKG: 103,153,664 bytes
+SHA-256: 32e0e7324f0358db1ce2ee91e99270c4cb31076349a113890b2f64a2b0cb2845
+```
+
+The host suite remains at its established 11/14 baseline with only the three
+Linux high-address OpenGNM descriptor failures. The PKG is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its remote size is
+103,153,664 bytes and a complete readback matches the local PKG SHA-256.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

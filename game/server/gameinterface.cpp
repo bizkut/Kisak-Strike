@@ -264,7 +264,7 @@ ConVar sv_massreport( "sv_massreport", "0" );
 ConVar sv_force_transmit_ents( "sv_force_transmit_ents", "0", FCVAR_RELEASE, "Will transmit all entities to client, regardless of PVS conditions (will still skip based on transmit flags, however)." );
 
 ConVar sv_autosave( "sv_autosave", "1", 0, "Set to 1 to autosave game on level transition. Does not affect autosave triggers." );
-ConVar *sv_maxreplay = NULL;
+ConVar *g_pServerSvMaxReplay = NULL;
 
 ConVar sv_comp_mode_allow_dc( "sv_comp_mode_allow_dc", 
 	"0", FCVAR_DEVELOPMENTONLY, 
@@ -957,7 +957,7 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	g_pcv_commentary = g_pCVar->FindVar( "commentary" );
 	g_pcv_ThreadMode = g_pCVar->FindVar( "host_thread_mode" );
 
-	sv_maxreplay = g_pCVar->FindVar( "sv_maxreplay" );
+	g_pServerSvMaxReplay = g_pCVar->FindVar( "sv_maxreplay" );
 #if defined( PLATFORM_PS4 )
 	PS4_SERVER_DLL_BREADCRUMB( g_pcv_commentary
 		? "kisak-ps4: server DLLInit commentary cvar ready"
@@ -965,7 +965,7 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	PS4_SERVER_DLL_BREADCRUMB( g_pcv_ThreadMode
 		? "kisak-ps4: server DLLInit host_thread_mode cvar ready"
 		: "kisak-ps4: server DLLInit host_thread_mode cvar missing" );
-	PS4_SERVER_DLL_BREADCRUMB( sv_maxreplay
+	PS4_SERVER_DLL_BREADCRUMB( g_pServerSvMaxReplay
 		? "kisak-ps4: server DLLInit sv_maxreplay cvar ready"
 		: "kisak-ps4: server DLLInit sv_maxreplay cvar missing" );
 #endif
