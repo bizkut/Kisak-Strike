@@ -40,11 +40,17 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 	do { if ( enabled ) s_nKisakPs4GameModesKeyTraceCount = 0; } while ( 0 )
 #define PS4_KEYVALUES_KEY_BREADCRUMB( enabled, name, depth ) \
 	do { if ( enabled ) KisakPs4GameModesKeyBreadcrumb( name, depth ); } while ( 0 )
+#define PS4_KEYVALUES_INPUT_BREADCRUMB( enabled, buffer ) \
+	do { if ( enabled ) KisakPs4GameModesInputBreadcrumb( buffer ); } while ( 0 )
+#define PS4_KEYVALUES_TOKEN_BREADCRUMB( enabled, phase, token, operation, reads, position, quoted, conditional ) \
+	do { if ( enabled ) KisakPs4GameModesTokenBreadcrumb( phase, token, operation, reads, position, quoted, conditional ); } while ( 0 )
 #else
 #define PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) false
 #define PS4_KEYVALUES_LOAD_BREADCRUMB( enabled, line ) ((void)(enabled))
 #define PS4_KEYVALUES_RESET_KEY_TRACE( enabled ) ((void)(enabled))
 #define PS4_KEYVALUES_KEY_BREADCRUMB( enabled, name, depth ) ((void)(enabled))
+#define PS4_KEYVALUES_INPUT_BREADCRUMB( enabled, buffer ) ((void)(enabled))
+#define PS4_KEYVALUES_TOKEN_BREADCRUMB( enabled, phase, token, operation, reads, position, quoted, conditional ) ((void)(enabled))
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -53,6 +59,7 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 #if defined( PLATFORM_PS4 )
 static int s_nKisakPs4GameModesKeyTraceCount = 0;
 static const int k_nKisakPs4GameModesKeyTraceLimit = 4096;
+static const int k_nKisakPs4GameModesTokenTraceLimit = 16;
 
 static void KisakPs4GameModesKeyBreadcrumb( const char *pName, int nDepth )
 {
@@ -66,6 +73,36 @@ static void KisakPs4GameModesKeyBreadcrumb( const char *pName, int nDepth )
 		"kisak-ps4: gamemodes parse key index=%d depth=%d name=%s",
 		s_nKisakPs4GameModesKeyTraceCount, nDepth, pName ? pName : "" );
 	++s_nKisakPs4GameModesKeyTraceCount;
+	KisakPs4StartupBreadcrumb( line );
+}
+
+static void KisakPs4GameModesInputBreadcrumb( const char *pBuffer )
+{
+	const char *pFullValue = V_strstr( pBuffer, "\"#SFUI_GameTypeClassic\"" );
+	const char *pNextKey = V_strstr( pBuffer, "\"gameModes\"" );
+	char line[256];
+	V_snprintf( line, sizeof( line ),
+		"kisak-ps4: gamemodes input full_value_offset=%d game_modes_offset=%d",
+		pFullValue ? static_cast<int>( pFullValue - pBuffer ) : -1,
+		pNextKey ? static_cast<int>( pNextKey - pBuffer ) : -1 );
+	KisakPs4StartupBreadcrumb( line );
+}
+
+static void KisakPs4GameModesTokenBreadcrumb( const char *pPhase,
+	const char *pToken, int nOperation, int nReads, int nPosition,
+	bool bQuoted, bool bConditional )
+{
+	if ( nOperation >= k_nKisakPs4GameModesTokenTraceLimit )
+	{
+		return;
+	}
+
+	char line[512];
+	V_snprintf( line, sizeof( line ),
+		"kisak-ps4: gamemodes token phase=%s op=%d reads=%d pos=%d len=%d quoted=%d conditional=%d text=%.160s",
+		pPhase ? pPhase : "unknown", nOperation, nReads, nPosition,
+		pToken ? V_strlen( pToken ) : -1, bQuoted ? 1 : 0,
+		bConditional ? 1 : 0, pToken ? pToken : "<null>" );
 	KisakPs4StartupBreadcrumb( line );
 }
 #endif
@@ -185,7 +222,7 @@ private:
 class CKeyValuesTokenReader
 {
 public:
-	CKeyValuesTokenReader( KeyValues *pKeyValues, CUtlBuffer &buf );
+	CKeyValuesTokenReader( KeyValues *pKeyValues, CUtlBuffer &buf, bool bTracePs4GameModes );
 	
 	const char* ReadToken( bool &wasQuoted, bool &wasConditional );
 	void SeekBackOneToken();
@@ -195,18 +232,24 @@ private:
 	CUtlBuffer &m_Buffer;
 
 	int m_nTokensRead;
+	int m_nTraceOperations;
 	bool m_bUsePriorToken;
 	bool m_bPriorTokenWasQuoted;
 	bool m_bPriorTokenWasConditional;
-	char m_pTokenBuf[KEYVALUES_TOKEN_SIZE];
+	bool m_bTracePs4GameModes;
+	static char s_pTokenBuf[KEYVALUES_TOKEN_SIZE];
 };
 
-CKeyValuesTokenReader::CKeyValuesTokenReader( KeyValues *pKeyValues, CUtlBuffer &buf ) : 
+char CKeyValuesTokenReader::s_pTokenBuf[KEYVALUES_TOKEN_SIZE];
+
+CKeyValuesTokenReader::CKeyValuesTokenReader( KeyValues *pKeyValues, CUtlBuffer &buf, bool bTracePs4GameModes ) :
 	m_Buffer( buf )
 {
 	m_pKeyValues = pKeyValues;
 	m_nTokensRead = 0;
+	m_nTraceOperations = 0;
 	m_bUsePriorToken = false;
+	m_bTracePs4GameModes = bTracePs4GameModes;
 }
 
 const char* CKeyValuesTokenReader::ReadToken( bool &wasQuoted, bool &wasConditional )
@@ -216,7 +259,13 @@ const char* CKeyValuesTokenReader::ReadToken( bool &wasQuoted, bool &wasConditio
 		m_bUsePriorToken = false;
 		wasQuoted = m_bPriorTokenWasQuoted;
 		wasConditional = m_bPriorTokenWasConditional;
-		return m_pTokenBuf;
+		if ( m_bTracePs4GameModes )
+		{
+			PS4_KEYVALUES_TOKEN_BREADCRUMB( true, "replay", s_pTokenBuf,
+				m_nTraceOperations, m_nTokensRead, m_Buffer.TellGet(), wasQuoted, wasConditional );
+			++m_nTraceOperations;
+		}
+		return s_pTokenBuf;
 	}
 
 	m_bPriorTokenWasQuoted = wasQuoted = false;
@@ -250,20 +299,32 @@ const char* CKeyValuesTokenReader::ReadToken( bool &wasQuoted, bool &wasConditio
 	{
 		m_bPriorTokenWasQuoted = wasQuoted = true;
 		m_Buffer.GetDelimitedString( m_pKeyValues->m_bHasEscapeSequences ? GetCStringCharConversion() : GetNoEscCharConversion(), 
-			m_pTokenBuf, KEYVALUES_TOKEN_SIZE );
+			s_pTokenBuf, KEYVALUES_TOKEN_SIZE );
 
 		++m_nTokensRead;
-		return m_pTokenBuf;
+		if ( m_bTracePs4GameModes )
+		{
+			PS4_KEYVALUES_TOKEN_BREADCRUMB( true, "quoted", s_pTokenBuf,
+				m_nTraceOperations, m_nTokensRead, m_Buffer.TellGet(), wasQuoted, wasConditional );
+			++m_nTraceOperations;
+		}
+		return s_pTokenBuf;
 	}
 
 	if ( *c == '{' || *c == '}' || *c == '=' )
 	{
 		// it's a control char, just add this one char and stop reading
-		m_pTokenBuf[0] = *c;
-		m_pTokenBuf[1] = 0;
+		s_pTokenBuf[0] = *c;
+		s_pTokenBuf[1] = 0;
 		m_Buffer.GetChar();
 		++m_nTokensRead;
-		return m_pTokenBuf;
+		if ( m_bTracePs4GameModes )
+		{
+			PS4_KEYVALUES_TOKEN_BREADCRUMB( true, "control", s_pTokenBuf,
+				m_nTraceOperations, m_nTokensRead, m_Buffer.TellGet(), wasQuoted, wasConditional );
+			++m_nTraceOperations;
+		}
+		return s_pTokenBuf;
 	}
 
 	// read in the token until we hit a whitespace or a control character
@@ -297,7 +358,7 @@ const char* CKeyValuesTokenReader::ReadToken( bool &wasQuoted, bool &wasConditio
 
 		if (nCount < (KEYVALUES_TOKEN_SIZE-1) )
 		{
-			m_pTokenBuf[nCount++] = *c;	// add char to buffer
+			s_pTokenBuf[nCount++] = *c;	// add char to buffer
 		}
 		else if ( !bReportedError )
 		{
@@ -307,10 +368,16 @@ const char* CKeyValuesTokenReader::ReadToken( bool &wasQuoted, bool &wasConditio
 
 		m_Buffer.GetChar();
 	}
-	m_pTokenBuf[ nCount ] = 0;
+	s_pTokenBuf[ nCount ] = 0;
 	++m_nTokensRead;
 
-	return m_pTokenBuf;
+	if ( m_bTracePs4GameModes )
+	{
+		PS4_KEYVALUES_TOKEN_BREADCRUMB( true, "bare", s_pTokenBuf,
+			m_nTraceOperations, m_nTokensRead, m_Buffer.TellGet(), wasQuoted, wasConditional );
+		++m_nTraceOperations;
+	}
+	return s_pTokenBuf;
 }
 
 void CKeyValuesTokenReader::SeekBackOneToken()
@@ -2389,7 +2456,7 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 	bool wasQuoted;
 	bool wasConditional;
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser before token reader" );
-	CKeyValuesTokenReader tokenReader( this, buf );
+	CKeyValuesTokenReader tokenReader( this, buf, bTracePs4GameModes );
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser token reader ready" );
 
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes parser before error filename" );
@@ -2546,6 +2613,7 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, const char *pBuffer, I
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer entered" );
 	if ( !pBuffer )
 		return true;
+	PS4_KEYVALUES_INPUT_BREADCRUMB( bTracePs4GameModes, pBuffer );
 
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes text buffer before binary probe" );
 	if ( IsGameConsole() && (unsigned int)((unsigned char *)pBuffer)[0] == KV_BINARY_POOLED_FORMAT )

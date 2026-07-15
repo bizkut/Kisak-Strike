@@ -39,11 +39,15 @@ SHA-256: 4776e95d3fba6ecc0779d7af294374ec28446e981dc28b0b4c1d4942a5345d24
 Hardware result: v4.55 still sees `#SFUI_Game` instead of `gameModes`
 ```
 
-Next manual package in preparation:
+Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.22
+Size: 103,153,664 bytes
+SHA-256: a85bbe9d83d9d9c7ceb309d311c21edcb7792a3380628cee162eedcd7e7dc6cf
+FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Staged: 2026-07-15
 Hardware target: v4.56 KeyValues raw-input and token-replay trace
 ```
 
@@ -6882,6 +6886,49 @@ the token count, `CUtlBuffer` read position, string length, and token text. A
 separate pre-parse check will report whether the in-memory file contains the
 full `#SFUI_GameTypeClassic` value and following `gameModes` key. This will
 separate malformed input, delimited-string truncation, and replay corruption.
+
+### v4.56: Trace KeyValues raw input and token replay
+
+The v4.55 reader-local token buffer is reverted because hardware rejected its
+shared-buffer-overwrite hypothesis. `CKeyValuesTokenReader` again uses the
+original static 32 KiB token array, while its constructor now receives a trace
+flag that is enabled only for the exact `gamemodes.txt` resource. The existing
+bounded per-key trace remains enabled.
+
+Before parsing, the PS4 diagnostic searches the loaded buffer for the exact
+`"#SFUI_GameTypeClassic"` scalar and following `"gameModes"` key and reports
+their byte offsets. The first 16 token operations then report whether each
+token came from a quoted, control, bare, or seek-back replay path, together with
+the operation number, actual buffer-read count, `CUtlBuffer::TellGet()`
+position, token length, quoted/conditional flags, and up to 160 characters of
+token text. This covers the root and opening braces, the `gameTypes` and
+`classic` sections, the `value` pair, the `nameID` look-ahead/replay pair, its
+scalar value, and the expected `gameModes` look-ahead/replay pair.
+
+Package version 3.22 and build marker `gamemodes_token_reader_trace_v456`
+identify the manual-install test. The Linux OpenOrbis build, final link, FSELF
+conversion, package creation, and verbose PkgTool validation complete. Every
+package check is `[OK]`; metadata contains version 3.22, the raw-input and token
+trace formats are present, the retired development attach-gate marker is absent,
+and the final OELF contains one 32 KiB
+`CKeyValuesTokenReader::s_pTokenBuf` symbol. Artifact identities:
+
+```text
+OELF: 135,944,240 bytes
+SHA-256: 25bf03ad4745b51037e734fe45c07a8016e38f95161b597740adbbb317c9bd0f
+SELF: 83,060,576 bytes
+SHA-256: e329242cfc764bdaa0ed762af37262b247e88458c7b55ac9ddb5f01e62a0ce09
+PKG: 103,153,664 bytes
+SHA-256: a85bbe9d83d9d9c7ceb309d311c21edcb7792a3380628cee162eedcd7e7dc6cf
+```
+
+The host suite remains at the established 11/14 baseline, with only
+`ps4_gnm_device`, `ps4_gnm_buffer`, and `ps4_gnm_constants` failing on Linux
+high addresses that do not round-trip through PS4's 44-bit descriptor fields.
+The PKG is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and a complete readback matches the local PKG SHA-256.
+Hardware installation and the v4.56 run remain manual.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
