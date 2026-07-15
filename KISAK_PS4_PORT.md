@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.22
+Version: 3.23
 Size: 103,153,664 bytes
-SHA-256: a85bbe9d83d9d9c7ceb309d311c21edcb7792a3380628cee162eedcd7e7dc6cf
-Hardware run: v4.56 (2026-07-15), isolates a 200-byte logical input buffer
+SHA-256: 961cba2bebdfe199042df5100d129ff8422f623219fdd15f27ad7cc882d361e1
+Hardware run: v4.57 (2026-07-15), reaches server structured game-type loading
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.22
+Version: 3.23
 Size: 103,153,664 bytes
-SHA-256: a85bbe9d83d9d9c7ceb309d311c21edcb7792a3380628cee162eedcd7e7dc6cf
-Hardware result: v4.56 proves replay is correct; fresh input stops at byte 200
+SHA-256: 961cba2bebdfe199042df5100d129ff8422f623219fdd15f27ad7cc882d361e1
+Hardware result: v4.57 parses the complete file; server LoadGameTypes crashes
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,153,664 bytes
 SHA-256: 961cba2bebdfe199042df5100d129ff8422f623219fdd15f27ad7cc882d361e1
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-15
-Hardware target: v4.57 PS4 stream-size override and exact read metrics
+Hardware result: v4.57 validates the stream-size override and moves the boundary
 ```
 
 Current hardware baseline:
@@ -6998,7 +6998,26 @@ high addresses that do not round-trip through PS4's 44-bit descriptor fields.
 The PKG is FTP-staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
 103,153,664 bytes and a complete readback matches the local PKG SHA-256.
-Hardware installation and the v4.57 run remain manual.
+Hardware installation and launch remain a manual workflow.
+
+The v4.57 package was installed and run manually. PS4 `_stat` again reports a
+false 200-byte size for `gamemodes.txt`, while the open descriptor reports the
+correct 99,836-byte end. The stdio layer selects 99,836 bytes; the exact read,
+string length, and parser input length are all 99,836. The trace finds
+`#SFUI_GameTypeClassic` and `gameModes` at their expected offsets, then parses
+all 2,840 recorded keys. This validates the PS4 stream-size override and
+rejects the former token-replay and truncated-input hypotheses.
+
+Both runtime copies now complete the base `gamemodes.txt` parse. The client
+continues through structured game types, maps, map groups, and bot difficulty
+and completes `GameTypes::Initialize`. The server loads the same base file,
+handles the absent optional server override, and reaches
+`server gametypes before structured game types load`; that is the final
+breadcrumb. The crash has therefore moved into the server copy of
+`GameTypes::LoadGameTypes`, before the caller can record completion. The next
+package will distinguish an entry/call-target problem from the first container
+or `FindKey(\"gameTypes\")` operation and will compare the server/client body and
+object linkage in the monolithic image.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
