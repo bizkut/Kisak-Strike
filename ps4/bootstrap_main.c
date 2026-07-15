@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <sys/stat.h>
 
@@ -13,6 +14,31 @@ extern KisakConstructor __kisak_priority_ctors_start[];
 extern KisakConstructor __kisak_priority_ctors_end[];
 extern KisakConstructor __kisak_ctors_start[];
 extern KisakConstructor __kisak_ctors_end[];
+#endif
+
+#if defined( KISAK_PS4_DEV_ATTACH_GATE )
+#define KISAK_PS4_DEV_ATTACH_GATE_HOLD UINT64_C( 0x4b4953414b484f4c )
+#define KISAK_PS4_DEV_ATTACH_GATE_RELEASE UINT64_C( 0x4b4953414b474f21 )
+#define KISAK_PS4_DEV_ATTACH_GATE_POLL_US 10000u
+#define KISAK_PS4_DEV_ATTACH_GATE_TIMEOUT_POLLS 12000u
+
+volatile uint64_t g_KisakPs4DevAttachGate
+    __attribute__((used, visibility("default"), aligned(8))) =
+        KISAK_PS4_DEV_ATTACH_GATE_HOLD;
+const char g_KisakPs4DevAttachGateMarker[] __attribute__((used)) =
+    "kisak-ps4: dev attach gate v1";
+
+static int KisakPs4WaitForDevAttach( void )
+{
+    unsigned int remainingPolls = KISAK_PS4_DEV_ATTACH_GATE_TIMEOUT_POLLS;
+    while ( g_KisakPs4DevAttachGate != KISAK_PS4_DEV_ATTACH_GATE_RELEASE &&
+            remainingPolls != 0 )
+    {
+        sceKernelUsleep( KISAK_PS4_DEV_ATTACH_GATE_POLL_US );
+        --remainingPolls;
+    }
+    return g_KisakPs4DevAttachGate == KISAK_PS4_DEV_ATTACH_GATE_RELEASE;
+}
 #endif
 
 static FILE *OpenStartupLog( void )
@@ -44,9 +70,17 @@ void KisakPs4StartupBreadcrumb( const char *line )
 
 int main( int argc, char **argv )
 {
+#if defined( KISAK_PS4_DEV_ATTACH_GATE )
+    int devAttachReleased = KisakPs4WaitForDevAttach();
+#endif
     FILE *log = OpenStartupLog();
     LogLine( log, "kisak-ps4: bootstrap entered" );
     LogLine( log, "kisak-ps4: build marker server_sv_cheats_isolation_v440" );
+#if defined( KISAK_PS4_DEV_ATTACH_GATE )
+    LogLine( log, devAttachReleased
+        ? "kisak-ps4: dev attach gate released"
+        : "kisak-ps4: dev attach gate timed out; continuing" );
+#endif
 
 #if defined( KISAK_PS4_MONOLITHIC )
     KisakConstructor *priorityConstructor = __kisak_priority_ctors_start;

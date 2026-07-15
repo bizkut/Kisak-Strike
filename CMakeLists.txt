@@ -25,6 +25,16 @@ include(kisak-strike-build-options.cmake)
 if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
     set(ORBIS ON)
     set(STATIC_LINK ON)
+    set(KISAK_PS4_DEV_ATTACH_GATE OFF)
+    if(DEFINED ENV{KISAK_PS4_DEV_ATTACH_GATE})
+        if("$ENV{KISAK_PS4_DEV_ATTACH_GATE}" STREQUAL "1")
+            set(KISAK_PS4_DEV_ATTACH_GATE ON)
+        elseif(NOT "$ENV{KISAK_PS4_DEV_ATTACH_GATE}" STREQUAL "0" AND
+               NOT "$ENV{KISAK_PS4_DEV_ATTACH_GATE}" STREQUAL "")
+            message(FATAL_ERROR
+                "KISAK_PS4_DEV_ATTACH_GATE must be 0, 1, or unset")
+        endif()
+    endif()
     set(CMAKE_CXX_STANDARD 11)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CXX_EXTENSIONS ON)
@@ -277,6 +287,14 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         POSIX _POSIX GNUC COMPILER_GCC STATIC_LINK
         CSTRIKE15 CSTRIKE_REL_BUILD RAD_TELEMETRY_DISABLED
     )
+    if(KISAK_PS4_DEV_ATTACH_GATE)
+        if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+            message(FATAL_ERROR
+                "The PS4 development attach gate is allowed only in Debug builds")
+        endif()
+        target_compile_definitions(kisak_ps4_monolithic PRIVATE
+            KISAK_PS4_DEV_ATTACH_GATE)
+    endif()
     target_include_directories(kisak_ps4_monolithic PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/public"
         "${CMAKE_CURRENT_SOURCE_DIR}"
