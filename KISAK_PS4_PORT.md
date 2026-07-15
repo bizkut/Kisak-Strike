@@ -23,32 +23,28 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.19
+Version: 3.20
 Size: 103,153,664 bytes
-SHA-256: 968a2ef0394b1a5276d300cc6d2ff844acb009dab0ab8eba8a59a52a69ca418a
-Hardware run: v4.53 (2026-07-15), crashes inside the nested `gameTypes` parse
+SHA-256: 0396bcc7b2dd09e4234efaf345f91d46851e45e2eec9cd93e4d1ef5565a28dd4
+Hardware run: v4.54 (2026-07-15), exposes a corrupted replayed key token
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.19
-Size: 103,153,664 bytes
-SHA-256: 968a2ef0394b1a5276d300cc6d2ff844acb009dab0ab8eba8a59a52a69ca418a
-Hardware result: v4.53 enters the first `gameTypes` child section but does not return
-```
-
-Latest package staged and awaiting manual installation and launch:
-
-```text
-Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.20
 Size: 103,153,664 bytes
 SHA-256: 0396bcc7b2dd09e4234efaf345f91d46851e45e2eec9cd93e4d1ef5565a28dd4
-Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
-Hardware target: v4.54 bounded per-key gamemodes parser trace
+Hardware result: v4.54 sees `#SFUI_Game` where the next key must be `gameModes`
+```
+
+Next manual package in preparation:
+
+```text
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.21
+Hardware target: v4.55 reader-local KeyValues token buffer
 ```
 
 Current hardware baseline:
@@ -6811,6 +6807,32 @@ high addresses that do not round-trip through PS4's 44-bit descriptor fields.
 The PKG is FTP-staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
 103,153,664 bytes and a complete readback matches the local PKG SHA-256.
+
+The v4.54 hardware trace records this exact sequence:
+
+```text
+index=0 depth=0 name=gameTypes
+index=1 depth=2 name=classic
+index=2 depth=4 name=value
+index=3 depth=4 name=nameID
+index=4 depth=4 name=#SFUI_Game
+```
+
+The installed file instead has scalar value `#SFUI_GameTypeClassic` for
+`nameID`, followed by the key `gameModes`. A byte-level read of the completed
+log confirms that the final `#SFUI_Game` line is newline-terminated, so it is
+the parser's token and not a partially written crash line. In the scalar path,
+the parser reads `gameModes` as look-ahead, calls `SeekBackOneToken`, and later
+replays the process-global static token buffer without copying it. The observed
+prefix of the preceding scalar value is consistent with that shared buffer
+being overwritten between look-ahead and replay.
+
+Version 3.21 will identify v4.55 and move the 32 KiB token array from the static
+`CKeyValuesTokenReader::s_pTokenBuf` object into each token-reader instance.
+`SeekBackOneToken` will then replay storage owned by the active, mutex-protected
+reader. The bounded per-key trace remains enabled so hardware can prove whether
+the sequence advances from `nameID` to `gameModes` and whether the complete
+file parse returns.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
