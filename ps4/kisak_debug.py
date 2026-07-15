@@ -485,17 +485,21 @@ def _range_is_covered(
     required_protection: int,
 ) -> bool:
     cursor = start
-    for memory_map in sorted(maps, key=lambda item: item.start):
-        if memory_map.end <= cursor:
-            continue
-        if memory_map.start > cursor:
+    while cursor < end:
+        covering_ends = [
+            min(end, memory_map.end)
+            for memory_map in maps
+            if memory_map.start <= cursor < memory_map.end
+            and (_map_protection(memory_map) & required_protection)
+            == required_protection
+        ]
+        if not covering_ends:
             return False
-        if (_map_protection(memory_map) & required_protection) != required_protection:
+        next_cursor = max(covering_ends)
+        if next_cursor <= cursor:
             return False
-        cursor = min(end, memory_map.end)
-        if cursor >= end:
-            return True
-    return False
+        cursor = next_cursor
+    return True
 
 
 def candidate_load_biases(

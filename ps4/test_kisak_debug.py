@@ -300,6 +300,37 @@ class OelfTests(unittest.TestCase):
 
 
 class TargetTests(unittest.IsolatedAsyncioTestCase):
+    def test_range_coverage_uses_qualifying_overlapping_map(self) -> None:
+        maps = [
+            types.SimpleNamespace(
+                start=0x4000,
+                end=0x800000000000,
+                prot=0,
+            ),
+            types.SimpleNamespace(
+                start=0x400000,
+                end=0x460C000,
+                prot=VMProtection.READ | VMProtection.EXECUTE,
+            ),
+        ]
+
+        self.assertTrue(
+            debug._range_is_covered(
+                maps,
+                0x400000,
+                0x460C000,
+                int(VMProtection.READ | VMProtection.EXECUTE),
+            )
+        )
+        self.assertFalse(
+            debug._range_is_covered(
+                maps,
+                0x400000,
+                0x460C000,
+                int(VMProtection.WRITE),
+            )
+        )
+
     async def test_stop_attached_target_requires_confirmed_interrupt(self) -> None:
         class NoStopInterruptContext:
             def register_callback(self, callback):
