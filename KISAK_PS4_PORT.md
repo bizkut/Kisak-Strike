@@ -23,32 +23,28 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.20
+Version: 3.21
 Size: 103,153,664 bytes
-SHA-256: 0396bcc7b2dd09e4234efaf345f91d46851e45e2eec9cd93e4d1ef5565a28dd4
-Hardware run: v4.54 (2026-07-15), exposes a corrupted replayed key token
+SHA-256: 4776e95d3fba6ecc0779d7af294374ec28446e981dc28b0b4c1d4942a5345d24
+Hardware run: v4.55 (2026-07-15), reproduces the same corrupted key token
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.20
-Size: 103,153,664 bytes
-SHA-256: 0396bcc7b2dd09e4234efaf345f91d46851e45e2eec9cd93e4d1ef5565a28dd4
-Hardware result: v4.54 sees `#SFUI_Game` where the next key must be `gameModes`
-```
-
-Latest package staged and awaiting manual installation and launch:
-
-```text
-Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.21
 Size: 103,153,664 bytes
 SHA-256: 4776e95d3fba6ecc0779d7af294374ec28446e981dc28b0b4c1d4942a5345d24
-Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
-Hardware target: v4.55 reader-local KeyValues token buffer
+Hardware result: v4.55 still sees `#SFUI_Game` instead of `gameModes`
+```
+
+Next manual package in preparation:
+
+```text
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.22
+Hardware target: v4.56 KeyValues raw-input and token-replay trace
 ```
 
 Current hardware baseline:
@@ -6870,6 +6866,22 @@ high addresses that do not round-trip through PS4's 44-bit descriptor fields.
 The PKG is FTP-staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
 103,153,664 bytes and a complete readback matches the local PKG SHA-256.
+
+The v4.55 hardware run again records exactly `gameTypes`, `classic`, `value`,
+`nameID`, and `#SFUI_Game` at indexes 0 through 4, with no subsequent marker.
+It does not reach `gameModes`. Because the final OELF has no static
+`CKeyValuesTokenReader::s_pTokenBuf` symbol, moving the token array into the
+reader instance had no effect on the failure. The shared-buffer overwrite
+hypothesis is rejected; retaining the extra 32 KiB stack allocation is not
+justified.
+
+Version 3.22 will identify v4.56, restore the original static token array, and
+trace the first 16 `ReadToken` operations at their source. Each marker will
+distinguish a fresh quoted/control/bare read from a seek-back replay and report
+the token count, `CUtlBuffer` read position, string length, and token text. A
+separate pre-parse check will report whether the in-memory file contains the
+full `#SFUI_GameTypeClassic` value and following `gameModes` key. This will
+separate malformed input, delimited-string truncation, and replay corruption.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
