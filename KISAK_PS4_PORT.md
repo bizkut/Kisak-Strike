@@ -23,32 +23,28 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.18
+Version: 3.19
 Size: 103,153,664 bytes
-SHA-256: a94eb44bf2af9cc7e7c72970f113985ad571adb989b97434d4e1081ebe6f39e9
-Hardware run: v4.52 (2026-07-15), crashes inside the gamemodes text parser
+SHA-256: 968a2ef0394b1a5276d300cc6d2ff844acb009dab0ab8eba8a59a52a69ca418a
+Hardware run: v4.53 (2026-07-15), crashes inside the nested `gameTypes` parse
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.18
-Size: 103,153,664 bytes
-SHA-256: a94eb44bf2af9cc7e7c72970f113985ad571adb989b97434d4e1081ebe6f39e9
-Hardware result: v4.52 completes file I/O and crashes inside `KeyValues::LoadFromBuffer`
-```
-
-Latest package staged and awaiting manual installation and launch:
-
-```text
-Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.19
 Size: 103,153,664 bytes
 SHA-256: 968a2ef0394b1a5276d300cc6d2ff844acb009dab0ab8eba8a59a52a69ca418a
-Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
-Hardware target: v4.53 gamemodes KeyValues parser-entry trace
+Hardware result: v4.53 enters the first `gameTypes` child section but does not return
+```
+
+Next manual package in preparation:
+
+```text
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.20
+Hardware target: v4.54 bounded per-key gamemodes parser trace
 ```
 
 Current hardware baseline:
@@ -6761,6 +6757,23 @@ high addresses that do not round-trip through PS4's 44-bit descriptor fields.
 The PKG is FTP-staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
 103,153,664 bytes and a complete readback matches the local PKG SHA-256.
+
+The v4.53 hardware run completes every text-wrapper and core-parser entry
+marker: binary and Unicode probes, length scan, `CUtlBuffer` construction,
+mutex acquisition, token-reader construction, error filename setup, root token
+and name assignment, and opening-brace parsing. The recursive root context,
+first key token, first child allocation, and first value token also complete.
+Its final marker is `recursive before first child section`; the paired
+`first child section ready` marker is absent. The loose file begins with the
+root `GameModes.txt` and first child `gameTypes`, so the active crash is inside
+the recursive parse of `gameTypes`, not in KeyValues parser setup.
+
+Version 3.20 will identify v4.54 and emit one bounded dynamic breadcrumb for
+each validated key token in this exact resource, including a global key index,
+parser stack depth, and key name. A 4,096-entry ceiling covers the 2,713 lines
+in the current file that begin with a quoted key while preventing an unbounded
+trace if the input changes. The last breadcrumb will identify the concrete key
+being processed when the recursive parser crashes.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
