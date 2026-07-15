@@ -6143,6 +6143,769 @@ Version 3.07 was staged to
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` on 2026-07-15.
 Install/run title `KISK00002`; the bootstrap package remains unnecessary.
 
+### v4.42: Trace the server PCF decode and definition replacement
+
+Hardware v4.41 reaches `server DLLInit before particle parse` and produces no
+later output, proving that the synchronous `ParseParticleEffects(false)` call
+is the current fault window. The mounted PC content was checked independently
+of Source: `particles/particles_manifest.txt` is readable from `pak01_048.vpk`,
+contains 30 entries, and its first entry (`particles/ambient_fx.pcf`) is present
+in `pak01_000.vpk` with a valid `dmx encoding binary 5 format pcf 2` header.
+The failure is therefore no longer treated as a missing-manifest guess.
+
+Version 3.08 keeps particle parsing enabled and adds bounded PS4-only probes at
+the following boundaries:
+
+- the preexisting particle-definition count, sheet policy, manifest load, and
+  each PCF file;
+- VPK/filesystem read completion and buffer size;
+- DMX context construction and `UnserializeDMX` completion;
+- dictionary replacement, definition unpack, operator/child parsing, and
+  context-data setup;
+- final DMX temporary-memory decommit.
+
+Detailed definition probes are capped at 256 messages, while the file-level
+markers remain available for every manifest entry. This preserves behavior and
+prevents an otherwise successful parse from flooding persistent storage. The
+preexisting-definition count is particularly important for the monolithic
+build: it will show whether the server is reparsing and replacing definitions
+already owned by the client copy of the process-global particle manager.
+
+The two independent reviews agree on the probe strategy but rank the initial
+hypothesis differently. The GLM review ranks the first PS4 DMX arena allocation
+(`DECLARE_DMX_CONTEXT_DECOMMIT`) highest because PS4 uses the non-virtual-memory
+`CMemoryStack` path. The Kimi review ranks the first PCF's `UnserializeDMX` or
+`CParticleSystemDefinition::Read` path highest. The new marker sequence
+distinguishes these without skipping definitions needed by networked particle
+effect indices.
+
+Marker: `kisak-ps4: build marker server_particle_decode_probe_v442`.
+
+The Linux OpenOrbis build, final monolithic link, fself conversion, package
+creation, and package validation complete. Version 3.08 is 92,733,440 bytes
+with SHA-256
+`2732984002c8a391f074fa88d7ed255571c68f6c5f6c6244b2cbb2b6465f4b17`.
+It was staged successfully at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` on 2026-07-15; the remote
+FTP size matches. Install/run title `KISK00002` and pull the appended log after
+the next hardware result. The bootstrap title is not required.
+
+### v4.43: Recover from the absent final PCF and retain per-file diagnostics
+
+Hardware v4.42 parses `particles/ambient_fx.pcf`, returns successfully from
+manifest entries 0 through 28, and stops after the uncapped entry marker for
+entry 29, `particles/money_fx.pcf`. It never emits the corresponding
+`config ready` or `config failed` marker. The mounted VPK directory was then
+parsed directly: `money_fx.pcf` has no indexed entry in the CS:GO VPK set, no
+loose copy exists below `/data/kisak-strike/csgo`, and the packaged `/app0`
+tree contains no copy. This makes the missing-file failure path, including its
+legacy `Warning()` call, the leading concrete fault boundary.
+
+Version 3.09 makes that path recoverable without inventing a particle
+definition or changing networked effect indices:
+
+- resets the 256-message detail budget for each PCF instead of exhausting it
+  inside the first manifest file;
+- promotes file read, DMX deserialize, root validation, definition-array, and
+  result boundaries to uncapped PS4 breadcrumbs;
+- treats a missing or unreadable PCF as the existing `false` result while
+  avoiding the legacy warning logger during this early PS4 server-init phase;
+- initializes the DMX root pointer and rejects a successful deserialize that
+  supplies no root before dereferencing it.
+
+The GLM review favored per-file probe reset and structural markers after
+confirming that the flat PS4 DMX arena is reset after every PCF. The Kimi
+review independently recommended the null-root guard. Direct VPK inspection
+resolved their content assumptions: the current entry-29 asset is absent, not
+an observed oversized or empty DMX payload. Marker:
+`kisak-ps4: build marker server_particle_missing_guard_v443`.
+
+The next hardware run must either reach `particle parse complete` and
+`server DLLInit particle parse ready`, or leave an uncapped file/DMX marker
+that identifies the next exact operation. Particle parsing remains enabled.
+
+The Linux OpenOrbis build, final monolithic link, fself conversion, package
+creation, and verbose PkgTool validation complete. Every package hash and
+signature check reports `[OK]`. Version 3.09 is 92,733,440 bytes with SHA-256
+`bf9e6185f8756437556968535e975e51f550a017688c971d67ba534dcdbf2ca7`.
+It is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote FTP size
+matches. Install/run title `KISK00002`; the bootstrap title is not required.
+
+### v4.44: Isolate the live server game-system initialization hang
+
+Hardware v4.43 no longer crashes on the absent final PCF. It parses all
+available manifest entries, reports 1,062 particle definitions, and reaches
+`server DLLInit particle parse ready`. The process then remains alive on a
+black screen. Repeated log pulls show the same final line,
+`server DLLInit before game systems`, with no later output, proving a
+deterministic hang inside `InitGameSystems()` rather than slow loading or a
+renderer regression.
+
+Version 3.10 keeps initialization behavior unchanged and adds bounded PS4-only
+breadcrumbs for:
+
+- every explicit game-system registration;
+- mod-event loading and bot-control installation;
+- auto-system and per-frame-auto-system list traversal, capped at 256 named
+  entries per list;
+- the model-cache lock and `Init()` call for every registered server game
+  system, including the index, name, total count, and return value;
+- model-sound caching, query-cache invalidation, nav-mesh construction, and
+  game-stat connection setup.
+
+The independent reviews agree that the next hardware run must identify the
+exact system before any feature is disabled. They differ only in ranking: the
+GLM review ranks physics surface-property parsing and soundscape manifest
+loading highest because both have early missing-file/error paths; the Kimi
+review ranks Steam/Workshop and other platform-service auto-systems highest in
+the monolithic Steam-free build. The per-system start/finish markers resolve
+that disagreement and also distinguish a model-cache lock stall from a system
+`Init()` stall.
+
+Marker: `kisak-ps4: build marker server_game_system_probe_v444`.
+
+The Linux OpenOrbis build, final monolithic link, fself conversion, package
+creation, and verbose PkgTool validation complete. Every package hash and
+signature check reports `[OK]`. Version 3.10 is 92,733,440 bytes with SHA-256
+`7d6512db372242302cb825d39ce38090752d72356c2ad9cc0b9b9ba69c33dd73`.
+Install/run title `KISK00002`; the bootstrap title is not required. Pull only
+the newest v4.44 run after the black screen or menu appears and use the last
+`server game system` marker to select the smallest platform fix.
+
+### v4.45: Isolate the monolithic server module from client duplicates
+
+The v4.44 hardware run reaches every explicit registration, mod-event loading,
+bot-control installation, and `server game systems before init all`. It never
+prints the first executable breadcrumb inside the server build of
+`IGameSystem::InitAllSystems`. The fault is therefore at static symbol
+selection, before list traversal, the model-cache lock, or any individual
+system `Init()` call.
+
+Both `libclient_client.a` and `libserver_client.a` define the shared game-system
+lifecycle. The client archive precedes the server archive under
+`--allow-multiple-definition`; the old final executable contained the client's
+0x31a-byte `InitAllSystems` body, not the server's 0x4b5-byte body. The same
+collision covers registration constructors, lists, vtables, and other shared
+client/server globals, so redirecting only one function would leave a split
+registry.
+
+Version 3.11 restores that module boundary without renaming thousands of
+sources. The build partial-links the complete server archive with
+`--whole-archive`, computes the defined-external symbol intersection with the
+client archive, and localizes only those overlapping server definitions before
+the final link. Server-only exports stay global. The final isolated object has
+40,194 requested localizations, zero missing local symbols, zero overlapping
+symbols still external, and zero common symbols. Its server
+`InitAllSystems` is local/hidden, and the relocation from `gameinterface.cpp`
+binds directly to that local 0x4b5-byte body. The final executable retains both
+the client 0x31a-byte and server 0x4b5-byte bodies and no longer links the raw
+server archive. Independent GLM and Kimi reviews both selected this full-module
+isolation design and called out the whole-archive, constructor, common-symbol,
+and dependency-order checks included in validation.
+
+The Linux OpenOrbis build, final monolithic link, fself conversion, package
+creation, and verbose PkgTool validation complete; every package hash and
+signature check reports `[OK]`. The packaged eboot contains marker
+`kisak-ps4: build marker server_module_isolation_v445`. Version 3.11 is
+108,265,472 bytes with SHA-256
+`f4ccfc8d6bad603a25622a427ad904ed54645f3143aa7599a31179a5f90d35a6`.
+The FTP-staged copy has the same size and SHA-256.
+
+The Linux host-test project now accepts either the `opengnm` or `OpenGNM`
+checkout spelling. Eleven of fourteen tests pass. The three failures
+use high Linux stack addresses and then require an exact round-trip through
+OpenGNM's 44-bit PS4 buffer-address descriptor; they are unrelated to the
+server archive or final PS4 link and production descriptor behavior is
+unchanged.
+
+Install/run title `KISK00002`. The next run must print the v4.45 marker and
+`server game system init all entered`, then either complete the per-system
+sequence or identify the exact first server system that does not return.
+
+### v4.46: Reuse canonical protobuf registrations during server isolation
+
+The v4.45 hardware log ends with `after ctor 481` and `before ctor 480`; it
+never reaches the engine or game-system markers. Constructor-table entry 480
+relocates to `_GLOBAL__sub_I_cstrike15_usermessages.pb.cc`. Whole-archiving the
+server module had added seven generated-protobuf objects that the normal static
+link previously demand-selected only once, causing duplicate process-global
+descriptor registration before engine startup.
+
+Version 3.12 preserves the standalone server archive and the v4.45 module
+boundary. The isolation command now copies the server archive, intersects its
+member names with the client archive, verifies the corresponding checked-in
+generated sources are identical, and removes only the seven shared
+`.pb.cc.obj` members from that temporary copy. It then partial-links and
+localizes the remaining server definitions as before. The filtered archive and
+isolated object contain zero generated-protobuf members/constructors. The final
+image has one canonical initializer for every needed generated file, 1,736
+ordinary constructors instead of 1,743, and no raw server archive in its link
+inputs. All 15,344 requested client/server overlaps are local; none remain
+external or common. The server `gameinterface.cpp` relocation still binds to
+its local `IGameSystem::InitAllSystems` implementation.
+
+The Linux OpenOrbis build, final link, fself conversion, package creation, and
+verbose PkgTool validation complete. Version 3.12 is 103,153,664 bytes with
+SHA-256
+`fb158b6fbb6e643b3e3bd437fb889f55848da10ff422ab11b643ef038c4e2dd9`.
+The FTP-staged copy has the same size and SHA-256. Eleven of fourteen host tests
+pass; the unchanged three OpenGNM descriptor tests reject high Linux addresses
+that cannot round-trip through the PS4 44-bit buffer-address field.
+
+Hardware v4.46 prints both `server_shared_protobuf_v446` markers, passes
+ordinary constructor 480, and prints `constructors complete`. The run then
+returns false from server `DLLInit` because the `sv_cheats` lookup is null,
+before the isolated server `IGameSystem::InitAllSystems` call. The next debug
+session must explain or temporarily correct that lookup without another
+breadcrumb-only package iteration.
+
+### Autonomous PyPS4debug crash-debugging plan — 2026-07-15
+
+#### Live feasibility result
+
+The complete `/home/bizkut/OpenOrbis/PyPS4debug/README.md`, implementation, and
+debugger tests were reviewed. The local checkout is installed editably in the
+requested `/home/bizkut/.venv/` Python environment. A direct, read-only probe of
+`10.0.1.157:744` succeeds: the payload reports protocol version `1.3`, process
+enumeration works, and `get_process_info` plus `get_process_maps` return valid
+data for `SceShellCore`. The crashed Kisak process is no longer present, which
+confirms that the debugger cannot recover a completed crash retroactively. A
+ChiakiCapture image independently shows that the console returned to the PS4
+home screen.
+
+The v4.46 startup log also closes the previous gate. Both
+`server_shared_protobuf_v446` markers and `constructors complete` are present.
+The current run reaches `server DLLInit before sv_cheats check`, where
+`g_pCVar->FindVar( "sv_cheats" )` returns null and `DLLInit` returns false. This
+is the first planned no-repackage debugger experiment after the harness is safe:
+stop the installed v3.12 process before this check, inspect the cvar registry and
+the server-local pointer, then test a supervised process-memory correction
+before implementing a durable source fix.
+
+A second v3.12 launch on 2026-07-15 reproduces the same exact boundary. The
+particle system reports ready, the next marker is the `sv_cheats` check, and
+`game dll DLLInit failed` follows immediately. PyPS4debug process enumeration
+afterward confirms that `KISK00002` has exited. Static inspection still finds
+distinct final-ELF objects for the real 0x90-byte `sv_cheats` `ConVar` and
+the 8-byte `g_pServerSvCheats` cache, so the v4.39 pointer overwrite has not
+returned.
+
+The current strongest regression candidate is the v4.45 server-isolation link
+placement. `server_client_isolated.o` is now linked before the launcher,
+engine, and client archives. Its 15,344 client/server overlaps are localized,
+but it also has 352 defined-symbol overlaps with `engine_client`, including
+mutable engine/server globals, that are not part of that localization gate.
+This does not by itself prove why the canonical ICvar hash lacks `sv_cheats`;
+the next runtime probe must distinguish a missing/unregistered engine ConVar,
+an earlier shared-state `ConVar_Unregister`, and hash corruption. Do not mask
+that distinction by assigning `&sv_cheats` before checking several independent
+engine cvars and the direct object's registered state.
+
+Chiaki visual capture confirms that v3.12 is selected and ready to relaunch.
+Host-side title polling is working, but macOS rejected the attempted remote
+input with `osascript is not allowed to send keystrokes` (error 1002), so no
+launch input reached the console and no live process was attached or modified.
+Autonomous Chiaki launch therefore remains blocked until the Mac grants the
+required Accessibility permission or the separately reviewed launcher/loader
+path is available.
+
+#### What this workflow can and cannot replace
+
+PyPS4debug can enumerate the title process, attach a debugger, read maps,
+threads, registers, and memory, set breakpoints/watchpoints, single-step, write
+temporary process memory, call functions through RPC, and inject a helper ELF.
+Once one debugger-friendly Kisak package is installed, those capabilities can
+replace most breadcrumb-only rebuild/package/install cycles. A hypothesis can
+be tested with a breakpoint, register capture, or reversible memory patch and
+then retested by relaunching the already-installed title.
+
+It does not build or install packages, read PS4 files, or launch a title. FTP is
+still required for `/data/kisak-strike/startup.log`. Until the development
+network loader below is validated, durable source changes still require a new
+build/package/install. After that gate, executable-only changes require a new
+`eboot.bin` build and network upload but no package rebuild or installation;
+package-root, PRX, `param.sfo`, and loader changes still require a package.
+Process-memory patches disappear on exit. Kernel writes, arbitrary payload
+transmission, and injecting code into a system process are not part of the
+default workflow.
+
+#### Defects found before implementation
+
+The initial safety review and exact source inspection found these blockers. The
+client-side items are addressed by the implementation recorded below; the
+hardware no-go remains until the console is recovered and the new payload is
+loaded and qualified:
+
+1. `DebuggingContext.debug_connected` discards every interrupt whose `RIP` is
+   not an exact registered software-breakpoint address. Real faults,
+   single-step traps, watchpoints, and x86 `int3` events reported at `RIP + 1`
+   can therefore be lost while the process remains stopped.
+2. The debug-event socket has a hard-coded five-second read timeout. A normal
+   inspection pause can silently end event handling and detach the session.
+3. There is no module/load-bias resolver. Raw ELF VMAs cannot be reused across
+   PIE/ASLR launches without matching the executable map and computing the
+   runtime address.
+4. Watchpoints can be configured but are not dispatched to callbacks. Unknown
+   event `status`, `trapno`, and `err` values are not classified or logged.
+5. The API cannot launch `KISK00002`. Attaching requires a PID that exists only
+   after launch, and an early crash may win the polling race.
+6. Raw process/kernel writes, RPC, payload sends, kill, and reboot have no
+   policy guard. The live payload reports `1.3`, while the library README names
+   older tested payload versions, so compatibility must be proven by acceptance
+   tests rather than assumed.
+
+#### Implementation phases
+
+1. **Harden PyPS4debug first.** Deliver every interrupt to a global event
+   callback; keep unclassified events stopped by default; make the event timeout
+   configurable with no timeout for crash sessions; normalize x86 breakpoint
+   addresses; dispatch watchpoints; and report `status`, `lwpid`, `trapno`,
+   `err`, registers, and callback failures. Detach must check its response and a
+   watchdog must leave the process in an explicit resume-or-stop state.
+2. **Add tests before live mutation.** Unit tests must cover an unregistered
+   fault, a pause longer than ten seconds, `RIP + 1` breakpoint matching,
+   watchpoint dispatch, callback exceptions, and clean detach. Run the complete
+   PyPS4debug unit suite in `/home/bizkut/.venv/`.
+3. **Add guarded Kisak tooling.** Create a Kisak-side harness with `probe`,
+   `wait-process`, `maps`, `attach`, `break`, and `capture` operations. It must
+   select the process by title ID `KISK00002`, never by a stale PID; accept the
+   matching local OELF; resolve symbols as `executable map + ELF VMA`; and reject
+   mismatched build markers or executable hashes. The default mode is
+   read-only. Process writes require an explicit flag and map allow-list. Kernel
+   writes, reboot, kill, raw payloads, and system-process injection remain
+   disabled.
+4. **Make early attach deterministic.** Build and install one debug package with
+   a PS4-only bootstrap gate before the custom priority/ordinary constructor
+   walks. A named volatile gate symbol waits with `sceKernelUsleep`; the harness
+   attaches, resolves the current image, installs breakpoints, writes only the
+   gate release value, and resumes. This one package supports many diagnostic
+   iterations without repackaging.
+5. **Automate launch separately.** PyPS4debug has no launch opcode. First test
+   Chiaki remote-input automation. If that is unreliable, build a narrowly
+   scoped, one-time launcher that calls `sceLncUtilLaunchApp( "KISK00002", ... )`.
+   Do not inject it into `SceShellCore` unattended. The launch helper must be
+   reviewed and validated independently before it becomes part of the loop.
+6. **Capture a complete crash artifact.** On every stop, write a timestamped
+   host-side record containing protocol version, title/process identity, local
+   ELF/package hash, maps, event status, all general registers, bounded stack
+   and frame-pointer memory, breakpoint/watchpoint inventory, symbolized
+   addresses, and the latest FTP startup log. ChiakiCapture supplies optional
+   visual proof; it is not the primary crash oracle.
+7. **Run the current `sv_cheats` experiment.** Launch installed v3.12, attach at
+   the bootstrap gate, break immediately after `FindVar( "sv_cheats" )`, and
+   capture `g_pCVar`, the returned value, the real engine `sv_cheats` address,
+   and the server-local `g_pServerSvCheats`. With explicit approval for process
+   writes, set the server pointer to the verified engine object and resume. If
+   initialization advances, make the smallest source-level registry fix and
+   perform one durable package rebuild.
+
+#### Acceptance gates
+
+- Static-IP `probe` identifies payload `1.4`; UDP discovery is not used.
+- The PS4 can connect back to a caller-selected host debugger listener (default
+  TCP port 17555); protocol 1.4 does not hard-code privileged port 755.
+- Unknown faults and watchpoints are captured and remain stopped; no event is
+  silently discarded.
+- A known breakpoint remains inspectable for more than ten seconds and resumes
+  correctly; detach is confirmed and a second attach succeeds.
+- The same symbol is resolved correctly across two launches with different map
+  bases, and every address is inside a compatible executable/readable map.
+- An intentionally faulting non-system test process produces a symbolized RIP,
+  registers, and bounded stack capture without freezing the console.
+- Launch automation starts only `KISK00002`; the bootstrap gate guarantees the
+  debugger attaches before constructors.
+- The end-to-end loop can launch, attach, capture, detach, and relaunch twice
+  without package installation or operator input.
+
+Until these gates pass on protocol 1.4, the decision is **conditional go for
+supervised, read-only inspection and no-go for autonomous mutation or crash
+recovery**.
+
+#### Implementation progress — guarded debugger foundation (2026-07-15)
+
+The client hardening, guarded harness, and stopped-attach portions of the phases
+above are now implemented in the adjacent
+`/home/bizkut/OpenOrbis/PyPS4debug` worktree. The authoritative payload source
+for this console is the clean `/home/bizkut/OpenOrbis/ps4debug` worktree, not an
+assumed external protocol description. Exact local source inspection confirms:
+
+- the original `debugger/include/protocol.h` declared protocol version `1.3`;
+- `debug_detach_handle` performs cleanup and then sends `CMD_SUCCESS`, so the
+  Python client must consume and validate that status instead of leaving four
+  stale bytes in a pooled socket;
+- `check_debug_interrupt` captures general, floating-point, and debug registers;
+  detects a configured software breakpoint at the original `RIP - 1`; and
+  rewrites the reported `RIP` to the registered breakpoint address before
+  sending the interrupt; and
+- hardware stops retain `DR6`, so enabled watchpoint slots can be dispatched
+  from its low four status bits. The client still accepts `RIP + 1` as a
+  compatibility fallback for payload variants which do not normalize it.
+
+The payload and client now also implement protocol `1.4` command
+`CMD_DEBUG_ATTACH_V2` (`0xBDBB0013`). Its exact 12-byte request contains PID,
+caller-selected callback port, and zero flags. The server validates the request,
+waits for the `PT_ATTACH` stop, establishes the callback, and returns success
+while the tracee is still stopped. Legacy protocol 1.3 attach remains available
+for old clients and keeps its port-755/resume behavior. The Kisak harness requires
+1.4 and uses the stopped variant by default, removing the unsafe attach-then-
+`STOPGO` window.
+
+The client hardening now preserves every interrupt in `last_interrupt` and
+`last_event`, classifies breakpoint, watchpoint, single-step, fault, and unknown
+events, calls the global callback before the slot callback, leaves unmatched or
+failed-callback events stopped, and logs the complete event identity. Event
+reads have no timeout by default but remain interruptible by `stop()`. Hardware
+watchpoints now retain their callback configuration. Detach reads and validates
+the server response, attach failures do not detach a session they do not own,
+and the incorrect floating-point/debug-register write sizes were corrected.
+
+The PyPS4debug validation result is 164 passing tests, including new coverage
+for exact and `RIP + 1` breakpoints, unknown faults, watchpoints, callback
+failure containment, a stoppable no-timeout read, attach ownership, configured
+timeouts, confirmed/failed detach, and fixed-width C strings with non-ASCII
+garbage after their first NUL. Source lint passes for every changed library
+file. Repository-wide mypy still reports pre-existing scanner and construct
+typing failures; no new error points at the debugger changes.
+
+The guarded Kisak-side harness is implemented as `ps4/kisak_debug.py`. Its
+read-only commands remain:
+
+```bash
+/home/bizkut/.venv/bin/python ps4/kisak_debug.py probe
+/home/bizkut/.venv/bin/python ps4/kisak_debug.py wait-process
+/home/bizkut/.venv/bin/python ps4/kisak_debug.py maps \
+  --expect-oelf-sha256 <trusted-build-sha256>
+```
+
+`probe` requires the configured protocol version (default `1.4`). An installed
+protocol 1.3 payload is therefore reported as a recovery/deployment mismatch,
+not silently accepted for a mutation session.
+`wait-process` re-enumerates and selects exactly one process by title ID
+`KISK00002`; it never accepts a caller-supplied PID. `maps` additionally parses
+the matching local ELF64/x86-64 OELF, checks its optional trusted SHA-256 and
+required build markers, obtains fresh process maps, resolves a unique load bias
+only after every loadable segment is covered with its required runtime
+protection, and reads only the expected marker bytes at their resolved VMAs. A
+title or content identity change, ambiguous PID, incompatible map, untrusted
+OELF, or remote marker mismatch is a hard failure.
+
+An opt-in early attach gate is now compiled into the monolithic target only
+when the configure process has `KISAK_PS4_DEV_ATTACH_GATE=1`. The non-cached
+environment switch resets to off on every ordinary configure, and CMake rejects
+the enabled gate outside a `Debug` build. At the first statement of `main`,
+before startup logging and both manual constructor walks, the gate polls a
+64-bit initialized hold sentinel with `sceKernelUsleep`. It fails open after
+120 seconds and changes the value to a distinct timeout sentinel so a late
+harness cannot mistake a process which already left the gate for a held one.
+The entire variable, marker, and loop are absent when the switch is off.
+
+The only mutation command is deliberately narrow and explicit:
+
+```bash
+/home/bizkut/.venv/bin/python ps4/kisak_debug.py \
+  --title-id LOAD00044 release-dev-gate \
+  --oelf build-ps4-engine/kisak_ps4_monolithic.oelf \
+  --expect-oelf-sha256 <trusted-gate-build-sha256> \
+  --expect-marker server_shared_protobuf_v446 \
+  --allow-write
+```
+
+`release-dev-gate` requires the trusted SHA-256 and the explicit write
+acknowledgement at argument-parsing time. It waits for the loader title to
+become the verified Kisak image, resolves the exact gate and gate-marker symbols
+from the local OELF static symbol table, verifies their ELF types, sizes,
+alignment, load segments, and runtime protections, then attaches with the
+protocol 1.4 stopped-attach command. After attach it repeats process identity,
+all maps, load bias,
+every build marker, the dedicated gate marker, and the current hold sentinel.
+Only then can it write the eight-byte release value, read it back, and leave the
+tested detach path to resume the process. It provides no arbitrary address,
+value, write, RPC, payload, kill, reboot, injection, or recovery interface.
+
+Twelve offline harness tests cover OELF identity and hash rejection, explicit
+mutation arguments, exact symbol resolution, load-segment protections,
+exact-title and ambiguous-PID behavior, marker matching, the single verified
+release write, refusal to write a timed-out gate, overlapping process-map
+coverage, and use of the stopped-attach protocol without a `STOPGO` round trip.
+The gate-enabled PS4 artifact built successfully and parsed through the same
+harness: SHA-256
+`4b6f86fa0ee58fa3b852cc8ff288997fc849f2213baa00ea861faf8bb7cfa58e`,
+gate VMA `0x4528050`, size `8`, gate-marker VMA `0x3548390`, size `30`, with
+the gate object inside the RW `PT_LOAD`. A second configure/build with the gate
+off produced SHA-256
+`9e1e2dfef0903cc51f353f9d8055c1ace6c688772b55cf63da1d1a1d1ca6e08f`;
+both the symbol and marker were absent, proving the ordinary-build exclusion.
+
+The live read-only `probe` acceptance check passed against `10.0.1.157:744` and
+reported protocol `1.3`. The first title poll exposed a payload compatibility
+detail: the server copies fixed-width process-info C arrays without clearing
+their trailing bytes, so `LOAD00044\0...0xff` failed if the client decoded the
+whole array as ASCII before trimming it. PyPS4debug now splits these fields at
+the first NUL while they are still bytes; the repeated title poll completed
+normally and timed out after two seconds because crashed title `KISK00002` was
+not running. It did not accept the active loader as the target.
+
+The first live qualification attempt progressed farther but did not write the
+gate. A gate-enabled SELF was uploaded and launched. The first guarded release
+correctly rejected a legitimate overlapping-map layout before attach; commit
+`f842144c` fixed the resolver to accept the union of compatible map intervals.
+The initial direct callback then exposed the hard-coded privileged port 755.
+Temporary, explicitly bounded SSH tunnels through the Chiaki Mac carried both
+the control connection and callback successfully, and legacy protocol 1.3
+attach completed. The following `STOPGO` request returned `CMD_ERROR` before
+the harness reached any memory write, so the eight-byte gate value was never
+changed.
+
+Immediately after that error, TCP 744 disappeared and a freshly restarted
+ChiakiCapture session remained completely black. TCP 4299 was also unavailable.
+Both temporary SSH control sockets were closed and no subsequent upload, write,
+detach, kill, reboot, or further attach was attempted. An operator subsequently
+restored the console: a fresh Chiaki capture shows PS4Load v0.5.0 at `Waiting for
+connection...`, and TCP 744 responds again. The guarded read-only probe rejected
+that server because it is still protocol 1.3 rather than the newly built 1.4.
+The hardware decision therefore remains an explicit **NO-GO** until the protocol
+1.4 ps4debug payload is loaded.
+
+#### ps4debug crash root cause and protocol 1.4 repair
+
+Reviewing `/home/bizkut/OpenOrbis/ps4debug` found a credible payload-server crash
+path rather than evidence that Kisak crashed at the gate. Legacy attach issued
+`PT_CONTINUE` immediately after `PT_ATTACH`; `STOPGO` attempted
+`PT_CONTINUE(..., SIGSTOP)` against the already-running tracee; cleanup continued
+and detached without first establishing a stopped state; and the SIGKILL command
+called cleanup, which cleared `curdbgctx`, before dereferencing
+`curdbgctx->pid`. The last case is a direct null dereference in the server.
+
+Protocol 1.4 repairs the lifecycle as follows:
+
+- a mutex serializes debugger attach, control, and cleanup operations;
+- attach observes the initial stop with bounded `wait4` and v2 leaves it stopped;
+- STOP sends `SIGSTOP` and waits for the stop instead of passing SIGSTOP through
+  `PT_CONTINUE`;
+- cleanup stops a running tracee, restores only enabled break/watch state, and
+  calls `PT_DETACH` directly because detach is itself the resume operation;
+- callback-connect failure rolls back the ptrace attachment, while failed detach
+  preserves the occupied context instead of reusing it unsafely; and
+- the SIGKILL path saves the PID before cleanup, eliminating the null
+  dereference.
+
+The server checkpoints are `f227f07` (protocol/lifecycle implementation) and
+`2c7c856` (host-stub lifecycle tests). PyPS4debug checkpoints are `ec272ce`
+(interrupt hardening), `53ff2e3` (v2 command/client API), and `f779b60` (test
+cleanup). Kisak checkpoints are `4f95693f`, `675acddd`, `0022380b`, `dc01e2bf`,
+`f6f82c65`, `f842144c`, `09ec2460`, and `827d0070`.
+
+Offline qualification passes:
+
+- ps4debug: `make -C tests test` exercises stopped v2 attach, detach without an
+  extra continue, callback rollback, STOP via `kill(SIGSTOP)`, and running
+  cleanup ordering; `bash build.sh clean` builds both payload binaries. The
+  resulting `ps4debug.bin` SHA-256 is
+  `72949b7e33d06a26dcc56e475c78db97c17628b87dd375f7f1e7f0cfc108b3a9` and
+  embedded `debugger/debugger.bin` SHA-256 is
+  `a3598249ad67ea65f0124b51798ba9eee17e0f5d5f466416212c810d1ca92350`;
+- PyPS4debug: `/home/bizkut/.venv/bin/python -m pytest tests -q` reports 164
+  passed and Ruff passes for every changed Python file; and
+- Kisak: the 12 focused debugger-harness tests and Ruff checks pass.
+
+One ACP safety review completed and identified the SIGKILL null dereference,
+state races, rollback hazards, and packet-validation requirements. The requested
+second independent model review timed out twice, so the server patch does not
+claim two-agent review coverage. The detach sequence was instead checked against
+the authoritative FreeBSD `ptrace(2)` contract and encoded in the host-stub
+tests.
+
+#### Hardware recovery and qualification plan
+
+Do not reuse the legacy payload for gate release. The next supervised session is:
+
+1. Manually restore the console/Remote Play and reload the newly built ps4debug
+   payload; verify that TCP 744 is stable before any title launch.
+2. Record the exact `ps4debug.bin` SHA-256 and require protocol 1.4 with the
+   read-only `probe` command.
+3. Use direct high-port callback routing where possible. Recreate narrowly
+   scoped SSH tunnels only if the PS4 cannot route to the Linux host directly.
+4. Relaunch PS4Load with the already-built gate-enabled SELF and let the harness
+   reselect the process by title, then reverify maps, hash, markers, and the hold
+   sentinel.
+5. Run `capture` first. V2 attach must return stopped without `STOPGO`; capture
+   registers/maps and detach, then prove a second attach succeeds.
+6. Only after that read-only lifecycle passes, run one explicit
+   `release-dev-gate --allow-write`. Confirm the single eight-byte write,
+   read-back, detach/resume, startup log, and visual state.
+7. Repeat launch/attach/capture/detach twice before considering autonomous crash
+   collection. Arbitrary writes, kernel operations, kill, reboot, or unattended
+   recovery remain out of scope.
+
+### Development-stage network `eboot.bin` loading
+
+Directly replacing the installed title's `/app0/eboot.bin` over FTP is not the
+development strategy. The packaging scripts copy the executable into the GP4
+input and `PkgTool` builds it into the installed package/PFS image; the mounted
+`/app0` view is not a loose writable deployment directory. Attempting to patch
+that mount would couple the workflow to unsupported filesystem behavior and
+would not provide a reproducible release artifact.
+
+For the development stage, install one Kisak-specific network-loader package
+and reuse it across executable iterations. The reference implementation is
+PS4Load (`https://github.com/bucanero/ps4load`), which installs a host
+application once and accepts SELF-format `eboot.bin` files from a `ps3load`
+client. A generic PS4Load install is suitable for the first smoke test. The
+preferred durable setup is a small Kisak development-loader package that:
+
+- retains the development title identity expected by the debugger harness;
+- packages the stable `/app0/sce_module/libc.prx` and
+  `/app0/sce_module/libSceFios2.prx` dependencies plus any immutable bootstrap
+  resources;
+- accepts only a bounded SELF upload on the development LAN, validates its
+  format and size, records its host-provided SHA-256/build marker, and rejects
+  incomplete transfers;
+- starts the uploaded executable in the loader's known title and `/app0`
+  environment without injecting code into `SceShellCore` or another system
+  process; and
+- keeps mutable game content, logs, and captures under `/data/kisak-strike`,
+  where FTP updates already work independently of the package.
+
+#### Implemented and first hardware-validated milestone — 2026-07-15
+
+`ps4/kisak_dev_upload.py` is the repository-owned PS4Load protocol client. It
+uses the requested `/home/bizkut/.venv/` Python environment and has no external
+Python dependencies. Validation-only mode is the default; a live transfer
+requires the explicit `--send` flag. Before opening a socket it checks the
+OpenOrbis SELF magic, the configurable size limit, SHA-256, at least one Kisak
+build marker, and any caller-supplied expected hash or markers. It implements
+PS4Load protocol version 0.5 directly, streams the input through a temporary
+zlib file instead of retaining two monolith-sized buffers, rejects oversized
+argument blocks, and requires the receiver to close the completed connection.
+Socket completion proves transfer only; startup log and PyPS4debug process/map
+checks remain the launch oracle.
+
+`build-ps4-dev-eboot-linux.sh` is the normal development entry point. It runs
+the existing monolithic build and then invokes the guarded client. With no
+arguments it builds and validates without sending; add `--send` only while the
+PS4Load screen reports that TCP port 4299 is ready:
+
+```bash
+# Build plus local SELF/hash/marker validation.
+./build-ps4-dev-eboot-linux.sh
+
+# Revalidate an existing build without compiling.
+/home/bizkut/.venv/bin/python ps4/kisak_dev_upload.py
+
+# Build and transfer to the running development loader.
+./build-ps4-dev-eboot-linux.sh --send
+
+# Optional stale-build guards for a targeted experiment.
+./build-ps4-dev-eboot-linux.sh --send \
+  --expect-marker server_shared_protobuf_v446 \
+  --expect-sha256 377d6682c8683d615e12efd32d47315f98752ae2b74b0718f979791a93eba6f9
+```
+
+Five host tests cover SELF/hash/marker validation, malformed-SELF rejection,
+argument encoding, compressed protocol round-trip, and raw protocol round-trip:
+
+```bash
+/home/bizkut/.venv/bin/python -m unittest discover \
+  -s ps4 -p 'test_kisak_dev_upload.py' -v
+```
+
+The current monolithic SELF validates at 83,044,176 bytes with SHA-256
+`377d6682c8683d615e12efd32d47315f98752ae2b74b0718f979791a93eba6f9` and
+markers `offline_query_schema_v425` and `server_shared_protobuf_v446`.
+
+The official PS4Load v0.5.0 host package is pinned separately from the source
+tree:
+
+```text
+Package: IV0000-LOAD00044_00-SDL2GLES20000000.pkg
+Title ID: LOAD00044
+Size: 6,619,136 bytes
+SHA-256: 00efee11c26404d2b6f350bcfd368c448fd0aa4863b74cd81216e4345092357e
+Local: /home/bizkut/OpenOrbis/.host-tools/ps4load-release/v0.5.0/
+       IV0000-LOAD00044_00-SDL2GLES20000000.pkg
+Staged: /data/pkg/IV0000-LOAD00044_00-SDL2GLES20000000.pkg
+```
+
+Verbose `PkgTool` validation reports every package hash and signature `[OK]`,
+and the FTP copy reports the same 6,619,136-byte size. Title `LOAD00044` is now
+installed and its first hardware smoke test passes. The guarded client sent the
+83,044,176-byte SELF as a 22,905,269-byte zlib stream to `10.0.1.157:4299`; it
+sent the full argument block and observed a clean peer close.
+
+The transfer produced a fresh `/data/kisak-strike/startup.log` run. That run
+contains `bootstrap entered`, both `server_shared_protobuf_v446` markers,
+`priority constructors complete`, and `constructors complete`. It then reaches
+the same packaged-build boundary, `server DLLInit before sv_cheats check`, and
+returns through `game dll DLLInit failed`. The PS4 then presents its application
+error screen. A post-run PyPS4debug enumeration finds no Kisak process because
+this known failure path has already terminated the title; the deterministic
+early-attach gate is still required for live maps and registers. This proves
+that PS4Load can transfer and execute the current
+monolith, resolve enough of the host environment to complete constructors and
+engine initialization, write the external startup log, and preserve the
+current failure boundary without rebuilding or installing a Kisak package.
+
+The visual capture identifies the post-failure UI precisely: PS4 reports
+`CE-34878-0` for application `PS4Load`, because the network-loaded SELF inherits
+the loader host's title identity. The highlighted `Suggested Actions` button is
+not the dismissal path; the screen itself shows Circle as `Back`. Chiaki-ng's
+default desktop mapping binds Circle to Backspace and Cross to Return. A single
+remotely generated Backspace keypress dismissed the dialog, a capture verified
+the PS4 home screen with `LOAD00044` still selected, and a single Return
+keypress reopened PS4Load. The following capture showed
+`Waiting for connection...`. This validates the required error-dismiss and
+loader-relaunch inputs for the development loop; PS4Load is currently left
+running and ready on TCP port 4299.
+
+The rapid executable loop is then:
+
+1. Build `build-ps4-engine/kisak_ps4_monolithic.bin` without running GP4 or
+   `PkgTool`.
+2. Present that SELF to the upload client as `eboot.bin` and record its size,
+   SHA-256, and build marker.
+3. Launch the already-installed development loader, initially through Chiaki
+   automation, and send the new SELF over the network.
+4. Let the guarded PyPS4debug harness identify the configured development
+   title, attach at the bootstrap gate, resolve the current image, and capture
+   the run.
+5. Retrieve `/data/kisak-strike/startup.log` over FTP. If the PS4 application
+   error screen is present, send Chiaki Backspace/Circle once and verify that
+   `LOAD00044` is selected before the next launch.
+6. Repeat from step 1; send Chiaki Return/Cross to reopen PS4Load before the
+   next `--send` operation.
+
+A full package rebuild/install remains mandatory when changing the loader,
+`param.sfo`, title/content identity, packaged PRXs, or any resource that must
+exist in immutable `/app0`. It is also mandatory for release candidates and
+hardware checkpoints intended to prove the real shipping layout. Ordinary C/C++
+changes contained entirely in the monolithic executable use the network loop
+during development.
+
+Before making this the default unattended loop, validate the remaining hardware
+gates. The first, third-at-the-current-boundary, and final gates have one passing
+run; repeatability and early debugger attachment remain pending:
+
+- the loader accepts the current 83,044,176-byte Kisak SELF without
+  truncation, timeout, or excessive transient memory use;
+- the loaded process exposes the expected title identity and executable maps
+  to PyPS4debug;
+- both required PRXs resolve through the current initialization boundary,
+  external `/data/kisak-strike` content mounts, and startup logging works;
+- a clean exit or crash returns control predictably so the same installed
+  loader can receive a second and third build without reboot or reinstall;
+- the host validates and records SHA-256 before sending; a future custom loader
+  must add receiver-side hashing because generic PS4Load has no hash response;
+  and
+- one network-loaded build and one normally packaged build with identical
+  executable bytes reach the same early initialization markers.
+
+If generic PS4Load cannot preserve the required app environment or reliably
+handle the monolith, do not patch the installed package image. Implement the
+Kisak-specific loader as the one-time development package, or retain the normal
+package/install workflow until that loader passes these gates. This mechanism
+is development-only and is not included in release packages.
+
 ### PS3 Scaleform UI cross-reference priorities
 
 Full cross-reference report: `KISAK_PS3_UI_CROSSREFERENCE.md` in the Kisak
