@@ -23,32 +23,29 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.15
+Version: 3.16
 Size: 103,153,664 bytes
-SHA-256: 32e0e7324f0358db1ce2ee91e99270c4cb31076349a113890b2f64a2b0cb2845
-Hardware run: v4.49 (2026-07-15), validates the sv_maxreplay symbol separation
+SHA-256: e69e4ae8ca2ee6e90c70fcc4547f1590cf6eb8c54d0c4c86e9b8f8e8215dffa8
+Hardware run: v4.50 (2026-07-15), isolates the case-sensitive GameModes load
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.15
-Size: 103,153,664 bytes
-SHA-256: 32e0e7324f0358db1ce2ee91e99270c4cb31076349a113890b2f64a2b0cb2845
-Hardware result: v4.49 reaches the GameTypes initialization call
-```
-
-Latest package staged and awaiting manual installation and launch:
-
-```text
-Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.16
 Size: 103,153,664 bytes
 SHA-256: e69e4ae8ca2ee6e90c70fcc4547f1590cf6eb8c54d0c4c86e9b8f8e8215dffa8
-Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
-Hardware target: v4.50 internal GameTypes initialization trace
+Hardware result: v4.50 fails to open `GameModes.txt` before client/UI startup
+```
+
+Next manual-install package:
+
+```text
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.17
+Status: in preparation
+Hardware target: v4.51 lowercase GameModes load
 ```
 
 Current hardware baseline:
@@ -6621,6 +6618,23 @@ high addresses do not round-trip through PS4's 44-bit descriptor fields. The
 PKG is FTP-staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
 103,153,664 bytes and a complete readback matches the local PKG SHA-256.
+
+The v4.50 hardware run reaches the server pre-call marker, enters the server
+GameTypes body, completes all three container purges, clears the server map
+state, allocates the base KeyValues object, and enters the base file load. Its
+last marker is `server gametypes base file load failed`. The next statement is
+the failure-path `Warning(...)`, and neither the caller's post-call marker nor
+any client/UI initialization marker appears.
+
+The mounted content contains loose lowercase `gamemodes.txt`, while this source
+passes mixed-case `GameModes.txt` to `IBaseFileSystem::Open`. PS3 has an explicit
+relative-path lowercasing helper, but the PS4 path does not call it. The PS4
+filesystem is therefore honoring case-sensitive content paths as implemented.
+Version 3.17 will request the shipped lowercase name on PS4 and avoid the
+currently unsafe warning call if the required file is still unavailable. The
+older intro/menu diagnostics are not expected in this run: the real engine is
+still crashing during server initialization, before client and Scaleform UI
+startup.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
