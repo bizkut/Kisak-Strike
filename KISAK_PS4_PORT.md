@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.24
+Version: 3.25
 Size: 103,153,664 bytes
-SHA-256: 94a94ca7572fc7f6fd299ff542fd1ec31dc5c4f59277b1483a829d976c34c9d8
-Hardware run: v4.58 (2026-07-15), isolates the custom mapgroupsSP warning path
+SHA-256: 4c76ec60e65052b8c90256db99c83814824d2e8f1cfbf2978e0419c487709703
+Hardware run: v4.59 (2026-07-15), reaches InitMaterialSystem
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.24
+Version: 3.25
 Size: 103,153,664 bytes
-SHA-256: 94a94ca7572fc7f6fd299ff542fd1ec31dc5c4f59277b1483a829d976c34c9d8
-Hardware result: v4.58 reaches custom/custom's absent optional mapgroupsSP
+SHA-256: 4c76ec60e65052b8c90256db99c83814824d2e8f1cfbf2978e0419c487709703
+Hardware result: v4.59 completes server DLLInit; material init crashes
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,153,664 bytes
 SHA-256: 4c76ec60e65052b8c90256db99c83814824d2e8f1cfbf2978e0419c487709703
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-15
-Hardware target: v4.59 bypasses the server's optional mapgroupsSP warning
+Hardware result: v4.59 validates GameTypes and stops in InitMaterialSystem
 ```
 
 Current hardware baseline:
@@ -7119,6 +7119,30 @@ through PS4's 44-bit descriptor fields. The PKG is FTP-staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
 103,153,664 bytes and a complete readback matches the local PKG SHA-256.
 Hardware installation and launch remain manual.
+
+The v4.59 package was installed and run manually. The new
+`sp-mapgroups-missing` breadcrumb appears for custom and cooperative modes,
+followed each time by `sp-mapgroups-ready`. The isolated server parses all five
+game types, then completes structured maps, map groups, custom bot difficulty,
+`GameTypes::Initialize`, server `DLLInit`, send tables, tick interval, and the
+final game-DLL command execution. This hardware run validates the targeted
+warning bypass and closes the entire server GameTypes boundary.
+
+Host initialization then completes `g_Log.Init()`, `HLTV_Init()`, and
+`CL_Init()`. Its exact final sequence is:
+
+```text
+kisak-ps4: trace init dispatch
+InitMaterialSystem()
+kisak-ps4: trace init before
+InitMaterialSystem()
+```
+
+There is no matching `trace init after`. The current crash is therefore inside
+`InitMaterialSystem`, not GameTypes, client initialization, HLTV, or TRACEINIT
+bookkeeping. The next package will split material-system initialization into
+its existing setup operations without changing backend selection or rendering
+behavior.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
