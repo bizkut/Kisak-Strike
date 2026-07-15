@@ -8,6 +8,13 @@
 #include "tier0/dbg.h"
 #include "interfaces/interfaces.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_INTERFACES_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_INTERFACES_BREADCRUMB( line ) ((void)0)
+#endif
+
 
 //-----------------------------------------------------------------------------
 // Tier 1 libraries
@@ -246,33 +253,42 @@ void ReconnectInterface( CreateInterfaceFn factory, const char *pInterfaceName, 
 //-----------------------------------------------------------------------------
 void ConnectInterfaces( CreateInterfaceFn *pFactoryList, int nFactoryCount )
 {
+	PS4_INTERFACES_BREADCRUMB( "kisak-ps4: ConnectInterfaces entered" );
 	if ( s_nRegistrationCount < 0 )
 	{
+		PS4_INTERFACES_BREADCRUMB( "kisak-ps4: ConnectInterfaces registration count negative" );
 		Error( "APPSYSTEM: In ConnectInterfaces(), s_nRegistrationCount is %d!\n", s_nRegistrationCount );
 	}
 	else if ( s_nRegistrationCount == 0 )
 	{
+		PS4_INTERFACES_BREADCRUMB( "kisak-ps4: ConnectInterfaces register pass" );
 		for ( int i = 0; i < nFactoryCount; ++i )
 		{
 			for ( int j = 0; j < ARRAYSIZE( g_pInterfaceGlobals ); ++j )
 			{
+				PS4_INTERFACES_BREADCRUMB( g_pInterfaceGlobals[j].m_pInterfaceName );
 				RegisterInterface( pFactoryList[i], g_pInterfaceGlobals[j].m_pInterfaceName, (void**)g_pInterfaceGlobals[j].m_ppGlobal );
 			}
 		}
+		PS4_INTERFACES_BREADCRUMB( "kisak-ps4: ConnectInterfaces register pass complete" );
 	}
 	else
 	{
 		// This is no longer questionable: ConnectInterfaces() is expected to be called multiple times for a file that exports multiple interfaces.
 		// Warning("APPSYSTEM: ConnectInterfaces() was called twice for the same DLL.\nThis is expected behavior in building reslists, but questionable otherwise.\n");
+		PS4_INTERFACES_BREADCRUMB( "kisak-ps4: ConnectInterfaces reconnect pass" );
 		for ( int i = 0; i < nFactoryCount; ++i )
 		{
 			for ( int j = 0; j < ARRAYSIZE( g_pInterfaceGlobals ); ++j )
 			{
+				PS4_INTERFACES_BREADCRUMB( g_pInterfaceGlobals[j].m_pInterfaceName );
 				ReconnectInterface( pFactoryList[i], g_pInterfaceGlobals[j].m_pInterfaceName, (void**)g_pInterfaceGlobals[j].m_ppGlobal );
 			}
 		}
+		PS4_INTERFACES_BREADCRUMB( "kisak-ps4: ConnectInterfaces reconnect pass complete" );
 	}
 	++s_nConnectionCount;
+	PS4_INTERFACES_BREADCRUMB( "kisak-ps4: ConnectInterfaces complete" );
 }
 
 void DisconnectInterfaces()

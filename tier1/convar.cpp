@@ -23,6 +23,13 @@
 #endif
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_CONVAR_REGISTER_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_CONVAR_REGISTER_BREADCRUMB( line ) ((void)0)
+#endif
+
 
 // This enables the l4d style of culling all cvars that are not marked FCVAR_RELEASE :
 #define CULL_ALL_CVARS_NOT_FCVAR_RELEASE
@@ -55,30 +62,56 @@ static CDefaultAccessor s_DefaultAccessor;
 //-----------------------------------------------------------------------------
 void ConVar_Register( int nCVarFlag, IConCommandBaseAccessor *pAccessor )
 {
-	if ( !g_pCVar || s_bRegistered )
+	PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register entered" );
+	if ( !g_pCVar )
+	{
+		PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register skipped no g_pCVar" );
 		return;
+	}
+	if ( s_bRegistered )
+	{
+		PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register skipped already registered" );
+		return;
+	}
 
 	Assert( s_nDLLIdentifier < 0 );
 	s_bRegistered = true;
 	s_nCVarFlag = nCVarFlag;
+	PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register before AllocateDLLIdentifier" );
 	s_nDLLIdentifier = g_pCVar->AllocateDLLIdentifier();
+	PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register after AllocateDLLIdentifier" );
 
 	ConCommandBase *pCur, *pNext;
 
 	ConCommandBase::s_pAccessor = pAccessor ? pAccessor : &s_DefaultAccessor;
 	pCur = ConCommandBase::s_pConCommandBases;
+	PS4_CONVAR_REGISTER_BREADCRUMB( pCur
+		? "kisak-ps4: ConVar_Register pending list ready"
+		: "kisak-ps4: ConVar_Register pending list empty" );
 	while ( pCur )
 	{
+		PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register pending item" );
 		pNext = pCur->m_pNext;
+		#if defined( PLATFORM_PS4 )
+		const char *pPendingName = pCur->GetName();
+		PS4_CONVAR_REGISTER_BREADCRUMB( pPendingName ? pPendingName : "<unnamed ConCommandBase>" );
+		#endif
 		pCur->AddFlags( s_nCVarFlag );
 		pCur->Init();
+		PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register pending item complete" );
 		pCur = pNext;
 	}
+	PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register pending list complete" );
 
+	PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register before AddSplitScreenConVars" );
 	g_pCVar->AddSplitScreenConVars();
+	PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register after AddSplitScreenConVars" );
+	PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register before queued material sets" );
 	g_pCVar->ProcessQueuedMaterialThreadConVarSets();
+	PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register after queued material sets" );
 
 	ConCommandBase::s_pConCommandBases = NULL;
+	PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register complete" );
 }
 
 void ConVar_Unregister( )

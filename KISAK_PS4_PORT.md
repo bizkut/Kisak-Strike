@@ -23,32 +23,32 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.12
+Version: 3.13
 Size: 103,153,664 bytes
-SHA-256: fb158b6fbb6e643b3e3bd437fb889f55848da10ff422ab11b643ef038c4e2dd9
-Hardware run: v4.46 (2026-07-15), constructor fix validated; server DLLInit fails at sv_cheats lookup
+SHA-256: da5d34f16bbf8d43a50471d687babbe954e3e87350bf49e4711bcb6921cd0ac3
+Hardware run: v4.47 (2026-07-15), stops inside the VEngineCvar007 Connect call
 ```
 
-Current installed and last FTP-staged package:
-
-```text
-Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.12
-Size: 103,153,664 bytes
-SHA-256: fb158b6fbb6e643b3e3bd437fb889f55848da10ff422ab11b643ef038c4e2dd9
-Staged:   /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
-```
-
-Latest package staged and awaiting manual installation and launch:
+Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.13
 Size: 103,153,664 bytes
 SHA-256: da5d34f16bbf8d43a50471d687babbe954e3e87350bf49e4711bcb6921cd0ac3
+Hardware result: v4.47 stops inside the VEngineCvar007 Connect call
+```
+
+Latest package staged and awaiting manual installation and launch:
+
+```text
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.14
+Size: 103,153,664 bytes
+SHA-256: c419aa8936fe2da79cc39cbecc6b6db6b2606c37375a3148796c9de3f12a9291
 Local: build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
-Hardware target: v4.47 canonical engine sv_cheats bridge
+Hardware target: v4.48 cvar-system connection trace
 ```
 
 Current hardware baseline:
@@ -6440,6 +6440,59 @@ It therefore crashes inside the cvar system's `Connect` call, before
 `CEngineAPI::Run`, the `server_cvar_bridge_v447` runtime marker, or server
 `DLLInit`. This hardware result does not exercise the `sv_cheats` bridge; the
 next package must diagnose the earlier cvar-system connection boundary first.
+
+### v4.48: Trace the cvar-system connection boundary
+
+The next manual-install package is diagnostic-only. It does not change cvar
+registration, interface resolution, query fallback, or server behavior. PS4-only
+breadcrumbs now bracket entry into `CCvar::Connect`, its tier-1 connection, the
+`CVAR_QUERY_INTERFACE_VERSION` factory call, and `ConVar_Register`. They also
+record whether the tier-1 `g_pCVar` points back to the active `CCvar` instance.
+
+If the tier-1 connection is the failing substep, the log records each interface
+name immediately before its `RegisterInterface` or `ReconnectInterface` call. If
+`ConVar_Register` is reached, it brackets DLL-identifier allocation, records each
+pending `ConCommandBase` name before `AddFlags` and `Init`, and brackets the split-
+screen and queued-material operations. Logging the item name once before its
+existing operations limits diagnostic I/O while leaving an exact last-item
+boundary on a crash. All new calls compile out outside PS4.
+
+The build marker is `cvar_connect_trace_v448`, and package version 3.14 identifies
+this experiment. Manual package installation and launch remains the only active
+hardware-test workflow; the retired ps4debug/PS4Load executable-upload path must
+not be reintroduced.
+
+The Linux OpenOrbis build, final monolithic link, FSELF conversion, package
+creation, and verbose PkgTool validation complete. Every reported package size,
+digest, and signature check is `[OK]`. The final SELF contains the v4.48 build
+marker plus the entry markers for `CCvar::Connect`, `ConnectInterfaces`, and
+`ConVar_Register`; it does not contain the development attach-gate marker. The
+exact final symbols for all three instrumented functions and the breadcrumb
+writer are retained in the OELF.
+
+Artifact identities:
+
+```text
+OELF: 135,927,544 bytes
+SHA-256: 76ba083a36ad1c5a431deb0df6998cf95b3f2fcacca3514ac0caa810e2be81bc
+SELF: 83,044,160 bytes
+SHA-256: 9b33a6448564cc1b64d9d972a9dd4a2d4a935c557f704e5e362690e888463195
+PKG: 103,153,664 bytes
+SHA-256: c419aa8936fe2da79cc39cbecc6b6db6b2606c37375a3148796c9de3f12a9291
+```
+
+The host suite retains its established result: 11/14 pass. The unchanged
+`ps4_gnm_device`, `ps4_gnm_buffer`, and `ps4_gnm_constants` tests reject high
+Linux virtual addresses that cannot round-trip through the PS4 44-bit buffer
+address field. The package is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and a complete readback has the same PKG SHA-256 shown above.
+
+Install and launch version 3.14 manually. The first acceptance boundary is
+`kisak-ps4: cvar connect entered`. From there, the final marker identifies the
+failed interface registration, query factory call, DLL-identifier allocation,
+pending ConCommand initialization, or post-registration operation without
+requiring ps4debug or an executable upload.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

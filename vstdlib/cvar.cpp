@@ -36,6 +36,13 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_CVAR_CONNECT_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_CVAR_CONNECT_BREADCRUMB( line ) ((void)0)
+#endif
+
 
 //-----------------------------------------------------------------------------
 // Default implementation  of CvarQuery
@@ -281,15 +288,40 @@ CCvar::CCvar() : m_TempConsoleBuffer( 0, 1024 ), m_SplitScreenAddedConVarsMap( 0
 //-----------------------------------------------------------------------------
 bool CCvar::Connect( CreateInterfaceFn factory )
 {
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar connect entered" );
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar connect before tier1" );
 	ConnectTier1Libraries( &factory, 1 );
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar connect after tier1" );
 
+	if ( !g_pCVar )
+	{
+		PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar connect g_pCVar null" );
+	}
+	else if ( g_pCVar == static_cast<ICvar *>( this ) )
+	{
+		PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar connect g_pCVar self" );
+	}
+	else
+	{
+		PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar connect g_pCVar mismatch" );
+	}
+
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar connect before query factory" );
 	s_pCVarQuery = (ICvarQuery*)factory( CVAR_QUERY_INTERFACE_VERSION, NULL );
 	if ( !s_pCVarQuery )
 	{
 		s_pCVarQuery = &s_DefaultCvarQuery;
+		PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar connect query default" );
+	}
+	else
+	{
+		PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar connect query found" );
 	}
 
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar connect before ConVar_Register" );
 	ConVar_Register();
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar connect after ConVar_Register" );
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar connect complete" );
 	return true;
 }
 
