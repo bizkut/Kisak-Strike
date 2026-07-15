@@ -11,7 +11,7 @@ OpenGNM is the only graphics backend. Linux ToGL/OpenGL and PS3 shader binaries
 are not part of the PS4 runtime. The first acceptance target is menu navigation
 and a complete offline bot match.
 
-## Current status — 2026-07-14
+## Current status — 2026-07-15
 
 The OpenOrbis bootstrap is hardware validated. Title `KISK00001` starts on PS4,
 creates `/data/kisak-strike/startup.log`, and remains stable in a one-second
@@ -28,14 +28,14 @@ SHA-256: 9ea7fd80827a5d236085e67800ef37ff68387090530099a61c3e5a2b2a3924f6
 Staged:  /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 ```
 
-Latest host-built package awaiting hardware staging:
+Latest staged package awaiting hardware validation:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Version: 3.06
 SHA-256: 027063ab82ff5a335c385bf43f348727769bce774a96ebd9fb3dc46c269c59fe
 Local:    build-ps4-engine/package/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Staging:  pending; PS4 FTP 10.0.1.157:2121 was unavailable on 2026-07-14
+Staged:   /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg (2026-07-15)
 ```
 
 Current hardware baseline:
@@ -6106,8 +6106,8 @@ cube, blit, and ordered-Scaleform shader binaries were regenerated.
 Version 3.06 packages 895 prepared Scaleform assets and passes the complete
 OpenOrbis `pkg_validate --verbose` hash/signature suite. Its SHA-256 is
 `027063ab82ff5a335c385bf43f348727769bce774a96ebd9fb3dc46c269c59fe`.
-The upload attempt failed only because the configured PS4 FTP endpoint was not
-listening, so hardware validation remains pending. Install/run only title
+The package was staged successfully at `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`
+on 2026-07-15, so hardware validation remains pending. Install/run only title
 `KISK00002`; the bootstrap title is not required for this checkpoint.
 
 ### PS3 Scaleform UI cross-reference priorities
