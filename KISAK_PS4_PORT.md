@@ -6551,6 +6551,12 @@ for old clients and keeps its port-755/resume behavior. The Kisak harness requir
 1.4 and uses the stopped variant by default, removing the unsafe attach-then-
 `STOPGO` window.
 
+Do not confuse the upstream ps4debug release number with its wire protocol.
+Upstream ps4debug v1.1.19 is the latest published application release but still
+reports wire protocol 1.3 and does not implement `CMD_DEBUG_ATTACH_V2`. The
+required wire protocol 1.4 is the local `f227f07` payload build recorded below;
+loading an unmodified v1.1.19 binary does not satisfy this hardware gate.
+
 The client hardening now preserves every interrupt in `last_interrupt` and
 `last_event`, classifies breakpoint, watchpoint, single-step, fault, and unknown
 events, calls the global callback before the slot callback, leaves unmatched or
@@ -6720,8 +6726,9 @@ tests.
 
 Do not reuse the legacy payload for gate release. The next supervised session is:
 
-1. Manually restore the console/Remote Play and reload the newly built ps4debug
-   payload; verify that TCP 744 is stable before any title launch.
+1. Manually restore the console/Remote Play and load the locally patched
+   `/home/bizkut/OpenOrbis/ps4debug/ps4debug.bin`, not the unmodified upstream
+   v1.1.19 payload; verify that TCP 744 is stable before any title launch.
 2. Record the exact `ps4debug.bin` SHA-256 and require protocol 1.4 with the
    read-only `probe` command.
 3. Use direct high-port callback routing where possible. Recreate narrowly
