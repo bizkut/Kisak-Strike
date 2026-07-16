@@ -38,20 +38,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.45
+Version: 3.46
 Size: 103,219,200 bytes
-SHA-256: 2fd3ef28de973e70def3b65c159bf4846a9f939824e9463e50eae5e401875b96
-Hardware run: v4.79 (2026-07-16), reaches the CGameUI::Start call
+SHA-256: 36b5f3c9fceb5acc2a2f06cb0a231a5c49d08690e5019d681b68716b818d58e2
+Hardware run: v4.80 (2026-07-16), reaches the ClientDLL_Init call
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.45
+Version: 3.46
 Size: 103,219,200 bytes
-SHA-256: 2fd3ef28de973e70def3b65c159bf4846a9f939824e9463e50eae5e401875b96
-Hardware result: v4.79 stops inside the staticGameUIFuncs->Start() call
+SHA-256: 36b5f3c9fceb5acc2a2f06cb0a231a5c49d08690e5019d681b68716b818d58e2
+Hardware result: v4.80 stops inside the ClientDLL_Init() call
 ```
 
 Latest package staged for manual install and hardware test:
@@ -63,7 +63,7 @@ Size: 103,219,200 bytes
 SHA-256: 36b5f3c9fceb5acc2a2f06cb0a231a5c49d08690e5019d681b68716b818d58e2
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.80 awaiting manual install and launch
+Hardware result: v4.80 stops inside the ClientDLL_Init() call
 ```
 
 Current hardware baseline:
@@ -8576,11 +8576,38 @@ manual installation and launch.
 
 Hardware interpretation is deterministic: absence of `gameui start entered`
 keeps the boundary in the `Start` call expression before its first observable
-body marker; a final marker before either
-localization result isolates that call; `gameui start complete` plus
-`engine vgui gameui start ready` proves the desktop-policy repair; and later
-engine markers identify game-console initialization or UI activation without
-another broad probe.
+body marker; a final marker before either localization result isolates that
+call; `gameui start complete` plus `engine vgui gameui start ready` proves
+the desktop-policy repair; and later engine markers identify game-console
+initialization or UI activation without another broad probe.
+
+The 2026-07-16 hardware run confirms the v4.80 marker exactly once. The v4.79
+log is an exact 43,645,603-byte prefix of the new capture. This run appends
+3,082,076 bytes and 63,438 lines with SHA-256
+`18b35781b5ce38d35b73d0f2dd33d4e45358eb9d6d5d17458513c792eb0d74a9`,
+producing a 46,727,679-byte, 957,166-line log with SHA-256
+`342acf000f16ea76793f786f5d8df80e291bc6bd26f3d66ae08cf6145f9b92bf`.
+
+Every v4.80 repair marker succeeds exactly once. Both required localization
+files report loaded; `CGameUI::Start` completes and returns; the game console
+initializes; `ActivateGameUI` returns after its full material-surface popup
+and input-context scan; and `CEngineVGui::Init` reaches its complete marker.
+The enclosing initialization dispatcher then records the successful
+`EngineVGui()->Init()` return.
+
+The exact final two-line boundary is `kisak-ps4: trace init before` followed
+by `ClientDLL_Init()`, with a terminating newline. The corresponding
+`trace init after` pair is absent. Therefore v4.80 fully validates the
+GameUI-startup repair and moves the crash to the `ClientDLL_Init()` call
+expression; the hardware evidence does not yet prove entry into that function.
+
+Source inspection identifies the first body operation after assertions as
+`CL_SetSteamCrashComment()`. Because PS4 intentionally keeps
+`IsGameConsole()` false, the inherited helper does not take its console early
+return and instead gathers desktop driver, video-mode, ConVar, network, clock,
+and Steam minidump state before the client DLL is initialized. v4.81 will make
+that crash-comment policy explicitly PS4-safe and bracket every subsequent
+client interface and initialization boundary.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
