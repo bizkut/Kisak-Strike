@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.29
-Size: 103,153,664 bytes
-SHA-256: 4827da6ca6917a21fa3517a19ec6fb8dd2a4bf6e2e0ed350a15bd9f80a890362
-Hardware run: v4.63 (2026-07-16), crashes inside the EngineVGui scheme load
+Version: 3.30
+Size: 103,219,200 bytes
+SHA-256: 4514ad4f73c17b15c09c743d54b8d26f6b63cf7ef4d7f57620d7b79bb2be9f3a
+Hardware run: v4.64 (2026-07-16), crashes in the GAME-path SourceScheme load
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.29
-Size: 103,153,664 bytes
-SHA-256: 4827da6ca6917a21fa3517a19ec6fb8dd2a4bf6e2e0ed350a15bd9f80a890362
-Hardware result: v4.63 crashes in `scheme()->LoadSchemeFromFile`
+Version: 3.30
+Size: 103,219,200 bytes
+SHA-256: 4514ad4f73c17b15c09c743d54b8d26f6b63cf7ef4d7f57620d7b79bb2be9f3a
+Hardware result: v4.64 crashes in the GAME-path `KeyValues::LoadFromFile`
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: 4514ad4f73c17b15c09c743d54b8d26f6b63cf7ef4d7f57620d7b79bb2be9f3a
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: awaiting manual installation and v4.64 launch
+Hardware result: v4.64 crashes in the GAME-path `KeyValues::LoadFromFile`
 ```
 
 Current hardware baseline:
@@ -7404,6 +7404,28 @@ Linux high-address failures in `ps4_gnm_device`, `ps4_gnm_buffer`, and
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its 103,219,200-byte remote
 copy was read back completely and its SHA-256 matches the local package. Manual
 installation and launch are the remaining hardware gate.
+
+The v4.64 package was installed and run manually. Its single build marker and
+408,750-line, 19,244,312-byte startup log validate the scheme-manager query and
+virtual dispatch, loaded-scheme scan, `KeyValues` allocation, escape-sequence
+configuration, and the failed `SKIN` search. The exact final sequence is:
+
+```text
+kisak-ps4: scheme load ex before skin keyvalues load
+kisak-ps4: scheme load ex skin keyvalues load ready value=0
+kisak-ps4: scheme load ex before game keyvalues load
+```
+
+There is no matching GAME-load return marker. The active crash boundary is
+therefore inside
+`KeyValues::LoadFromFile( g_pFullFileSystem, "Resource/SourceScheme.res", "GAME" )`.
+The prior `SKIN` call returns normally, so the common scheme wrapper and
+`KeyValues` setup are working; the path-ID-dependent filesystem search is now
+the first unvalidated operation. `SourceScheme.res` is not installed loose, but
+its name and contents are present in `csgo/pak01_dir.vpk`, making the GAME VPK
+lookup the leading candidate. The next package will trace `KeyValues::LoadFromFile`
+and the read-only filesystem/VPK open path without changing file-selection
+behavior.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
