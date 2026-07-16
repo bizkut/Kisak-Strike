@@ -53,6 +53,8 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 	do { if ( enabled ) KisakPs4SourceSchemeBaseSettingsBreadcrumb( phase, token, depth ); } while ( 0 )
 #define PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( enabled, phase, token ) \
 	do { if ( enabled ) KisakPs4SourceSchemeRootTailBreadcrumb( phase, token ); } while ( 0 )
+#define PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( enabled, phase, token, depth ) \
+	do { if ( enabled ) KisakPs4SourceSchemeBitmapFontBreadcrumb( phase, token, depth ); } while ( 0 )
 #else
 #define PS4_KEYVALUES_TRACE_SOURCE_SCHEME( resourceName ) false
 #define PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) false
@@ -64,6 +66,7 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 #define PS4_KEYVALUES_TOKEN_BREADCRUMB( enabled, phase, token, operation, reads, position, quoted, conditional ) ((void)(enabled))
 #define PS4_KEYVALUES_BASESETTINGS_BREADCRUMB( enabled, phase, token, depth ) ((void)(enabled))
 #define PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( enabled, phase, token ) ((void)(enabled))
+#define PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( enabled, phase, token, depth ) ((void)(enabled))
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -187,6 +190,28 @@ static void KisakPs4SourceSchemeRootTailBreadcrumb( const char *pPhase,
 		s_nKisakPs4SourceSchemeRootTailTraceCount,
 		pPhase ? pPhase : "unknown", pToken ? pToken : "<null>" );
 	++s_nKisakPs4SourceSchemeRootTailTraceCount;
+	KisakPs4StartupBreadcrumb( line );
+}
+
+static bool s_bKisakPs4TraceSourceSchemeBitmapFontFiles = false;
+static int s_nKisakPs4SourceSchemeBitmapFontTraceCount = 0;
+static const int k_nKisakPs4SourceSchemeBitmapFontTraceLimit = 64;
+
+static void KisakPs4SourceSchemeBitmapFontBreadcrumb( const char *pPhase,
+	const char *pToken, int nDepth )
+{
+	if ( s_nKisakPs4SourceSchemeBitmapFontTraceCount >=
+		k_nKisakPs4SourceSchemeBitmapFontTraceLimit )
+	{
+		return;
+	}
+
+	char line[512];
+	V_snprintf( line, sizeof( line ),
+		"kisak-ps4: sourcescheme bitmapfont event=%d phase=%s depth=%d token=%.160s",
+		s_nKisakPs4SourceSchemeBitmapFontTraceCount,
+		pPhase ? pPhase : "unknown", nDepth, pToken ? pToken : "<null>" );
+	++s_nKisakPs4SourceSchemeBitmapFontTraceCount;
 	KisakPs4StartupBreadcrumb( line );
 }
 #endif
@@ -2745,15 +2770,22 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 #if defined( PLATFORM_PS4 )
 	const bool bTracePs4BaseSettingsActive = bTracePs4SourceScheme &&
 		s_bKisakPs4TraceSourceSchemeBaseSettings;
+	const bool bTracePs4BitmapFontActive = bTracePs4SourceScheme &&
+		s_bKisakPs4TraceSourceSchemeBitmapFontFiles;
 #else
 	const bool bTracePs4BaseSettingsActive = false;
+	const bool bTracePs4BitmapFontActive = false;
 #endif
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsActive,
 		"kisak-ps4: sourcescheme basesettings recursion entered" );
+	PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+		"recursion-enter", GetName(), -1 );
 	CKeyErrorContext errorReport( GetNameSymbolCaseSensitive() );
 	const bool bTracePs4RootGameModes = bTracePs4GameModes && errorReport.GetStackLevel() == 0;
 	PS4_KEYVALUES_BASESETTINGS_BREADCRUMB( bTracePs4BaseSettingsActive, "section",
 		GetName(), errorReport.GetStackLevel() );
+	PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+		"section", GetName(), errorReport.GetStackLevel() );
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4RootGameModes, "kisak-ps4: gamemodes recursive error context ready" );
 	bool wasQuoted;
 	bool wasConditional;
@@ -2764,13 +2796,22 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 	}
 
 	// keep this out of the stack until a key is parsed
+	PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+		"before-key-context", GetName(), errorReport.GetStackLevel() );
 	CKeyErrorContext errorKey( INVALID_KEY_SYMBOL );
+	PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+		"key-context-ready", GetName(), errorReport.GetStackLevel() );
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4RootGameModes, "kisak-ps4: gamemodes recursive key context ready" );
 
 	// Locate the last child.  (Almost always, we will not have any children.)
 	// We maintain the pointer to the last child here, so we don't have to re-locate
 	// it each time we append the next subkey, which causes O(N^2) time
+	PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+		"before-last-child", GetName(), errorReport.GetStackLevel() );
 	KeyValues *pLastChild = FindLastSubKey();
+	PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+		"last-child-ready", pLastChild ? pLastChild->GetName() : NULL,
+		errorReport.GetStackLevel() );
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4RootGameModes, "kisak-ps4: gamemodes recursive last child ready" );
 
 	// Keep parsing until we hit the closing brace which terminates this block, or a parse error
@@ -2786,9 +2827,13 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 		// get the key name
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive before first key token" );
 		PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "before-key", NULL );
+		PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+			"before-key", NULL, errorReport.GetStackLevel() );
 		const char * name = tokenReader.ReadToken( wasQuoted, wasConditional );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive first key token ready" );
 		PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "key", name );
+		PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+			"key", name, errorReport.GetStackLevel() );
 
 		if ( !name )	// EOF stop reading
 		{
@@ -2807,7 +2852,10 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 
 		const bool bTracePs4BaseSettingsRootKey = bTracePs4SourceScheme &&
 			errorReport.GetStackLevel() == 0 && V_stricmp( name, "BaseSettings" ) == 0;
-		const bool bTracePs4DetailedKey = bTracePs4ThisKey || bTracePs4BaseSettingsRootKey;
+		const bool bTracePs4BitmapFontRootKey = bTracePs4SourceScheme &&
+			errorReport.GetStackLevel() == 0 && V_stricmp( name, "BitmapFontFiles" ) == 0;
+		const bool bTracePs4DetailedKey = bTracePs4ThisKey ||
+			bTracePs4BaseSettingsRootKey || bTracePs4BitmapFontRootKey;
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
 			"kisak-ps4: sourcescheme basesettings root key identified" );
 		PS4_KEYVALUES_BASESETTINGS_BREADCRUMB( bTracePs4BaseSettingsActive, "key",
@@ -2820,7 +2868,11 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
 			"kisak-ps4: sourcescheme basesettings before root child create" );
 		PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "before-create", name );
+		PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+			"before-create", name, errorReport.GetStackLevel() );
 		KeyValues *dat = CreateKeyUsingKnownLastChild( name, pLastChild );
+		PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+			"child-ready", dat->GetName(), errorReport.GetStackLevel() );
 		PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "child-ready", dat->GetName() );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive first child ready" );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
@@ -2828,7 +2880,11 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
 			"kisak-ps4: sourcescheme basesettings before error key reset" );
+		PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+			"before-error-reset", dat->GetName(), errorReport.GetStackLevel() );
 		errorKey.Reset( dat->GetNameSymbolCaseSensitive() );
+		PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+			"error-reset-ready", dat->GetName(), errorReport.GetStackLevel() );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
 			"kisak-ps4: sourcescheme basesettings error key reset ready" );
 
@@ -2837,7 +2893,11 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
 			"kisak-ps4: sourcescheme basesettings before opening token" );
 		PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "before-value", dat->GetName() );
+		PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+			"before-value", dat->GetName(), errorReport.GetStackLevel() );
 		const char * value = tokenReader.ReadToken( wasQuoted, wasConditional );
+		PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+			"value", value, errorReport.GetStackLevel() );
 		PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "value", value );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive first value token ready" );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
@@ -2912,17 +2972,30 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 				s_nKisakPs4SourceSchemeBaseSettingsTraceCount = 0;
 				s_bKisakPs4TraceSourceSchemeBaseSettings = true;
 			}
+			if ( bTracePs4BitmapFontRootKey )
+			{
+				s_nKisakPs4SourceSchemeBitmapFontTraceCount = 0;
+				s_bKisakPs4TraceSourceSchemeBitmapFontFiles = true;
+			}
 #endif
 			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
 				"kisak-ps4: sourcescheme basesettings before child recursion" );
 			PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "section-enter", dat->GetName() );
+			PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+				"section-enter", dat->GetName(), errorReport.GetStackLevel() );
 			dat->RecursiveLoadFromBuffer( resourceName, tokenReader, pfnEvaluateSymbolProc );
+			PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+				"section-return", dat->GetName(), errorReport.GetStackLevel() );
 			PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "section-return", dat->GetName() );
 #if defined( PLATFORM_PS4 )
 			if ( bTracePs4BaseSettingsRootKey )
 			{
 				s_bKisakPs4TraceSourceSchemeBaseSettings = false;
 				s_nKisakPs4SourceSchemeRootTailTraceCount = 0;
+			}
+			if ( bTracePs4BitmapFontRootKey )
+			{
+				s_bKisakPs4TraceSourceSchemeBitmapFontFiles = false;
 			}
 #endif
 			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
@@ -2936,6 +3009,8 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 		}
 		else 
 		{
+			PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+				"scalar-enter", value, errorReport.GetStackLevel() );
 			if ( wasConditional )
 			{
 				g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got conditional between key and value" );
@@ -2948,15 +3023,23 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 				dat->m_sValue = NULL;
 			}
 
+			PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+				"before-length", value, errorReport.GetStackLevel() );
 			int len = V_strlen( value );
+			PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+				"length-ready", value, errorReport.GetStackLevel() );
 
 			// Here, let's determine if we got a float or an int....
 			char* pIEnd;	// pos where int scan ended
 			char* pFEnd;	// pos where float scan ended
 			const char* pSEnd = value + len ; // pos where token ends
 
+			PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+				"before-number-scan", value, errorReport.GetStackLevel() );
 			long lval = strtol( value, &pIEnd, 10 );
 			float fval = (float)strtod( value, &pFEnd );
+			PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+				"number-scan-ready", value, errorReport.GetStackLevel() );
 			bool bOverflow = ( lval == LONG_MAX || lval == LONG_MIN ) && errno == ERANGE;
 #ifdef POSIX
 			// strtod supports hex representation in strings under posix but we DON'T
@@ -3008,12 +3091,20 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 			if (dat->m_iDataType == TYPE_STRING)
 			{
 				// copy in the string information
+				PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+					"before-string-copy", value, errorReport.GetStackLevel() );
 				dat->m_sValue = new char[len+1];
 				V_memcpy( dat->m_sValue, value, len+1 );
+				PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+					"string-copy-ready", dat->GetName(), errorReport.GetStackLevel() );
 			}
 
 			// Look ahead one token for a conditional tag
+			PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+				"before-lookahead", dat->GetName(), errorReport.GetStackLevel() );
 			const char *peek = tokenReader.ReadToken( wasQuoted, wasConditional );
+			PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+				"lookahead", peek, errorReport.GetStackLevel() );
 			if ( wasConditional )
 			{
 				bAccepted = EvaluateConditional( peek, pfnEvaluateSymbolProc );
@@ -3022,8 +3113,12 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 			{
 				tokenReader.SeekBackOneToken();
 			}
+			PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+				"lookahead-ready", dat->GetName(), errorReport.GetStackLevel() );
 		}
 
+		PS4_KEYVALUES_BITMAPFONT_BREADCRUMB( bTracePs4BitmapFontActive,
+			"key-complete", dat->GetName(), errorReport.GetStackLevel() );
 		Assert( dat->m_pPeer == NULL );
 		if ( bAccepted )
 		{

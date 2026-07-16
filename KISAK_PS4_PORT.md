@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.33
+Version: 3.34
 Size: 103,219,200 bytes
-SHA-256: e02dfc699c6533ba85a0a5a2ee194ee90e58c5a4499429b970444ea6b3499904
+SHA-256: 34f7bdc6e723ab62e8e0c2929a5bcd71e6b8a83a4680bf62296ad38624b01a07
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.67 enters `BitmapFontFiles` recursion but never returns
+Hardware result: awaiting manual v4.68 install and run
 ```
 
 Current hardware baseline:
@@ -7586,6 +7586,46 @@ eight events. After `BaseSettings` returns, the parser reads
 marker follows. The crash is therefore inside the recursive parse of the
 `BitmapFontFiles` child, not root key allocation or opening-token handling.
 The next diagnostic should arm a bounded nested trace only for that child.
+
+### v4.68: Trace the SourceScheme BitmapFontFiles child
+
+Package version 3.34 and build marker
+`scheme_bitmapfont_trace_v468` identify this diagnostic. The v4.67 hardware
+run proved that root key creation and opening-token handling succeed for
+`BitmapFontFiles`, but its child recursion never returns. A PS4-only 64-event
+trace now activates only for that child and any nested sections. It records
+recursive entry, error-context and last-child setup, key/value token reads,
+child allocation, error-key reset, scalar length and numeric scans, string
+allocation/copy, conditional lookahead, key completion, and nested-section
+entry/return. Tokenization, allocation, parser decisions, stored values, and
+non-PS4 behavior remain unchanged.
+
+The PS4 `tier1_client` and `engine_client` targets and the complete
+`kisak_ps4_monolithic` target build successfully. The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic
+Size: 126,273,120 bytes
+SHA-256: e58bb95bd70454c9c669a8e901bc5ca63c11e24e568b72f1446e4d0138b73fe4
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,126,336 bytes
+SHA-256: 6131bd4e5f2177befca52423ae53270214127740a8ceeab5cef61213e215d742
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.34
+Size: 103,219,200 bytes
+SHA-256: 34f7bdc6e723ab62e8e0c2929a5bcd71e6b8a83a4680bf62296ad38624b01a07
+```
+
+PkgTool reports every package size, digest, and signature check as `[OK]`, and
+`param.sfo` reports both `APP_VER` and `VERSION` as 3.34. The host PS4
+suite remains at 11/14 with only the known `ps4_gnm_device`,
+`ps4_gnm_buffer`, and `ps4_gnm_constants` baseline failures. The package
+is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
+readback matches the local 103,219,200-byte package and SHA-256 above. Manual
+install and hardware execution remain.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
