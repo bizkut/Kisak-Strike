@@ -4160,6 +4160,10 @@ static bool KisakPs4TraceSourceSchemeFile( const char *pFileName )
 {
 	return pFileName && V_stricmp( pFileName, "Resource/SourceScheme.res" ) == 0;
 }
+static bool KisakPs4TraceStoreItemVmtFile( const char *pFileName )
+{
+	return pFileName && V_stricmp( pFileName, "materials/vgui/store/store_item_bg.vmt" ) == 0;
+}
 #define PS4_FILESYSTEM_SCHEME_BREADCRUMB( enabled, line ) \
 	do { if ( enabled ) KisakPs4StartupBreadcrumb( line ); } while ( 0 )
 #else
@@ -4177,10 +4181,13 @@ FileHandle_t CBaseFileSystem::FindFile(
 	VPROF( "CBaseFileSystem::FindFile" );
 	#if defined( PLATFORM_PS4 )
 	const bool bTracePs4SourceScheme = KisakPs4TraceSourceSchemeFile( pFileName );
+	const bool bTracePs4StoreItemVmt = KisakPs4TraceStoreItemVmtFile( pFileName );
 	#else
 	const bool bTracePs4SourceScheme = false;
+	const bool bTracePs4StoreItemVmt = false;
 	#endif
 	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem find entered" );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt filesystem find entered" );
 
 	char tempSymlinkBuffer[MAX_PATH];
 	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem before symlink format" );
@@ -4213,13 +4220,17 @@ FileHandle_t CBaseFileSystem::FindFile(
 		// check vpk file
 #ifdef SUPPORT_VPK
 		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem vpk scan entered" );
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt filesystem vpk scan entered" );
 		for( int i = 0 ; i < m_VPKFiles.Count(); i++ )
 		{
 			PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem before vpk open" );
+			PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt filesystem before vpk open" );
 			CPackedStoreFileHandle fHandle = m_VPKFiles[i]->OpenFile( pFileName );
 			PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem vpk open returned" );
+			PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt filesystem vpk open returned" );
 			if ( fHandle )
 			{
+				PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt filesystem vpk handle ready" );
 				PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem vpk handle ready" );
 				PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem before file handle allocation" );
 				openInfo.m_pFileHandle = new CFileHandle(this);
@@ -4241,21 +4252,32 @@ FileHandle_t CBaseFileSystem::FindFile(
 			}
 		}
 		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem vpk scan complete not found" );
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt filesystem vpk scan complete not found" );
 #endif
 		// Caller provided a relative path
 		if ( path->GetPackFile() )
 		{
+			PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt filesystem before pack search" );
 			HandleOpenFromPackFile( path->GetPackFile(), openInfo );
+			PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, openInfo.m_pFileHandle
+				? "kisak-ps4: store item vmt filesystem pack search found"
+				: "kisak-ps4: store item vmt filesystem pack search missed" );
 			return (FileHandle_t)openInfo.m_pFileHandle;
 		}
 		else
 		{
+			PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt filesystem before absolute path" );
 			openInfo.SetAbsolutePath( "%s%s", path->GetPathString(), pFileName );
+			PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt filesystem absolute path ready" );
 		}
 	}
 
 	// now have an absolute name
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt filesystem before regular open" );
 	HandleOpenRegularFile( openInfo, bIsAbsolutePath );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, openInfo.m_pFileHandle
+		? "kisak-ps4: store item vmt filesystem regular open found"
+		: "kisak-ps4: store item vmt filesystem regular open missed" );
 	return (FileHandle_t)openInfo.m_pFileHandle;
 }
 
@@ -4270,10 +4292,13 @@ FileHandle_t CBaseFileSystem::FindFileInSearchPaths(
 {
 	#if defined( PLATFORM_PS4 )
 	const bool bTracePs4SourceScheme = KisakPs4TraceSourceSchemeFile( pFileName );
+	const bool bTracePs4StoreItemVmt = KisakPs4TraceStoreItemVmtFile( pFileName );
 	#else
 	const bool bTracePs4SourceScheme = false;
+	const bool bTracePs4StoreItemVmt = false;
 	#endif
 	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme search paths entered" );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt search paths entered" );
 	// Run through all the search paths.
 	PathTypeFilter_t pathFilter = FILTER_NONE;
 
@@ -4319,9 +4344,13 @@ FileHandle_t CBaseFileSystem::FindFileInSearchPaths(
 		: "kisak-ps4: sourcescheme first search path missing" );
 	for ( ; pSearchPath != NULL; )
 	{
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt before search path find" );
 		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme before search path find" );
 		FileHandle_t filehandle = FindFile( pSearchPath, pFileName, pOptions, flags, ppszResolvedFilename, bTrackCRCs );
 		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme search path find returned" );
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, filehandle
+			? "kisak-ps4: store item vmt search path found"
+			: "kisak-ps4: store item vmt search path missed" );
 		if ( filehandle )
 			return filehandle;
 		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme before next search path" );
@@ -4329,6 +4358,7 @@ FileHandle_t CBaseFileSystem::FindFileInSearchPaths(
 		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme next search path ready" );
 	}
 
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt search paths exhausted" );
 	return ( FileHandle_t )0;
 }
 
@@ -4340,12 +4370,18 @@ FileHandle_t CBaseFileSystem::OpenForRead( const char *pFileName, const char *pO
 	VPROF( "CBaseFileSystem::OpenForRead" );
 	#if defined( PLATFORM_PS4 )
 	const bool bTracePs4SourceScheme = KisakPs4TraceSourceSchemeFile( pFileName );
+	const bool bTracePs4StoreItemVmt = KisakPs4TraceStoreItemVmtFile( pFileName );
 	#else
 	const bool bTracePs4SourceScheme = false;
+	const bool bTracePs4StoreItemVmt = false;
 	#endif
 	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme open for read entered" );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt open for read entered" );
 	FileHandle_t hFile = FindFileInSearchPaths( pFileName, pOptions, pathID, flags, ppszResolvedFilename, true );
 	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme open for read returned" );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, hFile
+		? "kisak-ps4: store item vmt open for read found"
+		: "kisak-ps4: store item vmt open for read missed" );
 	return hFile;
 }
 
@@ -4447,12 +4483,18 @@ FileHandle_t CBaseFileSystem::Open( const char *pFileName, const char *pOptions,
 {
 	#if defined( PLATFORM_PS4 )
 	const bool bTracePs4SourceScheme = KisakPs4TraceSourceSchemeFile( pFileName );
+	const bool bTracePs4StoreItemVmt = KisakPs4TraceStoreItemVmtFile( pFileName );
 	#else
 	const bool bTracePs4SourceScheme = false;
+	const bool bTracePs4StoreItemVmt = false;
 	#endif
 	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme open wrapper entered" );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt open wrapper entered" );
 	FileHandle_t hFile = OpenEx( pFileName, pOptions, 0, pathID );
 	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme open wrapper returned" );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, hFile
+		? "kisak-ps4: store item vmt open wrapper found"
+		: "kisak-ps4: store item vmt open wrapper missed" );
 	return hFile;
 }
 
@@ -4464,10 +4506,13 @@ FileHandle_t CBaseFileSystem::OpenEx( const char *pFileName, const char *pOption
 	VPROF_BUDGET( "CBaseFileSystem::Open", VPROF_BUDGETGROUP_OTHER_FILESYSTEM );
 	#if defined( PLATFORM_PS4 )
 	const bool bTracePs4SourceScheme = KisakPs4TraceSourceSchemeFile( pFileName );
+	const bool bTracePs4StoreItemVmt = KisakPs4TraceStoreItemVmtFile( pFileName );
 	#else
 	const bool bTracePs4SourceScheme = false;
+	const bool bTracePs4StoreItemVmt = false;
 	#endif
 	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme open ex entered" );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt open ex entered" );
 
 	if ( !pFileName )
 		return (FileHandle_t)0;
@@ -4542,8 +4587,12 @@ FileHandle_t CBaseFileSystem::OpenEx( const char *pFileName, const char *pOption
 	if ( strstr( pOptions, "r" ) && !strstr( pOptions, "+" ) )
 	{
 		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme before open for read" );
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt open ex before open for read" );
 		hFile = OpenForRead( tempFileName, pOptions, flags, pathID, ppszResolvedFilename );
 		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme open for read ready" );
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, hFile
+			? "kisak-ps4: store item vmt open ex read found"
+			: "kisak-ps4: store item vmt open ex read missed" );
 	}
 	else
 	{
@@ -4611,6 +4660,7 @@ FileHandle_t CBaseFileSystem::OpenEx( const char *pFileName, const char *pOption
 		}
 	}
 
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt open ex complete" );
 	return hFile;
 }
 

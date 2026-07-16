@@ -84,9 +84,14 @@ ILauncherMgr *g_pLauncherMgr = NULL;
 
 #if defined( PLATFORM_PS4 )
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+static int s_nPs4StoreItemDrawTextureTarget = ( -2147483647 - 1 );
 #define PS4_MATSURFACE_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#define PS4_MATSURFACE_DRAW_TEXTURE_TARGET() s_nPs4StoreItemDrawTextureTarget
+#define PS4_MATSURFACE_SET_DRAW_TEXTURE_TARGET( value ) do { s_nPs4StoreItemDrawTextureTarget = (value); } while ( 0 )
 #else
 #define PS4_MATSURFACE_BREADCRUMB( line ) ((void)0)
+#define PS4_MATSURFACE_DRAW_TEXTURE_TARGET() ( -2147483647 - 1 )
+#define PS4_MATSURFACE_SET_DRAW_TEXTURE_TARGET( value ) ((void)(value))
 #endif
 
 #if defined( _GAMECONSOLE )
@@ -1831,8 +1836,37 @@ int CMatSystemSurface::DrawGetTextureId( char const *filename )
 //-----------------------------------------------------------------------------
 void CMatSystemSurface::DrawSetTextureFile(int id, const char *pFileName, int hardwareFilter, bool forceReload /*= false*/)
 {
-	TextureDictionary()->BindTextureToFile( id, pFileName );
+	const bool bPs4StoreItemProbe = pFileName && !Q_stricmp( pFileName, "vgui/store/store_item_bg" );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface texture file entered" );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface texture file before dictionary" );
+	}
+	ITextureDictionary *pTextureDictionary = TextureDictionary();
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATSURFACE_BREADCRUMB( pTextureDictionary
+			? "kisak-ps4: matsurface texture dictionary ready"
+			: "kisak-ps4: matsurface texture dictionary null" );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface texture file before bind" );
+	}
+	pTextureDictionary->BindTextureToFile( id, pFileName );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface texture file bind ready" );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface texture file before draw bind" );
+	}
+	const int nPreviousPs4DrawTextureTarget = PS4_MATSURFACE_DRAW_TEXTURE_TARGET();
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATSURFACE_SET_DRAW_TEXTURE_TARGET( id );
+	}
 	DrawSetTexture( id );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATSURFACE_SET_DRAW_TEXTURE_TARGET( nPreviousPs4DrawTextureTarget );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface texture file complete" );
+	}
 }
 
 
@@ -1862,11 +1896,29 @@ void CMatSystemSurface::ReferenceProceduralMaterial( int id, int referenceId, IM
 //-----------------------------------------------------------------------------
 void CMatSystemSurface::DrawSetTexture( int id )
 {
+	const bool bPs4StoreItemProbe = id == PS4_MATSURFACE_DRAW_TEXTURE_TARGET();
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface draw texture entered" );
+	}
 	// if we're switching textures, flush any batched text
 	if ( id != m_iBoundTexture )
 	{
+		if ( bPs4StoreItemProbe )
+		{
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface draw texture before text flush" );
+		}
 		DrawFlushText();
+		if ( bPs4StoreItemProbe )
+		{
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface draw texture text flush ready" );
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface draw texture before bound id" );
+		}
 		m_iBoundTexture = id;
+		if ( bPs4StoreItemProbe )
+		{
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface draw texture bound id ready" );
+		}
 
 		if ( id == -1 )
 		{
@@ -1874,6 +1926,10 @@ void CMatSystemSurface::DrawSetTexture( int id )
 			CMatRenderContextPtr pRenderContext( g_pMaterialSystem );
 			pRenderContext->Bind( m_pWhite );
 		}
+	}
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface draw texture complete" );
 	}
 }
 

@@ -30,7 +30,7 @@ DLL/PRX ownership assumptions merely because the original code used them.
 | Package SHA-256 | `da63191f79fb32b4bb3c3f39e6cf372c1c487c9599b74790fc826006a7394dc5` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `53c5d052` (`Instrument PS4 ClientScheme border loading`) |
-| Hardware-result commit | This v4.87 result record |
+| Hardware-result commit | `a49a7acc` (`Record v4.87 scalable border crash`) |
 
 v4.87 proves ClientScheme traversal, base-border allocation, name assignment,
 and base-border settings through entry 18. Entry 19 is `LoadoutItemBorder`, the
@@ -302,6 +302,54 @@ runtime availability and search path. Preserve normal Source behavior unless
 the observed failing operation depends on an unsupported desktop/dynamic-module
 contract; if the border is optional for the first frame, any temporary deferral
 must be PS4-specific, explicit, and leave a later restoration gate.
+
+Source and content inspection narrows that gate further. Texture ID 5 proves
+the provider is `CMatSystemSurface`: its texture dictionary returns low linked-
+list indices, while `CWin32Surface` starts IDs at 2700. The requested
+`materials/vgui/store/store_item_bg.vmt` is absent from the loose PS4 content
+and all three shipped VPK indexes. That absence is not itself an error in the
+port: `CMaterialSystem::FindMaterial` is designed to return `g_pErrorMaterial`
+after a negative lookup. The candidate therefore traces the negative lookup
+and the lazy error-material precache rather than adding or inventing a renderer
+asset.
+
+The audit also found a separate lifecycle defect: the monolithic material-
+system factory selects `shaderapiempty` before the launcher requests
+`shaderapips4`, and `SetShaderAPI` rejects the second selection. Correcting the
+single-owner backend selection remains required, but is deliberately isolated
+from v4.88 because enabling a different backend changes broad renderer behavior
+and would destroy attribution for this crash.
+
+### v4.88 candidate instrumentation
+
+Package version 3.54 and build marker `vgui_material_lookup_v488` identify the
+next manual-install candidate. Exact-name PS4 probes bracket
+`CMatSystemSurface::DrawSetTextureFile`, texture-ID validation and dictionary
+binding, material dictionary lookup, VMT allocation/loading, KeyValues open,
+each VPK and search-path miss, regular-file fallback, error-material return,
+reference ownership, mapping-size queries, and every stage of lazy error-
+material precaching. The pointer overload records entry before dereferencing
+the returned material so a bad queue-friendly pointer remains distinguishable
+from failure inside precache.
+
+The probes do not change material selection, ownership, search order, border
+construction, or rendering. If hardware reaches the error-material mapping
+path and fails there, the next PS4-native unblock may bind no material for this
+optional missing VGUI image, which the existing texture dictionary renders via
+its white fallback. If the lookup and fallback complete, the final probe
+distinguishes `DrawFlushText` from the bound-texture assignment inside
+`DrawSetTexture`.
+
+The focused `tier1_client`, `filesystem_stdio_client`,
+`materialsystem_client`, `vgui2_client`, and `vguimatsurface_client` targets
+compile, followed by the full Linux OpenOrbis monolithic target. Both the
+post-link retention hook and an explicit verifier pass. The OELF is 126,490,968
+bytes with SHA-256
+`b83483c535c690ee270c5a5d59282f51b61e01a0a5978a9ac442cc0b04e49be0`;
+the SELF input is 83,346,720 bytes with SHA-256
+`ca348b966e9c347676edd408ac248b6aa712e8bc9e339ee4bfdf68e9861ca057`.
+Eleven of fourteen host tests pass; the same three Linux high-address OpenGNM
+descriptor fixtures fail outside the VGUI material lookup path.
 
 ## Runtime topology: two tracks, one production authority
 

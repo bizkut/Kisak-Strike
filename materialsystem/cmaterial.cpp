@@ -37,6 +37,23 @@
 #include "ifilelist.h"
 #include "tier0/icommandline.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+extern IMaterialInternal *g_pErrorMaterial;
+static void Ps4MaterialDetail( const char *stage, const char *name, int value )
+{
+	char line[512];
+	Q_snprintf( line, sizeof(line), "kisak-ps4: material detail %s value=%d name=%s",
+		stage ? stage : "<null>", value, name ? name : "<none>" );
+	KisakPs4StartupBreadcrumb( line );
+}
+#define PS4_MATERIAL_DETAIL( stage, name, value ) Ps4MaterialDetail( stage, name, value )
+#define PS4_IS_ERROR_MATERIAL( material ) ( (material) == g_pErrorMaterial )
+#else
+#define PS4_MATERIAL_DETAIL( stage, name, value ) ((void)0)
+#define PS4_IS_ERROR_MATERIAL( material ) false
+#endif
+
 #ifndef M_PI
 #define M_PI		3.14159265358979323846	// matches value in gcc v2 math.h
 #endif
@@ -2370,9 +2387,24 @@ bool CMaterial::PrecacheVars_Internal( KeyValues *pVMTKeyValues, KeyValues *pPat
 //-----------------------------------------------------------------------------
 void CMaterial::Precache_Internal()
 {
+	const bool bPs4ErrorMaterialProbe = PS4_IS_ERROR_MATERIAL( this );
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error precache raw entered", "<unresolved>", 0 );
+		PS4_MATERIAL_DETAIL( "error precache entered", GetName(), 0 );
+		PS4_MATERIAL_DETAIL( "error precache before lock", GetName(), 0 );
+	}
 	MaterialLock_t hMaterialLock = MaterialSystem()->Lock();
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error precache lock ready", GetName(), 0 );
+	}
 
 	m_Flags |= MATERIAL_IS_PRECACHED;
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error precache flag ready", GetName(), m_pShader ? 1 : 0 );
+	}
 
 	// Invokes the SHADER_INIT block in the various shaders,
 	if ( m_pShader ) 
@@ -2386,20 +2418,59 @@ void CMaterial::Precache_Internal()
 			NOTE_UNUSED( x );
 		}
 #endif
+		if ( bPs4ErrorMaterialProbe )
+		{
+			PS4_MATERIAL_DETAIL( "error precache before shader init", GetName(), 0 );
+		}
 		ShaderSystem()->InitShaderInstance( m_pShader, m_pShaderParams, GetName(), GetTextureGroupName() );
+		if ( bPs4ErrorMaterialProbe )
+		{
+			PS4_MATERIAL_DETAIL( "error precache shader init ready", GetName(), 0 );
+		}
 	}
 
 	// compute the state snapshots
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error precache before snapshots", GetName(), 0 );
+	}
 	RecomputeStateSnapshots();
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error precache snapshots ready", GetName(), 0 );
+		PS4_MATERIAL_DETAIL( "error precache before representative texture", GetName(), 0 );
+	}
 
 	FindRepresentativeTexture();
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error precache representative texture ready", GetName(), 0 );
+	}
 
 	// Reads in the texture width and height from the material var
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error precache before mapping dimensions", GetName(), 0 );
+	}
 	PrecacheMappingDimensions();
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error precache mapping dimensions ready", GetName(), 0 );
+		PS4_MATERIAL_DETAIL( "error precache before render state assert", GetName(), 0 );
+	}
 
 	Assert( IsValidRenderState() );
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error precache render state ready", GetName(), 0 );
+		PS4_MATERIAL_DETAIL( "error precache before unlock", GetName(), 0 );
+	}
 
 	MaterialSystem()->Unlock( hMaterialLock );
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error precache complete", GetName(), 0 );
+	}
 }
 
 
@@ -2505,13 +2576,37 @@ char const* CMaterial::GetTextureGroupName() const
 //-----------------------------------------------------------------------------
 int	CMaterial::GetMappingWidth( )
 {
+	const bool bPs4ErrorMaterialProbe = PS4_IS_ERROR_MATERIAL( this );
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error mapping width raw entered", "<unresolved>", 0 );
+		PS4_MATERIAL_DETAIL( "error mapping width entered", GetName(), 0 );
+		PS4_MATERIAL_DETAIL( "error mapping width before precache", GetName(), IsPrecached_Inline() ? 1 : 0 );
+	}
 	Precache_Inline();
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error mapping width precache ready", GetName(), IsPrecached_Inline() ? 1 : 0 );
+		PS4_MATERIAL_DETAIL( "error mapping width complete", GetName(), m_MappingWidth );
+	}
 	return m_MappingWidth;
 }
 
 int	CMaterial::GetMappingHeight( )
 {
+	const bool bPs4ErrorMaterialProbe = PS4_IS_ERROR_MATERIAL( this );
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error mapping height raw entered", "<unresolved>", 0 );
+		PS4_MATERIAL_DETAIL( "error mapping height entered", GetName(), 0 );
+		PS4_MATERIAL_DETAIL( "error mapping height before precache", GetName(), IsPrecached_Inline() ? 1 : 0 );
+	}
 	Precache_Inline();
+	if ( bPs4ErrorMaterialProbe )
+	{
+		PS4_MATERIAL_DETAIL( "error mapping height precache ready", GetName(), IsPrecached_Inline() ? 1 : 0 );
+		PS4_MATERIAL_DETAIL( "error mapping height complete", GetName(), m_MappingHeight );
+	}
 	return m_MappingHeight;
 }
 
@@ -3596,6 +3691,11 @@ void ExpandPatchFile( KeyValues& keyValues, KeyValues &patchKeyValues, const cha
 //-----------------------------------------------------------------------------
 bool LoadVMTFile( KeyValues &vmtKeyValues, KeyValues &patchKeyValues, const char *pMaterialName, bool bAbsolutePath, CUtlVector<FileNameHandle_t> *pIncludes )
 {
+	const bool bPs4StoreItemProbe = pMaterialName && !Q_stricmp( pMaterialName, "materials/vgui/store/store_item_bg" );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_DETAIL( "vmt load entered", pMaterialName, bAbsolutePath ? 1 : 0 );
+	}
 	MEM_ALLOC_CREDIT();
 	char pFileName[MAX_PATH];
 	const char *pPathID = "GAME";
@@ -3612,12 +3712,30 @@ bool LoadVMTFile( KeyValues &vmtKeyValues, KeyValues &patchKeyValues, const char
 			pPathID = NULL;
 		}
 	}
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_DETAIL( "vmt path ready", pFileName, pPathID ? 1 : 0 );
+		PS4_MATERIAL_DETAIL( "vmt before keyvalues file load", pFileName, g_pFullFileSystem ? 1 : 0 );
+	}
 
-	if ( !vmtKeyValues.LoadFromFile( g_pFullFileSystem, pFileName, pPathID ) )
+	const bool bFileLoaded = vmtKeyValues.LoadFromFile( g_pFullFileSystem, pFileName, pPathID );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_DETAIL( "vmt keyvalues file load ready", pFileName, bFileLoaded ? 1 : 0 );
+	}
+	if ( !bFileLoaded )
 	{
 		return false;
 	}
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_DETAIL( "vmt before patch expansion", pFileName, 0 );
+	}
 	ExpandPatchFile( vmtKeyValues, patchKeyValues, pPathID, pIncludes );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_DETAIL( "vmt load complete", pFileName, 1 );
+	}
 
 	return true;
 }

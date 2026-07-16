@@ -11,6 +11,7 @@
 #include "materialsystem/imaterial.h"
 #include "materialsystem/imaterialsystem.h"
 #include "tier0/dbg.h"
+#include "tier1/strtools.h"
 #include "keyvalues.h"
 #include "pixelwriter.h"
 #include "materialsystem/imaterialvar.h"
@@ -24,6 +25,25 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+static void Ps4VguiTextureDetail( const char *stage, const char *name, int value )
+{
+	char line[512];
+	Q_snprintf( line, sizeof(line), "kisak-ps4: vgui texture %s value=%d name=%s",
+		stage ? stage : "<null>", value, name ? name : "<none>" );
+	KisakPs4StartupBreadcrumb( line );
+}
+static IMaterial *s_pPs4StoreItemMaterialSetTarget = NULL;
+#define PS4_VGUI_TEXTURE_DETAIL( stage, name, value ) Ps4VguiTextureDetail( stage, name, value )
+#define PS4_VGUI_TEXTURE_POINTER_TARGET() s_pPs4StoreItemMaterialSetTarget
+#define PS4_VGUI_TEXTURE_SET_POINTER_TARGET( value ) do { s_pPs4StoreItemMaterialSetTarget = (value); } while ( 0 )
+#else
+#define PS4_VGUI_TEXTURE_DETAIL( stage, name, value ) ((void)0)
+#define PS4_VGUI_TEXTURE_POINTER_TARGET() NULL
+#define PS4_VGUI_TEXTURE_SET_POINTER_TARGET( value ) ((void)(value))
+#endif
 
 #define TEXTURE_ID_UNKNOWN	-1
 
@@ -828,6 +848,16 @@ CRC32_t CMatSystemTexture::GetCRC() const
 //-----------------------------------------------------------------------------
 void CMatSystemTexture::SetMaterial( IMaterial *pMaterial )
 {
+	const bool bPs4StoreItemPointerProbe = pMaterial && pMaterial == PS4_VGUI_TEXTURE_POINTER_TARGET();
+	const char *pPs4MaterialName = "<unresolved>";
+	if ( bPs4StoreItemPointerProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "material pointer raw entered", pPs4MaterialName, pMaterial ? 1 : 0 );
+		PS4_VGUI_TEXTURE_DETAIL( "material pointer before name", pPs4MaterialName, 0 );
+		pPs4MaterialName = pMaterial ? pMaterial->GetName() : "<null>";
+		PS4_VGUI_TEXTURE_DETAIL( "material pointer name ready", pPs4MaterialName, 0 );
+		PS4_VGUI_TEXTURE_DETAIL( "material pointer system state", pPs4MaterialName, g_pMaterialSystem ? 1 : 0 );
+	}
 	if ( !g_pMaterialSystem )
 		return;
 	
@@ -837,11 +867,27 @@ void CMatSystemTexture::SetMaterial( IMaterial *pMaterial )
 		// Do it before cleaning up the old material just in
 		// case the old material refers to the new one, we
 		// wouldn't want to destroy the new material.
+		if ( bPs4StoreItemPointerProbe )
+		{
+			PS4_VGUI_TEXTURE_DETAIL( "material pointer before addref", pPs4MaterialName, 0 );
+		}
 		pMaterial->IncrementReferenceCount();
+		if ( bPs4StoreItemPointerProbe )
+		{
+			PS4_VGUI_TEXTURE_DETAIL( "material pointer addref ready", pPs4MaterialName, 0 );
+		}
 	}
 	
 	// Decrement references to old texture
+	if ( bPs4StoreItemPointerProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "material pointer before cleanup", pPs4MaterialName, 0 );
+	}
 	CleanUpMaterial();
+	if ( bPs4StoreItemPointerProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "material pointer cleanup ready", pPs4MaterialName, 0 );
+	}
 
 	m_pMaterial = pMaterial;
 
@@ -854,8 +900,21 @@ void CMatSystemTexture::SetMaterial( IMaterial *pMaterial )
 	}
 
 	// Compute texture size
+	if ( bPs4StoreItemPointerProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "material pointer before mapping width", pPs4MaterialName, 0 );
+	}
 	m_iWide = m_pMaterial->GetMappingWidth();
+	if ( bPs4StoreItemPointerProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "material pointer mapping width ready", pPs4MaterialName, m_iWide );
+		PS4_VGUI_TEXTURE_DETAIL( "material pointer before mapping height", pPs4MaterialName, 0 );
+	}
 	m_iTall = m_pMaterial->GetMappingHeight();
+	if ( bPs4StoreItemPointerProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "material pointer mapping height ready", pPs4MaterialName, m_iTall );
+	}
 
 	// Compute texture coordinates
 	float flPixelCenterX = 0.0f;
@@ -895,6 +954,10 @@ void CMatSystemTexture::SetMaterial( IMaterial *pMaterial )
 				m_pTexture->SetTextureRegenerator( m_pRegen );
 			}
 		}
+	}
+	if ( bPs4StoreItemPointerProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "material pointer complete", pPs4MaterialName, 0 );
 	}
 }
 
@@ -951,9 +1014,21 @@ void CMatSystemTexture::ReferenceOtherProcedural( CMatSystemTexture *pTexture, I
 
 void CMatSystemTexture::SetMaterial( const char *pFileName )
 {
+	const bool bPs4StoreItemProbe = pFileName && !Q_stricmp( pFileName, "vgui/store/store_item_bg" );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "material file entered", pFileName, 0 );
+		PS4_VGUI_TEXTURE_DETAIL( "material file system state", pFileName, g_pMaterialSystem ? 1 : 0 );
+		PS4_VGUI_TEXTURE_DETAIL( "material file before find", pFileName, 0 );
+	}
 	// Get a pointer to the new material
 	Assert( g_pMaterialSystem );
 	IMaterial *pMaterial = g_pMaterialSystem->FindMaterial( pFileName, TEXTURE_GROUP_VGUI );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "material file find ready", pFileName, pMaterial ? 1 : 0 );
+		PS4_VGUI_TEXTURE_DETAIL( "material file before error check", pFileName, 0 );
+	}
 
 #if defined( DEVELOPMENT_ONLY ) || defined( ALLOW_TEXT_MODE )
 	static bool s_bTextMode = CommandLine()->HasParm( "-textmode" );
@@ -961,7 +1036,12 @@ void CMatSystemTexture::SetMaterial( const char *pFileName )
 	const bool s_bTextMode = false;
 #endif
 
-	if ( IsErrorMaterial( pMaterial ) && !s_bTextMode )
+	const bool bErrorMaterial = IsErrorMaterial( pMaterial );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "material file error check ready", pFileName, bErrorMaterial ? 1 : 0 );
+	}
+	if ( bErrorMaterial && !s_bTextMode )
 	{
 		if (IsOSX())
 		{
@@ -970,7 +1050,18 @@ void CMatSystemTexture::SetMaterial( const char *pFileName )
 		Msg( "--- Missing Vgui material %s\n", pFileName );
 	}
 
+	IMaterial *pPreviousPs4PointerTarget = PS4_VGUI_TEXTURE_POINTER_TARGET();
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "material file before pointer set", pFileName, 0 );
+		PS4_VGUI_TEXTURE_SET_POINTER_TARGET( pMaterial );
+	}
 	SetMaterial( pMaterial );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_VGUI_TEXTURE_SET_POINTER_TARGET( pPreviousPs4PointerTarget );
+		PS4_VGUI_TEXTURE_DETAIL( "material file complete", pFileName, 0 );
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1327,21 +1418,58 @@ bool CTextureDictionary::IsValidId( int id ) const
 //-----------------------------------------------------------------------------
 void CTextureDictionary::BindTextureToFile( int id, const char *pFileName )
 {
+	const bool bPs4StoreItemProbe = pFileName && !Q_stricmp( pFileName, "vgui/store/store_item_bg" );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "bind file entered", pFileName, id );
+		PS4_VGUI_TEXTURE_DETAIL( "bind file before id check", pFileName, id );
+	}
 	if (!IsValidId(id))
 	{
 		Msg( "BindTextureToFile: Invalid texture id for file %s\n", pFileName );
 		return;
 	}
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "bind file id ready", pFileName, id );
+		PS4_VGUI_TEXTURE_DETAIL( "bind file before texture lookup", pFileName, id );
+	}
 
 	CMatSystemTexture &texture = m_Textures[id];
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "bind file texture ready", pFileName, texture.GetMaterial() ? 1 : 0 );
+		PS4_VGUI_TEXTURE_DETAIL( "bind file before crc", pFileName, 0 );
+	}
 
 	// Reload from file if the material was never loaded, or if the filename has changed at all
 	CRC32_t fileNameCRC = Texture_CRCName( pFileName );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "bind file crc ready", pFileName, fileNameCRC == texture.GetCRC() ? 1 : 0 );
+	}
 	if ( !texture.GetMaterial() || fileNameCRC != texture.GetCRC() )
 	{
 		// New texture name
+		if ( bPs4StoreItemProbe )
+		{
+			PS4_VGUI_TEXTURE_DETAIL( "bind file before crc set", pFileName, 0 );
+		}
 		texture.SetCRC( fileNameCRC );
+		if ( bPs4StoreItemProbe )
+		{
+			PS4_VGUI_TEXTURE_DETAIL( "bind file crc set ready", pFileName, 0 );
+			PS4_VGUI_TEXTURE_DETAIL( "bind file before material file", pFileName, 0 );
+		}
 		texture.SetMaterial( pFileName );
+		if ( bPs4StoreItemProbe )
+		{
+			PS4_VGUI_TEXTURE_DETAIL( "bind file material file ready", pFileName, 0 );
+		}
+	}
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_VGUI_TEXTURE_DETAIL( "bind file complete", pFileName, 0 );
 	}
 }
 

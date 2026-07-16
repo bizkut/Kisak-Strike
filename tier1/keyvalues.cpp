@@ -34,6 +34,8 @@
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 #define PS4_KEYVALUES_TRACE_SOURCE_SCHEME( resourceName ) \
 	( ( resourceName ) && V_stricmp( ( resourceName ), "Resource/SourceScheme.res" ) == 0 )
+#define PS4_KEYVALUES_TRACE_STORE_ITEM_VMT( resourceName ) \
+	( ( resourceName ) && V_stricmp( ( resourceName ), "materials/vgui/store/store_item_bg.vmt" ) == 0 )
 #define PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) \
 	( ( resourceName ) && ( V_strcmp( ( resourceName ), "gamemodes.txt" ) == 0 || \
 		PS4_KEYVALUES_TRACE_SOURCE_SCHEME( resourceName ) ) )
@@ -57,6 +59,7 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 	do { if ( enabled ) KisakPs4SourceSchemeBitmapFontBreadcrumb( phase, token, depth ); } while ( 0 )
 #else
 #define PS4_KEYVALUES_TRACE_SOURCE_SCHEME( resourceName ) false
+#define PS4_KEYVALUES_TRACE_STORE_ITEM_VMT( resourceName ) false
 #define PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) false
 #define PS4_KEYVALUES_LOAD_BREADCRUMB( enabled, line ) ((void)(enabled))
 #define PS4_KEYVALUES_RESET_KEY_TRACE( enabled ) ((void)(enabled))
@@ -936,16 +939,21 @@ bool KeyValues::LoadFromFile( IBaseFileSystem *filesystem, const char *resourceN
 {
 	//TM_ZONE_FILTERED( TELEMETRY_LEVEL0, 50, TMZF_NONE, "%s %s", __FUNCTION__, tmDynamicString( TELEMETRY_LEVEL0, resourceName ) );
 	const bool bTracePs4GameModes = PS4_KEYVALUES_TRACE_GAMEMODES( resourceName );
+	const bool bTracePs4StoreItemVmt = PS4_KEYVALUES_TRACE_STORE_ITEM_VMT( resourceName );
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues load entered" );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt keyvalues load entered" );
 
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues before open" );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt keyvalues before open" );
 	FileHandle_t f = filesystem->Open(resourceName, "rb", pathID);
 	if ( !f )
 	{
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues open failed" );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt keyvalues open failed" );
 		return false;
 	}
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4GameModes, "kisak-ps4: gamemodes keyvalues open ready" );
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4StoreItemVmt, "kisak-ps4: store item vmt keyvalues open ready" );
 
 	s_LastFileLoadingFrom = (char*)resourceName;
 

@@ -36,8 +36,17 @@
 #include "appframework/StaticModuleRegistry.h"
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 #define PS4_MATSYS_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+static void Ps4MaterialFindDetail( const char *stage, const char *name, int value )
+{
+	char line[512];
+	Q_snprintf( line, sizeof(line), "kisak-ps4: material find %s value=%d name=%s",
+		stage ? stage : "<null>", value, name ? name : "<none>" );
+	KisakPs4StartupBreadcrumb( line );
+}
+#define PS4_MATERIAL_FIND_DETAIL( stage, name, value ) Ps4MaterialFindDetail( stage, name, value )
 #else
 #define PS4_MATSYS_BREADCRUMB( line ) ( (void)0 )
+#define PS4_MATERIAL_FIND_DETAIL( stage, name, value ) ((void)0)
 #endif
 
 #if defined( _X360 )
@@ -3245,9 +3254,24 @@ IMaterial *CMaterialSystem::FindProceduralMaterial( const char *pMaterialName, c
 //-----------------------------------------------------------------------------
 IMaterial* CMaterialSystem::FindMaterial( char const *pMaterialName, const char *pTextureGroupName, bool bComplain, const char *pComplainPrefix )
 {
+	const bool bPs4StoreItemProbe = pMaterialName && !Q_stricmp( pMaterialName, "vgui/store/store_item_bg" );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_FIND_DETAIL( "entered", pMaterialName, 0 );
+		PS4_MATERIAL_FIND_DETAIL( "resource access state", pMaterialName, g_pResourceAccessControl ? 1 : 0 );
+	}
 	if ( g_pResourceAccessControl )
 	{
-		if ( !g_pResourceAccessControl->IsAccessAllowed( RESOURCE_MATERIAL, pMaterialName ) )
+		if ( bPs4StoreItemProbe )
+		{
+			PS4_MATERIAL_FIND_DETAIL( "before resource access", pMaterialName, 0 );
+		}
+		const bool bAccessAllowed = g_pResourceAccessControl->IsAccessAllowed( RESOURCE_MATERIAL, pMaterialName );
+		if ( bPs4StoreItemProbe )
+		{
+			PS4_MATERIAL_FIND_DETAIL( "resource access ready", pMaterialName, bAccessAllowed ? 1 : 0 );
+		}
+		if ( !bAccessAllowed )
 			return g_pErrorMaterial->GetRealTimeVersion();
 	}
 
@@ -3258,8 +3282,19 @@ IMaterial* CMaterialSystem::FindMaterial( char const *pMaterialName, const char 
 
 	// We need lower-case symbols for this to work
 	int nLen = Q_strlen( pMaterialName ) + 1;
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_FIND_DETAIL( "name length ready", pMaterialName, nLen );
+		PS4_MATERIAL_FIND_DETAIL( "before name allocation", pMaterialName, nLen );
+	}
 	char *pFixedNameTemp = (char*)stackalloc( nLen );
 	char *pTemp = (char*)stackalloc( nLen );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_FIND_DETAIL( "name allocation ready", pMaterialName,
+			( pFixedNameTemp && pTemp ) ? 1 : 0 );
+		PS4_MATERIAL_FIND_DETAIL( "before name normalize", pMaterialName, 0 );
+	}
 	Q_strncpy( pFixedNameTemp, pMaterialName, nLen );
 	Q_strlower( pFixedNameTemp );
 #ifdef PLATFORM_POSIX
@@ -3267,13 +3302,25 @@ IMaterial* CMaterialSystem::FindMaterial( char const *pMaterialName, const char 
 	Q_FixSlashes( pFixedNameTemp, '/' );
 #endif
 	Q_StripExtension( pFixedNameTemp, pTemp, nLen );
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_FIND_DETAIL( "name normalize ready", pTemp, 0 );
+	}
 #ifndef PLATFORM_POSIX
 	Q_FixSlashes( pTemp, '/' );
 #endif
 	
 	Assert( nLen >= Q_strlen( pTemp ) + 1 );
 
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_FIND_DETAIL( "before dictionary lookup", pTemp, 0 );
+	}
 	IMaterialInternal *pExistingMaterial = m_MaterialDict.FindMaterial( pTemp, false );	// 'false' causes the search to find only file-created materials
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_FIND_DETAIL( "dictionary lookup ready", pTemp, pExistingMaterial ? 1 : 0 );
+	}
 
 	if ( pExistingMaterial )
 		return pExistingMaterial->GetQueueFriendlyVersion();
@@ -3287,8 +3334,16 @@ IMaterial* CMaterialSystem::FindMaterial( char const *pMaterialName, const char 
 //	if ( !m_MaterialDict.IsMissing(pTemp) )
 	{
 		// It hasn't been seen yet, so let's check to see if it's in the filesystem.
+		if ( bPs4StoreItemProbe )
+		{
+			PS4_MATERIAL_FIND_DETAIL( "before vmt name allocation", pTemp, 0 );
+		}
 		nLen = Q_strlen( "materials/" ) + Q_strlen( pTemp ) + Q_strlen( ".vmt" ) + 1;
 		char *vmtName = (char *)stackalloc( nLen );
+		if ( bPs4StoreItemProbe )
+		{
+			PS4_MATERIAL_FIND_DETAIL( "vmt name allocation ready", pTemp, vmtName ? 1 : 0 );
+		}
 
 		// Check to see if this is a UNC-specified material name
 		bool bIsUNC = pTemp[0] == '/' && pTemp[1] == '/' && pTemp[2] != '/';
@@ -3304,16 +3359,40 @@ IMaterial* CMaterialSystem::FindMaterial( char const *pMaterialName, const char 
 
 		//Q_strncat( vmtName, ".vmt", nLen, COPY_ALL_CHARACTERS );
 		Assert( nLen >= (int)Q_strlen( vmtName ) + 1 );
+		if ( bPs4StoreItemProbe )
+		{
+			PS4_MATERIAL_FIND_DETAIL( "vmt name ready", vmtName, nLen );
+			PS4_MATERIAL_FIND_DETAIL( "before keyvalues allocation", vmtName, 0 );
+		}
 
 		CUtlVector<FileNameHandle_t> includes;
 		KeyValues *pKeyValues = new KeyValues("vmt");
 		KeyValues *pPatchKeyValues = new KeyValues( "vmt_patches" );
-		if ( !LoadVMTFile( *pKeyValues, *pPatchKeyValues, vmtName, true, &includes ) )
+		if ( bPs4StoreItemProbe )
 		{
+			PS4_MATERIAL_FIND_DETAIL( "keyvalues allocation ready", vmtName,
+				( pKeyValues && pPatchKeyValues ) ? 1 : 0 );
+			PS4_MATERIAL_FIND_DETAIL( "before vmt load", vmtName, 0 );
+		}
+		const bool bVmtLoaded = LoadVMTFile( *pKeyValues, *pPatchKeyValues, vmtName, true, &includes );
+		if ( bPs4StoreItemProbe )
+		{
+			PS4_MATERIAL_FIND_DETAIL( "vmt load ready", vmtName, bVmtLoaded ? 1 : 0 );
+		}
+		if ( !bVmtLoaded )
+		{
+			if ( bPs4StoreItemProbe )
+			{
+				PS4_MATERIAL_FIND_DETAIL( "before missing cleanup", vmtName, 0 );
+			}
 			pKeyValues->deleteThis();
 			pKeyValues = NULL;
 			pPatchKeyValues->deleteThis();
 			pPatchKeyValues = NULL;
+			if ( bPs4StoreItemProbe )
+			{
+				PS4_MATERIAL_FIND_DETAIL( "missing cleanup ready", vmtName, 0 );
+			}
 		}
 		else
 		{
@@ -3348,6 +3427,10 @@ IMaterial* CMaterialSystem::FindMaterial( char const *pMaterialName, const char 
 
 		if ( bComplain )
 		{
+			if ( bPs4StoreItemProbe )
+			{
+				PS4_MATERIAL_FIND_DETAIL( "before missing complaint", pTemp, 0 );
+			}
 			Assert( pTemp );
 
 			// convert to lowercase
@@ -3364,10 +3447,23 @@ IMaterial* CMaterialSystem::FindMaterial( char const *pMaterialName, const char 
 				}
 				DevWarning( "material \"%s\" not found.\n", name );
 			}
+			if ( bPs4StoreItemProbe )
+			{
+				PS4_MATERIAL_FIND_DETAIL( "missing complaint ready", pTemp, 0 );
+			}
 		}
 	}
 
-	return g_pErrorMaterial->GetQueueFriendlyVersion();
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_FIND_DETAIL( "before error material return", pTemp, g_pErrorMaterial ? 1 : 0 );
+	}
+	IMaterial *pErrorMaterial = g_pErrorMaterial->GetQueueFriendlyVersion();
+	if ( bPs4StoreItemProbe )
+	{
+		PS4_MATERIAL_FIND_DETAIL( "error material return ready", pTemp, pErrorMaterial ? 1 : 0 );
+	}
+	return pErrorMaterial;
 }
 
 bool CMaterialSystem::LoadKeyValuesFromVMTFile( KeyValues &vmtKeyValues, const char *pMaterialName, bool bUsesUNCFilename )
