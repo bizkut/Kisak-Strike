@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.31
+Version: 3.32
 Size: 103,219,200 bytes
-SHA-256: 40b9643786123b8f9c90f8367713c7b8da0b858325e3085a58e973f7162f3ba0
+SHA-256: 852d34f3ab51177b0b36283696284c7b133eb41c64b913c3608670b08d35a555
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.65 crashes while parsing SourceScheme `BaseSettings`
+Hardware result: awaiting manual v4.66 install and run
 ```
 
 Current hardware baseline:
@@ -7484,6 +7484,45 @@ path is therefore healthy; the remaining crash is inside the SourceScheme
 trace creation of that root key, its opening token, entry into its child
 recursion, and the first bounded keys and values within it without changing
 parser behavior.
+
+### v4.66: Trace the SourceScheme BaseSettings parser
+
+Package version 3.32 and build marker `scheme_basesettings_trace_v466` identify
+the targeted diagnostic for the v4.65 boundary. The PS4 `KeyValues` trace now
+distinguishes SourceScheme input explicitly, brackets creation and error-context
+setup for the root `BaseSettings` key, records its opening token, and marks entry
+and return around its child recursion. A PS4-only bounded scope records at most
+32 `section`, `key`, and `value` events with parser depth while that root is
+being parsed. It is enabled immediately before the existing recursive call and
+disabled immediately after it returns; tokenization, allocation, conditionals,
+parser decisions, and non-PS4 behavior are unchanged.
+
+The PS4 `tier1_client` and `engine_client` targets and the complete
+toolchain-aware `kisak_ps4_monolithic` build complete successfully. The final
+artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic
+Size: 126,256,368 bytes
+SHA-256: bd66570039b07c08d61977ea7b1e1323193e1f9d886f84e80381ee3985b906cf
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,109,920 bytes
+SHA-256: c6ab5028085bfce8118fa1aa48ece3908c1373f7a695e179745f88ffe44617df
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.32
+Size: 103,219,200 bytes
+SHA-256: 852d34f3ab51177b0b36283696284c7b133eb41c64b913c3608670b08d35a555
+```
+
+PkgTool reports every package size, digest, and signature check as `[OK]`, and
+`param.sfo` reports both `APP_VER` and `VERSION` as 3.32. The host PS4 suite
+remains at 11/14 with only the known `ps4_gnm_device`, `ps4_gnm_buffer`, and
+`ps4_gnm_constants` baseline failures. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP readback
+matches the local 103,219,200-byte package and SHA-256 above. Manual install and
+hardware execution remain.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

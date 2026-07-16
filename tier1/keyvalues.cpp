@@ -32,9 +32,11 @@
 
 #if defined( PLATFORM_PS4 )
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_KEYVALUES_TRACE_SOURCE_SCHEME( resourceName ) \
+	( ( resourceName ) && V_stricmp( ( resourceName ), "Resource/SourceScheme.res" ) == 0 )
 #define PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) \
 	( ( resourceName ) && ( V_strcmp( ( resourceName ), "gamemodes.txt" ) == 0 || \
-		V_stricmp( ( resourceName ), "Resource/SourceScheme.res" ) == 0 ) )
+		PS4_KEYVALUES_TRACE_SOURCE_SCHEME( resourceName ) ) )
 #define PS4_KEYVALUES_LOAD_BREADCRUMB( enabled, line ) \
 	do { if ( enabled ) KisakPs4StartupBreadcrumb( line ); } while ( 0 )
 #define PS4_KEYVALUES_RESET_KEY_TRACE( enabled ) \
@@ -47,7 +49,10 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 	do { if ( enabled ) KisakPs4GameModesReadBreadcrumb( buffer, fileSize, bufferSize, bytesRead ); } while ( 0 )
 #define PS4_KEYVALUES_TOKEN_BREADCRUMB( enabled, phase, token, operation, reads, position, quoted, conditional ) \
 	do { if ( enabled ) KisakPs4GameModesTokenBreadcrumb( phase, token, operation, reads, position, quoted, conditional ); } while ( 0 )
+#define PS4_KEYVALUES_BASESETTINGS_BREADCRUMB( enabled, phase, token, depth ) \
+	do { if ( enabled ) KisakPs4SourceSchemeBaseSettingsBreadcrumb( phase, token, depth ); } while ( 0 )
 #else
+#define PS4_KEYVALUES_TRACE_SOURCE_SCHEME( resourceName ) false
 #define PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) false
 #define PS4_KEYVALUES_LOAD_BREADCRUMB( enabled, line ) ((void)(enabled))
 #define PS4_KEYVALUES_RESET_KEY_TRACE( enabled ) ((void)(enabled))
@@ -55,6 +60,7 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 #define PS4_KEYVALUES_INPUT_BREADCRUMB( enabled, buffer ) ((void)(enabled))
 #define PS4_KEYVALUES_READ_BREADCRUMB( enabled, buffer, fileSize, bufferSize, bytesRead ) ((void)(enabled))
 #define PS4_KEYVALUES_TOKEN_BREADCRUMB( enabled, phase, token, operation, reads, position, quoted, conditional ) ((void)(enabled))
+#define PS4_KEYVALUES_BASESETTINGS_BREADCRUMB( enabled, phase, token, depth ) ((void)(enabled))
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -135,6 +141,28 @@ static void KisakPs4GameModesTokenBreadcrumb( const char *pPhase,
 		pPhase ? pPhase : "unknown", nOperation, nReads, nPosition,
 		pToken ? V_strlen( pToken ) : -1, bQuoted ? 1 : 0,
 		bConditional ? 1 : 0, pToken ? pToken : "<null>" );
+	KisakPs4StartupBreadcrumb( line );
+}
+
+static bool s_bKisakPs4TraceSourceSchemeBaseSettings = false;
+static int s_nKisakPs4SourceSchemeBaseSettingsTraceCount = 0;
+static const int k_nKisakPs4SourceSchemeBaseSettingsTraceLimit = 32;
+
+static void KisakPs4SourceSchemeBaseSettingsBreadcrumb( const char *pPhase,
+	const char *pToken, int nDepth )
+{
+	if ( s_nKisakPs4SourceSchemeBaseSettingsTraceCount >=
+		k_nKisakPs4SourceSchemeBaseSettingsTraceLimit )
+	{
+		return;
+	}
+
+	char line[512];
+	V_snprintf( line, sizeof( line ),
+		"kisak-ps4: sourcescheme basesettings event=%d phase=%s depth=%d token=%.160s",
+		s_nKisakPs4SourceSchemeBaseSettingsTraceCount,
+		pPhase ? pPhase : "unknown", nDepth, pToken ? pToken : "<null>" );
+	++s_nKisakPs4SourceSchemeBaseSettingsTraceCount;
 	KisakPs4StartupBreadcrumb( line );
 }
 #endif
@@ -2689,8 +2717,19 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, const char *pBuffer, I
 void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTokenReader &tokenReader, GetSymbolProc_t pfnEvaluateSymbolProc )
 {
 	const bool bTracePs4GameModes = PS4_KEYVALUES_TRACE_GAMEMODES( resourceName );
+	const bool bTracePs4SourceScheme = PS4_KEYVALUES_TRACE_SOURCE_SCHEME( resourceName );
+#if defined( PLATFORM_PS4 )
+	const bool bTracePs4BaseSettingsActive = bTracePs4SourceScheme &&
+		s_bKisakPs4TraceSourceSchemeBaseSettings;
+#else
+	const bool bTracePs4BaseSettingsActive = false;
+#endif
+	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsActive,
+		"kisak-ps4: sourcescheme basesettings recursion entered" );
 	CKeyErrorContext errorReport( GetNameSymbolCaseSensitive() );
 	const bool bTracePs4RootGameModes = bTracePs4GameModes && errorReport.GetStackLevel() == 0;
+	PS4_KEYVALUES_BASESETTINGS_BREADCRUMB( bTracePs4BaseSettingsActive, "section",
+		GetName(), errorReport.GetStackLevel() );
 	PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4RootGameModes, "kisak-ps4: gamemodes recursive error context ready" );
 	bool wasQuoted;
 	bool wasConditional;
@@ -2738,20 +2777,41 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 		if ( *name == '}' && !wasQuoted )	// top level closed, stop reading
 			break;
 
+		const bool bTracePs4BaseSettingsRootKey = bTracePs4SourceScheme &&
+			errorReport.GetStackLevel() == 0 && V_stricmp( name, "BaseSettings" ) == 0;
+		const bool bTracePs4DetailedKey = bTracePs4ThisKey || bTracePs4BaseSettingsRootKey;
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
+			"kisak-ps4: sourcescheme basesettings root key identified" );
+		PS4_KEYVALUES_BASESETTINGS_BREADCRUMB( bTracePs4BaseSettingsActive, "key",
+			name, errorReport.GetStackLevel() );
 		PS4_KEYVALUES_KEY_BREADCRUMB( bTracePs4GameModes, name, errorReport.GetStackLevel() );
 
 		// Always create the key; note that this could potentially
 		// cause some duplication, but that's what we want sometimes
-		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive before first child" );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive before first child" );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
+			"kisak-ps4: sourcescheme basesettings before root child create" );
 		KeyValues *dat = CreateKeyUsingKnownLastChild( name, pLastChild );
-		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive first child ready" );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive first child ready" );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
+			"kisak-ps4: sourcescheme basesettings root child ready" );
 
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
+			"kisak-ps4: sourcescheme basesettings before error key reset" );
 		errorKey.Reset( dat->GetNameSymbolCaseSensitive() );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
+			"kisak-ps4: sourcescheme basesettings error key reset ready" );
 
 		// get the value
-		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive before first value token" );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive before first value token" );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
+			"kisak-ps4: sourcescheme basesettings before opening token" );
 		const char * value = tokenReader.ReadToken( wasQuoted, wasConditional );
-		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive first value token ready" );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive first value token ready" );
+		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
+			"kisak-ps4: sourcescheme basesettings opening token ready" );
+		PS4_KEYVALUES_BASESETTINGS_BREADCRUMB( bTracePs4BaseSettingsActive, "value",
+			value, errorReport.GetStackLevel() );
 
 		bool bFoundConditional = wasConditional;
 		if ( wasConditional && value )
@@ -2808,12 +2868,31 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 
 		if ( *value == '{' && !wasQuoted )
 		{
+			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
+				"kisak-ps4: sourcescheme basesettings opening section confirmed" );
 			// this isn't a key, it's a section
 			errorKey.Reset( INVALID_KEY_SYMBOL );
 			// sub value list
-			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive before first child section" );
+			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive before first child section" );
+#if defined( PLATFORM_PS4 )
+			if ( bTracePs4BaseSettingsRootKey )
+			{
+				s_nKisakPs4SourceSchemeBaseSettingsTraceCount = 0;
+				s_bKisakPs4TraceSourceSchemeBaseSettings = true;
+			}
+#endif
+			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
+				"kisak-ps4: sourcescheme basesettings before child recursion" );
 			dat->RecursiveLoadFromBuffer( resourceName, tokenReader, pfnEvaluateSymbolProc );
-			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive first child section ready" );
+#if defined( PLATFORM_PS4 )
+			if ( bTracePs4BaseSettingsRootKey )
+			{
+				s_bKisakPs4TraceSourceSchemeBaseSettings = false;
+			}
+#endif
+			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
+				"kisak-ps4: sourcescheme basesettings child recursion returned" );
+			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive first child section ready" );
 		}
 		else 
 		{
