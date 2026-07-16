@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.38
+Version: 3.39
 Size: 103,219,200 bytes
-SHA-256: 93ee4d6bda5183540c1127fb9e232eaac8940132f97d62afc9218032a9e29284
+SHA-256: f7d7239891412efb860d18499916ee2e9e283255bf55818f18f065c60241afcf
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.72 stops inside the missing custom-font `Warning`
+Hardware result: pending v4.73 custom-font early-return repair
 ```
 
 Current hardware baseline:
@@ -7879,6 +7879,51 @@ inside the missing-font `Warning`, not in KeyValues traversal, surface
 resolution, or local-path lookup. The next repair should preserve PS4's
 existing false result by returning at function entry before unsupported
 filesystem and warning work; other platforms remain unchanged.
+
+### v4.73: Return before unsupported PS4 custom-font filesystem work
+
+Package version 3.39 and build marker `custom_font_early_return_v473`
+identify the repair for the v4.72 boundary. Hardware proved that the first
+custom-font entry reaches `CMatSystemSurface::AddCustomFontFile`, fails
+`GetLocalPath`, and crashes inside the resulting missing-file `Warning`.
+The function already ended with a `PLATFORM_PS4` branch returning false, but
+only after common PC-oriented path resolution, warning, symbol, and list work.
+
+The PS4 path now returns the same false result immediately after the safe
+entry/name breadcrumbs. The caller has always ignored this return value, so
+the change preserves its contract while preventing unsupported and
+outcome-independent filesystem work. The early return is guarded by
+`PLATFORM_PS4`; Windows, Linux, macOS, PS3, and Xbox paths are unchanged.
+The detailed v4.72 breadcrumbs remain so hardware can prove the early return
+reaches the caller and custom-font iteration completes before exposing the
+next startup boundary.
+
+The PS4 `vguimatsurface_client` and `engine_client` targets and the complete
+monolithic build succeed. The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic
+Size: 126,273,728 bytes
+SHA-256: 4c8746f4603aeb3bf08152d83aface5180428d5daa9371ff5f02656e29069a1f
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,126,336 bytes
+SHA-256: 1c7b63ad8ba92abbf850038972411bfb71468b843ca466cb6b59a045a9d4d4de
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.39
+Size: 103,219,200 bytes
+SHA-256: f7d7239891412efb860d18499916ee2e9e283255bf55818f18f065c60241afcf
+```
+
+PkgTool reports every package size, digest, and signature check as `[OK]`,
+and `param.sfo` reports both `APP_VER` and `VERSION` as 3.39. The host
+PS4 suite remains at 11/14 with only the known `ps4_gnm_device`,
+`ps4_gnm_buffer`, and `ps4_gnm_constants` baseline failures. The package
+is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
+readback matches the local 103,219,200-byte package and SHA-256 above. Manual
+install and hardware execution remain.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

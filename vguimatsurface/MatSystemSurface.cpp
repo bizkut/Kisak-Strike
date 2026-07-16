@@ -2296,6 +2296,12 @@ bool CMatSystemSurface::AddCustomFontFile( const char *fontFileName )
 	PS4_MATSURFACE_BREADCRUMB( fontFileName
 		? "kisak-ps4: matsurface custom font name ready value=1"
 		: "kisak-ps4: matsurface custom font name ready value=0" );
+#if defined( PLATFORM_PS4 )
+	// Runtime custom-font registration is unsupported on PS4. Preserve the
+	// existing false result without entering PC-oriented filesystem handling.
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font ps4 unsupported early return" );
+	return false;
+#endif
 	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font before game console query" );
 	bool bIsGameConsole = IsGameConsole();
 	PS4_MATSURFACE_BREADCRUMB( bIsGameConsole
