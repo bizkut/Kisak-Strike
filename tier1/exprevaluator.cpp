@@ -17,12 +17,46 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+
+static bool s_bKisakPs4TraceCompoundConditional = false;
+static int s_nKisakPs4CompoundConditionalTraceCount = 0;
+static const int k_nKisakPs4CompoundConditionalTraceLimit = 64;
+
+static void KisakPs4CompoundConditionalBreadcrumb( const char *pPhase,
+	const char *pText, int nPosition, int nCurrentToken, int nKind )
+{
+	if ( !s_bKisakPs4TraceCompoundConditional ||
+		s_nKisakPs4CompoundConditionalTraceCount >=
+		k_nKisakPs4CompoundConditionalTraceLimit )
+	{
+		return;
+	}
+
+	char line[512];
+	V_snprintf( line, sizeof( line ),
+		"kisak-ps4: conditional eval event=%d phase=%s pos=%d current=%d kind=%d text=%.160s",
+		s_nKisakPs4CompoundConditionalTraceCount,
+		pPhase ? pPhase : "unknown", nPosition, nCurrentToken, nKind,
+		pText ? pText : "<null>" );
+	++s_nKisakPs4CompoundConditionalTraceCount;
+	KisakPs4StartupBreadcrumb( line );
+}
+
+#define PS4_COMPOUND_CONDITIONAL_BREADCRUMB( phase, text, position, current, kind ) \
+	do { KisakPs4CompoundConditionalBreadcrumb( phase, text, position, current, kind ); } while ( 0 )
+#else
+#define PS4_COMPOUND_CONDITIONAL_BREADCRUMB( phase, text, position, current, kind ) ((void)0)
+#endif
+
 //-----------------------------------------------------------------------------
 // Default conditional symbol handler callback. Symbols are the form $<name>.
 // Return true or false for the value of the symbol.
 //-----------------------------------------------------------------------------
 bool DefaultConditionalSymbolProc( const char *pKey )
 {
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "symbol-proc-enter", pKey, -1, -1, -1 );
 	if ( pKey[0] == '$' )
 	{
 		pKey++;
@@ -87,7 +121,11 @@ bool DefaultConditionalSymbolProc( const char *pKey )
 	}
 
 	// don't know it at compile time, so fall through to installed symbol values
-	return KeyValuesSystem()->GetKeyValuesExpressionSymbol( pKey );
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "before-runtime-symbol", pKey, -1, -1, -1 );
+	const bool bValue = KeyValuesSystem()->GetKeyValuesExpressionSymbol( pKey );
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "runtime-symbol-return", pKey, -1,
+		bValue ? 1 : 0, -1 );
+	return bValue;
 }
 
 void DefaultConditionalErrorProc( const char *pReason )
@@ -116,6 +154,8 @@ char CExpressionEvaluator::GetNextToken( void )
     
 	// CurrentToken = Expression[CurrentPosition]
 	m_CurToken = m_pExpression[m_CurPosition++];
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "token", m_pExpression,
+		m_CurPosition, static_cast<unsigned char>( m_CurToken ), -1 );
   
 	return m_CurToken;
 }
@@ -225,7 +265,11 @@ bool CExpressionEvaluator::IsIdentifierOrConstant( const char token )
 
 bool CExpressionEvaluator::MakeExprNode( ExprTree &tree, char token, Kind kind, ExprTree left, ExprTree right )
 {
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "before-node-alloc", m_Identifier,
+		m_CurPosition, static_cast<unsigned char>( token ), static_cast<int>( kind ) );
 	tree = AllocateNode();
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "node-allocated", m_Identifier,
+		m_CurPosition, static_cast<unsigned char>( token ), static_cast<int>( kind ) );
 	tree->left = left;
 	tree->right = right;
 	tree->kind = kind;
@@ -243,7 +287,13 @@ bool CExpressionEvaluator::MakeExprNode( ExprTree &tree, char token, Kind kind, 
 		}
 		else
 		{
+			PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "before-symbol-callback",
+				m_Identifier, m_CurPosition, static_cast<unsigned char>( token ),
+				static_cast<int>( kind ) );
 			tree->data.value = m_pGetSymbolProc( m_Identifier );
+			PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "symbol-callback-return",
+				m_Identifier, m_CurPosition, tree->data.value ? 1 : 0,
+				static_cast<int>( kind ) );
 		}
 		break;
 
@@ -259,6 +309,8 @@ bool CExpressionEvaluator::MakeExprNode( ExprTree &tree, char token, Kind kind, 
 		return false;
 	}
 
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "node-ready", m_Identifier,
+		m_CurPosition, static_cast<unsigned char>( token ), static_cast<int>( kind ) );
 	return true;
 }
 
@@ -391,9 +443,16 @@ bool CExpressionEvaluator::MakeExpression( ExprTree &tree )
 bool CExpressionEvaluator::BuildExpression( void )
 {
 	// Get the first token, and build the tree.
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "build-enter", m_pExpression,
+		m_CurPosition, m_CurToken, -1 );
 	GetNextToken();
 
-	return ( MakeExpression( m_ExprTree ) );
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "before-make-expression", m_pExpression,
+		m_CurPosition, m_CurToken, -1 );
+	const bool bValid = MakeExpression( m_ExprTree );
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "make-expression-return", m_pExpression,
+		m_CurPosition, bValid ? 1 : 0, -1 );
+	return bValid;
 }
 
 //-----------------------------------------------------------------------------
@@ -403,6 +462,9 @@ bool CExpressionEvaluator::SimplifyNode( ExprTree& node )
 {
 	if ( !node )
 		return false;
+
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "simplify-enter", m_pExpression,
+		m_CurPosition, m_CurToken, static_cast<int>( node->kind ) );
 
 	// Simplify the left and right children of this node
 	bool leftVal = SimplifyNode(node->left);
@@ -433,6 +495,8 @@ bool CExpressionEvaluator::SimplifyNode( ExprTree& node )
 
 	// This node has beed resolved
 	node->kind = LITERAL;
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "simplify-return", m_pExpression,
+		m_CurPosition, node->data.value ? 1 : 0, static_cast<int>( node->kind ) );
 	return node->data.value;
 }
 
@@ -441,6 +505,17 @@ bool CExpressionEvaluator::SimplifyNode( ExprTree& node )
 //-----------------------------------------------------------------------------
 bool CExpressionEvaluator::Evaluate( bool &bResult, const char *pInfixExpression, GetSymbolProc_t pGetSymbolProc, SyntaxErrorProc_t pSyntaxErrorProc )
 {
+#if defined( PLATFORM_PS4 )
+	const bool bTraceCompoundConditional = pInfixExpression &&
+		V_strcmp( pInfixExpression, "[$PS3 && !$INPUTSWAPAB]" ) == 0;
+	if ( bTraceCompoundConditional )
+	{
+		s_nKisakPs4CompoundConditionalTraceCount = 0;
+		s_bKisakPs4TraceCompoundConditional = true;
+	}
+#endif
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "evaluate-enter", pInfixExpression,
+		-1, -1, -1 );
 	if ( !pInfixExpression )
 	{
 		return false;
@@ -451,7 +526,11 @@ bool CExpressionEvaluator::Evaluate( bool &bResult, const char *pInfixExpression
 	char szCleanToken[512];
 	if ( pInfixExpression[0] == '[' )
 	{
+		PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "before-input-length",
+			pInfixExpression, -1, -1, -1 );
 		int len = V_strlen( pInfixExpression );
+		PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "input-length-ready",
+			pInfixExpression, len, -1, -1 );
 
 		// SECURITY: Bail on input buffers that are too large, they're used for RCEs and we don't 
 		// need to support them.
@@ -460,13 +539,19 @@ bool CExpressionEvaluator::Evaluate( bool &bResult, const char *pInfixExpression
 			return false;
 		}
 
+		PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "before-input-copy",
+			pInfixExpression, len, -1, -1 );
 		V_strncpy( szCleanToken, pInfixExpression + 1, len );
+		PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "input-copy-ready",
+			szCleanToken, len, -1, -1 );
 		len--;
 		if ( szCleanToken[len-1] == ']' )
 		{
 			szCleanToken[len-1] = '\0';
 		}
 		pInfixExpression = szCleanToken;
+		PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "input-clean-ready",
+			pInfixExpression, len, -1, -1 );
 	}
 
 	// reset state
@@ -476,18 +561,39 @@ bool CExpressionEvaluator::Evaluate( bool &bResult, const char *pInfixExpression
 	m_ExprTree = 0;
 	m_CurPosition = 0;
 	m_CurToken = 0;
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "state-ready", m_pExpression,
+		m_CurPosition, m_CurToken, -1 );
 
 	// Building the expression tree will fail on bad syntax
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "before-build", m_pExpression,
+		m_CurPosition, m_CurToken, -1 );
 	bool bValid = BuildExpression();
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "build-return", m_pExpression,
+		m_CurPosition, bValid ? 1 : 0, -1 );
 	if ( bValid )
 	{
+		PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "before-simplify", m_pExpression,
+			m_CurPosition, m_CurToken, -1 );
 		bResult = SimplifyNode( m_ExprTree );
+		PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "simplify-complete", m_pExpression,
+			m_CurPosition, bResult ? 1 : 0, -1 );
 	}
 
 	// don't leak
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "before-free", m_pExpression,
+		m_CurPosition, m_CurToken, -1 );
 	FreeTree( m_ExprTree );
 	m_ExprTree = NULL;
-
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "free-complete", m_pExpression,
+		m_CurPosition, m_CurToken, -1 );
+	PS4_COMPOUND_CONDITIONAL_BREADCRUMB( "evaluate-return", m_pExpression,
+		m_CurPosition, bValid ? 1 : 0, -1 );
+#if defined( PLATFORM_PS4 )
+	if ( bTraceCompoundConditional )
+	{
+		s_bKisakPs4TraceCompoundConditional = false;
+	}
+#endif
 	return bValid;
 }
 

@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.34
+Version: 3.35
 Size: 103,219,200 bytes
-SHA-256: 34f7bdc6e723ab62e8e0c2929a5bcd71e6b8a83a4680bf62296ad38624b01a07
+SHA-256: 94d2d91081b87c30a4c2f275e7eb200a475fdc9563d7aa5bb82b771968dbae00
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.68 stops inside `EvaluateConditional` for `[$PS3 && !$INPUTSWAPAB]`
+Hardware result: awaiting manual v4.69 install and run
 ```
 
 Current hardware baseline:
@@ -7638,6 +7638,45 @@ inside `EvaluateConditional` for that compound expression, after tokenization
 and before the parser can accept or reject the duplicate key. The next
 diagnostic should trace expression evaluation and symbol-callback boundaries
 without changing the conditional result.
+
+### v4.69: Trace the failing compound conditional
+
+Package version 3.35 and build marker `conditional_eval_trace_v469` identify
+the diagnostic for the v4.68 boundary. A PS4-only 64-event trace arms only for
+the exact expression `[$PS3 && !$INPUTSWAPAB]`. It brackets input length and
+bracket removal, evaluator-state reset, token advancement, expression-tree
+node allocation, both symbol callbacks, runtime-symbol lookup, tree
+simplification, cleanup, and return. The trace does not change tokens,
+operators, callbacks, symbol values, expression results, or non-PS4 behavior.
+The existing direct runtime-symbol return is stored once in a local Boolean so
+the same result can be logged without evaluating the callback twice.
+
+The PS4 `tier1_client` and `engine_client` targets and the complete
+`kisak_ps4_monolithic` target build successfully. The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic
+Size: 126,273,328 bytes
+SHA-256: 534afe3c1e5a1c622bfe485c1ed1484892241cdb7a36c4fffc8ae5ce7c2e353e
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,126,336 bytes
+SHA-256: 8091a57f6460f44c07ccf1132a9632886bcfcc208f06a5f269185d4301269534
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.35
+Size: 103,219,200 bytes
+SHA-256: 94d2d91081b87c30a4c2f275e7eb200a475fdc9563d7aa5bb82b771968dbae00
+```
+
+PkgTool reports every package size, digest, and signature check as `[OK]`, and
+`param.sfo` reports both `APP_VER` and `VERSION` as 3.35. The host PS4
+suite remains at 11/14 with only the known `ps4_gnm_device`,
+`ps4_gnm_buffer`, and `ps4_gnm_constants` baseline failures. The package
+is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
+readback matches the local 103,219,200-byte package and SHA-256 above. Manual
+install and hardware execution remain.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
