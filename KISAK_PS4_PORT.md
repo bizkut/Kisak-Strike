@@ -176,6 +176,13 @@ The focused client target also compiles. Eleven of fourteen host tests pass;
 the same three Linux-address OpenGNM descriptor fixtures fail outside the
 changed client-mode/metaclass code.
 
+Candidate commit `548faf46` produces a 103,284,736-byte package with SHA-256
+`0f9e308e6574ad9280bb6908cc8b72d002e0598232538cf49a62037bf07e2ec3`.
+The embedded SFO reports version 3.51, and verbose PkgTool validation reports
+every limit, digest, and signature check `[OK]`. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete FTP
+readbacks match the local size and SHA-256.
+
 The gate remains open until hardware proves `ClientDLL_Init` completion,
 successful EngineVGui/GameUI hookup, and one complete production
 `eng->Frame()`.
