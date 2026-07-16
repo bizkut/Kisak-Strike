@@ -16,6 +16,15 @@
 - `ps4/scaleform_menu_actions.h` — PS4 menu command → action map
 - `KISAK_PS4_PORT.md` — port policy and boot-sequence plan
 
+## Porting authority
+
+This cross-reference describes useful behavior and reusable architecture; it
+does not make the original PC or PS3 source conditions mandatory. Kisak is
+fully editable for the PS4 port. We may replace inherited gates, APIs, UI
+selection, or control flow whenever native PS4 behavior needs it. Compatibility
+with another platform is retained only when it helps and does not compromise
+the PS4 implementation.
+
 ---
 
 ## 2. UI framework choice

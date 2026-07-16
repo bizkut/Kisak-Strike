@@ -11,6 +11,21 @@ OpenGNM is the only graphics backend. Linux ToGL/OpenGL and PS3 shader binaries
 are not part of the PS4 runtime. The first acceptance target is menu navigation
 and a complete offline bot match.
 
+## PS4 source-authority principle
+
+The Kisak-Strike source tree is fully under this port's control. A correct,
+stable PS4 runtime is authoritative: inherited PC, Xbox 360, PS3, Steam, or
+dynamic-module conditions are implementation history, not blockers or fixed
+contracts. They may be changed, bypassed, split into PS4-specific branches,
+refactored, or removed wherever the PS4 target requires it.
+
+Preserving non-PS4 behavior is a useful scope and regression-control choice
+when it costs nothing and keeps a hardware test attributable. It must never
+prevent the best PS4 implementation, force PS4 through an incompatible PC
+path, or postpone a necessary architectural repair. Hardware evidence and PS4
+semantics decide the port; minimal test deltas are a debugging technique, not a
+limit on source-code freedom.
+
 ## Current status — 2026-07-16
 
 The OpenOrbis bootstrap is hardware validated. Title `KISK00001` starts on PS4,
@@ -43,12 +58,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.42
+Version: 3.43
 Size: 103,219,200 bytes
-SHA-256: ab2f0949e6eab093fbb0eaa73f742299021dc719569bc3b7c18b094074a6f87a
+SHA-256: c47d2e20730a7e0a2c6ae53afa0a957a3c4c69e9ad7ad9701b4e3516eb8f76dd
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.76 stops inside `CGameUIConVarRef("gameui_xbox")`
+Hardware result: pending; v4.77 bypasses the PS4 `gameui_xbox` wrapper
 ```
 
 Current hardware baseline:
@@ -8205,6 +8220,69 @@ the GameUI console policy directly from `IsPlatformConsoleUI()` on PS4 and
 leave the configurable ConVarRef path unchanged everywhere else. This also
 preserves the intended controller-first UI policy required before intro/menu
 construction can begin.
+
+### v4.77: Use PS4 console-UI policy without the ConVar wrapper
+
+Package version 3.43 and build marker `gameui_console_policy_v477`
+identify the isolated repair for the v4.76 boundary. The hardware log ends
+after the Steam-context call returns and immediately before constructing
+`CGameUIConVarRef("gameui_xbox")`. That constructor performs split-screen
+lookups for both `gameui_xbox` and `gameui_xbox2`, then may enter its
+missing-variable warning path. The existing trace cannot safely distinguish
+those internal operations, and a different one-off ConVar lookup would cross
+the same failing boundary.
+
+On PS4 only, `CGameUI::Initialize` now assigns `m_bIsConsoleUI` directly
+from `IsPlatformConsoleUI()`. The engine defines `gameui_xbox` with the
+same policy as its default, while `platform.h` deliberately makes that policy
+true for PS4 without changing `IsPC()` or `IsGameConsole()`. Every non-PS4
+build retains the original configurable `CGameUIConVarRef` path unchanged.
+This intentionally stops honoring an ad-hoc PS4 `gameui_xbox 0` override;
+the ConVar is not archived, no repository configuration assigns it, and the
+documented PS4 policy requires controller-first console UI.
+
+The existing null `steamapicontext->Init()` call remains unchanged in this
+package. It is formal C++ undefined behavior, but v4.76 proves that it returns
+on the current hardware before this crash, so repairing it in v4.77 would
+weaken attribution. It remains a separate follow-up defect.
+
+The narrow `client_client` and `engine_client` targets compile, and the
+complete monolithic link succeeds. The final GameUI object and OELF each define
+one `CGameUI::Initialize`. The OELF contains the v4.77 build marker and direct
+PS4 policy breadcrumb exactly once, while the v4.76 build marker and
+`gameui init xbox convar constructed` string are absent. Both console-value
+marker strings remain available to report the assigned policy.
+
+The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic.oelf
+Size: 136,028,120 bytes
+SHA-256: 40b15bf452e4e02b96165496bb2419802396c02ea58fce0778b9b66b5ae84ed8
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,142,752 bytes
+SHA-256: e996ca87d3c64789308a080b73d3ec013488c2651dc8a269bbb24f6fec5c3dd6
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.43
+Size: 103,219,200 bytes
+SHA-256: c47d2e20730a7e0a2c6ae53afa0a957a3c4c69e9ad7ad9701b4e3516eb8f76dd
+```
+
+The packaged eboot is byte-identical to the SELF. PkgTool reports all 28
+displayed limit, digest, and signature checks as `[OK]`, with no displayed
+failure, and `param.sfo` reports both `APP_VER` and `VERSION` as 3.43.
+Both package scripts pass `bash -n` and retain mode 0755. The host PS4 suite
+remains at 11/14 with only the known `ps4_gnm_device`, `ps4_gnm_buffer`,
+and `ps4_gnm_constants` baseline failures.
+
+The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`. A complete FTP
+readback reports 103,219,200 bytes and the same SHA-256 above. Hardware success
+begins with the `gameui init PS4 console UI policy ready` and
+`console ui value=1` markers; the remaining trace will locate the next
+boundary if initialization still does not reach intro/menu construction.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

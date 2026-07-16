@@ -312,9 +312,14 @@ void CGameUI::Initialize( CreateInterfaceFn factory )
 	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init steam context init returned" );
 #endif
 
+#if defined( PLATFORM_PS4 )
+	m_bIsConsoleUI = ( IsPlatformConsoleUI() != 0 );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init PS4 console UI policy ready" );
+#else
 	CGameUIConVarRef var( "gameui_xbox" );
 	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init xbox convar constructed" );
 	m_bIsConsoleUI = var.IsValid() && var.GetBool();
+#endif
 	PS4_GAMEUI_INIT_BREADCRUMB( m_bIsConsoleUI
 		? "kisak-ps4: gameui init console ui value=1"
 		: "kisak-ps4: gameui init console ui value=0" );
