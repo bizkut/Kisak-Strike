@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.37
+Version: 3.38
 Size: 103,219,200 bytes
-SHA-256: 2a024b8993b553c3ea69a56b96af3f2302bfe59fda0a8d0de7a0acc3d2c657b6
-Hardware run: v4.71 (2026-07-16), fixes INPUTSWAPAB and crashes entering custom-font iteration
+SHA-256: 93ee4d6bda5183540c1127fb9e232eaac8940132f97d62afc9218032a9e29284
+Hardware run: v4.72 (2026-07-16), proves the crash is the missing custom-font `Warning`
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.37
+Version: 3.38
 Size: 103,219,200 bytes
-SHA-256: 2a024b8993b553c3ea69a56b96af3f2302bfe59fda0a8d0de7a0acc3d2c657b6
-Hardware result: v4.71 reaches `scheme fonts before custom font files` and stops
+SHA-256: 93ee4d6bda5183540c1127fb9e232eaac8940132f97d62afc9218032a9e29284
+Hardware result: v4.72 stops inside the missing custom-font `Warning`
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: 93ee4d6bda5183540c1127fb9e232eaac8940132f97d62afc9218032a9e29284
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: pending v4.72 custom-font boundary trace
+Hardware result: v4.72 stops inside the missing custom-font `Warning`
 ```
 
 Current hardware baseline:
@@ -7860,6 +7860,25 @@ is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
 readback matches the local 103,219,200-byte package and SHA-256 above. Manual
 install and hardware execution remain.
+
+The 2026-07-16 hardware run confirms the v4.72 marker exactly once. It
+appends 1,049,591 bytes and 19,884 lines to the existing log, producing a
+27,471,652-byte, 565,464-line capture with SHA-256
+`4c28ace7abe6bd25f1caed113c29410f3151c7ab766cf316dc7e00efef509339`.
+The appended slice has SHA-256
+`a8e3903c194f941f9faef70b1e8180ac217cd067f18fb7b7ef2bad7300e94786`.
+
+The trace proves the custom-font section lookup succeeds, its first entry
+exists, the entry value is non-null and non-empty, and the scheme surface is
+valid. `CMatSystemSurface::AddCustomFontFile` is entered, reports
+`IsGameConsole()=0`, and then reports `GetLocalPath()=0`. Its final marker
+is `matsurface custom font before missing warning`, seen exactly once.
+`missing warning returned`, the caller's `direct add returned`, and the
+function's final PS4 return markers are all absent. The crash is therefore
+inside the missing-font `Warning`, not in KeyValues traversal, surface
+resolution, or local-path lookup. The next repair should preserve PS4's
+existing false result by returning at function entry before unsupported
+filesystem and warning work; other platforms remain unchanged.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
