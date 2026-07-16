@@ -593,6 +593,15 @@ void CGameUI::PlayGameStartupSound()
 //-----------------------------------------------------------------------------
 void CGameUI::Start()
 {
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui start entered" );
+
+#if defined( PLATFORM_PS4 )
+	// The PS4 keeps IsPC() true for source/asset compatibility, but app0 is
+	// read-only and the desktop Steam CONFIG/platform setup is not a console
+	// startup requirement.
+	m_szPlatformDir[0] = '\0';
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui start PS4 desktop setup skipped" );
+#else
 	// determine Steam location for configuration
 	if ( !FindPlatformDirectory( m_szPlatformDir, sizeof( m_szPlatformDir ) ) )
 		return;
@@ -613,10 +622,22 @@ void CGameUI::Start()
 
 		g_pFullFileSystem->AddSearchPath( "platform", "PLATFORM" );
 	}
+#endif
 
 	// localization
-	g_pVGuiLocalize->AddFile( "resource/platform_%language%.txt");
-	g_pVGuiLocalize->AddFile( "resource/vgui_%language%.txt");
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui start before platform localization" );
+	const bool bPlatformLocalizationLoaded =
+		g_pVGuiLocalize->AddFile( "resource/platform_%language%.txt" );
+	PS4_GAMEUI_INIT_BREADCRUMB( bPlatformLocalizationLoaded
+		? "kisak-ps4: gameui start platform localization loaded"
+		: "kisak-ps4: gameui start platform localization missing" );
+
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui start before vgui localization" );
+	const bool bVguiLocalizationLoaded =
+		g_pVGuiLocalize->AddFile( "resource/vgui_%language%.txt" );
+	PS4_GAMEUI_INIT_BREADCRUMB( bVguiLocalizationLoaded
+		? "kisak-ps4: gameui start vgui localization loaded"
+		: "kisak-ps4: gameui start vgui localization missing" );
 
 	// dgoodenough - This should not be necessary.
 	// PS3_BUILDFIX
@@ -627,8 +648,10 @@ void CGameUI::Start()
 	// throw a link time error, when the other does not?  Probably a GCC quirk, since MSVC has no
 	// problem with it.  In any case, Sys_SetLastError(...) does nothing on PS3, so removing the
 	// call to it here is harmless.
-#if !defined( _PS3 )
+#if !defined( _PS3 ) && !defined( PLATFORM_PS4 )
 	Sys_SetLastError( SYS_NO_ERROR );
+#elif defined( PLATFORM_PS4 )
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui start PS4 last-error reset skipped" );
 #endif
 
 	// ********************************************************************
@@ -641,12 +664,18 @@ void CGameUI::Start()
 	//SetBackgroundMusicDesired( true );
 	// ********************************************************************
 
+#if defined( PLATFORM_PS4 )
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui start PS4 friends loader skipped" );
+#else
 	if ( IsPC() )
 	{
 		// now we are set up to check every frame to see if we can friends/server browser
 		m_bTryingToLoadFriends = true;
 		m_iFriendsLoadPauseFrames = 1;
 	}
+#endif
+
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui start complete" );
 }
 
 //-----------------------------------------------------------------------------

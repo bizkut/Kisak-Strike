@@ -58,12 +58,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.45
+Version: 3.46
 Size: 103,219,200 bytes
-SHA-256: 2fd3ef28de973e70def3b65c159bf4846a9f939824e9463e50eae5e401875b96
+SHA-256: 36b5f3c9fceb5acc2a2f06cb0a231a5c49d08690e5019d681b68716b818d58e2
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.79 stops inside the staticGameUIFuncs->Start() call
+Hardware result: v4.80 awaiting manual install and launch
 ```
 
 Current hardware baseline:
@@ -8511,13 +8511,76 @@ but does not yet prove entry into the method because it has no internal
 breadcrumbs.
 
 `CGameUI::Start` first calls `FindPlatformDirectory`. The inherited platform
-policy then treats PS4 as PC: `FindPlatformDirectory` selects `getcwd` instead
-of the existing `PLATFORM` search path, and later PC-only code creates a Steam
-configuration path, emits `Msg`, installs user configuration, and enables the
-friends-loading loop. v4.80 will split every one of those boundaries and give
-PS4 an explicit console path rather than treating PC behavior as a fixed
-contract. The platform-directory failure path will return safely on PS4
-without entering the legacy fatal `Error` route.
+policy then treats PS4 as PC: `FindPlatformDirectory` selects `getcwd`, which
+resolves under read-only `/app0`, and later PC-only code creates a Steam
+configuration path, emits `Msg`, installs user configuration, adds a relative
+platform search path, resets desktop last-error state, and enables the
+friends-loading loop. These operations are implementation history rather than
+PS4 startup requirements.
+
+### v4.80: Give CGameUI::Start an explicit PS4 policy
+
+Package version 3.46 and build marker `gameui_start_trace_v480` identify this
+manual-install test. The smallest attributable repair is to bypass the entire
+desktop Steam setup on PS4 instead of making `FindPlatformDirectory` or
+`/app0/platform/config` work. PS4 intentionally keeps `IsPC()` true for
+Source data and rendering compatibility, but that global policy must not force
+the runtime through desktop filesystem behavior.
+
+The PS4 branch now leaves `m_szPlatformDir` empty and skips
+`FindPlatformDirectory`, Steam `CONFIG` setup, the relative `platform`
+remount, `Sys_SetLastError`, and the friends-loader flags. This matches the
+original console startup semantics. It is safe for this checkpoint because
+`m_szPlatformDir` has no consumer outside this block and all VGUI user-config
+consumers tolerate an unset config object. Writable user configuration can be
+added later under the already mounted `DEFAULT_WRITE_PATH` if menu-setting
+persistence requires it; it is not part of this crash repair.
+
+The two required localization loads remain active. Entry, PS4-policy, both
+localization calls and their boolean results, both skipped desktop tails, and
+method completion receive direct breadcrumbs. The engine retains its existing
+before/after `Start` markers and adds the game-console pointer,
+`Initialize`, and conditional `Activate` boundaries so one hardware run can
+continue past `CGameUI::Start` without losing attribution.
+
+The narrow `client_client` and `engine_client` targets compile, and the
+complete monolithic OELF/SELF link succeeds. The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic.oelf
+Size: 136,045,056 bytes
+SHA-256: bf8f2af35309cd0eb7e65feed41f5ffeb69ccf5e9d9c335e648dc04741c40a3e
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,159,168 bytes
+SHA-256: 12c0109024d0cd8e47b873860eff1155a56229015aa61e17a825affa84f4f9f1
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.46
+Size: 103,219,200 bytes
+SHA-256: 36b5f3c9fceb5acc2a2f06cb0a231a5c49d08690e5019d681b68716b818d58e2
+```
+
+`git diff --check` and both packaging-script syntax checks pass. The packaged
+eboot is byte-identical to the SELF. The OELF contains the v4.80 identity,
+Start entry/completion, and game-console initialization markers. PkgTool
+reports 28 `[OK]` checks and no `[FAIL]`; SFO `APP_VER` and `VERSION`
+are both 3.46. The host PS4 suite remains at 11/14 with only the known
+`ps4_gnm_device`, `ps4_gnm_buffer`, and `ps4_gnm_constants` baseline
+failures.
+
+The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`. A complete FTP
+readback reports 103,219,200 bytes and the same SHA-256 above. It is ready for
+manual installation and launch.
+
+Hardware interpretation is deterministic: absence of `gameui start entered`
+keeps the boundary in the `Start` call expression before its first observable
+body marker; a final marker before either
+localization result isolates that call; `gameui start complete` plus
+`engine vgui gameui start ready` proves the desktop-policy repair; and later
+engine markers identify game-console initialization or UI activation without
+another broad probe.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

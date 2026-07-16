@@ -1160,10 +1160,16 @@ void CEngineVGui::Init()
 	staticGameUIFuncs->Start();
 	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui gameui start ready" );
 
+	PS4_ENGINE_VGUI_BREADCRUMB( staticGameConsole
+		? "kisak-ps4: engine vgui game console ready"
+		: "kisak-ps4: engine vgui game console null" );
+
 	// setup console
 	if ( staticGameConsole )
 	{
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before game console initialize" );
 		staticGameConsole->Initialize();
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui game console initialize ready" );
 #if defined( TOOLFRAMEWORK_VGUI_REFACTOR )
 		staticGameConsole->SetParent(staticEngineToolsPanel->GetVPanel());
 #elif !defined (CSTRIKE15)
@@ -1191,7 +1197,9 @@ void CEngineVGui::Init()
 		( CommandLine()->FindParm( "-toconsole" ) || CommandLine()->FindParm( "-console" ) || CommandLine()->FindParm( "-rpt" ) || CommandLine()->FindParm( "-allowdebug" ) ) )
 	{
 		// activate the console
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before game console activate" );
 		staticGameConsole->Activate();
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui game console activate ready" );
 	}
 
 	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before no shader query" );
