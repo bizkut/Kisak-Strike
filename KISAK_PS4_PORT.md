@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.37
+Version: 3.38
 Size: 103,219,200 bytes
-SHA-256: 2a024b8993b553c3ea69a56b96af3f2302bfe59fda0a8d0de7a0acc3d2c657b6
+SHA-256: 93ee4d6bda5183540c1127fb9e232eaac8940132f97d62afc9218032a9e29284
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.71 reaches `scheme fonts before custom font files` and stops
+Hardware result: pending v4.72 custom-font boundary trace
 ```
 
 Current hardware baseline:
@@ -7813,6 +7813,53 @@ font loop; `scheme fonts custom font files ready` is absent. The v4.71 repair
 is therefore validated, and the next diagnostic should separate section
 lookup, first-child retrieval, per-entry name/value access, surface lookup,
 and `AddCustomFontFile` return without skipping custom fonts yet.
+
+### v4.72: Trace the PS4 custom-font boundary without changing behavior
+
+Package version 3.38 and build marker `custom_font_trace_v472` identify
+the diagnostic for the v4.71 boundary. The custom-font loop now separates
+`FindKey("CustomFontFiles", true)`, first-child retrieval, entry value access,
+nested-block traversal, scheme-surface lookup, `AddCustomFontFile`, range
+handling, and sibling advancement with static PS4 breadcrumbs. The original
+operations and return-value handling remain unchanged.
+
+`CMatSystemSurface::AddCustomFontFile` has a complementary PS4-only trace
+around its game-console query, `GetLocalPath`, missing-file `Warning`,
+path normalization, symbol/list bookkeeping, and final PS4 return. Source
+review makes the missing-file warning the strongest candidate: PS4 resolves
+the VGUI scheme surface to `CMatSystemSurface`, the package's SourceScheme
+content is VPK-backed, and this function performs common PC filesystem work
+before its existing `PLATFORM_PS4` branch returns false. A failed local-path
+lookup therefore enters the same `Warning` infrastructure already proven to
+crash in v4.70. The trace deliberately confirms that boundary before moving
+the existing PS4 false return ahead of the irrelevant common preamble.
+
+The PS4 `vgui2_client`, `vguimatsurface_client`, and `engine_client`
+targets and the complete monolithic build succeed. The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic
+Size: 126,273,728 bytes
+SHA-256: 547bf7f0578de51d86e370e0e9080a598f8345717ceb7aee9e497e9e49507681
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,126,336 bytes
+SHA-256: 5b855615acd2f175caa81df94d5d8b5f835b91606e26d563de80014e738fe647
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.38
+Size: 103,219,200 bytes
+SHA-256: 93ee4d6bda5183540c1127fb9e232eaac8940132f97d62afc9218032a9e29284
+```
+
+PkgTool reports every package size, digest, and signature check as `[OK]`,
+and `param.sfo` reports both `APP_VER` and `VERSION` as 3.38. The host
+PS4 suite remains at 11/14 with only the known `ps4_gnm_device`,
+`ps4_gnm_buffer`, and `ps4_gnm_constants` baseline failures. The package
+is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
+readback matches the local 103,219,200-byte package and SHA-256 above. Manual
+install and hardware execution remain.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

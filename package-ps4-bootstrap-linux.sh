@@ -12,7 +12,7 @@ SOLID_COLOR_PIXEL_SHADER="${KISAK_PS4_SOLID_COLOR_PIXEL_SHADER:-$ROOT_DIR/../fre
 if [[ "$VARIANT" == "monolithic" ]]; then
     BUILD_DIR="${KISAK_PS4_ENGINE_BUILD_DIR:-$ROOT_DIR/build-ps4-engine}"
     TITLE="Kisak-Strike PS4 Monolithic"
-    VERSION="3.37"
+    VERSION="3.38"
     TITLE_ID="KISK00002"
     CONTENT_ID="IV0000-KISK00002_00-KISAKMONOLITHIC0"
     EBOOT_INPUT="$BUILD_DIR/kisak_ps4_monolithic.bin"

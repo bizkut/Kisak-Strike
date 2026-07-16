@@ -1207,12 +1207,37 @@ void CScheme::LoadFonts()
 
 	// add our custom fonts
 	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts before custom font files" );
-	for (KeyValues *kv = m_pData->FindKey("CustomFontFiles", true)->GetFirstSubKey(); kv != NULL; kv = kv->GetNextKey())
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom before section find" );
+	KeyValues *pCustomFontFiles = m_pData->FindKey( "CustomFontFiles", true );
+	PS4_SCHEME_BREADCRUMB( pCustomFontFiles
+		? "kisak-ps4: scheme fonts custom section find ready value=1"
+		: "kisak-ps4: scheme fonts custom section find ready value=0" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom before first entry" );
+	KeyValues *kv = pCustomFontFiles->GetFirstSubKey();
+	PS4_SCHEME_BREADCRUMB( kv
+		? "kisak-ps4: scheme fonts custom first entry ready value=1"
+		: "kisak-ps4: scheme fonts custom first entry ready value=0" );
+	for ( ; kv != NULL; )
 	{
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom entry entered" );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom before entry value" );
 		const char *fontFile = kv->GetString();
+		PS4_SCHEME_BREADCRUMB( fontFile
+			? "kisak-ps4: scheme fonts custom entry value ready pointer=1"
+			: "kisak-ps4: scheme fonts custom entry value ready pointer=0" );
+		PS4_SCHEME_BREADCRUMB( fontFile && *fontFile
+			? "kisak-ps4: scheme fonts custom entry value nonempty=1"
+			: "kisak-ps4: scheme fonts custom entry value nonempty=0" );
 		if (fontFile && *fontFile)
 		{
-			g_pSchemeManager->GetSurface()->AddCustomFontFile( fontFile );
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom direct before surface" );
+			ISchemeSurface *pSurface = g_pSchemeManager->GetSurface();
+			PS4_SCHEME_BREADCRUMB( pSurface
+				? "kisak-ps4: scheme fonts custom direct surface ready value=1"
+				: "kisak-ps4: scheme fonts custom direct surface ready value=0" );
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom direct before add" );
+			pSurface->AddCustomFontFile( fontFile );
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom direct add returned" );
 		}
 		else
 		{
@@ -1221,28 +1246,56 @@ void CScheme::LoadFonts()
 			const char *pszName = NULL;
 			bool bUseRange = false;
 
-			for ( KeyValues *pData = kv->GetFirstSubKey(); pData != NULL; pData = pData->GetNextKey() )
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block before first field" );
+			KeyValues *pData = kv->GetFirstSubKey();
+			PS4_SCHEME_BREADCRUMB( pData
+				? "kisak-ps4: scheme fonts custom block first field ready value=1"
+				: "kisak-ps4: scheme fonts custom block first field ready value=0" );
+			for ( ; pData != NULL; )
 			{
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block field entered" );
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block before field name" );
 				const char *pszKey = pData->GetName();
+				PS4_SCHEME_BREADCRUMB( pszKey
+					? "kisak-ps4: scheme fonts custom block field name ready value=1"
+					: "kisak-ps4: scheme fonts custom block field name ready value=0" );
 				if ( !Q_stricmp( pszKey, "font" ) )
 				{
+					PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block before font value" );
 					fontFile = pData->GetString();
+					PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block font value ready" );
 				}
 				else if ( !Q_stricmp( pszKey, "name" ) )
 				{
+					PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block before range name value" );
 					pszName = pData->GetString();
+					PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block range name value ready" );
 				}
 				else
 				{
 					// we must have a language
-					if ( Q_stricmp( language, pszKey ) == 0 ) // matches the language we're running?
+					PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block before language compare" );
+					bool bLanguageMatches = ( Q_stricmp( language, pszKey ) == 0 );
+					PS4_SCHEME_BREADCRUMB( bLanguageMatches
+						? "kisak-ps4: scheme fonts custom block language compare ready value=1"
+						: "kisak-ps4: scheme fonts custom block language compare ready value=0" );
+					if ( bLanguageMatches ) // matches the language we're running?
 					{
 						// get the range
+						PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block before range find" );
 						KeyValues *pRange = pData->FindKey( "range" );
+						PS4_SCHEME_BREADCRUMB( pRange
+							? "kisak-ps4: scheme fonts custom block range find ready value=1"
+							: "kisak-ps4: scheme fonts custom block range find ready value=0" );
 						if ( pRange )
 						{
 							bUseRange = true;
-							sscanf( pRange->GetString(), "%x %x", &nRangeMin, &nRangeMax );
+							PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block before range value" );
+							const char *pRangeValue = pRange->GetString();
+							PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block range value ready" );
+							PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block before range parse" );
+							sscanf( pRangeValue, "%x %x", &nRangeMin, &nRangeMax );
+							PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block range parse ready" );
 
 							if ( nRangeMin > nRangeMax )
 							{
@@ -1253,18 +1306,40 @@ void CScheme::LoadFonts()
 						}
 					}
 				}
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block before next field" );
+				pData = pData->GetNextKey();
+				PS4_SCHEME_BREADCRUMB( pData
+					? "kisak-ps4: scheme fonts custom block next field ready value=1"
+					: "kisak-ps4: scheme fonts custom block next field ready value=0" );
 			}
 
+			PS4_SCHEME_BREADCRUMB( fontFile && *fontFile
+				? "kisak-ps4: scheme fonts custom block final font nonempty=1"
+				: "kisak-ps4: scheme fonts custom block final font nonempty=0" );
 			if ( fontFile && *fontFile )
 			{
-				g_pSchemeManager->GetSurface()->AddCustomFontFile( fontFile );
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block before surface" );
+				ISchemeSurface *pSurface = g_pSchemeManager->GetSurface();
+				PS4_SCHEME_BREADCRUMB( pSurface
+					? "kisak-ps4: scheme fonts custom block surface ready value=1"
+					: "kisak-ps4: scheme fonts custom block surface ready value=0" );
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block before add" );
+				pSurface->AddCustomFontFile( fontFile );
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block add returned" );
 
 				if ( bUseRange )
 				{
+					PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block before set range" );
 					SetFontRange( pszName, nRangeMin, nRangeMax );
+					PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom block set range returned" );
 				}
 			}
 		}
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom before next entry" );
+		kv = kv->GetNextKey();
+		PS4_SCHEME_BREADCRUMB( kv
+			? "kisak-ps4: scheme fonts custom next entry ready value=1"
+			: "kisak-ps4: scheme fonts custom next entry ready value=0" );
 	}
 	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom font files ready" );
 

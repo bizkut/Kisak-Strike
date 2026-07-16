@@ -82,6 +82,13 @@ ILauncherMgr *g_pLauncherMgr = NULL;
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_MATSURFACE_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_MATSURFACE_BREADCRUMB( line ) ((void)0)
+#endif
+
 #if defined( _GAMECONSOLE )
 #define MODEL_PANEL_RT_NAME	"_rt_SmallFB0"
 #else // _GAMECONSOLE
@@ -2285,37 +2292,67 @@ int CMatSystemSurface::ComputeTextWidth( const wchar_t *pString )
 //-----------------------------------------------------------------------------
 bool CMatSystemSurface::AddCustomFontFile( const char *fontFileName )
 {
-	if ( IsGameConsole() )
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font entered" );
+	PS4_MATSURFACE_BREADCRUMB( fontFileName
+		? "kisak-ps4: matsurface custom font name ready value=1"
+		: "kisak-ps4: matsurface custom font name ready value=0" );
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font before game console query" );
+	bool bIsGameConsole = IsGameConsole();
+	PS4_MATSURFACE_BREADCRUMB( bIsGameConsole
+		? "kisak-ps4: matsurface custom font game console query ready value=1"
+		: "kisak-ps4: matsurface custom font game console query ready value=0" );
+	if ( bIsGameConsole )
 	{
 		// custom fonts are not supported (not needed) on xbox, all .vfonts are offline converted to ttfs
 		// ttfs are mounted/handled elsewhere
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font game console return" );
 		return true;
 	}
 
 	char fullPath[MAX_PATH];
 	bool bFound = false;
 	// windows needs an absolute path for ttf
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font before local path" );
 	bFound = g_pFullFileSystem->GetLocalPath( fontFileName, fullPath, sizeof( fullPath ) ) ? true : false;
+	PS4_MATSURFACE_BREADCRUMB( bFound
+		? "kisak-ps4: matsurface custom font local path ready value=1"
+		: "kisak-ps4: matsurface custom font local path ready value=0" );
 	if ( !bFound )
 	{
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font before missing warning" );
 		Warning( "Couldn't find custom font file '%s'\n", fontFileName );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font missing warning returned" );
 		return false;
 	}
 
 	// only add if it's not already in the list
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font before lowercase" );
 	Q_strlower( fullPath );
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font lowercase ready" );
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font before symbol" );
 	CUtlSymbol sym(fullPath);
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font symbol ready" );
 	int i;
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font before list scan" );
 	for ( i = 0; i < m_CustomFontFileNames.Count(); i++ )
 	{
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font list entry" );
 		if ( m_CustomFontFileNames[i] == sym )
 			break;
 	}
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font list scan ready" );
 	if ( !m_CustomFontFileNames.IsValidIndex( i ) )
 	{
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font before list add" );
 	 	m_CustomFontFileNames.AddToTail( fullPath );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font list add ready" );
 
-		if ( IsPC() )
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font before pc query" );
+		bool bIsPC = IsPC();
+		PS4_MATSURFACE_BREADCRUMB( bIsPC
+			? "kisak-ps4: matsurface custom font pc query ready value=1"
+			: "kisak-ps4: matsurface custom font pc query ready value=0" );
+		if ( bIsPC )
 		{
 #ifdef SUPPORT_CUSTOM_FONT_FORMAT
 			// We don't need the actual file on disk
@@ -2323,7 +2360,9 @@ bool CMatSystemSurface::AddCustomFontFile( const char *fontFileName )
 			// make sure it's on disk
 			// only do this once for each font since in steam it will overwrite the
 			// registered font file, causing windows to invalidate the font
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font before local copy" );
 			g_pFullFileSystem->GetLocalCopy( fullPath );
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font local copy ready" );
 #endif
 		}
 	}
@@ -2391,6 +2430,7 @@ bool CMatSystemSurface::AddCustomFontFile( const char *fontFileName )
 #elif defined( _PS3 )
 	return true;
 #elif defined( PLATFORM_PS4 )
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface custom font ps4 return" );
 	return false;
 #elif defined( OSX )
 	// Just load the font data, decrypt in memory and register for this process
