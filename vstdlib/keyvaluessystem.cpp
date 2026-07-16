@@ -18,6 +18,46 @@
 #include "ps3/ps3_core.h"
 #endif
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+
+static int s_nKisakPs4ConditionalSymbolTraceCount = 0;
+static const int k_nKisakPs4ConditionalSymbolTraceLimit = 96;
+
+static bool KisakPs4IsInputSwapAbSymbol( const char *pName )
+{
+	return pName && !V_stricmp( pName[0] == '$' ? pName + 1 : pName,
+		"INPUTSWAPAB" );
+}
+
+static void KisakPs4ConditionalSymbolBreadcrumb( const char *pPhase,
+	const char *pName, int nValue0, int nValue1, int nValue2 )
+{
+	if ( s_nKisakPs4ConditionalSymbolTraceCount >=
+		k_nKisakPs4ConditionalSymbolTraceLimit )
+	{
+		return;
+	}
+
+	char line[384];
+	V_snprintf( line, sizeof( line ),
+		"kisak-ps4: conditional symbol event=%d phase=%s value0=%d value1=%d value2=%d name=%.96s",
+		s_nKisakPs4ConditionalSymbolTraceCount,
+		pPhase ? pPhase : "unknown", nValue0, nValue1, nValue2,
+		pName ? pName : "<null>" );
+	++s_nKisakPs4ConditionalSymbolTraceCount;
+	KisakPs4StartupBreadcrumb( line );
+}
+
+#define PS4_IS_INPUTSWAPAB_SYMBOL( name ) KisakPs4IsInputSwapAbSymbol( name )
+#define PS4_CONDITIONAL_SYMBOL_BREADCRUMB( enabled, phase, name, value0, value1, value2 ) \
+	do { if ( enabled ) KisakPs4ConditionalSymbolBreadcrumb( phase, name, value0, value1, value2 ); } while ( 0 )
+#else
+#define PS4_IS_INPUTSWAPAB_SYMBOL( name ) false
+#define PS4_CONDITIONAL_SYMBOL_BREADCRUMB( enabled, phase, name, value0, value1, value2 ) \
+	do { (void)(enabled); } while ( 0 )
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include <tier0/memdbgon.h>
 
@@ -274,21 +314,43 @@ void CKeyValuesSystem::FreeKeyValuesMemory(void *pMem)
 //-----------------------------------------------------------------------------
 HKeySymbol CKeyValuesSystem::GetSymbolForString( const char *name, bool bCreate )
 {
+	const bool bTraceInputSwapAb = PS4_IS_INPUTSWAPAB_SYMBOL( name );
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "symbol-enter",
+		name, bCreate ? 1 : 0, -1, -1 );
 	if ( !name )
 	{
 		return (-1);
 	}
 
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "symbol-before-lock",
+		name, bCreate ? 1 : 0, -1, -1 );
 	AUTO_LOCK( m_mutex );
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "symbol-lock-acquired",
+		name, bCreate ? 1 : 0, -1, -1 );
 	MEM_ALLOC_CREDIT();
 
-	int hash = CaseInsensitiveHash(name, m_HashTable.Count());
+	const int nHashBounds = m_HashTable.Count();
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "symbol-before-hash",
+		name, nHashBounds, -1, -1 );
+	int hash = CaseInsensitiveHash(name, nHashBounds);
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "symbol-hash-ready",
+		name, hash, nHashBounds, -1 );
 	int i = 0;
 	hash_item_t *item = &m_HashTable[hash];
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "symbol-bucket-ready",
+		name, item->stringIndex, item->next ? 1 : 0, i );
 	while (1)
 	{
-		if (!stricmp(name, (char *)m_Strings.GetBase() + item->stringIndex ))
+		PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "symbol-before-compare",
+			name, item->stringIndex, item->next ? 1 : 0, i );
+		const int nCompareResult =
+			stricmp(name, (char *)m_Strings.GetBase() + item->stringIndex );
+		PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "symbol-compare-return",
+			name, nCompareResult, item->stringIndex, i );
+		if (!nCompareResult)
 		{
+			PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "symbol-found",
+				name, item->stringIndex, i, -1 );
 			return (HKeySymbol)item->stringIndex;
 		}
 
@@ -296,9 +358,13 @@ HKeySymbol CKeyValuesSystem::GetSymbolForString( const char *name, bool bCreate 
 
 		if (item->next == NULL)
 		{
+			PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "symbol-chain-end",
+				name, bCreate ? 1 : 0, item->stringIndex, i );
 			if ( !bCreate )
 			{
 				// not found
+				PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb,
+					"symbol-not-found", name, -1, i, -1 );
 				return -1;
 			}
 
@@ -322,9 +388,13 @@ HKeySymbol CKeyValuesSystem::GetSymbolForString( const char *name, bool bCreate 
 			item->stringIndex = pString - (char *)m_Strings.GetBase();
 			Q_memcpy( pString, name, numStringBytes );
 			* reinterpret_cast< uint32 * >( pString + numStringBytes ) = 0;	// string null-terminator + 3 alternative spelling bytes
+			PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "symbol-created",
+				name, item->stringIndex, numStringBytes, i );
 			return (HKeySymbol)item->stringIndex;
 		}
 
+		PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "symbol-before-next",
+			name, item->stringIndex, i, -1 );
 		item = item->next;
 	}
 
@@ -512,39 +582,78 @@ int CKeyValuesSystem::CaseInsensitiveHash(const char *string, int iBounds)
 //-----------------------------------------------------------------------------
 void CKeyValuesSystem::SetKeyValuesExpressionSymbol( const char *name, bool bValue )
 {
+	const bool bTraceInputSwapAb = PS4_IS_INPUTSWAPAB_SYMBOL( name );
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "set-enter",
+		name, bValue ? 1 : 0, -1, -1 );
 	if ( !name )
 		return;
 
 	if ( name[0] == '$' )
 		++ name;
 
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "set-before-symbol",
+		name, bValue ? 1 : 0, -1, -1 );
 	HKeySymbol hSym = GetSymbolForString( name, true );	// find or create symbol
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "set-symbol-return",
+		name, hSym, bValue ? 1 : 0, -1 );
 	
 	{
+		PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "set-before-map-lock",
+			name, hSym, -1, -1 );
 		AUTO_LOCK( m_mutex );
+		PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "set-map-lock-acquired",
+			name, hSym, -1, -1 );
 		m_KvConditionalSymbolTable.InsertOrReplace( hSym, bValue );
+		PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "set-map-ready",
+			name, hSym, bValue ? 1 : 0, m_KvConditionalSymbolTable.Count() );
 	}
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "set-return",
+		name, hSym, bValue ? 1 : 0, -1 );
 }
 
 bool CKeyValuesSystem::GetKeyValuesExpressionSymbol( const char *name )
 {
+	const bool bTraceInputSwapAb = PS4_IS_INPUTSWAPAB_SYMBOL( name );
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "get-enter",
+		name, -1, -1, -1 );
 	if ( !name )
 		return false;
 
 	if ( name[0] == '$' )
 		++ name;
 
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "get-before-symbol",
+		name, -1, -1, -1 );
 	HKeySymbol hSym = GetSymbolForString( name, false );	// find or create symbol
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "get-symbol-return",
+		name, hSym, -1, -1 );
 	if ( hSym != -1 )
 	{
+		PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "get-before-map-lock",
+			name, hSym, -1, -1 );
 		AUTO_LOCK( m_mutex );
+		PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "get-map-lock-acquired",
+			name, hSym, m_KvConditionalSymbolTable.Count(), -1 );
+		PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "get-before-map-find",
+			name, hSym, -1, -1 );
 		CUtlMap< HKeySymbol, bool >::IndexType_t idx = m_KvConditionalSymbolTable.Find( hSym );
+		PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "get-map-find-return",
+			name, hSym, static_cast< int >( idx ),
+			static_cast< int >( m_KvConditionalSymbolTable.InvalidIndex() ) );
 		if ( idx != m_KvConditionalSymbolTable.InvalidIndex() )
 		{
 			// Found the symbol value in conditional symbol table
-			return m_KvConditionalSymbolTable.Element( idx );
+			PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "get-before-element",
+				name, hSym, static_cast< int >( idx ), -1 );
+			const bool bValue = m_KvConditionalSymbolTable.Element( idx );
+			PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "get-element-return",
+				name, hSym, bValue ? 1 : 0, static_cast< int >( idx ) );
+			return bValue;
 		}
 	}
+
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "get-fallbacks",
+		name, hSym, -1, -1 );
 
 	//
 	// Fallback conditionals
@@ -615,6 +724,10 @@ bool CKeyValuesSystem::GetKeyValuesExpressionSymbol( const char *name )
 
 	// purposely warn on these to prevent syntax errors
 	// need to get these fixed asap, otherwise unintended false behavior
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "get-before-warning",
+		name, hSym, -1, -1 );
 	Warning( "KV Conditional: Unknown symbol %s\n", name );
+	PS4_CONDITIONAL_SYMBOL_BREADCRUMB( bTraceInputSwapAb, "get-return-false",
+		name, hSym, -1, -1 );
 	return false;
 }

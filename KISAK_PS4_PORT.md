@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.35
+Version: 3.36
 Size: 103,219,200 bytes
-SHA-256: 94d2d91081b87c30a4c2f275e7eb200a475fdc9563d7aa5bb82b771968dbae00
+SHA-256: c3f0166beee4d80af684c2974907f0577f91cbd2acf2fe799f2120c5f672317f
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.69 enters `GetKeyValuesExpressionSymbol("INPUTSWAPAB")` but never returns
+Hardware result: awaiting manual v4.70 install and run
 ```
 
 Current hardware baseline:
@@ -7690,6 +7690,46 @@ crash is therefore inside
 `CKeyValuesSystem::GetKeyValuesExpressionSymbol("INPUTSWAPAB")`, before the
 expression tree can finish building. The next diagnostic should trace its
 symbol-table lookup, mutex, conditional-map search, and fallback boundaries.
+
+### v4.70: Trace the INPUTSWAPAB symbol table and conditional map
+
+Package version 3.36 and build marker
+`conditional_symbol_trace_v470` identify the diagnostic for the v4.69
+boundary. The codebase graph and source inspection locate the normal
+`INPUTSWAPAB` registration in `CInputSystem::InitializeXDevices`, which
+calls `SetKeyValuesExpressionSymbol` before its value is consumed. A PS4-only
+96-event trace activates only for that symbol. It brackets the setter, the
+`GetSymbolForString` mutex, hash calculation, initial bucket, every bounded
+chain comparison and advance, the conditional-map mutex, map lookup, element
+read, fallbacks, warning, and return. Symbol creation, lookup order, stored
+values, conditional results, and non-PS4 behavior remain unchanged.
+
+The PS4 `libvstdlib_client` and `engine_client` targets and the complete
+`kisak_ps4_monolithic` target build successfully. The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic
+Size: 126,273,728 bytes
+SHA-256: b5a7a7576786b59c4a3af2bb09054bab451d8df5277edb0c477464883cdfdf48
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,126,336 bytes
+SHA-256: 0879e42e6d05e3719e8c29d3ab7fdd7254464d071eeb9defe7393c2d2caf2d65
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.36
+Size: 103,219,200 bytes
+SHA-256: c3f0166beee4d80af684c2974907f0577f91cbd2acf2fe799f2120c5f672317f
+```
+
+PkgTool reports every package size, digest, and signature check as `[OK]`,
+and `param.sfo` reports both `APP_VER` and `VERSION` as 3.36. The host PS4
+suite remains at 11/14 with only the known `ps4_gnm_device`,
+`ps4_gnm_buffer`, and `ps4_gnm_constants` baseline failures. The package
+is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
+readback matches the local 103,219,200-byte package and SHA-256 above. Manual
+install and hardware execution remain.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
