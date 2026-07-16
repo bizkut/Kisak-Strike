@@ -22,11 +22,26 @@
 
 using namespace vgui;
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+static void Ps4ScalableBorderBreadcrumb( const char *stage, int value )
+{
+	char line[256];
+	Q_snprintf( line, sizeof(line), "kisak-ps4: scalable border %s value=%d",
+		stage ? stage : "<null>", value );
+	KisakPs4StartupBreadcrumb( line );
+}
+#define PS4_SCALABLE_BORDER_BREADCRUMB( stage, value ) Ps4ScalableBorderBreadcrumb( stage, value )
+#else
+#define PS4_SCALABLE_BORDER_BREADCRUMB( stage, value ) ((void)0)
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
 ScalableImageBorder::ScalableImageBorder()
 {
+	PS4_SCALABLE_BORDER_BREADCRUMB( "constructor entered", 0 );
 	_inset[0]=0;
 	_inset[1]=0;
 	_inset[2]=0;
@@ -39,7 +54,10 @@ ScalableImageBorder::ScalableImageBorder()
 	m_iCornerHeight = 0;
 	m_iCornerWidth = 0;
 	m_pszImageName = NULL;
+	PS4_SCALABLE_BORDER_BREADCRUMB( "constructor surface state", g_pSurface ? 1 : 0 );
+	PS4_SCALABLE_BORDER_BREADCRUMB( "constructor before texture id", 0 );
 	m_iTextureID = g_pSurface->CreateNewTextureID();
+	PS4_SCALABLE_BORDER_BREADCRUMB( "constructor complete", m_iTextureID );
 }
 
 //-----------------------------------------------------------------------------
@@ -59,28 +77,47 @@ ScalableImageBorder::~ScalableImageBorder()
 //-----------------------------------------------------------------------------
 void ScalableImageBorder::SetImage(const char *imageName)
 {
+	PS4_SCALABLE_BORDER_BREADCRUMB( "set image entered", imageName ? 1 : 0 );
 	if ( m_pszImageName )
 	{
 		delete [] m_pszImageName;
 		m_pszImageName = NULL;
 	}
+	PS4_SCALABLE_BORDER_BREADCRUMB( "set image cleanup ready", 0 );
 
+	PS4_SCALABLE_BORDER_BREADCRUMB( "set image before nonempty check", 0 );
 	if (*imageName)
 	{
+		PS4_SCALABLE_BORDER_BREADCRUMB( "set image nonempty", 1 );
+		PS4_SCALABLE_BORDER_BREADCRUMB( "set image before length", 0 );
 		int len = Q_strlen(imageName) + 1 + 5;	// 5 for "vgui/"
+		PS4_SCALABLE_BORDER_BREADCRUMB( "set image length ready", len );
 		delete [] m_pszImageName;
+		PS4_SCALABLE_BORDER_BREADCRUMB( "set image before allocation", len );
 		m_pszImageName = new char[ len ];
+		PS4_SCALABLE_BORDER_BREADCRUMB( "set image allocation ready", m_pszImageName ? 1 : 0 );
+		PS4_SCALABLE_BORDER_BREADCRUMB( "set image before path format", 0 );
 		Q_snprintf( m_pszImageName, len, "vgui/%s", imageName );
+		PS4_SCALABLE_BORDER_BREADCRUMB( "set image path ready", 0 );
 
+		PS4_SCALABLE_BORDER_BREADCRUMB( "set image before texture file", m_iTextureID );
 		g_pSurface->DrawSetTextureFile( m_iTextureID, m_pszImageName, true, false);
+		PS4_SCALABLE_BORDER_BREADCRUMB( "set image texture file ready", m_iTextureID );
 
 		// get image dimensions, compare to m_iSrcCornerHeight, m_iSrcCornerWidth
 		int wide,tall;
+		PS4_SCALABLE_BORDER_BREADCRUMB( "set image before texture size", m_iTextureID );
 		g_pSurface->DrawGetTextureSize( m_iTextureID, wide, tall );
+		PS4_SCALABLE_BORDER_BREADCRUMB( "set image texture size ready", ( wide > 0 && tall > 0 ) ? 1 : 0 );
 
 		m_flCornerWidthPercent = ( wide > 0 ) ? ( (float)m_iSrcCornerWidth / (float)wide ) : 0;
 		m_flCornerHeightPercent = ( tall > 0 ) ? ( (float)m_iSrcCornerHeight / (float)tall ) : 0;
-	}	
+	}
+	else
+	{
+		PS4_SCALABLE_BORDER_BREADCRUMB( "set image empty", 0 );
+	}
+	PS4_SCALABLE_BORDER_BREADCRUMB( "set image complete", m_iTextureID );
 }
 
 //-----------------------------------------------------------------------------
@@ -204,22 +241,36 @@ void ScalableImageBorder::Paint(VPANEL panel)
 //-----------------------------------------------------------------------------
 void ScalableImageBorder::ApplySchemeSettings(IScheme *pScheme, KeyValues *inResourceData)
 {
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings entered", pScheme ? 1 : 0 );
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings before background", 0 );
 	m_eBackgroundType = (backgroundtype_e)inResourceData->GetInt("backgroundtype");
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings background ready", m_eBackgroundType );
 
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings before corners", 0 );
 	m_iSrcCornerHeight = inResourceData->GetInt( "src_corner_height" );
 	m_iSrcCornerWidth = inResourceData->GetInt( "src_corner_width" );
 	m_iCornerHeight = inResourceData->GetInt( "draw_corner_height" );
 	m_iCornerWidth = inResourceData->GetInt( "draw_corner_width" );
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings corners ready", 0 );
 
 	// scale the x and y up to our screen co-ords
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings before proportional scale", 0 );
 	m_iCornerHeight = scheme()->GetProportionalScaledValue( m_iCornerHeight);
 	m_iCornerWidth = scheme()->GetProportionalScaledValue(m_iCornerWidth);
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings proportional scale ready", 0 );
 
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings before image lookup", 0 );
 	const char *imageName = inResourceData->GetString("image", "");
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings image lookup ready", ( imageName && imageName[0] ) ? 1 : 0 );
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings before set image", 0 );
 	SetImage( imageName );
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings set image ready", 0 );
 
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings before paint first", 0 );
 	m_bPaintFirst = inResourceData->GetBool("paintfirst", true );
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings paint first ready", m_bPaintFirst ? 1 : 0 );
 
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings before color", 0 );
 	const char *col = inResourceData->GetString("color", NULL);
 	if ( col && col[0] )
 	{
@@ -229,6 +280,7 @@ void ScalableImageBorder::ApplySchemeSettings(IScheme *pScheme, KeyValues *inRes
 	{
 		m_Color = Color(255, 255, 255, 255);
 	}
+	PS4_SCALABLE_BORDER_BREADCRUMB( "settings complete", 0 );
 }
 
 //-----------------------------------------------------------------------------
@@ -263,4 +315,3 @@ IBorder::backgroundtype_e ScalableImageBorder::GetBackgroundType()
 {
 	return m_eBackgroundType;
 }
-

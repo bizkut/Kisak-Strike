@@ -38,8 +38,37 @@
 #if defined( PLATFORM_PS4 )
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 #define PS4_SCHEME_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+
+static unsigned int g_nPs4SchemeBorderDetailCount = 0;
+static void Ps4SchemeBorderDetail( const char *stage, int entry, const char *name, const char *type, int value )
+{
+	const unsigned int kDetailLimit = 2048;
+	if ( g_nPs4SchemeBorderDetailCount >= kDetailLimit )
+	{
+		if ( g_nPs4SchemeBorderDetailCount == kDetailLimit )
+		{
+			KisakPs4StartupBreadcrumb( "kisak-ps4: client scheme border detail limit reached" );
+		}
+		++g_nPs4SchemeBorderDetailCount;
+		return;
+	}
+
+	++g_nPs4SchemeBorderDetailCount;
+	char line[512];
+	Q_snprintf( line, sizeof(line),
+		"kisak-ps4: client scheme border %s entry=%d value=%d name=%s type=%s",
+		stage ? stage : "<null>", entry, value,
+		name ? name : "<none>", type ? type : "<none>" );
+	KisakPs4StartupBreadcrumb( line );
+}
+
+#define PS4_SCHEME_BORDER_DETAIL_RESET() ( g_nPs4SchemeBorderDetailCount = 0 )
+#define PS4_SCHEME_BORDER_DETAIL( stage, entry, name, type, value ) \
+	Ps4SchemeBorderDetail( stage, entry, name, type, value )
 #else
 #define PS4_SCHEME_BREADCRUMB( line ) ((void)0)
+#define PS4_SCHEME_BORDER_DETAIL_RESET() ((void)0)
+#define PS4_SCHEME_BORDER_DETAIL( stage, entry, name, type, value ) ((void)0)
 #endif
 
 using namespace vgui;
@@ -1683,6 +1712,13 @@ void CScheme::ReloadFontGlyphs( int inScreenTall )
 //-----------------------------------------------------------------------------
 void CScheme::LoadBorders()
 {
+	const bool bPs4ClientSchemeBorderProbe = !Q_stricmp( m_tag.String(), "ClientScheme" );
+	if ( bPs4ClientSchemeBorderProbe )
+	{
+		PS4_SCHEME_BORDER_DETAIL_RESET();
+		PS4_SCHEME_BORDER_DETAIL( "load entered", -1, NULL, NULL, 0 );
+	}
+
 	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme borders entered" );
 	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme borders before keyvalues" );
 	m_pkvBorders = m_pData->FindKey("Borders", true);
@@ -1690,26 +1726,71 @@ void CScheme::LoadBorders()
 		? "kisak-ps4: scheme borders keyvalues ready"
 		: "kisak-ps4: scheme borders keyvalues null" );
 	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme borders before object pass" );
-	{for ( KeyValues *kv = m_pkvBorders->GetFirstSubKey(); kv != NULL; kv = kv->GetNextKey())
+	if ( bPs4ClientSchemeBorderProbe )
 	{
-		if (kv->GetDataType() == KeyValues::TYPE_STRING)
+		PS4_SCHEME_BORDER_DETAIL( "before first subkey", -1, NULL, NULL, 0 );
+	}
+	KeyValues *kv = m_pkvBorders->GetFirstSubKey();
+	if ( bPs4ClientSchemeBorderProbe )
+	{
+		PS4_SCHEME_BORDER_DETAIL( "first subkey ready", -1, NULL, NULL, kv ? 1 : 0 );
+	}
+	for ( int nEntry = 0; kv != NULL; kv = kv->GetNextKey(), ++nEntry )
+	{
+		if ( bPs4ClientSchemeBorderProbe )
+		{
+			PS4_SCHEME_BORDER_DETAIL( "entry entered", nEntry, NULL, NULL, 0 );
+			PS4_SCHEME_BORDER_DETAIL( "before data type", nEntry, NULL, NULL, 0 );
+		}
+		const KeyValues::types_t dataType = kv->GetDataType();
+		if ( bPs4ClientSchemeBorderProbe )
+		{
+			PS4_SCHEME_BORDER_DETAIL( "data type ready", nEntry, NULL, NULL, dataType );
+		}
+		if ( dataType == KeyValues::TYPE_STRING )
 		{
 			// it's referencing another border, ignore for now
+			if ( bPs4ClientSchemeBorderProbe )
+			{
+				PS4_SCHEME_BORDER_DETAIL( "reference deferred", nEntry, NULL, NULL, 0 );
+			}
 		}
 		else
 		{
+			if ( bPs4ClientSchemeBorderProbe )
+			{
+				PS4_SCHEME_BORDER_DETAIL( "before list append", nEntry, NULL, NULL, 0 );
+			}
 			int i = m_BorderList.AddToTail();
+			if ( bPs4ClientSchemeBorderProbe )
+			{
+				PS4_SCHEME_BORDER_DETAIL( "list append ready", nEntry, NULL, NULL, i );
+				PS4_SCHEME_BORDER_DETAIL( "before border type", nEntry, NULL, NULL, 0 );
+			}
 
 			IBorder *border = NULL;
 			const char *pszBorderType = kv->GetString( "bordertype", NULL );
+			if ( bPs4ClientSchemeBorderProbe )
+			{
+				PS4_SCHEME_BORDER_DETAIL( "border type ready", nEntry, NULL, pszBorderType,
+					( pszBorderType && pszBorderType[0] ) ? 1 : 0 );
+			}
 			if ( pszBorderType && pszBorderType[0] )
 			{
 				if ( !stricmp(pszBorderType,"image") )
 				{
+					if ( bPs4ClientSchemeBorderProbe )
+					{
+						PS4_SCHEME_BORDER_DETAIL( "before image allocation", nEntry, NULL, pszBorderType, 0 );
+					}
 					border = new ImageBorder();
 				}
 				else if ( !stricmp(pszBorderType,"scalable_image") )
 				{
+					if ( bPs4ClientSchemeBorderProbe )
+					{
+						PS4_SCHEME_BORDER_DETAIL( "before scalable allocation", nEntry, NULL, pszBorderType, 0 );
+					}
 					border = new ScalableImageBorder();
 				}
 				else
@@ -1722,17 +1803,47 @@ void CScheme::LoadBorders()
 
 			if ( !pszBorderType || !pszBorderType[0] )
 			{
+				if ( bPs4ClientSchemeBorderProbe )
+				{
+					PS4_SCHEME_BORDER_DETAIL( "before base allocation", nEntry, NULL, pszBorderType, 0 );
+				}
 				border = new Border();
 			}
 
-			border->SetName(kv->GetName());
+			if ( bPs4ClientSchemeBorderProbe )
+			{
+				PS4_SCHEME_BORDER_DETAIL( "allocation ready", nEntry, NULL, pszBorderType, border ? 1 : 0 );
+				PS4_SCHEME_BORDER_DETAIL( "before entry name", nEntry, NULL, pszBorderType, 0 );
+			}
+			const char *pszBorderName = kv->GetName();
+			if ( bPs4ClientSchemeBorderProbe )
+			{
+				PS4_SCHEME_BORDER_DETAIL( "entry name ready", nEntry, pszBorderName, pszBorderType,
+					pszBorderName ? 1 : 0 );
+				PS4_SCHEME_BORDER_DETAIL( "before set name", nEntry, pszBorderName, pszBorderType, 0 );
+			}
+			border->SetName(pszBorderName);
+			if ( bPs4ClientSchemeBorderProbe )
+			{
+				PS4_SCHEME_BORDER_DETAIL( "set name ready", nEntry, pszBorderName, pszBorderType, 0 );
+				PS4_SCHEME_BORDER_DETAIL( "before settings", nEntry, pszBorderName, pszBorderType, 0 );
+			}
 			border->ApplySchemeSettings(this, kv);
+			if ( bPs4ClientSchemeBorderProbe )
+			{
+				PS4_SCHEME_BORDER_DETAIL( "settings ready", nEntry, pszBorderName, pszBorderType, 0 );
+				PS4_SCHEME_BORDER_DETAIL( "before list store", nEntry, pszBorderName, pszBorderType, i );
+			}
 
 			m_BorderList[i].border = border;
 			m_BorderList[i].bSharedBorder = false;
 			m_BorderList[i].borderSymbol = kv->GetNameSymbol();
+			if ( bPs4ClientSchemeBorderProbe )
+			{
+				PS4_SCHEME_BORDER_DETAIL( "entry complete", nEntry, pszBorderName, pszBorderType, i );
+			}
 		}
-	}}
+	}
 	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme borders object pass ready" );
 
 	// iterate again to get the border references

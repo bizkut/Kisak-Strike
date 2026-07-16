@@ -30,7 +30,7 @@ DLL/PRX ownership assumptions merely because the original code used them.
 | Package SHA-256 | `2b588685815d7640697a921dffea20964b3b7bb56a66be12ef2d598c05ada208` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `47fb2b0f` (`Retain PS4 client static providers explicitly`) |
-| Hardware-result commit | This v4.86 result record |
+| Hardware-result commit | `85658577` (`Record v4.86 client scheme boundary`) |
 
 v4.86 proves the retention manifest fixed the missing VGUI registrations.
 `c4_panel` and `c4_view_panel` both resolve, the metaclass file completes,
@@ -254,6 +254,34 @@ behavior unless hardware evidence identifies a PS4-specific incompatibility.
 The gate remains open until hardware proves `ClientDLL_Init` completion,
 successful EngineVGui/GameUI hookup, and one complete production
 `eng->Frame()`.
+
+### v4.87 candidate instrumentation
+
+Package version 3.53 and build marker `client_scheme_borders_v487` identify the
+next manual-install candidate. The ClientScheme-only border probe now records
+the first subkey, every entry's data type, list insertion, border type and
+allocation, name lookup/assignment, settings application, and final list
+storage. Detail resets for this scheme and is capped at 2,048 records plus one
+explicit sentinel. The ordinary SourceScheme load keeps only the existing
+coarse milestones.
+
+The scalable-image implementation separately brackets surface availability,
+texture-ID creation, every resource-field lookup, image-path allocation and
+formatting, texture-file binding, and texture-size lookup. This covers the first
+specialized border type in the shipped `ClientScheme.res`; the outer probe will
+still identify an ordinary or image-border failure before any additional
+implementation-specific instrumentation is needed. Border traversal, object
+selection, allocation order, settings, and resource-loading behavior are
+unchanged.
+
+The focused `vgui2_client` target and full Linux OpenOrbis monolithic target
+compile, and the post-link retention verifier passes. The OELF is 136,252,064
+bytes with SHA-256
+`4625b10a72acafb19c2b0caef2033c312aadde0f718ac78047752e06794b683e`;
+the SELF input is 83,330,304 bytes with SHA-256
+`261b02ffa225f02a66c755f483a3288940eaa483d572e6816245f76f2a2f0864`.
+Eleven of fourteen host tests pass; the same three Linux high-address OpenGNM
+descriptor fixtures fail outside this VGUI scheme-loading path.
 
 ## Runtime topology: two tracks, one production authority
 
