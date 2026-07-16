@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.31
+Version: 3.32
 Size: 103,219,200 bytes
-SHA-256: 40b9643786123b8f9c90f8367713c7b8da0b858325e3085a58e973f7162f3ba0
-Hardware run: v4.65 (2026-07-16), reads SourceScheme from its VPK and crashes while parsing BaseSettings
+SHA-256: 852d34f3ab51177b0b36283696284c7b133eb41c64b913c3608670b08d35a555
+Hardware run: v4.66 (2026-07-16), completes BaseSettings and crashes later in the SourceScheme root parse
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.31
+Version: 3.32
 Size: 103,219,200 bytes
-SHA-256: 40b9643786123b8f9c90f8367713c7b8da0b858325e3085a58e973f7162f3ba0
-Hardware result: v4.65 crashes while parsing SourceScheme `BaseSettings`
+SHA-256: 852d34f3ab51177b0b36283696284c7b133eb41c64b913c3608670b08d35a555
+Hardware result: v4.66 completes `BaseSettings` and crashes later in SourceScheme parsing
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: 852d34f3ab51177b0b36283696284c7b133eb41c64b913c3608670b08d35a555
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: awaiting manual v4.66 install and run
+Hardware result: v4.66 completes `BaseSettings` and crashes later in SourceScheme parsing
 ```
 
 Current hardware baseline:
@@ -7521,8 +7521,25 @@ PkgTool reports every package size, digest, and signature check as `[OK]`, and
 remains at 11/14 with only the known `ps4_gnm_device`, `ps4_gnm_buffer`, and
 `ps4_gnm_constants` baseline failures. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP readback
-matches the local 103,219,200-byte package and SHA-256 above. Manual install and
-hardware execution remain.
+matches the local 103,219,200-byte package and SHA-256 above.
+
+The v4.66 package was installed and run manually. Its single build marker and
+447,617-line, 21,276,467-byte startup log contain all 43 targeted BaseSettings
+breadcrumbs. Root-key creation, error-context reset, the opening section token,
+recursive entry, and all 32 bounded section/key/value events complete. The exact
+final sequence is:
+
+```text
+kisak-ps4: sourcescheme basesettings child recursion returned
+kisak-ps4: gamemodes recursive first child section ready
+```
+
+There is no `gamemodes parser recursive root ready` marker. `BaseSettings`
+therefore parses and returns normally, while the crash remains inside the same
+parent SourceScheme recursion during a later root key or section. The next
+package will trace only root-level key creation, opening tokens, and child
+section entry/return after `BaseSettings`, keeping nested event volume bounded
+and parser behavior unchanged.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
