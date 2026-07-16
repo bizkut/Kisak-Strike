@@ -82,7 +82,7 @@ coverage.
 | Package SHA-256 | `cf2180640940140d995291e391c7ada0293a81796995aa304bbfd9d44fb18ad9` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `6ecbee92` (`Trace PS4 info panel construction`) |
-| Hardware-result commit | pending (`Record v4.95 HTML control crash`) |
+| Hardware-result commit | `4b8078f1` (`Record v4.95 HTML control crash`) |
 
 v4.95 clears the complete `Frame` body and `TextEntry` allocation for the
 default `info` viewport panel. `CTextWindow::CTextWindow` reaches
@@ -148,6 +148,39 @@ time. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
 readbacks match the local SHA-256. Hardware acceptance remains pending manual
 installation and launch.
+
+### v4.96 candidate: retain the plain-text MOTD path on PS4
+
+Package version 3.62 and build marker `ps4_text_motd_v496` identify this
+single-variable candidate. The client build still defines
+`ENABLE_CHROMEHTMLWINDOW` on non-Orbis platforms, but the PS4 client omits it
+after platform detection. The existing disabled branch sets `m_pHTMLMessage` to
+`NULL`; its guarded URL/update paths remain compiled out, while the plain-text
+`TextEntry` path and the v4.95 attribution breadcrumbs remain intact.
+
+Validation before the candidate commit:
+
+- `git diff --check` passes;
+- the full `kisak_ps4_monolithic` target reaches 100%, including its retained
+  interface verification and SELF generation;
+- generated PS4 client flags contain `ENABLE_STUDIO_SOFTBODY` and do not contain
+  `ENABLE_CHROMEHTMLWINDOW`;
+- the executable is 126,552,912 bytes with SHA-256
+  `9c50494f0ac2e0693919510944ee05986177969f26751dd5bee3a3749be63f55`;
+- the OELF is 136,332,640 bytes with SHA-256
+  `2d2695751b5b49f3dc325c6b1e43c90691e84bd22a903c34d95a9be99a9f2dda`;
+- the SELF input is 83,397,872 bytes with SHA-256
+  `8ea7536361f197d041a1e06b36c762d853b0a0460c0b60637f7fdc0d3982f9b7`;
+- binary strings contain the v4.96 marker, `text window constructor html
+  disabled`, and `text window constructor complete`; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
+Hardware acceptance requires the disabled-HTML and constructor-completion
+markers, followed by successful `info` panel allocation and viewport insertion.
+Any later crash must be attributed from the next final breadcrumb; this
+candidate does not authorize renderer expansion before that boundary is known.
 
 ## Runtime topology: two tracks, one production authority
 

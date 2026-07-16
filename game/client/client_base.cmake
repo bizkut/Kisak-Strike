@@ -9,12 +9,15 @@ set(OUTBINDIR "${SRCDIR}/../game/${GAMENAME}/bin")
 set(GENERATED_PROTO_DIR "${SRCDIR}/game/client/generated_proto")
 
 add_definitions(-DNO_STRING_T -DCLIENT_DLL -DVECTOR -DVERSION_SAFE_STEAM_API_INTERFACES -DPROTECTED_THINGS_ENABLE)
-add_definitions(-DENABLE_CHROMEHTMLWINDOW -DENABLE_STUDIO_SOFTBODY)
+add_definitions(-DENABLE_STUDIO_SOFTBODY)
 
 include_directories(${SRCDIR}/game/shared)
 include_directories(./game_controls)
 
 include(${CMAKE_MODULE_PATH}/detect_platform.cmake)
+if(NOT ORBIS)
+    add_definitions(-DENABLE_CHROMEHTMLWINDOW)
+endif()
 include(${CMAKE_MODULE_PATH}/source_dll_base.cmake)
 include(${CMAKE_MODULE_PATH}/protobuf_builder.cmake)
 
