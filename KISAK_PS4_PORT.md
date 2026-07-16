@@ -23,49 +23,48 @@ DLL/PRX ownership assumptions merely because the original code used them.
 
 | Item | Value |
 |---|---|
-| Test | v4.84, 2026-07-16 |
-| Package version | 3.50 |
+| Test | v4.85, 2026-07-16 |
+| Package version | 3.51 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,284,736 bytes |
-| Package SHA-256 | `ce977ddc82105aaefcac08d1c55a24a1bf2d20719ffb608441d9511a3d7ccca7` |
+| Package SHA-256 | `0f9e308e6574ad9280bb6908cc8b72d002e0598232538cf49a62037bf07e2ec3` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `9344e42e` (`Instrument PS4 client particle sheet loading`) |
-| Hardware-result commit | `25014a5a` (`Record v4.84 client mode boundary`) |
+| Candidate commit | `548faf46` (`Instrument PS4 client mode manager startup`) |
+| Hardware-result commit | This v4.85 result record |
 
-v4.84 closes the entire particle-parser boundary. Both the server and client
-`ParseParticleEffects` passes complete with 1,062 definitions, including the
-client material/sheet precache work, and `CParticleMgr::Init` completes. Client
-startup then completes VGUI startup, both front-buffer refreshes, VGUI
-material-system interface setup, game-system registration, and shared activity
-and event-list registration.
+v4.85 proves that `CCSModeManager::Init` is entered, split-screen slot 0 obtains
+its normal client mode, and `PanelMetaClassMgr()` successfully reads and begins
+parsing `scripts/vgui_screens.txt`. The first metaclass is `c4_panel`, but its
+required panel type is absent from `m_PanelTypeDict`. The last durable marker is
+the missing-type marker immediately before the legacy `Warning` call.
 
-The cumulative log is 59,679,126 bytes and 1,218,740 lines with SHA-256
-`b6ba5110fccd70875a3607c33b2e47d105fcfb1eedbc0c782aa640ef7ffd729d`.
-The complete v4.83 log is an exact byte prefix. The v4.84 append is 3,691,447
-bytes and 70,868 lines with SHA-256
-`5f2940211a269c4a1497cd8c8480c033ec276a0a831ac4e9b773045e58f59278`.
+The cumulative log is 63,373,658 bytes and 1,289,652 lines with SHA-256
+`48e2fb26a3c7647e46474e2ea90a24ce36d8ebbb79634931a826f96f2330156e`.
+The complete v4.84 log is an exact byte prefix. The v4.85 append is 3,694,532
+bytes and 70,912 lines with SHA-256
+`48efafa24b7838d83f9a561e4678b0b7a71ebd7c9fe83994aabf40149b765961`.
 
-The last seven client-system milestones are:
+The final client-mode and panel-metaclass milestones are:
 
 ```text
-client game systems vgui startup ready
-client game systems first front buffer ready
-client game systems vgui matsys interfaces ready
-client game systems second front buffer ready
-client game systems registrations ready
-client game systems activity and event lists ready
 client game systems before mode manager init
+kisak-ps4: client mode manager init entered slot=-1
+kisak-ps4: client mode normal mode assigned slot=0
+kisak-ps4: client mode before panel definition load slot=-1
+kisak-ps4: panel meta load file read ready value=0 name=scripts/vgui_screens.txt
+kisak-ps4: panel meta list entry name ready value=0 name=c4_panel
+kisak-ps4: panel meta single type value ready value=0 name=c4_panel
+kisak-ps4: panel meta single before panel type lookup value=0 name=c4_panel
+kisak-ps4: panel meta single panel type missing value=65535 name=c4_panel
 ```
 
-The final marker is immediately before `modemanager->Init()` in
-`game/client/cdll_client_int.cpp`; the following `mode manager ready` marker is
-absent. This does not yet prove virtual dispatch reached
-`CCSModeManager::Init`. The CStrike implementation assigns each split-screen
-client mode through `ACTIVE_SPLITSCREEN_PLAYER_GUARD` and
-`GetClientModeNormal()`, then asks `PanelMetaClassMgr()` to load
-`scripts/vgui_screens.txt`. v4.85 must distinguish function entry, each guard
-and client-mode lookup, manager access, and metaclass-file load before changing
-any of those behaviors.
+`game/client/cstrike15/vgui_c4panel.cpp` declares the matching `c4_panel`
+factory, whose static constructor should call `InstallPanelType`. The runtime
+failure therefore isolates the immediate v4.86 gate to factory registration,
+not renderer, filesystem, KeyValues, or split-screen behavior. Before changing
+startup semantics, inspect the client archive and final OELF to determine
+whether the constructor-only translation unit was discarded, then retain the
+required VGUI factory set through the explicit monolithic composition path.
 
 ### v4.83 result and immediate v4.84 gate
 
@@ -183,6 +182,22 @@ every limit, digest, and signature check `[OK]`. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete FTP
 readbacks match the local size and SHA-256.
 
+### v4.85 result and immediate v4.86 gate
+
+The manual-install run reaches the real `CCSModeManager::Init` body and clears
+normal-client-mode creation, panel-manager access, KeyValues allocation,
+filesystem loading, and the first metaclass traversal. It fails when
+`ParseSingleMetaClass("c4_panel")` cannot find the `c4_panel` factory installed
+by the static object declared in `game/client/cstrike15/vgui_c4panel.cpp`.
+
+The v4.86 gate is monolithic composition closure for the required VGUI panel
+factories. Inspect the client archive and final OELF before editing; if the
+constructor-only object is present only in the archive, retain it through the
+explicit client interface-retention manifest and preflight every type required
+by `scripts/vgui_screens.txt`. Do not treat suppressing the legacy `Warning` as
+the fix: the required factory must be registered, uniquely owned, and usable
+before `CCSModeManager::Init` may report success.
+
 The gate remains open until hardware proves `ClientDLL_Init` completion,
 successful EngineVGui/GameUI hookup, and one complete production
 `eng->Frame()`.
@@ -195,7 +210,7 @@ successful EngineVGui/GameUI hookup, and one complete production
 | Registered runtime | Factory | Purpose | Acceptance status |
 |---|---|---|---|
 | `presentation_engine` | `KisakEngineBootstrapFactory()` | Diagnostic OpenGNM/Scaleform/input loop and rollback target | Hardware validated, but not a production Source-frame result |
-| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware reaches the client mode-manager call boundary; no first frame yet |
+| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware reaches the first `c4_panel` factory lookup inside the real client mode manager; no first frame yet |
 
 The launcher requests production `engine` (`launcher/launcher.cpp:773-820`).
 The presentation loop owns VideoOut and calls `RenderMenuFrame` and
