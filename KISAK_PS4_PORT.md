@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.36
+Version: 3.37
 Size: 103,219,200 bytes
-SHA-256: c3f0166beee4d80af684c2974907f0577f91cbd2acf2fe799f2120c5f672317f
-Hardware run: v4.70 (2026-07-16), crashes inside the unknown-INPUTSWAPAB warning
+SHA-256: 2a024b8993b553c3ea69a56b96af3f2302bfe59fda0a8d0de7a0acc3d2c657b6
+Hardware run: v4.71 (2026-07-16), fixes INPUTSWAPAB and crashes entering custom-font iteration
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.36
+Version: 3.37
 Size: 103,219,200 bytes
-SHA-256: c3f0166beee4d80af684c2974907f0577f91cbd2acf2fe799f2120c5f672317f
-Hardware result: v4.70 reaches `Warning` for unknown `INPUTSWAPAB` but never returns
+SHA-256: 2a024b8993b553c3ea69a56b96af3f2302bfe59fda0a8d0de7a0acc3d2c657b6
+Hardware result: v4.71 reaches `scheme fonts before custom font files` and stops
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: 2a024b8993b553c3ea69a56b96af3f2302bfe59fda0a8d0de7a0acc3d2c657b6
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: awaiting manual v4.71 install and run
+Hardware result: v4.71 reaches `scheme fonts before custom font files` and stops
 ```
 
 Current hardware baseline:
@@ -7794,6 +7794,25 @@ is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
 readback matches the local 103,219,200-byte package and SHA-256 above. Manual
 install and hardware execution remain.
+
+The 2026-07-16 hardware run confirms the v4.71 marker and pad-default marker
+exactly once. It appends 1,048,617 bytes and 19,866 lines to the existing
+startup log, producing a 26,422,061-byte, 545,580-line capture. The targeted
+trace proves the early setter creates symbol 1408, inserts value false into
+the one-entry conditional map, and returns. Three later lookups find the same
+symbol and return false from map index zero. The original compound conditional
+then reaches `runtime-symbol-return`, completes tree construction and
+simplification, frees its tree, and returns false at evaluator event 49.
+`BitmapFontFiles` completes, followed by the remaining root sections and
+successful SourceScheme KeyValues parsing.
+
+The new final marker is `scheme fonts before custom font files`. The next
+source statement chains
+`m_pData->FindKey("CustomFontFiles", true)->GetFirstSubKey()` into the custom
+font loop; `scheme fonts custom font files ready` is absent. The v4.71 repair
+is therefore validated, and the next diagnostic should separate section
+lookup, first-child retrieval, per-entry name/value access, surface lookup,
+and `AddCustomFontFile` return without skipping custom fonts yet.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
