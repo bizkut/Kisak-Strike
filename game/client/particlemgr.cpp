@@ -30,6 +30,13 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_PARTICLE_MGR_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_PARTICLE_MGR_BREADCRUMB( line ) ((void)0)
+#endif
+
 extern IParticleSystemQuery *g_pParticleSystemQuery;
 
 static int g_nParticlesDrawn;
@@ -940,6 +947,7 @@ CEffectMaterial* CParticleEffectBinding::GetEffectMaterial( CParticleSubTexture 
 //-----------------------------------------------------------------------------
 CParticleMgr::CParticleMgr()
 {
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr constructor entered" );
 	m_nToolParticleEffectId = 0;
 	m_bUpdatingEffects = false;
 	m_bRenderParticleEffects = true;
@@ -958,6 +966,7 @@ CParticleMgr::CParticleMgr()
 	m_nCurrentParticlesAllocated = 0;
 
 	SetDefLessFunc( m_effectFactories );
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr constructor complete" );
 }
 
 CParticleMgr::~CParticleMgr()
@@ -971,19 +980,58 @@ CParticleMgr::~CParticleMgr()
 //-----------------------------------------------------------------------------
 bool CParticleMgr::Init(unsigned long count, IMaterialSystem *pMaterials)
 {
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr init entered" );
+	if ( !pMaterials )
+	{
+		PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr material system missing" );
+		return false;
+	}
+	if ( !g_pParticleSystemMgr )
+	{
+		PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr particle system manager missing" );
+		return false;
+	}
+	if ( !g_pParticleSystemQuery )
+	{
+		PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr particle system query missing" );
+		return false;
+	}
+	if ( !engine )
+	{
+		PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr engine interface missing" );
+		return false;
+	}
+
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr before term" );
 	Term();
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr term complete" );
 
 	m_pMaterialSystem = pMaterials;
 
 	// Initialize the particle system
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr before precache policy" );
 	bool bPrecacheParticles = IsPC() && !engine->IsCreatingXboxReslist();
-	g_pParticleSystemMgr->Init( g_pParticleSystemQuery, bPrecacheParticles );
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr precache policy ready" );
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr before core init" );
+	if ( !g_pParticleSystemMgr->Init( g_pParticleSystemQuery, bPrecacheParticles ) )
+	{
+		PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr core init failed" );
+		m_pMaterialSystem = NULL;
+		return false;
+	}
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr core init ready" );
 	// tell particle mgr to add the default simulation + rendering ops
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr before simulation operators" );
 	g_pParticleSystemMgr->AddBuiltinSimulationOperators();
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr simulation operators ready" );
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr before rendering operators" );
 	g_pParticleSystemMgr->AddBuiltinRenderingOperators();
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr rendering operators ready" );
 
 	// Send true to load the sheets
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr before effect parse" );
 	ParseParticleEffects( true );
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr effect parse ready" );
 
 #ifdef TF_CLIENT_DLL
 	if ( IsGameConsole() )
@@ -1007,6 +1055,7 @@ bool CParticleMgr::Init(unsigned long count, IMaterialSystem *pMaterials)
 	}
 #endif
 
+	PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr init complete" );
 	return true;
 }
 
@@ -1039,7 +1088,11 @@ void CParticleMgr::Term(bool bCanReferenceOtherStaticObjects)
 	m_SubTextureGroups.PurgeAndDeleteElements();
 
 	if (bCanReferenceOtherStaticObjects)
+	{
+		PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr term before system uncache" );
 		g_pParticleSystemMgr->UncacheAllParticleSystems();
+		PS4_PARTICLE_MGR_BREADCRUMB( "particle mgr term system uncache ready" );
+	}
 
 	if ( m_pMaterialSystem )
 	{

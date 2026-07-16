@@ -58,20 +58,37 @@ yet distinguish `COM_TimestampedLog`, construction of the function-local
 Init completion, `EngineVGui()->Connect()`, and the first production Source
 frame have not occurred.
 
-### Immediate next hardware gate
+### v4.83 candidate: attribute the ParticleMgr boundary
 
-The next candidate must make the ParticleMgr boundary attributable before
-changing its behavior:
+Package version 3.49 and build marker `particle_mgr_boundary_v483` identify the
+next manual-install test. The serial client path now records completion of
+`COM_TimestampedLog`, evaluates `ParticleMgr()` separately, and fails before
+downstream game systems if the accessor or `CParticleMgr::Init` fails.
+`CParticleMgr` records constructor entry/completion and bounded boundaries
+around `Term`, particle precache policy, shared-manager Init, builtin operator
+registration, and `ParseParticleEffects( true )`. It validates all required
+pointers and now propagates the previously ignored
+`CParticleSystemMgr::Init` failure.
 
-1. Mark after `COM_TimestampedLog`.
-2. Evaluate `ParticleMgr()` separately with before/after markers.
-3. Mark `CParticleMgr::Init` entry and both sides of `Term`,
-   `g_pParticleSystemMgr->Init`, builtin simulation/render operator
-   registration, and `ParseParticleEffects( true )`.
-4. Validate the material/particle-system pointers and propagate a false Init
-   result instead of continuing.
-5. Require `ClientDLL_Init` completion, successful EngineVGui/GameUI hookup,
-   and one complete production `eng->Frame()` before declaring this gate done.
+The Linux OpenOrbis monolithic build completes. The OELF is 136,086,560 bytes
+with SHA-256
+`70adf01cf7f4a4a7825d4950fcbe65b35f37174dd9ef06d835f4be0d31e5bdff`;
+the SELF input is 83,192,528 bytes with SHA-256
+`b717624775407d3e1e41dbeb7a35340a6d9b5bb483a8bef702a73529bcd8ea07`.
+Eleven of fourteen host tests pass. The unchanged three OpenGNM descriptor
+tests use Linux stack addresses above the PS4 descriptor's 44-bit address
+range and fail their pointer round-trip checks; this pre-existing host-fixture
+defect does not exercise the changed client/particle code.
+
+Static and final-OELF inspection also expose the next ownership question: the
+monolith has one `g_pParticleSystemMgr` but two `g_pParticleSystemQuery`
+objects. Server startup initializes the shared manager first, and its Init
+only adopts a non-default query once. Keep v4.83 attribution-only; decide the
+canonical query owner after hardware identifies the actual boundary.
+
+The gate remains open until hardware proves `ClientDLL_Init` completion,
+successful EngineVGui/GameUI hookup, and one complete production
+`eng->Frame()`.
 
 ## Runtime topology: two tracks, one production authority
 

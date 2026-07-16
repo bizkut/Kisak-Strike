@@ -1824,8 +1824,21 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CGlobalVarsBase *pGloba
 		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl serial init path" );
 		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before particle manager init" );
 		COM_TimestampedLog( "ParticleMgr()->Init" );
-		if (!ParticleMgr()->Init(MAX_TOTAL_PARTICLES, materials))
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl particle timestamp ready" );
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before particle manager accessor" );
+		CParticleMgr *pParticleMgr = ParticleMgr();
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl particle manager accessor ready" );
+		if ( !pParticleMgr )
+		{
+			PS4_HLCLIENT_INIT_BREADCRUMB( "client impl particle manager accessor failed" );
 			return false;
+		}
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before particle manager init call" );
+		if ( !pParticleMgr->Init( MAX_TOTAL_PARTICLES, materials ) )
+		{
+			PS4_HLCLIENT_INIT_BREADCRUMB( "client impl particle manager init failed" );
+			return false;
+		}
 		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl particle manager ready" );
 		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before serial game systems" );
 		COM_TimestampedLog( "InitGameSystems - Start" );
