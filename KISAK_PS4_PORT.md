@@ -38,20 +38,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.42
+Version: 3.43
 Size: 103,219,200 bytes
-SHA-256: ab2f0949e6eab093fbb0eaa73f742299021dc719569bc3b7c18b094074a6f87a
-Hardware run: v4.76 (2026-07-16), isolates GameUI's `gameui_xbox` ConVarRef construction
+SHA-256: c47d2e20730a7e0a2c6ae53afa0a957a3c4c69e9ad7ad9701b4e3516eb8f76dd
+Hardware run: v4.77 (2026-07-16), reaches base-panel AnimationController construction
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.42
+Version: 3.43
 Size: 103,219,200 bytes
-SHA-256: ab2f0949e6eab093fbb0eaa73f742299021dc719569bc3b7c18b094074a6f87a
-Hardware result: v4.76 stops inside `CGameUIConVarRef("gameui_xbox")`
+SHA-256: c47d2e20730a7e0a2c6ae53afa0a957a3c4c69e9ad7ad9701b4e3516eb8f76dd
+Hardware result: v4.77 stops inside the `AnimationController` constructor
 ```
 
 Latest package staged for manual install and hardware test:
@@ -63,7 +63,7 @@ Size: 103,219,200 bytes
 SHA-256: c47d2e20730a7e0a2c6ae53afa0a957a3c4c69e9ad7ad9701b4e3516eb8f76dd
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: pending; v4.77 bypasses the PS4 `gameui_xbox` wrapper
+Hardware result: v4.77 stops inside the `AnimationController` constructor
 ```
 
 Current hardware baseline:
@@ -8283,6 +8283,36 @@ readback reports 103,219,200 bytes and the same SHA-256 above. Hardware success
 begins with the `gameui init PS4 console UI policy ready` and
 `console ui value=1` markers; the remaining trace will locate the next
 boundary if initialization still does not reach intro/menu construction.
+
+The 2026-07-16 hardware run confirms the v4.77 build marker and direct-policy
+breadcrumb exactly once. The v4.76 log is an exact 35,182,095-byte prefix of
+the new capture. This run appends 2,756,916 bytes and 56,437 lines with
+SHA-256
+`20dcc24971ecdf2eeba1bc44a6eeca0e9570bb33c0c4e3e3aab030d8acf22f4c`,
+producing a 37,939,011-byte, 776,636-line log with SHA-256
+`1a7d6706f3aa29a2f9e34cbb32d302516575a6911d5da6600226532ae06cbc14`.
+
+The run clears every v4.76 boundary. The direct PS4 console-UI policy reports
+value 1; both VGUI interface initializers return; mod info and localization
+return; all four required factory queries succeed; and required-interface
+validation completes. The final GameUI-level marker is
+`gameui init before base panel construct`; `gameui init base panel
+constructed` is absent.
+
+The final log sequence contains two complete generic
+`vgui::Panel(Panel *, const char *)` base constructions. Source order maps
+the first to `CBaseModPanel` itself. After scalar initialization,
+`CBaseModPanel` enters its console-UI branch and executes
+`new AnimationController(this)`; that object's inherited `Panel`
+construction is the second sequence. Its final
+`panel named constructor complete` marker is the last log line, proving the
+crash is inside the `AnimationController` constructor body after its base
+class returns and before the allocation expression returns to
+`CBaseModPanel`. The unbounded candidates are its initial field assignments,
+`SetVisible(false)`, `SetProportional(true)`, and the eight
+`g_ScriptSymbols.AddString` calls. v4.78 will instrument those operations and
+the remaining base-panel constructor stages without treating inherited PC or
+Xbox control flow as a PS4 constraint.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
