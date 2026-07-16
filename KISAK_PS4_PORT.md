@@ -23,46 +23,49 @@ DLL/PRX ownership assumptions merely because the original code used them.
 
 | Item | Value |
 |---|---|
-| Test | v4.83, 2026-07-16 |
-| Package version | 3.49 |
+| Test | v4.84, 2026-07-16 |
+| Package version | 3.50 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,284,736 bytes |
-| Package SHA-256 | `8d8210b33b18a7eb3c1ea3cfb6372c3f43ac1d743d4f960c7b0f072bb7114be6` |
+| Package SHA-256 | `ce977ddc82105aaefcac08d1c55a24a1bf2d20719ffb608441d9511a3d7ccca7` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `d0bb9c97` (`Instrument PS4 particle manager startup`) |
-| Hardware-result commit | `a724a805` (`Record v4.83 particle parse boundary`) |
+| Candidate commit | `9344e42e` (`Instrument PS4 client particle sheet loading`) |
+| Hardware-result commit | Pending (this checkpoint) |
 
-v4.83 closes the broad ParticleMgr boundary. The function-local manager was
-already constructed during the ordinary constructor walk. Client cleanup,
-precache-policy evaluation, shared `CParticleSystemMgr::Init`, and both builtin
-operator registrations all complete.
+v4.84 closes the entire particle-parser boundary. Both the server and client
+`ParseParticleEffects` passes complete with 1,062 definitions, including the
+client material/sheet precache work, and `CParticleMgr::Init` completes. Client
+startup then completes VGUI startup, both front-buffer refreshes, VGUI
+material-system interface setup, game-system registration, and shared activity
+and event-list registration.
 
-The cumulative log is 55,987,679 bytes and 1,147,872 lines with SHA-256
-`f86aa25d4ab0c240f75220aa18c637b3c4ab5542c2222c4ab53975268e9bbca2`.
-The complete v4.82 log is an exact byte prefix. The v4.83 append is 3,086,354
-bytes and 63,579 lines with SHA-256
-`0607d73b3d0a0b6ed34e16ec603d727f3cf3e54ab0a6e1b07f4eb4d6c18c4725`.
+The cumulative log is 59,679,126 bytes and 1,218,740 lines with SHA-256
+`b6ba5110fccd70875a3607c33b2e47d105fcfb1eedbc0c782aa640ef7ffd729d`.
+The complete v4.83 log is an exact byte prefix. The v4.84 append is 3,691,447
+bytes and 70,868 lines with SHA-256
+`5f2940211a269c4a1497cd8c8480c033ec276a0a831ac4e9b773045e58f59278`.
 
-The last seven markers are:
+The last seven client-system milestones are:
 
 ```text
-particle mgr before core init
-particle mgr core init ready
-particle mgr before simulation operators
-particle mgr simulation operators ready
-particle mgr before rendering operators
-particle mgr rendering operators ready
-particle mgr before effect parse
+client game systems vgui startup ready
+client game systems first front buffer ready
+client game systems vgui matsys interfaces ready
+client game systems second front buffer ready
+client game systems registrations ready
+client game systems activity and event lists ready
+client game systems before mode manager init
 ```
 
-The final marker is immediately before `ParseParticleEffects( true )` in
-`game/client/particlemgr.cpp`; its completion marker is absent. The client
-parse's existing detailed PS4 probe is intentionally disabled when sheets are
-loaded, so this result does not yet prove entry into the function body or which
-manifest/config/decommit step failed. Earlier in the same process, the server
-parse completed the same 30-entry manifest and reached 1,062 definitions. The
-client sets render-sheet loading true, so the same forced-precache `!` entries
-enter sheet/material work that the server bypassed.
+The final marker is immediately before `modemanager->Init()` in
+`game/client/cdll_client_int.cpp`; the following `mode manager ready` marker is
+absent. This does not yet prove virtual dispatch reached
+`CCSModeManager::Init`. The CStrike implementation assigns each split-screen
+client mode through `ACTIVE_SPLITSCREEN_PLAYER_GUARD` and
+`GetClientModeNormal()`, then asks `PanelMetaClassMgr()` to load
+`scripts/vgui_screens.txt`. v4.85 must distinguish function entry, each guard
+and client-mode lookup, manager access, and metaclass-file load before changing
+any of those behaviors.
 
 ### v4.83 result and immediate v4.84 gate
 
@@ -137,6 +140,16 @@ every limit, digest, and signature check `[OK]`. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete FTP
 readbacks match the local size and SHA-256.
 
+### v4.84 result and immediate v4.85 gate
+
+The manual-install run proves the particle subsystem was not the v4.83 crash
+source: both bounded parse probes reach `complete`, and the client ParticleMgr
+and several later client-system phases finish. The next candidate is restricted
+to bounded `CCSModeManager::Init` and panel-metaclass-loader attribution. A
+missing function-entry marker will implicate the `modemanager` dispatch or
+ownership; a present marker will isolate the split-screen client-mode setup or
+`scripts/vgui_screens.txt` loading.
+
 The gate remains open until hardware proves `ClientDLL_Init` completion,
 successful EngineVGui/GameUI hookup, and one complete production
 `eng->Frame()`.
@@ -149,7 +162,7 @@ successful EngineVGui/GameUI hookup, and one complete production
 | Registered runtime | Factory | Purpose | Acceptance status |
 |---|---|---|---|
 | `presentation_engine` | `KisakEngineBootstrapFactory()` | Diagnostic OpenGNM/Scaleform/input loop and rollback target | Hardware validated, but not a production Source-frame result |
-| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware reaches client ParticleMgr initialization; no first frame yet |
+| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware reaches the client mode-manager call boundary; no first frame yet |
 
 The launcher requests production `engine` (`launcher/launcher.cpp:773-820`).
 The presentation loop owns VideoOut and calls `RenderMenuFrame` and
@@ -188,7 +201,7 @@ Use these terms consistently:
 | Scaleform Legals -> StartScreen -> MainMenu, movies, vector/image/text rendering | Yes | No: Source Scaleform is disabled and the PS4 bootstrap uses a separate interface | Presentation only | Same boot/menu sequence from Source frames |
 | DualShock polling and Source `InputEvent_t` translation | Yes | Yes in code | Presentation UI only | Navigate Source-owned menu and drive a user command |
 | Main-menu action routing | Partial: 1 of about 20 | Diagnostic only | Offline-dialog action in presentation | Complete actions needed for boot, options, offline launch, pause, and quit |
-| Source server/client startup | Yes, still being closed | Yes | Through client ParticleMgr boundary | Client Init + EngineVGui + first `eng->Frame()` |
+| Source server/client startup | Yes, still being closed | Yes | Through client mode-manager call boundary | Client Init + EngineVGui + first `eng->Frame()` |
 | Offline request parser and queue | Yes | Split: diagnostic menu produces it; the production MainLoop consumer is compiled but not reached | Presentation producer only | Add a Source-owned producer, then hardware-prove the consumer through `Host_NewGame` |
 | Listen server, local client, spawn, input, world frame | Existing Source path, not PS4 accepted | Not end-to-end | No | One controllable player and one presented `cs_office` frame |
 | Audio | Existing engine path, PS4 completion pending | Partial | No combined acceptance | Audible offline frame without destabilizing render/input |
