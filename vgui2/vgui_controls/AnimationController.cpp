@@ -30,6 +30,31 @@
 
 using namespace vgui;
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_ANIMATION_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+
+static int KisakPs4AnimationCtorStage( const char *line )
+{
+	PS4_ANIMATION_BREADCRUMB( line );
+	return 0;
+}
+
+static bool KisakPs4IsAnimationControllerClass( const char *className )
+{
+	return className && !Q_strcmp( className, "AnimationController" );
+}
+
+static bool KisakPs4IsPanelClass( const char *className )
+{
+	return className && !Q_strcmp( className, "Panel" );
+}
+
+static bool g_bKisakPs4AnimationMapTrace = false;
+#else
+#define PS4_ANIMATION_BREADCRUMB( line ) ((void)0)
+#endif
+
 static CUtlSymbolTable g_ScriptSymbols(0, 128, true);
 
 // singleton accessor for animation controller for use by the vgui controls
@@ -45,31 +70,56 @@ AnimationController *GetAnimationController()
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
+#if defined( PLATFORM_PS4 )
+AnimationController::AnimationController(Panel *parent) :
+	BaseClass(parent, NULL),
+	m_Sequences( KisakPs4AnimationCtorStage( "kisak-ps4: animation controller before sequences vector" ), 0 ),
+	m_ActiveAnimations( KisakPs4AnimationCtorStage( "kisak-ps4: animation controller before active vector" ), 0 ),
+	m_PostedMessages( KisakPs4AnimationCtorStage( "kisak-ps4: animation controller before posted vector" ), 0 ),
+	m_ScriptFileNames( KisakPs4AnimationCtorStage( "kisak-ps4: animation controller before script names vector" ), 0 )
+#else
 AnimationController::AnimationController(Panel *parent) : BaseClass(parent, NULL)
+#endif
 {
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller body entered" );
 	m_hSizePanel = 0;
 	m_nScreenBounds[ 0 ] = m_nScreenBounds[ 1 ] = -1;
 	m_nScreenBounds[ 2 ] = m_nScreenBounds[ 3 ] = -1;
 
 	m_bAutoReloadScript = false;
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller state ready" );
 
 	// always invisible
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller before SetVisible" );
 	SetVisible(false);
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller SetVisible returned" );
 
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller before SetProportional" );
 	SetProportional(true);
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller SetProportional returned" );
 
 	// get the names of common types
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller before symbol position" );
 	m_sPosition = g_ScriptSymbols.AddString("position");
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller symbol position ready" );
 	m_sSize = g_ScriptSymbols.AddString("size"); 
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller symbol size ready" );
 	m_sFgColor = g_ScriptSymbols.AddString("fgcolor"); 
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller symbol fgcolor ready" );
 	m_sBgColor = g_ScriptSymbols.AddString("bgcolor");
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller symbol bgcolor ready" );
 
 	m_sXPos = g_ScriptSymbols.AddString("xpos");
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller symbol xpos ready" );
 	m_sYPos = g_ScriptSymbols.AddString("ypos");
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller symbol ypos ready" );
 	m_sWide = g_ScriptSymbols.AddString("wide");
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller symbol wide ready" );
 	m_sTall = g_ScriptSymbols.AddString("tall");
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller symbol tall ready" );
 
 	m_flCurrentTime = 0.0f;
+	PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller complete" );
 }
 
 //-----------------------------------------------------------------------------
@@ -1558,15 +1608,61 @@ PanelAnimationMap *CPanelAnimationDictionary::FindPanelAnimationMap( char const 
 //-----------------------------------------------------------------------------
 PanelAnimationMap *CPanelAnimationDictionary::FindOrAddPanelAnimationMap( char const *className )
 {
+#if defined( PLATFORM_PS4 )
+	const bool bTraceAnimationController = KisakPs4IsAnimationControllerClass( className );
+	if ( bTraceAnimationController )
+	{
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation map dictionary lookup entered" );
+	}
+#endif
 	PanelAnimationMap *map = FindPanelAnimationMap( className );
 	if ( map )
+	{
+#if defined( PLATFORM_PS4 )
+		if ( bTraceAnimationController )
+		{
+			PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation map dictionary existing map" );
+		}
+#endif
 		return map;
+	}
 
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation map dictionary before property converters" );
+	}
+#endif
 	Panel::InitPropertyConverters();
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation map dictionary property converters returned" );
+	}
+#endif
 
 	PanelAnimationMapDictionaryEntry entry;
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation map dictionary before pool alloc" );
+	}
+#endif
 	entry.map = (PanelAnimationMap *)m_PanelAnimationMapPool.Alloc();
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation map dictionary pool alloc returned" );
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation map dictionary before insert" );
+	}
+#endif
 	m_AnimationMaps.Insert( StripNamespace( className ), entry );
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation map dictionary insert returned" );
+	}
+#endif
 	return entry.map;
 }
 
@@ -1626,7 +1722,19 @@ void CPanelAnimationDictionary::PanelAnimationDumpVars( char const *className )
 //-----------------------------------------------------------------------------
 CPanelAnimationDictionary& GetPanelAnimationDictionary()
 {
+#if defined( PLATFORM_PS4 )
+	if ( g_bKisakPs4AnimationMapTrace )
+	{
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation map dictionary accessor entered" );
+	}
+#endif
 	static CPanelAnimationDictionary dictionary;
+#if defined( PLATFORM_PS4 )
+	if ( g_bKisakPs4AnimationMapTrace )
+	{
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation map dictionary accessor ready" );
+	}
+#endif
 	return dictionary;
 }
 
@@ -1635,7 +1743,32 @@ CPanelAnimationDictionary& GetPanelAnimationDictionary()
 //-----------------------------------------------------------------------------
 PanelAnimationMap *FindOrAddPanelAnimationMap( char const *className )
 {
-	return GetPanelAnimationDictionary().FindOrAddPanelAnimationMap( className );
+#if defined( PLATFORM_PS4 )
+	const bool bTraceAnimationController = KisakPs4IsAnimationControllerClass( className );
+	const bool bTracePanelBase = g_bKisakPs4AnimationMapTrace && KisakPs4IsPanelClass( className );
+	if ( bTraceAnimationController )
+	{
+		g_bKisakPs4AnimationMapTrace = true;
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller animation map entered" );
+	}
+	else if ( bTracePanelBase )
+	{
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller animation base map entered" );
+	}
+#endif
+	PanelAnimationMap *map = GetPanelAnimationDictionary().FindOrAddPanelAnimationMap( className );
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller animation map returned" );
+	}
+	else if ( bTracePanelBase )
+	{
+		PS4_ANIMATION_BREADCRUMB( "kisak-ps4: animation controller animation base map returned" );
+		g_bKisakPs4AnimationMapTrace = false;
+	}
+#endif
+	return map;
 }
 
 //-----------------------------------------------------------------------------

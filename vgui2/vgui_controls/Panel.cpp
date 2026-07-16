@@ -44,6 +44,19 @@
 #if defined( PLATFORM_PS4 )
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 #define PS4_PANEL_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+
+static bool KisakPs4IsAnimationControllerClass( const char *className )
+{
+	return className && !Q_strcmp( className, "AnimationController" );
+}
+
+static bool KisakPs4IsPanelClass( const char *className )
+{
+	return className && !Q_strcmp( className, "Panel" );
+}
+
+static bool g_bKisakPs4AnimationMessageMapTrace = false;
+static bool g_bKisakPs4AnimationKeyBindingMapTrace = false;
 #else
 #define PS4_PANEL_BREADCRUMB( line ) ((void)0)
 #endif
@@ -8572,15 +8585,62 @@ PanelMessageMap *CPanelMessageMapDictionary::FindPanelMessageMap( char const *cl
 //-----------------------------------------------------------------------------
 PanelMessageMap *CPanelMessageMapDictionary::FindOrAddPanelMessageMap( char const *className )
 {
+#if defined( PLATFORM_PS4 )
+	const bool bTraceAnimationController = KisakPs4IsAnimationControllerClass( className );
+	if ( bTraceAnimationController )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: message map dictionary lookup entered" );
+	}
+#endif
 	PanelMessageMap *map = FindPanelMessageMap( className );
 	if ( map )
+	{
+#if defined( PLATFORM_PS4 )
+		if ( bTraceAnimationController )
+		{
+			PS4_PANEL_BREADCRUMB( "kisak-ps4: message map dictionary existing map" );
+		}
+#endif
 		return map;
+	}
 
 	PanelMessageMapDictionaryEntry entry;
 	// use the alloc in place method of new
-	entry.map = new (m_PanelMessageMapPool.Alloc(sizeof(PanelMessageMap))) PanelMessageMap;
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: message map dictionary before pool alloc" );
+		void *pMapMemory = m_PanelMessageMapPool.Alloc( sizeof( PanelMessageMap ) );
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: message map dictionary pool alloc returned" );
+		entry.map = new (pMapMemory) PanelMessageMap;
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: message map dictionary placement new returned" );
+	}
+	else
+#endif
+	{
+		entry.map = new (m_PanelMessageMapPool.Alloc(sizeof(PanelMessageMap))) PanelMessageMap;
+	}
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: message map dictionary before Construct" );
+	}
+#endif
 	Construct(entry.map);
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: message map dictionary Construct returned" );
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: message map dictionary before insert" );
+	}
+#endif
 	m_MessageMaps.Insert( StripNamespace( className ), entry );
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: message map dictionary insert returned" );
+	}
+#endif
 	return entry.map;
 }
 #include <tier0/memdbgon.h>
@@ -8641,15 +8701,62 @@ PanelKeyBindingMap *CPanelKeyBindingMapDictionary::FindPanelKeyBindingMap( char 
 //-----------------------------------------------------------------------------
 PanelKeyBindingMap *CPanelKeyBindingMapDictionary::FindOrAddPanelKeyBindingMap( char const *className )
 {
+#if defined( PLATFORM_PS4 )
+	const bool bTraceAnimationController = KisakPs4IsAnimationControllerClass( className );
+	if ( bTraceAnimationController )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary lookup entered" );
+	}
+#endif
 	PanelKeyBindingMap *map = FindPanelKeyBindingMap( className );
 	if ( map )
+	{
+#if defined( PLATFORM_PS4 )
+		if ( bTraceAnimationController )
+		{
+			PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary existing map" );
+		}
+#endif
 		return map;
+	}
 
 	PanelKeyBindingMapDictionaryEntry entry;
 	// use the alloc in place method of new
-	entry.map = new (m_PanelKeyBindingMapPool.Alloc(sizeof(PanelKeyBindingMap))) PanelKeyBindingMap;
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary before pool alloc" );
+		void *pMapMemory = m_PanelKeyBindingMapPool.Alloc( sizeof( PanelKeyBindingMap ) );
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary pool alloc returned" );
+		entry.map = new (pMapMemory) PanelKeyBindingMap;
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary placement new returned" );
+	}
+	else
+#endif
+	{
+		entry.map = new (m_PanelKeyBindingMapPool.Alloc(sizeof(PanelKeyBindingMap))) PanelKeyBindingMap;
+	}
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary before Construct" );
+	}
+#endif
 	Construct(entry.map);
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary Construct returned" );
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary before insert" );
+	}
+#endif
 	m_MessageMaps.Insert( StripNamespace( className ), entry );
+#if defined( PLATFORM_PS4 )
+	if ( bTraceAnimationController )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary insert returned" );
+	}
+#endif
 	return entry.map;
 }
 
@@ -8657,7 +8764,19 @@ PanelKeyBindingMap *CPanelKeyBindingMapDictionary::FindOrAddPanelKeyBindingMap( 
 
 CPanelKeyBindingMapDictionary& GetPanelKeyBindingMapDictionary()
 {
+#if defined( PLATFORM_PS4 )
+	if ( g_bKisakPs4AnimationKeyBindingMapTrace )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary accessor entered" );
+	}
+#endif
 	static CPanelKeyBindingMapDictionary dictionary;
+#if defined( PLATFORM_PS4 )
+	if ( g_bKisakPs4AnimationKeyBindingMapTrace )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary accessor ready" );
+	}
+#endif
 	return dictionary;
 }
 
@@ -8665,7 +8784,19 @@ CPanelKeyBindingMapDictionary& GetPanelKeyBindingMapDictionary()
 
 CPanelMessageMapDictionary& GetPanelMessageMapDictionary()
 {
+#if defined( PLATFORM_PS4 )
+	if ( g_bKisakPs4AnimationMessageMapTrace )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: message map dictionary accessor entered" );
+	}
+#endif
 	static CPanelMessageMapDictionary dictionary;
+#if defined( PLATFORM_PS4 )
+	if ( g_bKisakPs4AnimationMessageMapTrace )
+	{
+		PS4_PANEL_BREADCRUMB( "kisak-ps4: message map dictionary accessor ready" );
+	}
+#endif
 	return dictionary;
 }
 
@@ -8677,7 +8808,32 @@ namespace vgui
 	//-----------------------------------------------------------------------------
 	PanelMessageMap *FindOrAddPanelMessageMap( char const *className )
 	{
-		return GetPanelMessageMapDictionary().FindOrAddPanelMessageMap( className );
+#if defined( PLATFORM_PS4 )
+		const bool bTraceAnimationController = KisakPs4IsAnimationControllerClass( className );
+		const bool bTracePanelBase = g_bKisakPs4AnimationMessageMapTrace && KisakPs4IsPanelClass( className );
+		if ( bTraceAnimationController )
+		{
+			g_bKisakPs4AnimationMessageMapTrace = true;
+			PS4_PANEL_BREADCRUMB( "kisak-ps4: animation controller message map entered" );
+		}
+		else if ( bTracePanelBase )
+		{
+			PS4_PANEL_BREADCRUMB( "kisak-ps4: animation controller message base map entered" );
+		}
+#endif
+		PanelMessageMap *map = GetPanelMessageMapDictionary().FindOrAddPanelMessageMap( className );
+#if defined( PLATFORM_PS4 )
+		if ( bTraceAnimationController )
+		{
+			PS4_PANEL_BREADCRUMB( "kisak-ps4: animation controller message map returned" );
+		}
+		else if ( bTracePanelBase )
+		{
+			PS4_PANEL_BREADCRUMB( "kisak-ps4: animation controller message base map returned" );
+			g_bKisakPs4AnimationMessageMapTrace = false;
+		}
+#endif
+		return map;
 	}
 
 	//-----------------------------------------------------------------------------
@@ -8691,7 +8847,19 @@ namespace vgui
 #if defined( VGUI_USEKEYBINDINGMAPS )
 	CPanelKeyBindingMapDictionary& GetPanelKeyBindingMapDictionary()
 	{
+#if defined( PLATFORM_PS4 )
+		if ( g_bKisakPs4AnimationKeyBindingMapTrace )
+		{
+			PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary accessor entered" );
+		}
+#endif
 		static CPanelKeyBindingMapDictionary dictionary;
+#if defined( PLATFORM_PS4 )
+		if ( g_bKisakPs4AnimationKeyBindingMapTrace )
+		{
+			PS4_PANEL_BREADCRUMB( "kisak-ps4: keybinding map dictionary accessor ready" );
+		}
+#endif
 		return dictionary;
 	}
 	//-----------------------------------------------------------------------------
@@ -8699,7 +8867,32 @@ namespace vgui
 	//-----------------------------------------------------------------------------
 	PanelKeyBindingMap *FindOrAddPanelKeyBindingMap( char const *className )
 	{
-		return GetPanelKeyBindingMapDictionary().FindOrAddPanelKeyBindingMap( className );
+#if defined( PLATFORM_PS4 )
+		const bool bTraceAnimationController = KisakPs4IsAnimationControllerClass( className );
+		const bool bTracePanelBase = g_bKisakPs4AnimationKeyBindingMapTrace && KisakPs4IsPanelClass( className );
+		if ( bTraceAnimationController )
+		{
+			g_bKisakPs4AnimationKeyBindingMapTrace = true;
+			PS4_PANEL_BREADCRUMB( "kisak-ps4: animation controller keybinding map entered" );
+		}
+		else if ( bTracePanelBase )
+		{
+			PS4_PANEL_BREADCRUMB( "kisak-ps4: animation controller keybinding base map entered" );
+		}
+#endif
+		PanelKeyBindingMap *map = GetPanelKeyBindingMapDictionary().FindOrAddPanelKeyBindingMap( className );
+#if defined( PLATFORM_PS4 )
+		if ( bTraceAnimationController )
+		{
+			PS4_PANEL_BREADCRUMB( "kisak-ps4: animation controller keybinding map returned" );
+		}
+		else if ( bTracePanelBase )
+		{
+			PS4_PANEL_BREADCRUMB( "kisak-ps4: animation controller keybinding base map returned" );
+			g_bKisakPs4AnimationKeyBindingMapTrace = false;
+		}
+#endif
+		return map;
 	}
 
 	//-----------------------------------------------------------------------------

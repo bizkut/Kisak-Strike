@@ -114,6 +114,12 @@ using namespace vgui;
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_BASEPANEL_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_BASEPANEL_BREADCRUMB( line ) ((void)0)
+#endif
 
 #define MAIN_MENU_INDENT_X360 10
 
@@ -528,6 +534,7 @@ bool g_bIsCreatingNewGameMenuForPreFetching = false;
 //-----------------------------------------------------------------------------
 CBaseModPanel::CBaseModPanel( const char *panelName ) : Panel(NULL, panelName )
 {	
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel body entered" );
 	g_pBasePanel = this;
 	m_bLevelLoading = false;
 	m_eBackgroundState = BACKGROUND_INITIAL;
@@ -593,6 +600,7 @@ CBaseModPanel::CBaseModPanel( const char *panelName ) : Panel(NULL, panelName )
     m_bIntroMovieWaitForButtonToClear = false;
 
 	m_primaryUserId = -1;
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel initial state ready" );
 
 	// any platforms that go straight to main menu, no start screen, should set this flag:
 	if ( CommandLine()->FindParm( "-nostartscreen" ) || 
@@ -620,21 +628,61 @@ CBaseModPanel::CBaseModPanel( const char *panelName ) : Panel(NULL, panelName )
 		m_bScaleformMainMenuEnabled = false;
 	}
 
+#if defined( PLATFORM_PS4 )
+	PS4_BASEPANEL_BREADCRUMB(
+		m_bBypassStartScreen
+			? "kisak-ps4: basepanel bypass start screen value=1"
+			: "kisak-ps4: basepanel bypass start screen value=0" );
+	PS4_BASEPANEL_BREADCRUMB(
+		m_bShowStartScreen
+			? "kisak-ps4: basepanel show start screen value=1"
+			: "kisak-ps4: basepanel show start screen value=0" );
+#endif
+
 	if ( GameUI().IsConsoleUI() )
 	{
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel console UI branch entered" );
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel before animation controller new" );
 		m_pConsoleAnimationController = new AnimationController( this );
-		m_pConsoleAnimationController->SetScriptFile( GetVPanel(), "scripts/GameUIAnimations.txt" );
-		m_pConsoleAnimationController->SetAutoReloadScript( IsDebug() );
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel animation controller new returned" );
 
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel before animation script file" );
+#if defined( PLATFORM_PS4 )
+		if ( m_pConsoleAnimationController->SetScriptFile( GetVPanel(), "scripts/GameUIAnimations.txt" ) )
+		{
+			PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel animation script file loaded" );
+		}
+		else
+		{
+			PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel animation script file missing" );
+		}
+#else
+		m_pConsoleAnimationController->SetScriptFile( GetVPanel(), "scripts/GameUIAnimations.txt" );
+#endif
+		m_pConsoleAnimationController->SetAutoReloadScript( IsDebug() );
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel animation auto reload ready" );
+
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel before console settings new" );
 		m_pConsoleControlSettings = new KeyValues( "XboxDialogs.res" );
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel console settings new returned" );
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel before console settings load" );
 		if ( !m_pConsoleControlSettings->LoadFromFile( g_pFullFileSystem, "resource/UI/XboxDialogs.res", "GAME" ) )
 		{
+			PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel console settings load failed" );
 			Error( "Failed to load UI control settings!\n" );
 		}
+		else
+		{
+			PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel console settings loaded" );
+		}
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel console UI branch complete" );
 	}
 
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel before menu buttons" );
 	m_pGameMenuButtons.AddToTail( CreateMenuButton( this, "GameMenuButton", ModInfo().GetGameTitle() ) );
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel first menu button ready" );
 	m_pGameMenuButtons.AddToTail( CreateMenuButton( this, "GameMenuButton2", ModInfo().GetGameTitle2() ) );
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel second menu button ready" );
 #ifdef CS_BETA
 	if ( !ModInfo().NoCrosshair() ) // hack to not show the BETA for HL2 or HL1Port
 	{
@@ -658,23 +706,32 @@ CBaseModPanel::CBaseModPanel( const char *panelName ) : Panel(NULL, panelName )
 // 		SteamClient()->BReleaseSteamPipe( steamPipe );
 // 	}
 
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel before CreateGameMenu" );
 	CreateGameMenu();
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel CreateGameMenu returned" );
 	CreateGameLogo();
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel CreateGameLogo returned" );
 
 	// Bonus maps menu blinks if something has been unlocked since the player last opened the menu
 	// This is saved as persistant data, and here is where we check for that
 	CheckBonusBlinkState();
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel bonus blink ready" );
 
 	// start the menus fully transparent
 	SetMenuAlpha( 0 );
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel menu alpha ready" );
 
 	if ( GameUI().IsConsoleUI() )
 	{
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel console prefetch entered" );
 		// do any costly resource prefetching now....
 		// force the new dialog to get all of its chapter pics
 		g_bIsCreatingNewGameMenuForPreFetching = true;
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel before new game dialog" );
 		m_hNewGameDialog = new CNewGameDialog( this, false );
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel new game dialog returned" );
 		m_hNewGameDialog->MarkForDeletion();
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel new game dialog marked" );
 		g_bIsCreatingNewGameMenuForPreFetching = false;
 
 #if 0
@@ -690,6 +747,7 @@ CBaseModPanel::CBaseModPanel( const char *panelName ) : Panel(NULL, panelName )
 			ArmFirstMenuItem();
 			m_pConsoleAnimationController->StartAnimationSequence( "InitializeUILayout" );
 		}
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel console prefetch complete" );
 	}
 
 	// Record data used for rich presence updates
@@ -727,8 +785,11 @@ CBaseModPanel::CBaseModPanel( const char *panelName ) : Panel(NULL, panelName )
 //#endif // CSTRIKE15
 	}
 
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel before version labels" );
 	m_pCodeVersionLabel = new Label( this, "CodeVersionLabel", "" );
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel code version label ready" );
 	m_pContentVersionLabel = new Label( this, "ContentVersionLabel", "" );
+	PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel complete" );
 }
 
 //-----------------------------------------------------------------------------
