@@ -61,12 +61,13 @@ kisak-ps4: panel set mouse input complete
 ```
 
 The missing VGUI material family and ClientScheme are no longer blockers. The
-last mouse-input call completes, including `CalculateMouseVisible`, input-context
-enablement, and cursor unlock, but `client game systems viewport init ready`
-never appears. The v4.91 gate is therefore focused on
-`ClientModeCSNormal::InitViewport`, `CounterStrikeViewport::Start`, and
-`CBaseViewport` default-panel creation; it must identify the caller operation
-immediately following the final completed panel input call.
+recorded tail completes a parented child panel's mouse-input call, including
+`CalculateMouseVisible`, input-context enablement, and cursor unlock, but the
+log is exactly 4,194,320 bytes and was opened in append mode. Direct ordering
+shows viewport allocation and many later child panels completed before that
+tail, so it is a logging cutoff rather than a proven crash instruction. The
+v4.91 gate is a fresh, bounded log around normal/fullscreen viewport allocation,
+`CounterStrikeViewport::Start`, default-panel creation, and panel registration.
 
 ### v4.83 result and immediate v4.84 gate
 
@@ -498,12 +499,19 @@ object and reference passes, base-border resolution, scheme-data load, and
 `LoadSchemeFromFileEx` return.
 
 Client game systems then enter viewport initialization. The log continues
-through roughly 2,800 panel, VPanel, and material-surface boundaries. Its final
-operation is a complete `Panel::SetMouseInputEnabled` call: exhaustive popup
-visibility scanning returns, the input context is enabled, the cursor unlocks,
-and `surface()->CalculateMouseVisible()` returns. The enclosing viewport call
-does not return, and neither `client game systems viewport init ready` nor a
-first Source frame appears.
+through thousands of panel, VPanel, and material-surface boundaries. It proves
+the base viewport allocation completes and records many later parented child
+controls. Its final recorded operation is a complete
+`Panel::SetMouseInputEnabled` call: exhaustive popup visibility scanning
+returns, the input context is enabled, the cursor unlocks, and
+`surface()->CalculateMouseVisible()` returns.
+
+That tail is not a reliable crash boundary. The remote file is exactly
+4,194,320 bytes, `OpenStartupLog` used append mode for every run, and breadcrumb
+writes ignored I/O errors. Prefix counts also show that cleared particle,
+ClientScheme, Panel, VPanel, and material-surface probes consumed most of the
+log. The absent `client game systems viewport init ready` marker therefore does
+not prove the enclosing call failed before returning.
 
 The next candidate must attribute the first normal viewport path rather than
 add renderer policy. Add bounded per-slot boundaries around normal and
@@ -512,6 +520,50 @@ fullscreen `InitViewport`, then distinguish `ClientModeCSNormal` allocation,
 panel factory dispatch, and panel registration. A name-aware boundary at the
 completed mouse-input call may be used to identify the last constructed panel;
 do not change viewport behavior until the failing caller statement is proven.
+
+### v4.91 candidate instrumentation
+
+Package version 3.57 and build marker `viewport_start_boundary_v491` identify
+the next manual-install candidate. The startup log is truncated once at process
+entry, while later breadcrumbs continue to append. The central breadcrumb sink
+filters only high-volume diagnostic families whose subsystem gates are already
+closed: particle parse, pending ConVar registration, Panel/VPanel construction,
+material-surface internals, scheme-font helpers, ClientScheme border detail,
+scalable-border detail, material detail, and VGUI texture detail. The mouse
+input completion markers and all new viewport boundaries remain enabled.
+
+The first normal viewport path now distinguishes each split-screen guard,
+normal and fullscreen dispatch, base client-mode initialization, viewport
+allocation, `CounterStrikeViewport::Start`, `CBaseViewport` construction and
+startup, background/event/scheme/default-panel stages, each named panel factory
+and registration operation, animation-controller setup, and HUD-animation load.
+The fullscreen path has equivalent base-only allocation/start boundaries.
+
+An independent read-only audit corrected the initial tail interpretation. The
+base viewport's null-parent input sequence completes hundreds of lines before
+the cap, followed by many named child panels. The capped tail instead matches a
+parented `RichTextInterior` keyboard/mouse sequence, plausibly under the
+`CTextWindow` `TextEntry` allocation. v4.91 keeps this as a hypothesis: the
+factory and allocation-return markers will prove or reject it without changing
+RichText or viewport behavior.
+
+Validation before the candidate commit:
+
+- `git diff --check` passes;
+- the focused `client_client` and `engine_client` archives compile;
+- the full `kisak_ps4_monolithic` target links, and its retention-manifest hook
+  passes;
+- the executable is 126,491,672 bytes with SHA-256
+  `3387b6780c72caf67b98367e8afed28b9f38387b4b9186b0419a2cee56aa2bd8`;
+- the OELF is 136,269,512 bytes with SHA-256
+  `67d0da6f83ebf9acd2af5c9f4ea0d4fd262a515b3409b939c5157553a043e679`;
+- the SELF input is 83,346,720 bytes with SHA-256
+  `7f6d906c9ac90fcdf216474ead907e819a22e27584478d23da0bb2dcb8485f89`;
+- binary string inspection confirms the v4.91 marker and constructor,
+  normal/fullscreen allocation, CS start, and named panel-add boundaries; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`,
+  and `ps4_gnm_constants`).
 
 ## Runtime topology: two tracks, one production authority
 

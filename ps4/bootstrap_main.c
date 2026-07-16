@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 
 extern int sceKernelUsleep( unsigned int microseconds );
@@ -51,6 +52,14 @@ static FILE *OpenStartupLog( void )
     return fopen( "/data/kisak-strike/startup.log", "a" );
 }
 
+static void ResetStartupLog( void )
+{
+    (void)mkdir( "/data/kisak-strike", 0777 );
+    FILE *log = fopen( "/data/kisak-strike/startup.log", "w" );
+    if ( log )
+        fclose( log );
+}
+
 static void LogLine( FILE *log, const char *line )
 {
     if ( !log )
@@ -63,8 +72,37 @@ static void LogLine( FILE *log, const char *line )
 #if defined( KISAK_PS4_MONOLITHIC )
 int g_KisakPs4TraceThreadPool;
 
+static int KisakPs4SuppressClearedStartupDetail( const char *line )
+{
+    if ( !line )
+        return 1;
+
+#define KISAK_PS4_PREFIX_MATCH( prefix ) \
+    ( strncmp( line, prefix, sizeof( prefix ) - 1 ) == 0 )
+
+    return KISAK_PS4_PREFIX_MATCH( "kisak-ps4: particle parse " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: ConVar_Register pending " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: panel init " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: panel named constructor " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: panel set keyboard " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: vpanel " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: vgui panel created " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: vgui alloc panel " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: matsurface " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: scheme font helper " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: client scheme border " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: scalable border " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: material detail " ) ||
+        KISAK_PS4_PREFIX_MATCH( "kisak-ps4: vgui texture " );
+
+#undef KISAK_PS4_PREFIX_MATCH
+}
+
 void KisakPs4StartupBreadcrumb( const char *line )
 {
+    if ( KisakPs4SuppressClearedStartupDetail( line ) )
+        return;
+
     FILE *log = OpenStartupLog();
     LogLine( log, line );
     if ( log )
@@ -77,6 +115,7 @@ int main( int argc, char **argv )
 #if defined( KISAK_PS4_DEV_ATTACH_GATE )
     int devAttachReleased = KisakPs4WaitForDevAttach();
 #endif
+    ResetStartupLog();
     FILE *log = OpenStartupLog();
     LogLine( log, "kisak-ps4: bootstrap entered" );
     LogLine( log, "kisak-ps4: build marker server_shared_protobuf_v446" );

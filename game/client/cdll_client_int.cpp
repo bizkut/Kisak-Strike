@@ -1324,12 +1324,26 @@ CEG_NOINLINE bool InitGameSystems( CreateInterfaceFn appSystemFactory )
 	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before viewport init" );
 	for ( int hh = 0; hh < MAX_SPLITSCREEN_PLAYERS; ++hh )
 	{
+		PS4_HLCLIENT_INIT_BREADCRUMB( hh == 0
+			? "client game systems viewport slot 0 before guard"
+			: "client game systems viewport later slot before guard" );
 		ACTIVE_SPLITSCREEN_PLAYER_GUARD_VGUI( hh );
+		PS4_HLCLIENT_INIT_BREADCRUMB( hh == 0
+			? "client game systems viewport slot 0 guard ready"
+			: "client game systems viewport later slot guard ready" );
+		PS4_HLCLIENT_INIT_BREADCRUMB( hh == 0
+			? "client game systems viewport slot 0 before normal init"
+			: "client game systems viewport later slot before normal init" );
 		GetClientMode()->InitViewport();
+		PS4_HLCLIENT_INIT_BREADCRUMB( hh == 0
+			? "client game systems viewport slot 0 normal init ready"
+			: "client game systems viewport later slot normal init ready" );
 
 		if ( hh == 0 )
 		{
+			PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems viewport slot 0 before fullscreen init" );
 			GetFullscreenClientMode()->InitViewport();
+			PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems viewport slot 0 fullscreen init ready" );
 		}
 	}
 

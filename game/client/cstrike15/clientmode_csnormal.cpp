@@ -839,10 +839,22 @@ void ClientModeCSNormal::OnScreenshotRequested( ScreenshotRequested_t *pParam )
 
 void ClientModeCSNormal::InitViewport()
 {
+	KisakPs4SetClientModeProbeEnabled( true );
+	KisakPs4ClientModeBreadcrumb( "viewport init entered", -1 );
+	KisakPs4ClientModeBreadcrumb( "viewport before base init", -1 );
 	BaseClass::InitViewport();
+	KisakPs4ClientModeBreadcrumb( "viewport base init ready", -1 );
 
+	KisakPs4ClientModeBreadcrumb( "viewport before allocation", -1 );
 	m_pViewport = new CounterStrikeViewport();
+	KisakPs4ClientModeBreadcrumb( m_pViewport
+		? "viewport allocation ready"
+		: "viewport allocation missing", -1 );
+	KisakPs4ClientModeBreadcrumb( "viewport before start", -1 );
 	m_pViewport->Start( gameuifuncs, gameeventmanager );
+	KisakPs4ClientModeBreadcrumb( "viewport start ready", -1 );
+	KisakPs4ClientModeBreadcrumb( "viewport init complete", -1 );
+	KisakPs4SetClientModeProbeEnabled( false );
 }
 
 // dgoodenough - fix GCC shortcoming
@@ -853,13 +865,27 @@ void ClientModeCSNormal::InitViewport()
 // to do this explicitly.
 void ClientModeCSNormal::InitViewport( bool bOnlyBaseClass )
 {
+	KisakPs4SetClientModeProbeEnabled( true );
+	KisakPs4ClientModeBreadcrumb( bOnlyBaseClass
+		? "base-only viewport init entered"
+		: "delegated viewport init entered", -1 );
+	KisakPs4ClientModeBreadcrumb( "delegated viewport before base init", -1 );
 	BaseClass::InitViewport();
+	KisakPs4ClientModeBreadcrumb( "delegated viewport base init ready", -1 );
 
 	if ( !bOnlyBaseClass )
 	{
+		KisakPs4ClientModeBreadcrumb( "delegated viewport before allocation", -1 );
 		m_pViewport = new CounterStrikeViewport();
+		KisakPs4ClientModeBreadcrumb( m_pViewport
+			? "delegated viewport allocation ready"
+			: "delegated viewport allocation missing", -1 );
+		KisakPs4ClientModeBreadcrumb( "delegated viewport before start", -1 );
 		m_pViewport->Start( gameuifuncs, gameeventmanager );
+		KisakPs4ClientModeBreadcrumb( "delegated viewport start ready", -1 );
 	}
+	KisakPs4ClientModeBreadcrumb( "delegated viewport init complete", -1 );
+	KisakPs4SetClientModeProbeEnabled( false );
 }
 
 void ClientModeCSNormal::SetupStaticCameras()
@@ -1984,6 +2010,8 @@ class ClientModeCSFullscreen : public ClientModeCSNormal
 public:
 	virtual void InitViewport()
 	{
+		KisakPs4SetClientModeProbeEnabled( true );
+		KisakPs4ClientModeBreadcrumb( "fullscreen viewport init entered", -1 );
 		// dgoodenough - fix up GCC shortcoming.
 		// PS3_BUILDFIX
 		// FIXME - there may be a way to do this more elegantly under GCC, but for now,
@@ -1991,10 +2019,21 @@ public:
 		// parameter that allows skipping the init on the immediate BaseClass
 		// Skip over BaseClass!!!
 		//BaseClass::BaseClass::InitViewport();
+		KisakPs4ClientModeBreadcrumb( "fullscreen viewport before base-only init", -1 );
 		BaseClass::InitViewport( true );
+		KisakPs4SetClientModeProbeEnabled( true );
+		KisakPs4ClientModeBreadcrumb( "fullscreen viewport base-only init ready", -1 );
 		//BaseClass::InitViewport(  );
+		KisakPs4ClientModeBreadcrumb( "fullscreen viewport before allocation", -1 );
 		m_pViewport = new FullscreenCSViewport();
+		KisakPs4ClientModeBreadcrumb( m_pViewport
+			? "fullscreen viewport allocation ready"
+			: "fullscreen viewport allocation missing", -1 );
+		KisakPs4ClientModeBreadcrumb( "fullscreen viewport before start", -1 );
 		m_pViewport->Start( gameuifuncs, gameeventmanager );
+		KisakPs4ClientModeBreadcrumb( "fullscreen viewport start ready", -1 );
+		KisakPs4ClientModeBreadcrumb( "fullscreen viewport init complete", -1 );
+		KisakPs4SetClientModeProbeEnabled( false );
 	}
 
 	virtual void Init( void );

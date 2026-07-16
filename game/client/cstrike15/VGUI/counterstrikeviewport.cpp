@@ -51,6 +51,13 @@
 #include "basepanel.h"
 #endif
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_CS_VIEWPORT_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_CS_VIEWPORT_BREADCRUMB( line ) ((void)0)
+#endif
+
 ConVar crosshair( "crosshair", "1", FCVAR_ARCHIVE  | FCVAR_SS );
 ConVar cl_disablefreezecam(
         "cl_disablefreezecam",
@@ -265,8 +272,13 @@ CON_COMMAND_F( hidescores, "Forcibly hide score panel", FCVAR_CLIENTCMD_CAN_EXEC
 //-----------------------------------------------------------------------------
 void CounterStrikeViewport::Start( IGameUIFuncs *pGameUIFuncs, IGameEventManager2 * pGameEventManager )
 {
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport start entered" );
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport start before base start" );
 	BaseClass::Start( pGameUIFuncs, pGameEventManager );
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport start base start ready" );
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport start before team state reset" );
 	SetChoseTeamAndClass( false );
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport start complete" );
 }
 
 void CounterStrikeViewport::ApplySchemeSettings( vgui::IScheme *pScheme )
@@ -283,6 +295,7 @@ void CounterStrikeViewport::ApplySchemeSettings( vgui::IScheme *pScheme )
 
 IViewPortPanel* CounterStrikeViewport::CreatePanelByName( const char *szPanelName )
 {
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport panel factory entered" );
 	IViewPortPanel* newpanel = NULL;
 
 	// overwrite MOD specific panel creation
@@ -290,26 +303,41 @@ IViewPortPanel* CounterStrikeViewport::CreatePanelByName( const char *szPanelNam
 #if defined( INCLUDE_SCALEFORM )
     if ( Q_strcmp( PANEL_TEAM, szPanelName ) == 0 )
  	{
+		PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport panel factory before team allocation" );
  		newpanel = new CCSTeamMenuScaleform( this );
+		PS4_CS_VIEWPORT_BREADCRUMB( newpanel
+			? "kisak-ps4: cs viewport panel factory team allocation ready"
+			: "kisak-ps4: cs viewport panel factory team allocation missing" );
  	}
 
 	else
 #endif
     {
 		// create a generic base panel, don't add twice
+		PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport panel factory before base factory" );
 		newpanel = BaseClass::CreatePanelByName( szPanelName );
+		PS4_CS_VIEWPORT_BREADCRUMB( newpanel
+			? "kisak-ps4: cs viewport panel factory base result ready"
+			: "kisak-ps4: cs viewport panel factory base result missing" );
 	}
 
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport panel factory complete" );
 	return newpanel; 
 }
 
 void CounterStrikeViewport::CreateDefaultPanels( void )
 {
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport default panels before team" );
 	AddNewPanel( CreatePanelByName( PANEL_TEAM ), "PANEL_TEAM" );
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport default panels team ready" );
 
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport default panels before buy" );
 	AddNewPanel( CreatePanelByName( PANEL_BUY ), "PANEL_BUY" );
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport default panels buy ready" );
 
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport default panels before base defaults" );
 	BaseClass::CreateDefaultPanels();
+	PS4_CS_VIEWPORT_BREADCRUMB( "kisak-ps4: cs viewport default panels complete" );
 }
 
 int CounterStrikeViewport::GetDeathMessageStartHeight( void )

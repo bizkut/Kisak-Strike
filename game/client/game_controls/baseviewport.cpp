@@ -58,6 +58,22 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_VIEWPORT_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+
+static void KisakPs4ViewportPanelBreadcrumb( const char *pPhase, const char *pName )
+{
+	char line[256];
+	V_snprintf( line, sizeof( line ), "kisak-ps4: viewport %s name=%s",
+		pPhase ? pPhase : "unknown", pName ? pName : "missing" );
+	KisakPs4StartupBreadcrumb( line );
+}
+#else
+#define PS4_VIEWPORT_BREADCRUMB( line ) ((void)0)
+#define KisakPs4ViewportPanelBreadcrumb( phase, name ) ((void)0)
+#endif
+
 static IViewPort *s_pFullscreenViewportInterface;
 static IViewPort *s_pViewportInterfaces[ MAX_SPLITSCREEN_PLAYERS ];
 
@@ -160,14 +176,20 @@ bool CBaseViewport::LoadHudAnimations( void )
 //================================================================
 CBaseViewport::CBaseViewport() : vgui::EditablePanel( NULL, "CBaseViewport" )
 {	
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport constructor body entered" );
 	SetSize( 10, 10 ); // Quiet "parent not sized yet" spew
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport constructor size ready" );
 	m_bInitialized = false;
 	m_bFullscreenViewport = false;
 
 	m_GameuiFuncs = NULL;
 	m_GameEventManager = NULL;
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport constructor before keyboard input" );
 	SetKeyBoardInputEnabled( false );
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport constructor keyboard input ready" );
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport constructor before mouse input" );
 	SetMouseInputEnabled( false );
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport constructor mouse input ready" );
 
 	m_pBackGround = NULL;
 
@@ -181,6 +203,7 @@ CBaseViewport::CBaseViewport() : vgui::EditablePanel( NULL, "CBaseViewport" )
 	g_lastPanel = NULL;
 
 	m_OldSize[ 0 ] = m_OldSize[ 1 ] = -1;
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport constructor complete" );
 }
 
 //-----------------------------------------------------------------------------
@@ -231,14 +254,26 @@ void CBaseViewport::OnScreenSizeChanged(int iOldWide, int iOldTall)
 void CBaseViewport::CreateDefaultPanels( void )
 {
 #ifdef PORTAL2
+	KisakPs4ViewportPanelBreadcrumb( "default panel before create and add", PANEL_RADIAL_MENU );
 	AddNewPanel( CreatePanelByName( PANEL_RADIAL_MENU ), "PANEL_RADIAL_MENU" );
+	KisakPs4ViewportPanelBreadcrumb( "default panel create and add ready", PANEL_RADIAL_MENU );
 #endif // PORTAL2
 
+	KisakPs4ViewportPanelBreadcrumb( "default panel before create and add", PANEL_SCOREBOARD );
 	AddNewPanel( CreatePanelByName( PANEL_SCOREBOARD ), "PANEL_SCOREBOARD" );
+	KisakPs4ViewportPanelBreadcrumb( "default panel create and add ready", PANEL_SCOREBOARD );
+	KisakPs4ViewportPanelBreadcrumb( "default panel before create and add", PANEL_INFO );
 	AddNewPanel( CreatePanelByName( PANEL_INFO ), "PANEL_INFO" );
+	KisakPs4ViewportPanelBreadcrumb( "default panel create and add ready", PANEL_INFO );
+	KisakPs4ViewportPanelBreadcrumb( "default panel before create and add", PANEL_SPECGUI );
 	AddNewPanel( CreatePanelByName( PANEL_SPECGUI ), "PANEL_SPECGUI" );
+	KisakPs4ViewportPanelBreadcrumb( "default panel create and add ready", PANEL_SPECGUI );
+	KisakPs4ViewportPanelBreadcrumb( "default panel before create and add", PANEL_SPECMENU );
 	AddNewPanel( CreatePanelByName( PANEL_SPECMENU ), "PANEL_SPECMENU" );
+	KisakPs4ViewportPanelBreadcrumb( "default panel create and add ready", PANEL_SPECMENU );
+	KisakPs4ViewportPanelBreadcrumb( "default panel before create and add", PANEL_NAV_PROGRESS );
 	AddNewPanel( CreatePanelByName( PANEL_NAV_PROGRESS ), "PANEL_NAV_PROGRESS" );
+	KisakPs4ViewportPanelBreadcrumb( "default panel create and add ready", PANEL_NAV_PROGRESS );
 }
 
 void CBaseViewport::UpdateAllPanels( void )
@@ -258,15 +293,20 @@ void CBaseViewport::UpdateAllPanels( void )
 
 IViewPortPanel* CBaseViewport::CreatePanelByName(const char *szPanelName)
 {
+	KisakPs4ViewportPanelBreadcrumb( "panel factory entered", szPanelName );
 	IViewPortPanel* newpanel = NULL;
 
 	if ( Q_strcmp(PANEL_SCOREBOARD, szPanelName) == 0 )
 	{
+		KisakPs4ViewportPanelBreadcrumb( "panel factory before scoreboard allocation", szPanelName );
 		newpanel = new CClientScoreBoardDialog( this );
+		KisakPs4ViewportPanelBreadcrumb( "panel factory scoreboard allocation ready", szPanelName );
 	}
 	else if ( Q_strcmp(PANEL_INFO, szPanelName) == 0 )
 	{
+		KisakPs4ViewportPanelBreadcrumb( "panel factory before info allocation", szPanelName );
 		newpanel = new CTextWindow( this );
+		KisakPs4ViewportPanelBreadcrumb( "panel factory info allocation ready", szPanelName );
 	}
 	/*	else if ( Q_strcmp(PANEL_OVERVIEW, szPanelName) == 0 )
 	{
@@ -279,7 +319,9 @@ IViewPortPanel* CBaseViewport::CreatePanelByName(const char *szPanelName)
 	//}
 	else if ( Q_strcmp(PANEL_NAV_PROGRESS, szPanelName) == 0 )
 	{
+		KisakPs4ViewportPanelBreadcrumb( "panel factory before nav allocation", szPanelName );
 		newpanel = new CNavProgress( this );
+		KisakPs4ViewportPanelBreadcrumb( "panel factory nav allocation ready", szPanelName );
 	}
 #ifdef PORTAL2
 	else if ( Q_strcmp( PANEL_RADIAL_MENU, szPanelName ) == 0 )
@@ -290,30 +332,46 @@ IViewPortPanel* CBaseViewport::CreatePanelByName(const char *szPanelName)
 
 	if ( Q_strcmp(PANEL_COMMENTARY_MODELVIEWER, szPanelName) == 0 )
 	{
+		KisakPs4ViewportPanelBreadcrumb( "panel factory before commentary allocation", szPanelName );
 		newpanel = new CCommentaryModelViewer( this );
+		KisakPs4ViewportPanelBreadcrumb( "panel factory commentary allocation ready", szPanelName );
 	}
 
+	KisakPs4ViewportPanelBreadcrumb( newpanel
+		? "panel factory complete ready"
+		: "panel factory complete missing", szPanelName );
 	return newpanel;
 }
 
 
 bool CBaseViewport::AddNewPanel( IViewPortPanel* pPanel, char const *pchDebugName )
 {
+	KisakPs4ViewportPanelBreadcrumb( "panel add entered", pchDebugName );
 	if ( !pPanel )
 	{
+		KisakPs4ViewportPanelBreadcrumb( "panel add skipped missing", pchDebugName );
 		return false;
 	}
 
 	// we created a new panel, initialize it
+	KisakPs4ViewportPanelBreadcrumb( "panel add before duplicate lookup", pchDebugName );
 	if ( FindPanelByName( pPanel->GetName() ) != NULL )
 	{
+		KisakPs4ViewportPanelBreadcrumb( "panel add duplicate found", pchDebugName );
 		DevMsg("CBaseViewport::AddNewPanel: panel with name '%s' already exists.\n", pPanel->GetName() );
 		return false;
 	}
+	KisakPs4ViewportPanelBreadcrumb( "panel add duplicate lookup ready", pchDebugName );
 
+	KisakPs4ViewportPanelBreadcrumb( "panel add before dictionary insert", pchDebugName );
 	m_Panels.Insert( pPanel->GetName(), pPanel );
+	KisakPs4ViewportPanelBreadcrumb( "panel add dictionary insert ready", pchDebugName );
+	KisakPs4ViewportPanelBreadcrumb( "panel add before parent set", pchDebugName );
 	pPanel->SetParent( GetVPanel() );
+	KisakPs4ViewportPanelBreadcrumb( "panel add parent set ready", pchDebugName );
+	KisakPs4ViewportPanelBreadcrumb( "panel add before ordered append", pchDebugName );
 	m_UnorderedPanels.AddToTail( pPanel );
+	KisakPs4ViewportPanelBreadcrumb( "panel add complete", pchDebugName );
 
 	return true;
 }
@@ -616,41 +674,69 @@ void CBaseViewport::InitViewportSingletons( void )
 //-----------------------------------------------------------------------------
 void CBaseViewport::Start( IGameUIFuncs *pGameUIFuncs, IGameEventManager2 * pGameEventManager )
 {
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start entered" );
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start before singleton init" );
 	InitViewportSingletons();
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start singleton ready" );
 
 	m_GameuiFuncs = pGameUIFuncs;
 	m_GameEventManager = pGameEventManager;
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start dependencies assigned" );
 
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start before background allocation" );
 	m_pBackGround = new CBackGroundPanel( NULL );
+	PS4_VIEWPORT_BREADCRUMB( m_pBackGround
+		? "kisak-ps4: base viewport start background allocation ready"
+		: "kisak-ps4: base viewport start background allocation missing" );
 	m_pBackGround->SetZPos( -20 ); // send it to the back 
 	m_pBackGround->SetVisible( false );
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start background configured" );
 
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start before event listen" );
 	ListenForGameEvent( "game_newmap" );
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start event listen ready" );
 
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start before scheme set" );
 	SetScheme( "ClientScheme" );
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start scheme set ready" );
 	SetProportional( true );
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start proportional ready" );
 
 	if ( !IsFullscreenViewport() )
 	{
+		PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start before default panels" );
 		CreateDefaultPanels();
+		PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start default panels ready" );
 	}
 
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start before animation controller allocation" );
 	m_pAnimController = new vgui::AnimationController(this);
+	PS4_VIEWPORT_BREADCRUMB( m_pAnimController
+		? "kisak-ps4: base viewport start animation controller ready"
+		: "kisak-ps4: base viewport start animation controller missing" );
 	// create our animation controller
 	m_pAnimController->SetScheme( GetScheme() );
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start animation scheme ready" );
 	m_pAnimController->SetProportional(true);
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start animation proportional ready" );
 
 	// Attempt to load all hud animations
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start before hud animation load" );
 	if ( LoadHudAnimations() == false )
 	{
+		PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start hud animation manifest failed" );
 		// Fall back to just the main
+		PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start before fallback animation load" );
 		if ( m_pAnimController->SetScriptFile( GetVPanel(), "scripts/HudAnimations.txt", true ) == false )
 		{
 			Assert(0);
 		}
+		PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start fallback animation load returned" );
 	}
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start hud animation load ready" );
 
 	m_bInitialized = true;
+	PS4_VIEWPORT_BREADCRUMB( "kisak-ps4: base viewport start complete" );
 }
 
 /*
