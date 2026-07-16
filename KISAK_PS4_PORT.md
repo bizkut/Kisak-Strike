@@ -404,6 +404,15 @@ Validation before the candidate commit:
   high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`,
   and `ps4_gnm_constants`).
 
+Candidate commit `e4f69fa5` (`Bypass PS4 missing VGUI material message`) was
+packaged as monolithic version 3.55. PkgTool validates every reported size,
+digest, and signature check. The package is 103,415,808 bytes with SHA-256
+`3ed21d69e652b71569c0db1ba043e7602c14d99e12e4889064e96059c60cb34c`.
+It is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two independent complete
+FTP readbacks produced the same SHA-256, and the server reports the same
+103,415,808-byte content length.
+
 ## Runtime topology: two tracks, one production authority
 
 `KisakRegisterStaticModules` registers both tracks in
