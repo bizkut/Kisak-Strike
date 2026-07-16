@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.34
+Version: 3.35
 Size: 103,219,200 bytes
-SHA-256: 34f7bdc6e723ab62e8e0c2929a5bcd71e6b8a83a4680bf62296ad38624b01a07
-Hardware run: v4.68 (2026-07-16), crashes while evaluating the second Buttons conditional
+SHA-256: 94d2d91081b87c30a4c2f275e7eb200a475fdc9563d7aa5bb82b771968dbae00
+Hardware run: v4.69 (2026-07-16), crashes in the INPUTSWAPAB runtime-symbol lookup
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.34
+Version: 3.35
 Size: 103,219,200 bytes
-SHA-256: 34f7bdc6e723ab62e8e0c2929a5bcd71e6b8a83a4680bf62296ad38624b01a07
-Hardware result: v4.68 stops inside `EvaluateConditional` for `[$PS3 && !$INPUTSWAPAB]`
+SHA-256: 94d2d91081b87c30a4c2f275e7eb200a475fdc9563d7aa5bb82b771968dbae00
+Hardware result: v4.69 enters `GetKeyValuesExpressionSymbol("INPUTSWAPAB")` but never returns
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: 94d2d91081b87c30a4c2f275e7eb200a475fdc9563d7aa5bb82b771968dbae00
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: awaiting manual v4.69 install and run
+Hardware result: v4.69 enters `GetKeyValuesExpressionSymbol("INPUTSWAPAB")` but never returns
 ```
 
 Current hardware baseline:
@@ -7677,6 +7677,19 @@ is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
 readback matches the local 103,219,200-byte package and SHA-256 above. Manual
 install and hardware execution remain.
+
+The 2026-07-16 hardware run confirms the v4.69 marker exactly once in a
+24,343,992-byte, 506,140-line startup log. The targeted conditional trace
+contains 31 events. It validates bracket removal, evaluator reset, the
+`$PS3` callback returning false, creation of the `&&` and unary-`!` nodes,
+and creation of the `$INPUTSWAPAB` literal. The final two events are
+`symbol-proc-enter text=$INPUTSWAPAB` and
+`before-runtime-symbol text=INPUTSWAPAB`; neither
+`runtime-symbol-return` nor the outer callback-return marker follows. The
+crash is therefore inside
+`CKeyValuesSystem::GetKeyValuesExpressionSymbol("INPUTSWAPAB")`, before the
+expression tree can finish building. The next diagnostic should trace its
+symbol-table lookup, mutex, conditional-map search, and fallback boundaries.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
