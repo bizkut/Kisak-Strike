@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.41
+Version: 3.42
 Size: 103,219,200 bytes
-SHA-256: f62d113e84a8c935d8e7c0353be9b3725e6e041c0f6abcd1682e7697c447c576
-Hardware run: v4.75 (2026-07-16), crosses cursor/panel setup and stops inside GameUI initialization
+SHA-256: ab2f0949e6eab093fbb0eaa73f742299021dc719569bc3b7c18b094074a6f87a
+Hardware run: v4.76 (2026-07-16), isolates GameUI's `gameui_xbox` ConVarRef construction
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.41
+Version: 3.42
 Size: 103,219,200 bytes
-SHA-256: f62d113e84a8c935d8e7c0353be9b3725e6e041c0f6abcd1682e7697c447c576
-Hardware result: v4.75 ends after GameUI's already-registered ConVar path
+SHA-256: ab2f0949e6eab093fbb0eaa73f742299021dc719569bc3b7c18b094074a6f87a
+Hardware result: v4.76 stops inside `CGameUIConVarRef("gameui_xbox")`
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: ab2f0949e6eab093fbb0eaa73f742299021dc719569bc3b7c18b094074a6f87a
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: pending; v4.76 traces the complete `CGameUI::Initialize` fall-through
+Hardware result: v4.76 stops inside `CGameUIConVarRef("gameui_xbox")`
 ```
 
 Current hardware baseline:
@@ -8172,7 +8172,39 @@ The host PS4 suite remains at 11/14 with only the known `ps4_gnm_device`,
 `ps4_gnm_buffer`, and `ps4_gnm_constants` baseline failures. The package is
 staged at `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete
 FTP readback matches the local 103,219,200-byte package and SHA-256 above.
-Manual install and hardware execution remain.
+The package was then installed and executed manually.
+
+The 2026-07-16 hardware run confirms the v4.76 marker exactly once. It appends
+2,750,834 bytes and 56,299 lines to the prior capture, producing a
+35,182,095-byte, 720,199-line log with SHA-256
+`1f550ab165039b52e568d8c2885c9e4f63974ad6c899e05545a46e86fea4de59`.
+The appended slice has SHA-256
+`1d457f3e7c7e84bcd7202f764ed7ea759a9a2e2020d6ecbeab039ac920302654`.
+
+The trace closes every v4.75 uncertainty. `ConVar_Register` returns to
+`CGameUI::Initialize`, the empty Tier3 connection returns, both the
+`IEngineSound` and `IVEngineClient` factory queries return non-null, and
+`SteamAPI_InitSafe` returns. The log records `steamapicontext` as null,
+then proves that the existing `CSteamAPIContext::Init` call returns on this
+hardware. The null member call remains formal undefined behavior, but it is not
+the v4.76 crash boundary.
+
+The final marker is `gameui init steam context init returned`, seen once.
+`gameui init xbox convar constructed`, the console-UI value marker, and the
+first VGUI-interface marker are absent. The exact next expression is
+`CGameUIConVarRef var("gameui_xbox")`. Its constructor enters the split-screen
+ConVar wrapper and ultimately queries `g_pCVar->FindVar`; the trace does not
+yet distinguish the lookup, fallback object, validity check, or missing-ConVar
+warning within that constructor.
+
+The engine defines `gameui_xbox` with the default
+`IsPlatformConsoleUI() ? "1" : "0"`, and PS4 deliberately defines
+`IsPlatformConsoleUI()` as 1 while retaining `IsGameConsole()` as 0.
+Therefore the smallest behaviorally correct v4.77 repair candidate is to set
+the GameUI console policy directly from `IsPlatformConsoleUI()` on PS4 and
+leave the configurable ConVarRef path unchanged everywhere else. This also
+preserves the intended controller-first UI policy required before intro/menu
+construction can begin.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
