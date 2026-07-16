@@ -148,6 +148,8 @@ Use these terms consistently:
 | External content and layered filesystem | Yes | Yes | Yes | Preserve while loading `cs_office` |
 | OpenGNM VideoOut, flips, depth, textures, indexed draws, constants | Yes | No native Source frame/present yet | Presentation only | Source owns begin/draw/present for one frame |
 | PS4 ShaderAPI buffers, mesh locks, bindings, draw state | Partial | Wrapper selected; individual paths still delegate to empty | Presentation/host tests only | A Source material emits and presents a native draw |
+| Source world/model materials | Existing Source render paths; PS4 shader coverage incomplete | Not end-to-end | No | Present a `LightmappedGeneric` world surface and `VertexLitGeneric` model in one `cs_office` frame |
+| Source particle rendering | `.pcf` parser, simulation operators, and dynamic-mesh generation exist; PS4 particle shaders are missing | Loading path reached; native render path incomplete | No | Load sheets and present one translucent `SpriteCard` particle effect from a Source frame |
 | Scaleform Legals -> StartScreen -> MainMenu, movies, vector/image/text rendering | Yes | No: Source Scaleform is disabled and the PS4 bootstrap uses a separate interface | Presentation only | Same boot/menu sequence from Source frames |
 | DualShock polling and Source `InputEvent_t` translation | Yes | Yes in code | Presentation UI only | Navigate Source-owned menu and drive a user command |
 | Main-menu action routing | Partial: 1 of about 20 | Diagnostic only | Offline-dialog action in presentation | Complete actions needed for boot, options, offline launch, pause, and quit |
@@ -279,6 +281,46 @@ product runtime. Move the validated pieces into the production lifecycle:
 4. Record each capability independently as implemented, Source-integrated, and
    hardware-accepted.
 
+#### Source/OpenGNM rendering closure checklist
+
+Complete these gates in the order the first production `cs_office` frame
+actually requires them. Track each gate independently; do not treat a working
+diagnostic or fallback draw as proof that the corresponding Source path is
+integrated.
+
+1. **Frame ownership:** move OpenGNM command-buffer begin/end, synchronization,
+   VideoOut submission, and present into the production ShaderAPI/device
+   lifecycle. Required Source draws must not fall through to
+   `shaderapiempty`.
+2. **Mesh submission:** close native static and dynamic vertex/index-buffer
+   creation, lock/unlock, vertex declarations, primitive conversion, indexed
+   and non-indexed draws, and per-frame buffer lifetime. Prove one static world
+   mesh and one dynamic mesh in the same presented frame.
+3. **Textures and targets:** support the VTF formats encountered by the first
+   map, texture upload and layout, sampler state, sRGB policy, render targets,
+   depth targets, resolves, and safe missing-resource fallbacks.
+4. **Constants and material state:** map Source matrices, vertex/pixel
+   constants, material variables, blend/depth/cull/color-write state, and
+   texture bindings to native OpenGNM state with deterministic defaults.
+5. **World and model shaders:** add `LightmappedGeneric`,
+   `VertexLitGeneric`, and `UnlitGeneric` PS4 shader combinations first, then
+   only the additional static/dynamic combinations observed while loading and
+   rendering `cs_office`. Include required lightmaps, vertex lighting, fog,
+   model skinning, alpha test, and translucent variants.
+6. **Particles:** keep Source responsible for `.pcf` parsing and simulation;
+   add PS4 `SpriteCard`, `ParticleLitGeneric`, and any observed particle
+   material variants, including VTF sheet data, dynamic quad/rope meshes,
+   constants, samplers, depth policy, blending, and translucent ordering.
+7. **Scene effects:** close the first-map decal, overlay, projected-texture,
+   and translucent-sort paths only when observed. Use explicit PS4-native
+   substitutes or bounded fallbacks when the desktop effect is unnecessary for
+   the first playable match.
+8. **Acceptance:** record shader/material families separately as implemented,
+   Source-integrated, and hardware-accepted. The minimum renderer gate is one
+   presented `cs_office` frame containing world geometry, a model, a dynamic
+   draw, and a translucent particle without required-path delegation to the
+   empty backend.
+
 Acceptance: production boot shows the authentic Scaleform sequence, reaches
 MainMenu, accepts DualShock navigation, and presents repeated Source-owned
 frames without invoking the presentation loop.
@@ -326,8 +368,9 @@ chain. Keep required behavior such as map state transitions and signon ordering.
 
 After the skeleton runs, add only what the next real map/frame requires:
 
-1. world shader combinations, material states, texture formats, and render
-   states in observed-failure order;
+1. the world/model/particle entries in the Source/OpenGNM rendering-closure
+   checklist, adding shader combinations, material states, texture formats,
+   and render states in observed-failure order;
 2. remaining menu actions needed for options, offline launch, pause/resume,
    disconnect, and quit, then noncritical actions;
 3. PS4 audio and a combined render/input/UI/audio soak;
