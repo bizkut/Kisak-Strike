@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.27
+Version: 3.28
 Size: 103,153,664 bytes
-SHA-256: 27f684b07162825d5807fc9865563d154d5fd54eeb358862c8f4f426dce399be
-Hardware run: v4.61 (2026-07-16), reaches csm_quality_level ConVarRef
+SHA-256: 2cbb25b02cb1278af17636b692518b8062219cf8d9cd34e21ed2fa428c2850ec
+Hardware run: v4.62 (2026-07-16), completes material init and enters EngineVGui
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.27
+Version: 3.28
 Size: 103,153,664 bytes
-SHA-256: 27f684b07162825d5807fc9865563d154d5fd54eeb358862c8f4f426dce399be
-Hardware result: v4.61 crashes constructing the csm_quality_level ConVarRef
+SHA-256: 2cbb25b02cb1278af17636b692518b8062219cf8d9cd34e21ed2fa428c2850ec
+Hardware result: v4.62 completes material init; EngineVGui::Init crashes
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,153,664 bytes
 SHA-256: 2cbb25b02cb1278af17636b692518b8062219cf8d9cd34e21ed2fa428c2850ec
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: awaiting manual install/run of v4.62 direct CSM read
+Hardware result: v4.62 completes material init and stops in EngineVGui::Init
 ```
 
 Current hardware baseline:
@@ -7288,6 +7288,30 @@ Linux high-address failures in `ps4_gnm_device`, `ps4_gnm_buffer`, and
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
 103,153,664 bytes and its complete readback SHA-256 matches the local package.
 Manual installation and launch are the remaining hardware gate.
+
+The v4.62 package was installed and run manually. Its single build marker and
+8,160-line run validate the direct CSM-quality read, all of `UpdateConfig`, all
+well-known render targets, and all loaded and procedural debug materials.
+`InitMaterialSystem` returns successfully. Model-loader, static-prop,
+studio-render, and match-framework initialization also complete. The exact final
+sequence is:
+
+```text
+kisak-ps4: client gametypes initialize entered
+kisak-ps4: client gametypes already initialized
+kisak-ps4: trace init after
+g_pMatchFramework->Init()
+kisak-ps4: trace init dispatch
+EngineVGui()->Init()
+kisak-ps4: trace init before
+EngineVGui()->Init()
+```
+
+There is no matching `trace init after` for `EngineVGui()->Init()`. The material
+system is no longer the active crash boundary. The next package will trace the
+existing `CEngineVGui::Init` stages—from GameUI factory acquisition and input
+contexts through scheme loading, panel construction, localization, GameUI
+startup, and activation—without changing their behavior.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
