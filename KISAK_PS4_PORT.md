@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.33
+Version: 3.34
 Size: 103,219,200 bytes
-SHA-256: e02dfc699c6533ba85a0a5a2ee194ee90e58c5a4499429b970444ea6b3499904
-Hardware run: v4.67 (2026-07-16), crashes on entry to the BitmapFontFiles child recursion
+SHA-256: 34f7bdc6e723ab62e8e0c2929a5bcd71e6b8a83a4680bf62296ad38624b01a07
+Hardware run: v4.68 (2026-07-16), crashes while evaluating the second Buttons conditional
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.33
+Version: 3.34
 Size: 103,219,200 bytes
-SHA-256: e02dfc699c6533ba85a0a5a2ee194ee90e58c5a4499429b970444ea6b3499904
-Hardware result: v4.67 enters `BitmapFontFiles` recursion but never returns
+SHA-256: 34f7bdc6e723ab62e8e0c2929a5bcd71e6b8a83a4680bf62296ad38624b01a07
+Hardware result: v4.68 stops inside `EvaluateConditional` for `[$PS3 && !$INPUTSWAPAB]`
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: 34f7bdc6e723ab62e8e0c2929a5bcd71e6b8a83a4680bf62296ad38624b01a07
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: awaiting manual v4.68 install and run
+Hardware result: v4.68 stops inside `EvaluateConditional` for `[$PS3 && !$INPUTSWAPAB]`
 ```
 
 Current hardware baseline:
@@ -7626,6 +7626,18 @@ is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
 readback matches the local 103,219,200-byte package and SHA-256 above. Manual
 install and hardware execution remain.
+
+The 2026-07-16 hardware run confirms the v4.68 marker exactly once in a
+23,317,917-byte, 486,596-line startup log. The bounded `BitmapFontFiles`
+trace contains 42 events. Its first `Buttons` scalar completes string storage,
+reads `[!$PS3]`, returns from conditional lookahead, and reaches
+`key-complete`. The duplicate `Buttons` scalar then completes the same
+allocation and copy stages, reads `[$PS3 && !$INPUTSWAPAB]` at event 41, and
+emits neither `lookahead-ready` nor `key-complete`. The crash is therefore
+inside `EvaluateConditional` for that compound expression, after tokenization
+and before the parser can accept or reject the duplicate key. The next
+diagnostic should trace expression evaluation and symbol-callback boundaries
+without changing the conditional result.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
