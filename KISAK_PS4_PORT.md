@@ -130,6 +130,13 @@ Eleven of fourteen host tests pass. The same three OpenGNM descriptor tests
 fail only because their Linux stack pointers exceed the PS4 descriptor's
 44-bit address field; they do not exercise this particle-parser change.
 
+Candidate commit `9344e42e` produces a 103,284,736-byte package with SHA-256
+`ce977ddc82105aaefcac08d1c55a24a1bf2d20719ffb608441d9511a3d7ccca7`.
+The embedded SFO reports version 3.50, and verbose PkgTool validation reports
+every limit, digest, and signature check `[OK]`. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete FTP
+readbacks match the local size and SHA-256.
+
 The gate remains open until hardware proves `ClientDLL_Init` completion,
 successful EngineVGui/GameUI hookup, and one complete production
 `eng->Frame()`.
