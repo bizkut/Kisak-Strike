@@ -51,6 +51,8 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 	do { if ( enabled ) KisakPs4GameModesTokenBreadcrumb( phase, token, operation, reads, position, quoted, conditional ); } while ( 0 )
 #define PS4_KEYVALUES_BASESETTINGS_BREADCRUMB( enabled, phase, token, depth ) \
 	do { if ( enabled ) KisakPs4SourceSchemeBaseSettingsBreadcrumb( phase, token, depth ); } while ( 0 )
+#define PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( enabled, phase, token ) \
+	do { if ( enabled ) KisakPs4SourceSchemeRootTailBreadcrumb( phase, token ); } while ( 0 )
 #else
 #define PS4_KEYVALUES_TRACE_SOURCE_SCHEME( resourceName ) false
 #define PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) false
@@ -61,6 +63,7 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 #define PS4_KEYVALUES_READ_BREADCRUMB( enabled, buffer, fileSize, bufferSize, bytesRead ) ((void)(enabled))
 #define PS4_KEYVALUES_TOKEN_BREADCRUMB( enabled, phase, token, operation, reads, position, quoted, conditional ) ((void)(enabled))
 #define PS4_KEYVALUES_BASESETTINGS_BREADCRUMB( enabled, phase, token, depth ) ((void)(enabled))
+#define PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( enabled, phase, token ) ((void)(enabled))
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -163,6 +166,27 @@ static void KisakPs4SourceSchemeBaseSettingsBreadcrumb( const char *pPhase,
 		s_nKisakPs4SourceSchemeBaseSettingsTraceCount,
 		pPhase ? pPhase : "unknown", nDepth, pToken ? pToken : "<null>" );
 	++s_nKisakPs4SourceSchemeBaseSettingsTraceCount;
+	KisakPs4StartupBreadcrumb( line );
+}
+
+static int s_nKisakPs4SourceSchemeRootTailTraceCount = 0;
+static const int k_nKisakPs4SourceSchemeRootTailTraceLimit = 32;
+
+static void KisakPs4SourceSchemeRootTailBreadcrumb( const char *pPhase,
+	const char *pToken )
+{
+	if ( s_nKisakPs4SourceSchemeRootTailTraceCount >=
+		k_nKisakPs4SourceSchemeRootTailTraceLimit )
+	{
+		return;
+	}
+
+	char line[512];
+	V_snprintf( line, sizeof( line ),
+		"kisak-ps4: sourcescheme root tail event=%d phase=%s token=%.160s",
+		s_nKisakPs4SourceSchemeRootTailTraceCount,
+		pPhase ? pPhase : "unknown", pToken ? pToken : "<null>" );
+	++s_nKisakPs4SourceSchemeRootTailTraceCount;
 	KisakPs4StartupBreadcrumb( line );
 }
 #endif
@@ -2751,16 +2775,20 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 
 	// Keep parsing until we hit the closing brace which terminates this block, or a parse error
 	bool bTracePs4FirstKey = bTracePs4RootGameModes;
+	bool bTracePs4SourceSchemeRootTail = false;
 	while ( 1 )
 	{
 		const bool bTracePs4ThisKey = bTracePs4FirstKey;
+		const bool bTracePs4ThisRootTailKey = bTracePs4SourceSchemeRootTail;
 		bTracePs4FirstKey = false;
 		bool bAccepted = true;
 
 		// get the key name
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive before first key token" );
+		PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "before-key", NULL );
 		const char * name = tokenReader.ReadToken( wasQuoted, wasConditional );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4ThisKey, "kisak-ps4: gamemodes recursive first key token ready" );
+		PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "key", name );
 
 		if ( !name )	// EOF stop reading
 		{
@@ -2791,7 +2819,9 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive before first child" );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
 			"kisak-ps4: sourcescheme basesettings before root child create" );
+		PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "before-create", name );
 		KeyValues *dat = CreateKeyUsingKnownLastChild( name, pLastChild );
+		PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "child-ready", dat->GetName() );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive first child ready" );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
 			"kisak-ps4: sourcescheme basesettings root child ready" );
@@ -2806,7 +2836,9 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive before first value token" );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
 			"kisak-ps4: sourcescheme basesettings before opening token" );
+		PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "before-value", dat->GetName() );
 		const char * value = tokenReader.ReadToken( wasQuoted, wasConditional );
+		PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "value", value );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive first value token ready" );
 		PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
 			"kisak-ps4: sourcescheme basesettings opening token ready" );
@@ -2883,15 +2915,23 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CKeyValuesTok
 #endif
 			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
 				"kisak-ps4: sourcescheme basesettings before child recursion" );
+			PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "section-enter", dat->GetName() );
 			dat->RecursiveLoadFromBuffer( resourceName, tokenReader, pfnEvaluateSymbolProc );
+			PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( bTracePs4ThisRootTailKey, "section-return", dat->GetName() );
 #if defined( PLATFORM_PS4 )
 			if ( bTracePs4BaseSettingsRootKey )
 			{
 				s_bKisakPs4TraceSourceSchemeBaseSettings = false;
+				s_nKisakPs4SourceSchemeRootTailTraceCount = 0;
 			}
 #endif
 			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4BaseSettingsRootKey,
 				"kisak-ps4: sourcescheme basesettings child recursion returned" );
+			if ( bTracePs4BaseSettingsRootKey )
+			{
+				bTracePs4SourceSchemeRootTail = true;
+				PS4_KEYVALUES_ROOT_TAIL_BREADCRUMB( true, "armed", "BaseSettings" );
+			}
 			PS4_KEYVALUES_LOAD_BREADCRUMB( bTracePs4DetailedKey, "kisak-ps4: gamemodes recursive first child section ready" );
 		}
 		else 
