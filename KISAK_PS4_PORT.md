@@ -23,45 +23,51 @@ DLL/PRX ownership assumptions merely because the original code used them.
 
 | Item | Value |
 |---|---|
-| Test | v4.82, 2026-07-16 |
-| Package version | 3.48 |
+| Test | v4.83, 2026-07-16 |
+| Package version | 3.49 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,284,736 bytes |
-| Package SHA-256 | `9c8f9e4ba4da343831438411c2f85004aaff5cc1fb1f5238afb4efb72fbb224d` |
+| Package SHA-256 | `8d8210b33b18a7eb3c1ea3cfb6372c3f43ac1d743d4f960c7b0f072bb7114be6` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `cbbcc234` (`Retain PS4 render-to-RT helper`) |
-| Hardware-result commit | `55db9624` (`Record v4.82 hardware boundary`) |
+| Candidate commit | `d0bb9c97` (`Instrument PS4 particle manager startup`) |
+| Hardware-result commit | Pending (this checkpoint) |
 
-v4.82 closes the v4.81 failure: the real `RenderToRTHelper001` archive member
-is retained, its render target is found, its end-frame callback is registered,
-and initialization completes. RenderToRT retention is no longer the active
-blocker, and eventual model-to-texture readback is not required for the first
-offline match.
+v4.83 closes the broad ParticleMgr boundary. The function-local manager was
+already constructed during the ordinary constructor walk. Client cleanup,
+precache-policy evaluation, shared `CParticleSystemMgr::Init`, and both builtin
+operator registrations all complete.
 
-The cumulative log is 52,901,325 bytes and 1,084,293 lines with SHA-256
-`5f052e5fffa62df7a430f55506814d26de30fc22c8a87ab673e0ae453a2defed`.
-The v4.81 log is an exact prefix. The v4.82 append is 3,085,631 bytes and
-63,559 lines with SHA-256
-`79a1adbaff529cedd249ccbbc66c2099d4aae223d43590d2fa242f8004eecaa0`.
+The cumulative log is 55,987,679 bytes and 1,147,872 lines with SHA-256
+`f86aa25d4ab0c240f75220aa18c637b3c4ab5542c2222c4ab53975268e9bbca2`.
+The complete v4.82 log is an exact byte prefix. The v4.83 append is 3,086,354
+bytes and 63,579 lines with SHA-256
+`0607d73b3d0a0b6ed34e16ec603d727f3cf3e54ab0a6e1b07f4eb4d6c18c4725`.
 
-The last three markers are:
+The last seven markers are:
 
 ```text
-client impl before game systems init
-client impl serial init path
-client impl before particle manager init
+particle mgr before core init
+particle mgr core init ready
+particle mgr before simulation operators
+particle mgr simulation operators ready
+particle mgr before rendering operators
+particle mgr rendering operators ready
+particle mgr before effect parse
 ```
 
-The boundary is `game/client/cdll_client_int.cpp:1824-1829`. The log does not
-yet distinguish `COM_TimestampedLog`, construction of the function-local
-`CParticleMgr`, or work inside `CParticleMgr::Init`. It does prove that client
-Init completion, `EngineVGui()->Connect()`, and the first production Source
-frame have not occurred.
+The final marker is immediately before `ParseParticleEffects( true )` in
+`game/client/particlemgr.cpp`; its completion marker is absent. The client
+parse's existing detailed PS4 probe is intentionally disabled when sheets are
+loaded, so this result does not yet prove entry into the function body or which
+manifest/config/decommit step failed. Earlier in the same process, the server
+parse completed the same 30-entry manifest and reached 1,062 definitions. The
+client sets render-sheet loading true, so the same forced-precache `!` entries
+enter sheet/material work that the server bypassed.
 
-### v4.83 candidate: attribute the ParticleMgr boundary
+### v4.83 result and immediate v4.84 gate
 
 Package version 3.49 and build marker `particle_mgr_boundary_v483` identify the
-next manual-install test. The serial client path now records completion of
+completed manual-install test. The serial client path records completion of
 `COM_TimestampedLog`, evaluates `ParticleMgr()` separately, and fails before
 downstream game systems if the accessor or `CParticleMgr::Init` fails.
 `CParticleMgr` records constructor entry/completion and bounded boundaries
@@ -90,8 +96,11 @@ readbacks match the local size and SHA-256.
 Static and final-OELF inspection also expose the next ownership question: the
 monolith has one `g_pParticleSystemMgr` but two `g_pParticleSystemQuery`
 objects. Server startup initializes the shared manager first, and its Init
-only adopts a non-default query once. Keep v4.83 attribution-only; decide the
-canonical query owner after hardware identifies the actual boundary.
+only adopts a non-default query once. v4.84 must first enable the already
+bounded detailed parse probe for the client and distinguish sheet policy,
+manifest loading, each config/definition, forced precache, and final decommit.
+Do not attribute this crash to query ownership until a query-dependent call is
+actually reached.
 
 The gate remains open until hardware proves `ClientDLL_Init` completion,
 successful EngineVGui/GameUI hookup, and one complete production
