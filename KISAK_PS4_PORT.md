@@ -75,35 +75,34 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Test | v4.94, 2026-07-16 |
-| Package version | 3.60 |
+| Test | v4.95, 2026-07-16 |
+| Package version | 3.61 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
-| Package SHA-256 | `1486680143f635748c84602d28c2fb24e59f3e3ac4d3a9853e05ba06efbe3081` |
+| Package SHA-256 | `cf2180640940140d995291e391c7ada0293a81796995aa304bbfd9d44fb18ad9` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `79664c15` (`Retain PS4 vphysics surface database`) |
-| Hardware-result commit | `ca0b7c6a` (`Record v4.94 info-panel crash`) |
+| Candidate commit | `6ecbee92` (`Trace PS4 info panel construction`) |
+| Hardware-result commit | pending (`Record v4.95 HTML control crash`) |
 
-v4.94 clears the complete server-physics gate. The retained
-`VPhysicsSurfaceProps001` resolves, the manifest loads, and
-`scripts/surfaceproperties_cs.txt` parses. `CPhysicsHook::Init`, every traced
-server game system, `CServerGameDLL::DLLInit`, and the engine game-DLL boundary
-complete. The client also clears the former `hltv_status` crash: descriptor
-lookup, callback allocation, both listener insertions, scoreboard construction,
-and scoreboard viewport insertion all complete.
+v4.95 clears the complete `Frame` body and `TextEntry` allocation for the
+default `info` viewport panel. `CTextWindow::CTextWindow` reaches
+`before html allocation`, enters `new CMOTDHTML(this, "HTMLMessage")`, and then
+dies after the HTML child panel's mouse-input setup. The allocation-ready marker
+never appears, so this is an optional Steam HTML control failure rather than a
+new renderer, base-frame, popup, or text-entry requirement.
 
-The crash is now in the next default viewport panel. `CreatePanelByName("info")`
-enters the info-panel allocation, constructs its cursor controls, and completes
-a mouse-input update, but never returns from the allocation. The exact last line
-is `kisak-ps4: panel set mouse input complete`. The fresh log was last modified
-at 2026-07-16 22:46:04 UTC; it is 502,648 bytes and 12,797 lines with SHA-256
-`185c6b9fe21cc1c9957dbd9739210eb1be30407bbdcc2d53e41fb68340a12592`.
+The exact last line is `kisak-ps4: panel set mouse input complete`. The fresh log
+was last modified at 2026-07-16 23:14:28 UTC; it is 504,364 bytes and 12,833 lines
+with SHA-256
+`ed9b9e4439b3e84b263962f76bce61f86153c717f4e8f1780aa4ec547dfe4192`.
 
-The immediate v4.95 gate is the concrete `info`/text-window constructor after
-its last mouse-input operation, not renderer expansion. Attribute the remaining
-constructor stages and any registrar/ownership dependency, then require the
-panel allocation and insertion to return before advancing toward the first real
-Source frame.
+The immediate v4.96 gate is to compile `ENABLE_CHROMEHTMLWINDOW` out of the PS4
+client only. All direct `m_pHTMLMessage` uses are already guarded by the same
+macro, the disabled branch initializes the pointer to `NULL`, and the resource
+loader has no registered `HTML` build factory with which to recreate the child.
+Retain the plain-text MOTD path and require the text-window constructor, panel
+allocation, and viewport insertion to return before advancing toward the first
+real Source frame.
 
 ### v4.95 candidate: attribute info-panel construction
 
@@ -158,7 +157,7 @@ installation and launch.
 | Registered runtime | Factory | Purpose | Acceptance status |
 |---|---|---|---|
 | `presentation_engine` | `KisakEngineBootstrapFactory()` | Diagnostic OpenGNM/Scaleform/input loop and rollback target | Hardware validated, but not a production Source-frame result |
-| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes server DLL init and scoreboard insertion, then crashes while constructing the `info` viewport panel; no first frame yet |
+| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes server DLL init and scoreboard insertion, then crashes inside the optional `CMOTDHTML` child of the `info` viewport panel; no first frame yet |
 
 The launcher requests production `engine` (`launcher/launcher.cpp:773-820`).
 The presentation loop owns VideoOut and calls `RenderMenuFrame` and
@@ -314,14 +313,11 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v4.95 hardware gate: bracket the remainder of
-`CTextWindow::CTextWindow` while constructing the `info` panel. Record completion
-after the `TextEntry`, optional `CMOTDHTML`, labels, button, command, multiline,
-content-type, and final input-state stages, then require `CreatePanelByName` and
-viewport insertion to return. `ENABLE_CHROMEHTMLWINDOW` currently constructs a
-Steam-oriented `CMOTDHTML`; if hardware isolates that optional control, omit it
-on PS4 and retain a plain-text MOTD rather than treating desktop HTML as a
-blocker.
+Immediate v4.96 hardware gate: omit the now-isolated Steam-oriented
+`CMOTDHTML` from the PS4 client by disabling `ENABLE_CHROMEHTMLWINDOW` for that
+platform. Require the disabled-HTML marker, the remainder of
+`CTextWindow::CTextWindow`, `CreatePanelByName`, and viewport insertion to
+complete. Plain-text MOTDs remain the supported first-match behavior.
 
 Phase hardware gate: preflight passes, every default viewport panel completes,
 `ClientDLL_Init` completes, EngineVGui/GameUI connect, and the first real Source
@@ -330,9 +326,9 @@ frame completes. This phase is not done merely because a registrar is found.
 ### 2. Direct Source/OpenGNM convergence
 
 Keep `presentation_engine` as a diagnostic rollback target, not a second
-product runtime. Do not begin the renderer-selection change until the v4.95
-startup attribution gate is closed: changing the active backend is broad and
-would destroy the current crash boundary.
+product runtime. Do not begin the renderer-selection change until the v4.96
+startup gate clears the isolated optional HTML control: changing the active
+backend is broad and would destroy the current crash boundary.
 
 #### Source/OpenGNM rendering closure checklist
 
