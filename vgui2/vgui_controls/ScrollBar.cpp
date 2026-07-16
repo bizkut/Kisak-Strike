@@ -24,6 +24,15 @@
 
 using namespace vgui;
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+extern "C" int KisakPs4IsScoreboardTrace( void );
+#define PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( line ) \
+	do { if ( KisakPs4IsScoreboardTrace() ) KisakPs4StartupBreadcrumb( line ); } while ( 0 )
+#else
+#define PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( line ) ((void)0)
+#endif
+
 namespace
 {
 
@@ -42,9 +51,12 @@ class ScrollBarButton : public Button
 public:
 	ScrollBarButton(Panel *parent, const char *panelName, const char *text) : Button(parent, panelName, text)
 	{
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar button constructor body entered" );
 		SetButtonActivationType(ACTIVATE_ONPRESSED);
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar button activation ready" );
 
 		SetContentAlignment(Label::a_center);
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar button constructor complete" );
 	}
 
 	void OnMouseFocusTicked()
@@ -131,6 +143,7 @@ DECLARE_BUILD_FACTORY_CUSTOM( ScrollBar, ScrollBar_Horizontal_Factory );
 //-----------------------------------------------------------------------------
 ScrollBar::ScrollBar(Panel *parent, const char *panelName, bool vertical) : Panel(parent, panelName)
 {
+	PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar constructor body entered" );
 	m_bAutoHideButtons = false;
 	m_bAutoHideSelf = false;
 	_slider=0;
@@ -146,13 +159,28 @@ ScrollBar::ScrollBar(Panel *parent, const char *panelName, bool vertical) : Pane
 	if (vertical)
 	{
 		// FIXME: proportional changes needed???
-		SetSlider(new ScrollBarSlider(NULL, "vslider", true));
-		SetButton(new ScrollBarButton(NULL, "top", "t"), 0);
-		SetButton(new ScrollBarButton(NULL, "bottom", "u"), 1);
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar before vertical slider allocation" );
+		ScrollBarSlider *pSlider = new ScrollBarSlider(NULL, "vslider", true);
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar vertical slider allocation ready" );
+		SetSlider(pSlider);
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar vertical slider set ready" );
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar before top button allocation" );
+		ScrollBarButton *pTopButton = new ScrollBarButton(NULL, "top", "t");
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar top button allocation ready" );
+		SetButton(pTopButton, 0);
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar top button set ready" );
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar before bottom button allocation" );
+		ScrollBarButton *pBottomButton = new ScrollBarButton(NULL, "bottom", "u");
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar bottom button allocation ready" );
+		SetButton(pBottomButton, 1);
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar bottom button set ready" );
 		_button[0]->SetTextInset(0, 1);
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar top inset ready" );
 		_button[1]->SetTextInset(0, -1);
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar bottom inset ready" );
 
 		SetSize(SCROLLBAR_DEFAULT_WIDTH, 64);
+		PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar vertical size ready" );
 	}
 	else
 	{
@@ -171,7 +199,9 @@ ScrollBar::ScrollBar(Panel *parent, const char *panelName, bool vertical) : Pane
 	SetButtonPressedScrollValue(20);
 	SetBlockDragChaining( true );
 
+	PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar before validate" );
 	Validate();
+	PS4_SCOREBOARD_SCROLLBAR_BREADCRUMB( "kisak-ps4: scoreboard scrollbar constructor complete" );
 }
 
 //-----------------------------------------------------------------------------

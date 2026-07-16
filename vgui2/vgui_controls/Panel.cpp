@@ -43,7 +43,19 @@
 
 #if defined( PLATFORM_PS4 )
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+extern "C" int KisakPs4IsScoreboardTrace( void );
 #define PS4_PANEL_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+
+static void KisakPs4ScoreboardPanelBreadcrumb( const char *pPhase, const char *pName )
+{
+	if ( !KisakPs4IsScoreboardTrace() )
+		return;
+
+	char line[256];
+	V_snprintf( line, sizeof( line ), "kisak-ps4: scoreboard panel %s name=%s",
+		pPhase ? pPhase : "unknown", pName ? pName : "missing" );
+	KisakPs4StartupBreadcrumb( line );
+}
 
 static bool KisakPs4IsAnimationControllerClass( const char *className )
 {
@@ -59,6 +71,7 @@ static bool g_bKisakPs4AnimationMessageMapTrace = false;
 static bool g_bKisakPs4AnimationKeyBindingMapTrace = false;
 #else
 #define PS4_PANEL_BREADCRUMB( line ) ((void)0)
+#define KisakPs4ScoreboardPanelBreadcrumb( phase, name ) ((void)0)
 #endif
 
 using namespace vgui;
@@ -650,18 +663,23 @@ Panel::Panel(Panel *parent)
 //-----------------------------------------------------------------------------
 Panel::Panel(Panel *parent, const char *panelName)
 {
+	KisakPs4ScoreboardPanelBreadcrumb( "constructor entered", panelName );
 	PS4_PANEL_BREADCRUMB( "kisak-ps4: panel named constructor entered" );
 	PS4_PANEL_BREADCRUMB( "kisak-ps4: panel named constructor before init" );
 	Init(0, 0, 64, 24);
+	KisakPs4ScoreboardPanelBreadcrumb( "init ready", panelName );
 	PS4_PANEL_BREADCRUMB( "kisak-ps4: panel named constructor init returned" );
 	PS4_PANEL_BREADCRUMB( "kisak-ps4: panel named constructor before name" );
 	SetName(panelName);
+	KisakPs4ScoreboardPanelBreadcrumb( "name ready", panelName );
 	PS4_PANEL_BREADCRUMB( "kisak-ps4: panel named constructor name ready" );
 	PS4_PANEL_BREADCRUMB( "kisak-ps4: panel named constructor before parent" );
 	SetParent(parent);
+	KisakPs4ScoreboardPanelBreadcrumb( "parent ready", panelName );
 	PS4_PANEL_BREADCRUMB( "kisak-ps4: panel named constructor parent ready" );
 	PS4_PANEL_BREADCRUMB( "kisak-ps4: panel named constructor before build editable" );
 	SetBuildModeEditable(true);
+	KisakPs4ScoreboardPanelBreadcrumb( "constructor complete", panelName );
 	PS4_PANEL_BREADCRUMB( "kisak-ps4: panel named constructor complete" );
 }
 
@@ -870,6 +888,7 @@ void Panel::MakeReadyForUse()
 void Panel::SetName( const char *panelName )
 {
 	_panelName = panelName;
+	KisakPs4ScoreboardPanelBreadcrumb( "set name ready", panelName );
 }
 
 //-----------------------------------------------------------------------------
@@ -1414,6 +1433,7 @@ void Panel::SetParent(Panel *newParent)
 //-----------------------------------------------------------------------------
 void Panel::SetParent(VPANEL newParent)
 {
+	KisakPs4ScoreboardPanelBreadcrumb( "set parent entered", GetName() );
 	if (newParent)
 	{
 		ipanel()->SetParent(GetVPanel(), newParent);
@@ -1422,30 +1442,43 @@ void Panel::SetParent(VPANEL newParent)
 	{
 		ipanel()->SetParent(GetVPanel(), NULL);
 	}
+	KisakPs4ScoreboardPanelBreadcrumb( "set parent ipanel ready", GetName() );
 
 	if (GetVParent() && !IsPopup())
 	{
+		KisakPs4ScoreboardPanelBreadcrumb( "set parent before proportional sync", GetName() );
 		SetProportional(ipanel()->IsProportional(GetVParent()));
+		KisakPs4ScoreboardPanelBreadcrumb( "set parent proportional sync ready", GetName() );
 
 		// most of the time KBInput == parents kbinput
+		KisakPs4ScoreboardPanelBreadcrumb( "set parent before keyboard sync", GetName() );
 		if (ipanel()->IsKeyBoardInputEnabled(GetVParent()) != IsKeyBoardInputEnabled())
 		{
 			SetKeyBoardInputEnabled(ipanel()->IsKeyBoardInputEnabled(GetVParent()));
 		}
+		KisakPs4ScoreboardPanelBreadcrumb( "set parent keyboard sync ready", GetName() );
 
+		KisakPs4ScoreboardPanelBreadcrumb( "set parent before mouse sync", GetName() );
 		if (ipanel()->IsMouseInputEnabled(GetVParent()) != IsMouseInputEnabled())
 		{
 			SetMouseInputEnabled(ipanel()->IsMouseInputEnabled(GetVParent()));
 		}
+		KisakPs4ScoreboardPanelBreadcrumb( "set parent mouse sync ready", GetName() );
 	}
 
 	// Our children inherit our context ID marker
 	if ( GetVParent() )
 	{
-		SetMessageContextId_R( ipanel()->GetMessageContextId( GetVParent() ) );
+		KisakPs4ScoreboardPanelBreadcrumb( "set parent before context query", GetName() );
+		const int nParentContext = ipanel()->GetMessageContextId( GetVParent() );
+		KisakPs4ScoreboardPanelBreadcrumb( "set parent before context propagation", GetName() );
+		SetMessageContextId_R( nParentContext );
+		KisakPs4ScoreboardPanelBreadcrumb( "set parent context propagation ready", GetName() );
 	}
 
+	KisakPs4ScoreboardPanelBreadcrumb( "set parent before sibling pin", GetName() );
 	UpdateSiblingPin();
+	KisakPs4ScoreboardPanelBreadcrumb( "set parent complete", GetName() );
 }
 
 // Forces context ID for this panel and all children below it

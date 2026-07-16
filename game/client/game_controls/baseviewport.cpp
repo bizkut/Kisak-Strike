@@ -60,7 +60,9 @@
 
 #if defined( PLATFORM_PS4 )
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+extern "C" void KisakPs4SetScoreboardTrace( int enabled );
 #define PS4_VIEWPORT_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#define PS4_SCOREBOARD_TRACE( enabled ) KisakPs4SetScoreboardTrace( enabled )
 
 static void KisakPs4ViewportPanelBreadcrumb( const char *pPhase, const char *pName )
 {
@@ -71,6 +73,7 @@ static void KisakPs4ViewportPanelBreadcrumb( const char *pPhase, const char *pNa
 }
 #else
 #define PS4_VIEWPORT_BREADCRUMB( line ) ((void)0)
+#define PS4_SCOREBOARD_TRACE( enabled ) ((void)0)
 #define KisakPs4ViewportPanelBreadcrumb( phase, name ) ((void)0)
 #endif
 
@@ -299,7 +302,9 @@ IViewPortPanel* CBaseViewport::CreatePanelByName(const char *szPanelName)
 	if ( Q_strcmp(PANEL_SCOREBOARD, szPanelName) == 0 )
 	{
 		KisakPs4ViewportPanelBreadcrumb( "panel factory before scoreboard allocation", szPanelName );
+		PS4_SCOREBOARD_TRACE( 1 );
 		newpanel = new CClientScoreBoardDialog( this );
+		PS4_SCOREBOARD_TRACE( 0 );
 		KisakPs4ViewportPanelBreadcrumb( "panel factory scoreboard allocation ready", szPanelName );
 	}
 	else if ( Q_strcmp(PANEL_INFO, szPanelName) == 0 )

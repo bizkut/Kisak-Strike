@@ -71,6 +71,17 @@ static void LogLine( FILE *log, const char *line )
 
 #if defined( KISAK_PS4_MONOLITHIC )
 int g_KisakPs4TraceThreadPool;
+static volatile int g_KisakPs4ScoreboardTrace;
+
+void KisakPs4SetScoreboardTrace( int enabled )
+{
+    g_KisakPs4ScoreboardTrace = enabled ? 1 : 0;
+}
+
+int KisakPs4IsScoreboardTrace( void )
+{
+    return g_KisakPs4ScoreboardTrace != 0;
+}
 
 static int KisakPs4SuppressClearedStartupDetail( const char *line )
 {

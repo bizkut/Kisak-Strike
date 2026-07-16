@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Helper for the CHudElement class to add themselves to the list of hud elements
 //
@@ -12,6 +12,24 @@
 #include "vgui_controls/Panel.h"
 
 using namespace vgui;
+
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+extern "C" int KisakPs4IsScoreboardTrace( void );
+
+static void KisakPs4ScoreboardFactoryBreadcrumb( const char *pPhase, const char *pClassName )
+{
+	if ( !KisakPs4IsScoreboardTrace() )
+		return;
+
+	char line[256];
+	Q_snprintf( line, sizeof( line ), "kisak-ps4: scoreboard factory %s class=%s",
+		pPhase ? pPhase : "unknown", pClassName ? pClassName : "missing" );
+	KisakPs4StartupBreadcrumb( line );
+}
+#else
+#define KisakPs4ScoreboardFactoryBreadcrumb( phase, className ) ((void)0)
+#endif
 
 // Start with empty list
 CBuildFactoryHelper *CBuildFactoryHelper::m_sHelpers = NULL;
@@ -54,10 +72,14 @@ char const *CBuildFactoryHelper::GetClassName() const
 
 vgui::Panel *CBuildFactoryHelper::CreatePanel()
 {
+	KisakPs4ScoreboardFactoryBreadcrumb( "create entered", m_pClassName );
 	if ( !m_CreateFunc )
 		return NULL;
 
-	return ( *m_CreateFunc )();
+	KisakPs4ScoreboardFactoryBreadcrumb( "before create callback", m_pClassName );
+	vgui::Panel *pPanel = ( *m_CreateFunc )();
+	KisakPs4ScoreboardFactoryBreadcrumb( pPanel ? "create callback ready value=1" : "create callback ready value=0", m_pClassName );
+	return pPanel;
 }
 
 // private static meethod
@@ -77,14 +99,21 @@ bool CBuildFactoryHelper::HasFactory( char const *className )
 // static method
 vgui::Panel *CBuildFactoryHelper::InstancePanel( char const *className )
 {
+	KisakPs4ScoreboardFactoryBreadcrumb( "lookup entered", className );
 	CBuildFactoryHelper *p = m_sHelpers;
 	while ( p )
 	{
 		if ( !Q_stricmp( className, p->GetClassName() ) )
-			return p->CreatePanel();
+		{
+			KisakPs4ScoreboardFactoryBreadcrumb( "lookup matched", className );
+			vgui::Panel *pPanel = p->CreatePanel();
+			KisakPs4ScoreboardFactoryBreadcrumb( pPanel ? "lookup create ready value=1" : "lookup create ready value=0", className );
+			return pPanel;
+		}
 
 		p = p->GetNext();
 	}
+	KisakPs4ScoreboardFactoryBreadcrumb( "lookup complete missing", className );
 	return NULL;
 }
 
@@ -220,7 +249,6 @@ bool CBuildFactoryHelper::Unserialize( Panel **ppPanel, CUtlBuffer &buf, const c
 	CleanupDMX( pRootElement );
 	return true;     
 }
-
 
 
 

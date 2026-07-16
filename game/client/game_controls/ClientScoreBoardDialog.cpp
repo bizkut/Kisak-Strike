@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
+//===== Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -38,6 +38,13 @@
 
 using namespace vgui;
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_SCOREBOARD_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_SCOREBOARD_BREADCRUMB( line ) ((void)0)
+#endif
+
 bool AvatarIndexLessFunc( const int &lhs, const int &rhs )	
 { 
 	return lhs < rhs; 
@@ -48,45 +55,75 @@ bool AvatarIndexLessFunc( const int &lhs, const int &rhs )
 //-----------------------------------------------------------------------------
 CClientScoreBoardDialog::CClientScoreBoardDialog(IViewPort *pViewPort) : EditablePanel( NULL, PANEL_SCOREBOARD )
 {
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor body entered" );
+	// Resource and scheme callbacks can run before the constructor reaches its
+	// historical tail assignments. Make every callback-visible pointer safe first.
+	m_pPlayerList = NULL;
+	m_pImageList = NULL;
+	m_pViewPort = pViewPort;
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor callback pointers ready" );
+
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor before player symbol" );
 	m_iPlayerIndexSymbol = KeyValuesSystem()->GetSymbolForString("playerIndex");
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor player symbol ready" );
 	m_nCloseKey = BUTTON_CODE_INVALID;
 
 	//memset(s_VoiceImage, 0x0, sizeof( s_VoiceImage ));
 	TrackerImage = 0;
-	m_pViewPort = pViewPort;
 	m_alignment = vgui::Label::a_center;
 
 	// initialize dialog
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor before proportional" );
 	SetProportional(true);
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor proportional ready" );
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor before keyboard input" );
 	SetKeyBoardInputEnabled(false);
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor keyboard input ready" );
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor before mouse input" );
 	SetMouseInputEnabled(false);
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor mouse input ready" );
 
 	// set the scheme before any child control is created
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor before scheme" );
 	SetScheme("ClientScheme");
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor scheme ready" );
 
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor before player list allocation" );
 	m_pPlayerList = new SectionedListPanel(this, "PlayerList");
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor player list allocation ready" );
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor before vertical scrollbar disable" );
 	m_pPlayerList->SetVerticalScrollbar(false);
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor vertical scrollbar disable ready" );
 
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor before control settings" );
 	LoadControlSettings("Resource/UI/ScoreBoard.res");
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor control settings ready" );
 	m_iDesiredHeight = GetTall();
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor desired height ready" );
 	m_pPlayerList->SetVisible( false ); // hide this until we load the images in applyschemesettings
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor player list hidden" );
 
 	m_HLTVSpectators = 0;
 	m_ReplaySpectators = 0;
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor spectator counts ready" );
 	
 	// update scoreboard instantly if on of these events occure
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor before hltv event listen" );
 	ListenForGameEvent( "hltv_status" );
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor hltv event listen ready" );
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor before server event listen" );
 	ListenForGameEvent( "server_spawn" );
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor server event listen ready" );
 
 #if defined( REPLAY_ENABLED )
 	ListenForGameEvent( "replay_status" );
 #endif
 
-	m_pImageList = NULL;
-
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor before avatar map init" );
 	m_mapAvatarsToImageList.SetLessFunc( AvatarIndexLessFunc );
 	m_mapAvatarsToImageList.RemoveAll();
 	memset( &m_iImageAvatars, 0, sizeof(int) * (MAX_PLAYERS+1) );
+	PS4_SCOREBOARD_BREADCRUMB( "kisak-ps4: scoreboard constructor complete" );
 }
 
 //-----------------------------------------------------------------------------

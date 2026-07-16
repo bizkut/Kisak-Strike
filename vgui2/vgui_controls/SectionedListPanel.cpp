@@ -30,6 +30,15 @@
 
 using namespace vgui;
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+extern "C" int KisakPs4IsScoreboardTrace( void );
+#define PS4_SECTIONED_LIST_BREADCRUMB( line ) \
+	do { if ( KisakPs4IsScoreboardTrace() ) KisakPs4StartupBreadcrumb( line ); } while ( 0 )
+#else
+#define PS4_SECTIONED_LIST_BREADCRUMB( line ) ((void)0)
+#endif
+
 enum
 {
 	BUTTON_HEIGHT_DEFAULT = 20,
@@ -785,9 +794,14 @@ DECLARE_BUILD_FACTORY( SectionedListPanel );
 //-----------------------------------------------------------------------------
 SectionedListPanel::SectionedListPanel(vgui::Panel *parent, const char *name) : BaseClass(parent, name)
 {
+	PS4_SECTIONED_LIST_BREADCRUMB( "kisak-ps4: scoreboard sectioned list constructor body entered" );
+	PS4_SECTIONED_LIST_BREADCRUMB( "kisak-ps4: scoreboard sectioned list before scrollbar allocation" );
 	m_pScrollBar = new ScrollBar(this, "SectionedScrollBar", true);
+	PS4_SECTIONED_LIST_BREADCRUMB( "kisak-ps4: scoreboard sectioned list scrollbar allocation ready" );
 	m_pScrollBar->SetVisible(false);
+	PS4_SECTIONED_LIST_BREADCRUMB( "kisak-ps4: scoreboard sectioned list scrollbar hidden" );
 	m_pScrollBar->AddActionSignalTarget(this);
+	PS4_SECTIONED_LIST_BREADCRUMB( "kisak-ps4: scoreboard sectioned list scrollbar signal target ready" );
 
 	m_iEditModeItemID = 0;
 	m_iEditModeColumn = 0;
@@ -812,6 +826,7 @@ SectionedListPanel::SectionedListPanel(vgui::Panel *parent, const char *name) : 
 	//=============================================================================
 	// HPE_END
 	//=============================================================================
+	PS4_SECTIONED_LIST_BREADCRUMB( "kisak-ps4: scoreboard sectioned list constructor complete" );
 }
 
 //-----------------------------------------------------------------------------

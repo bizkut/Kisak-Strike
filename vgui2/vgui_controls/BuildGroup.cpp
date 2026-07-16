@@ -1,11 +1,11 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 // $NoKeywords: $
 //
 //=============================================================================//
-//========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
+//========= Copyright Â© 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
 // The contents may be used and/or copied only with the written permission of
@@ -48,6 +48,27 @@
 #include <tier0/memdbgon.h>
 
 using namespace vgui;
+
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+extern "C" int KisakPs4IsScoreboardTrace( void );
+
+static void KisakPs4ScoreboardBuildBreadcrumb( const char *pPhase,
+	const char *pKeyName = NULL, const char *pControlName = NULL )
+{
+	if ( !KisakPs4IsScoreboardTrace() )
+		return;
+
+	char line[384];
+	Q_snprintf( line, sizeof( line ),
+		"kisak-ps4: scoreboard build %s key=%s control=%s",
+		pPhase ? pPhase : "unknown", pKeyName ? pKeyName : "missing",
+		pControlName ? pControlName : "missing" );
+	KisakPs4StartupBreadcrumb( line );
+}
+#else
+#define KisakPs4ScoreboardBuildBreadcrumb( ... ) ((void)0)
+#endif
 
 //-----------------------------------------------------------------------------
 // Handle table
@@ -877,25 +898,33 @@ void BuildGroup::PanelRemoved(Panel *panel)
 //-----------------------------------------------------------------------------
 void BuildGroup::LoadControlSettings(const char *controlResourceName, const char *pathID, KeyValues *pPreloadedKeyValues, KeyValues *pConditions)
 {
+	KisakPs4ScoreboardBuildBreadcrumb( "load entered", controlResourceName );
 	// make sure the file is registered
 	RegisterControlSettingsFile(controlResourceName, pathID);
+	KisakPs4ScoreboardBuildBreadcrumb( "resource registered", controlResourceName );
 
 	// Use the keyvalues they passed in or load them.
 	KeyValues *rDat = pPreloadedKeyValues;
 	if ( !rDat )
 	{
 		// load the resource data from the file
+		KisakPs4ScoreboardBuildBreadcrumb( "before keyvalues allocation", controlResourceName );
 		rDat  = new KeyValues(controlResourceName);
+		KisakPs4ScoreboardBuildBreadcrumb( "keyvalues allocation ready", controlResourceName );
 
 		// check the skins directory first, if an explicit pathID hasn't been set
 		bool bSuccess = false;
 		if (!pathID)
 		{
+			KisakPs4ScoreboardBuildBreadcrumb( "before skin load", controlResourceName );
 			bSuccess = rDat->LoadFromFile(g_pFullFileSystem, controlResourceName, "SKIN");
+			KisakPs4ScoreboardBuildBreadcrumb( bSuccess ? "skin load ready value=1" : "skin load ready value=0", controlResourceName );
 		}
 		if (!bSuccess)
 		{
+			KisakPs4ScoreboardBuildBreadcrumb( "before path load", controlResourceName, pathID );
 			bSuccess = rDat->LoadFromFile(g_pFullFileSystem, controlResourceName, pathID);
+			KisakPs4ScoreboardBuildBreadcrumb( bSuccess ? "path load ready value=1" : "path load ready value=0", controlResourceName, pathID );
 		}
 
 		if ( bSuccess )
@@ -920,6 +949,7 @@ void BuildGroup::LoadControlSettings(const char *controlResourceName, const char
 	delete [] m_pResourceName;
 	m_pResourceName = new char[strlen(controlResourceName) + 1];
 	strcpy(m_pResourceName, controlResourceName);
+	KisakPs4ScoreboardBuildBreadcrumb( "resource name ready", controlResourceName );
 
 	if (pathID)
 	{
@@ -929,10 +959,14 @@ void BuildGroup::LoadControlSettings(const char *controlResourceName, const char
 	}
 
 	// delete any controls not in both files
+	KisakPs4ScoreboardBuildBreadcrumb( "before prior control deletion", controlResourceName );
 	DeleteAllControlsCreatedByControlSettingsFile();
+	KisakPs4ScoreboardBuildBreadcrumb( "prior control deletion ready", controlResourceName );
 
 	// loop through the resource data sticking info into controls
+	KisakPs4ScoreboardBuildBreadcrumb( "before apply settings", controlResourceName );
 	ApplySettings(rDat);
+	KisakPs4ScoreboardBuildBreadcrumb( "apply settings ready", controlResourceName );
 
 	if (m_pParentPanel)
 	{
@@ -944,6 +978,7 @@ void BuildGroup::LoadControlSettings(const char *controlResourceName, const char
 	{
 		rDat->deleteThis();
 	}
+	KisakPs4ScoreboardBuildBreadcrumb( "load complete", controlResourceName );
 }
 
 void BuildGroup::ProcessConditionalKeys( KeyValues *pData, KeyValues *pConditions )
@@ -1203,6 +1238,7 @@ void BuildGroup::DeleteAllControlsCreatedByControlSettingsFile()
 //-----------------------------------------------------------------------------
 void BuildGroup::ApplySettings( KeyValues *resourceData )
 {
+	KisakPs4ScoreboardBuildBreadcrumb( "apply entered", resourceData ? resourceData->GetName() : NULL );
 	// loop through all the keys, applying them wherever
 	for (KeyValues *controlKeys = resourceData->GetFirstSubKey(); controlKeys != NULL; controlKeys = controlKeys->GetNextKey())
 	{
@@ -1213,6 +1249,8 @@ void BuildGroup::ApplySettings( KeyValues *resourceData )
 			continue;
 
 		char const *keyName = controlKeys->GetName();
+		const char *pControlName = controlKeys->GetString( "ControlName", NULL );
+		KisakPs4ScoreboardBuildBreadcrumb( "control entered", keyName, pControlName );
 
 		// check to see if any buildgroup panels have this name
 		for ( int i = 0; i < _panelDar.Count(); i++ )
@@ -1235,7 +1273,9 @@ void BuildGroup::ApplySettings( KeyValues *resourceData )
 			if (!Q_stricmp(panelName, keyName))
 			{
 				// apply the settings
+				KisakPs4ScoreboardBuildBreadcrumb( "before existing control apply", keyName, pControlName );
 				panel->ApplySettings(controlKeys);
+				KisakPs4ScoreboardBuildBreadcrumb( "existing control apply ready", keyName, pControlName );
 				bFound = true;
 				break;
 			}
@@ -1247,10 +1287,13 @@ void BuildGroup::ApplySettings( KeyValues *resourceData )
 			if ( keyName /*controlKeys->GetInt("AlwaysCreate", false)*/ )
 			{
 				// create the control even though it wasn't registered
+				KisakPs4ScoreboardBuildBreadcrumb( "before new control", keyName, pControlName );
 				NewControl( controlKeys );
+				KisakPs4ScoreboardBuildBreadcrumb( "new control ready", keyName, pControlName );
 			}
 		}
 	}
+	KisakPs4ScoreboardBuildBreadcrumb( "apply complete", resourceData ? resourceData->GetName() : NULL );
 }
 
 //-----------------------------------------------------------------------------
@@ -1299,15 +1342,23 @@ Panel *BuildGroup::NewControl( const char *name, int x, int y)
 Panel *BuildGroup::NewControl( KeyValues *controlKeys, int x, int y)
 {
 	Assert (controlKeys);
+	const char *pTraceKeyName = controlKeys ? controlKeys->GetName() : NULL;
+	const char *pTraceControlName = controlKeys ? controlKeys->GetString( "ControlName", NULL ) : NULL;
+	KisakPs4ScoreboardBuildBreadcrumb( "new control entered", pTraceKeyName, pTraceControlName );
 
 	Panel *newPanel = NULL;
 	if (controlKeys)
 	{
+		KisakPs4ScoreboardBuildBreadcrumb( "before factory request allocation", pTraceKeyName, pTraceControlName );
 		KeyValues *keyVal = new KeyValues("ControlFactory", "ControlName", controlKeys->GetString("ControlName"));
+		KisakPs4ScoreboardBuildBreadcrumb( "factory request allocation ready", pTraceKeyName, pTraceControlName );
+		KisakPs4ScoreboardBuildBreadcrumb( "before factory request", pTraceKeyName, pTraceControlName );
 		m_pBuildContext->RequestInfo(keyVal);
+		KisakPs4ScoreboardBuildBreadcrumb( "factory request ready", pTraceKeyName, pTraceControlName );
 		// returns NULL on failure
 		newPanel = (Panel *)keyVal->GetPtr("PanelPtr");
 		keyVal->deleteThis();
+		KisakPs4ScoreboardBuildBreadcrumb( newPanel ? "factory panel ready value=1" : "factory panel ready value=0", pTraceKeyName, pTraceControlName );
 	}
 	else
 	{
@@ -1317,12 +1368,16 @@ Panel *BuildGroup::NewControl( KeyValues *controlKeys, int x, int y)
 	if (newPanel)
 	{
 		// panel successfully created
+		KisakPs4ScoreboardBuildBreadcrumb( "before panel parent", pTraceKeyName, pTraceControlName );
 		newPanel->SetParent(m_pParentPanel);	
+		KisakPs4ScoreboardBuildBreadcrumb( "panel parent ready", pTraceKeyName, pTraceControlName );
 		newPanel->SetBuildGroup(this);
 		newPanel->SetPos(x, y);
 
 		newPanel->SetName(controlKeys->GetName()); // name before applysettings :)
+		KisakPs4ScoreboardBuildBreadcrumb( "before panel apply", pTraceKeyName, pTraceControlName );
 		newPanel->ApplySettings(controlKeys);
+		KisakPs4ScoreboardBuildBreadcrumb( "panel apply ready", pTraceKeyName, pTraceControlName );
 
 		newPanel->AddActionSignalTarget(m_pParentPanel);
 		newPanel->SetBuildModeEditable(true);
@@ -1331,6 +1386,7 @@ Panel *BuildGroup::NewControl( KeyValues *controlKeys, int x, int y)
 		// make sure it gets freed
 		newPanel->SetAutoDelete(true);
 	}	
+	KisakPs4ScoreboardBuildBreadcrumb( "new control complete", pTraceKeyName, pTraceControlName );
 
 	return newPanel;
 }

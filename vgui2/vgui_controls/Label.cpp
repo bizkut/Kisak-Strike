@@ -30,6 +30,24 @@
 
 using namespace vgui;
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+extern "C" int KisakPs4IsScoreboardTrace( void );
+
+static void KisakPs4ScoreboardLabelBreadcrumb( const char *pPhase, const char *pName )
+{
+	if ( !KisakPs4IsScoreboardTrace() )
+		return;
+
+	char line[256];
+	V_snprintf( line, sizeof( line ), "kisak-ps4: scoreboard label %s name=%s",
+		pPhase ? pPhase : "unknown", pName ? pName : "missing" );
+	KisakPs4StartupBreadcrumb( line );
+}
+#else
+#define KisakPs4ScoreboardLabelBreadcrumb( phase, name ) ((void)0)
+#endif
+
 #ifndef max
 #define max(a,b)            (((a) > (b)) ? (a) : (b))
 #endif
@@ -46,12 +64,20 @@ DECLARE_BUILD_FACTORY_DEFAULT_TEXT( Label, Label );
 //-----------------------------------------------------------------------------
 Label::Label(Panel *parent, const char *panelName, const char *text) : BaseClass(parent, panelName)
 {
+	KisakPs4ScoreboardLabelBreadcrumb( "constructor body entered", panelName );
+	KisakPs4ScoreboardLabelBreadcrumb( "before init", panelName );
 	Init();
+	KisakPs4ScoreboardLabelBreadcrumb( "init ready", panelName );
 
+	KisakPs4ScoreboardLabelBreadcrumb( "before text image allocation", panelName );
 	_textImage = new TextImage(text);
+	KisakPs4ScoreboardLabelBreadcrumb( "text image allocation ready", panelName );
 	_textImage->SetColor(Color(0, 0, 0, 0));
+	KisakPs4ScoreboardLabelBreadcrumb( "text image color ready", panelName );
 	SetText(text);
+	KisakPs4ScoreboardLabelBreadcrumb( "text ready", panelName );
 	_textImageIndex = AddImage(_textImage, 0);
+	KisakPs4ScoreboardLabelBreadcrumb( "constructor complete", panelName );
 }
 
 //-----------------------------------------------------------------------------
@@ -1437,4 +1463,3 @@ void Label::HandleAutoSizing( void )
 		SetSize( GetWide(), tall );
 	}
 }
-

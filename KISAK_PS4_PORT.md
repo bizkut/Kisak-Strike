@@ -615,6 +615,65 @@ the resource load; in particular, `ApplySchemeSettings` reads and may delete
 `LoadControlSettings`. Keep that ordering repair separate and explicit in the
 trace rather than treating desktop construction order as authoritative.
 
+### v4.92 candidate instrumentation and ordering repair
+
+Package version 3.58 and build marker
+`scoreboard_scrollbar_boundary_v492` identify the next manual-install candidate.
+The trace scope is enabled only while `CreatePanelByName( "scores" )` constructs
+`CClientScoreBoardDialog`, so the additional Panel, factory, BuildGroup, Label,
+sectioned-list, and scrollbar boundaries cannot recreate the earlier global log
+flood.
+
+Direct inspection of the deployed `csgo/pak01_dir.vpk` confirms the scoreboard
+resource's top-level order: `ClientScoreBoard`, `SysMenu` (`Menu`), `ServerName`
+(`Label`), then the existing `PlayerList` (`SectionedListPanel`). Matching that
+order against popup semantics corrects the seven-call map:
+
+1. the scoreboard explicitly disables its own mouse input;
+2. `PlayerList`, its scrollbar, slider, top button, and bottom button inherit
+   parent state; and
+3. resource-created `ServerName` inherits the scoreboard's disabled state.
+
+`SysMenu` is a popup, so parenting it skips the non-popup input-state sync. The
+v4.91 tail therefore proves `ServerName` reaches and completes its mouse sync,
+but it does not distinguish the remaining `Panel::SetParent` context propagation
+and sibling-pin update, the Label's resource `ApplySettings`, existing
+`PlayerList` settings, or resource-load finalization.
+
+v4.92 records those exact boundaries. `BuildGroup` logs each resource key,
+factory request, parent operation, and settings application; the factory helper
+identifies the requested control class; `Panel::SetParent` separately brackets
+IPanel parenting, proportional/keyboard/mouse synchronization, message-context
+query and propagation, and sibling-pin update. Constructor-specific boundaries
+remain around the sectioned list, scrollbar slider/buttons, Label text image,
+and the outer scoreboard stages.
+
+The candidate also closes one definite ordering defect without depending on
+desktop timing: `m_pPlayerList`, `m_pImageList`, and `m_pViewPort` are initialized
+at the start of the scoreboard constructor, before `SetScheme` or
+`LoadControlSettings` can expose them to callbacks. The historical trailing
+`m_pImageList = NULL` assignment was too late because `ApplySchemeSettings`
+tests and may delete that pointer.
+
+Validation before the candidate commit:
+
+- `git diff --check` passes;
+- the focused `client_client` and `engine_client` archives compile;
+- the full `kisak_ps4_monolithic` target links, and its retention-manifest hook
+  passes;
+- the executable is 126,508,728 bytes with SHA-256
+  `126b09ded8e0d5ef238854399f77b82902d0ae006745f22bc8283332b2aedfe8`;
+- the OELF is 136,286,568 bytes with SHA-256
+  `293e096ece2034fae1d65b8ba06a11f82913a5b3203f5c313d49516fefd02b65`;
+- the SELF input is 83,363,136 bytes with SHA-256
+  `00da6a0004c574eb71c33277ba31dbf12c96a68813a982378a3c8ef48883cc5e`;
+- binary string inspection confirms the v4.92 marker and scoreboard constructor,
+  Panel, BuildGroup, factory, Label, sectioned-list, and scrollbar trace families;
+  and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`,
+  and `ps4_gnm_constants`).
+
 ## Runtime topology: two tracks, one production authority
 
 `KisakRegisterStaticModules` registers both tracks in
@@ -623,7 +682,7 @@ trace rather than treating desktop construction order as authoritative.
 | Registered runtime | Factory | Purpose | Acceptance status |
 |---|---|---|---|
 | `presentation_engine` | `KisakEngineBootstrapFactory()` | Diagnostic OpenGNM/Scaleform/input loop and rollback target | Hardware validated, but not a production Source-frame result |
-| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes the real client mode manager and reaches the ClientScheme border object pass; no first frame yet |
+| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes ClientScheme and base viewport startup, then reaches first scoreboard default-panel construction; no first frame yet |
 
 The launcher requests production `engine` (`launcher/launcher.cpp:773-820`).
 The presentation loop owns VideoOut and calls `RenderMenuFrame` and
