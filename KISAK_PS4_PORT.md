@@ -739,6 +739,12 @@ and the unknown-event warning boundary. Descriptor indices are validated before
 vector access, and listeners are marked registered only after a successful
 manager registration. Normal event delivery is unchanged.
 
+Review hardening keeps that instrumentation safe at the crash boundary: event
+name matching stops at the first mismatch or terminator, both descriptor lookup
+paths validate vector indices, and the trace flag is read under the manager
+mutex. A failed game-system Init now releases the model-cache lock scopes before
+unwinding already initialized systems.
+
 Validation before the candidate commit:
 
 - `git diff --check` passes;
@@ -746,12 +752,12 @@ Validation before the candidate commit:
   compile;
 - the full `kisak_ps4_monolithic` target links and its retention-manifest check
   passes;
-- the executable is 126,527,472 bytes with SHA-256
-  `6fb8e3f8ec2eec085b3395a454eb02469a907c544667129b34ac2ef75698f945`;
-- the OELF is 136,305,312 bytes with SHA-256
-  `cc8fe446e2655da270621474dc08826f6b7a642d872be578b5939830788c4539`;
+- the executable is 126,529,952 bytes with SHA-256
+  `98ad3048103bc9de637a458b183be55cf2cc691f0d525a5ad7fee8a8552458ee`;
+- the OELF is 136,307,792 bytes with SHA-256
+  `74a35d84d3a169ecb1064a55087b6ecb8c131eb81c9f6803d5a6abe39892af4f`;
 - the SELF input is 83,379,552 bytes with SHA-256
-  `16dd53492bbe53816910ef7eb293ad9b532aef4750e21e2f7abfda9ca7f4354c`;
+  `924dc46bc71d22881853028e48ebdfb8e1931a7a13f8df2dc1712b71082797e6`;
 - binary string inspection confirms the v4.93 build marker, all three physics
   interface outcomes, fail-stop marker, and event-manager boundary families;
   and

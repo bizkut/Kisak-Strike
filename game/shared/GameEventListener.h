@@ -19,11 +19,17 @@ extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 
 static inline bool KisakPs4IsHltvStatusEvent( const char *name )
 {
-	return name &&
-		name[0] == 'h' && name[1] == 'l' && name[2] == 't' &&
-		name[3] == 'v' && name[4] == '_' && name[5] == 's' &&
-		name[6] == 't' && name[7] == 'a' && name[8] == 't' &&
-		name[9] == 'u' && name[10] == 's' && name[11] == '\0';
+	if ( !name )
+		return false;
+
+	static const char target[] = "hltv_status";
+	for ( int i = 0; ; ++i )
+	{
+		if ( name[i] != target[i] )
+			return false;
+		if ( target[i] == '\0' )
+			return true;
+	}
 }
 #endif
 

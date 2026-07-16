@@ -955,15 +955,11 @@ bool CGameEventManager::AddListener( IGameEventListener2 *listener, const char *
 
 bool CGameEventManager::AddListener( void *listener, CGameEventDescriptor *descriptor,  int nListenerType )
 {
+	AUTO_LOCK_FM( m_mutex );
 #if defined( PLATFORM_PS4 )
 	const bool bTraceHltvStatus = s_bKisakPs4HltvListenerTrace;
 	KisakPs4TraceHltvListener( bTraceHltvStatus,
 		"kisak-ps4: game event manager hltv descriptor add entered" );
-	KisakPs4TraceHltvListener( bTraceHltvStatus,
-		"kisak-ps4: game event manager hltv before descriptor lock" );
-#endif
-	AUTO_LOCK_FM( m_mutex );
-#if defined( PLATFORM_PS4 )
 	KisakPs4TraceHltvListener( bTraceHltvStatus,
 		"kisak-ps4: game event manager hltv descriptor lock ready" );
 #endif
@@ -1185,6 +1181,14 @@ CGameEventDescriptor *CGameEventManager::GetEventDescriptor(const char * name, i
 	if ( pCookie && *pCookie )
 	{
 		int gameEventIndex = uint32(*pCookie) & cookieMask;
+		if ( !m_GameEvents.IsValidIndex( gameEventIndex ) )
+		{
+#if defined( PLATFORM_PS4 )
+			KisakPs4TraceHltvListener( bTraceHltvStatus,
+				"kisak-ps4: game event manager hltv cookie index invalid" );
+#endif
+			return NULL;
+		}
 		CGameEventDescriptor *pDescriptor = &m_GameEvents[gameEventIndex];
 		if ( !V_stricmp( m_EventMap.GetElementName(pDescriptor->elementIndex), name ) )
 		{

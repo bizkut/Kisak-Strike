@@ -253,33 +253,35 @@ bool IGameSystem::InitAllSystems()
 	// PS3: haul the fontlib into memory; some systems (eg vgui) need it.
 	for ( i = 0; i < s_GameSystems.Count(); ++i )
 	{
-#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
-		KisakPs4TraceServerGameSystem( "before mdlcache lock", i, NULL, s_GameSystems.Count() );
-#endif
-		MDLCACHE_COARSE_LOCK();
-		MDLCACHE_CRITICAL_SECTION();
-
 		IGameSystem *sys = s_GameSystems[i];
+		bool valid = false;
+		{
+#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+			KisakPs4TraceServerGameSystem( "before mdlcache lock", i, NULL, s_GameSystems.Count() );
+#endif
+			MDLCACHE_COARSE_LOCK();
+			MDLCACHE_CRITICAL_SECTION();
 
 #if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
-		KisakPs4TraceServerGameSystem( "before init", i, sys->Name(), s_GameSystems.Count() );
+			KisakPs4TraceServerGameSystem( "before init", i, sys->Name(), s_GameSystems.Count() );
 #endif
 
 #if defined( _GAMECONSOLE )
-		char sz[128];
-		Q_snprintf( sz, sizeof( sz ), "%s->Init():Start", sys->Name() );
-		COM_TimestampedLog( sz );
+			char sz[128];
+			Q_snprintf( sz, sizeof( sz ), "%s->Init():Start", sys->Name() );
+			COM_TimestampedLog( sz );
 #endif
-		bool valid = sys->Init();
+			valid = sys->Init();
 
 #if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
-		KisakPs4TraceServerGameSystem( "after init", i, sys->Name(), valid ? 1 : 0 );
+			KisakPs4TraceServerGameSystem( "after init", i, sys->Name(), valid ? 1 : 0 );
 #endif
 
 #if defined( _GAMECONSOLE )
-		Q_snprintf( sz, sizeof( sz ), "%s->Init():Finish", sys->Name() );
-		COM_TimestampedLog( sz );
+			Q_snprintf( sz, sizeof( sz ), "%s->Init():Finish", sys->Name() );
+			COM_TimestampedLog( sz );
 #endif
+		}
 		if ( !valid )
 		{
 			DevWarning( 1, "Failed to load %s\n", sys->Name() );
