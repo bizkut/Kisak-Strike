@@ -674,6 +674,15 @@ Validation before the candidate commit:
   high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`,
   and `ps4_gnm_constants`).
 
+Candidate commit `ec3ad15c` (`Trace PS4 scoreboard resource construction`) was
+packaged as monolithic version 3.58. PkgTool reports every size, digest, and
+signature check `[OK]`. The package is 103,481,344 bytes with SHA-256
+`5d5f01852d90b98e6ac2b7bcfc86152eb4c566dd1416a5b3b7188883ad44d40e`.
+The embedded SFO reports 3.58. It is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the FTP server reports the
+same size and a 2026-07-16 17:09:41 UTC modification time. Two independent
+complete readbacks produced the same SHA-256.
+
 ## Runtime topology: two tracks, one production authority
 
 `KisakRegisterStaticModules` registers both tracks in
