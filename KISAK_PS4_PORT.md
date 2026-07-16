@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.30
+Version: 3.31
 Size: 103,219,200 bytes
-SHA-256: 4514ad4f73c17b15c09c743d54b8d26f6b63cf7ef4d7f57620d7b79bb2be9f3a
-Hardware run: v4.64 (2026-07-16), crashes in the GAME-path SourceScheme load
+SHA-256: 40b9643786123b8f9c90f8367713c7b8da0b858325e3085a58e973f7162f3ba0
+Hardware run: v4.65 (2026-07-16), reads SourceScheme from its VPK and crashes while parsing BaseSettings
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.30
+Version: 3.31
 Size: 103,219,200 bytes
-SHA-256: 4514ad4f73c17b15c09c743d54b8d26f6b63cf7ef4d7f57620d7b79bb2be9f3a
-Hardware result: v4.64 crashes in the GAME-path `KeyValues::LoadFromFile`
+SHA-256: 40b9643786123b8f9c90f8367713c7b8da0b858325e3085a58e973f7162f3ba0
+Hardware result: v4.65 crashes while parsing SourceScheme `BaseSettings`
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: 40b9643786123b8f9c90f8367713c7b8da0b858325e3085a58e973f7162f3ba0
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: awaiting manual v4.65 install and run
+Hardware result: v4.65 crashes while parsing SourceScheme `BaseSettings`
 ```
 
 Current hardware baseline:
@@ -7463,8 +7463,27 @@ Direct PkgTool validation reports every size, digest, and signature check as
 suite remains at 11/14 with only the known `ps4_gnm_device`, `ps4_gnm_buffer`,
 and `ps4_gnm_constants` baseline failures. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP readback
-matches the local 103,219,200-byte package and SHA-256 above. Manual install and
-hardware execution remain.
+matches the local 103,219,200-byte package and SHA-256 above.
+
+The v4.65 package was installed and run manually. Its single build marker and
+428,159-line, 20,258,532-byte startup log validate the complete GAME search,
+VPK entry lookup, handle setup, metadata copy, archive read, cache retry, and
+return to the `KeyValues` parser. The SourceScheme trace contains 84 filesystem
+and VPK breadcrumbs. Its final parser sequence is:
+
+```text
+kisak-ps4: gamemodes parse key index=13 depth=2 name=ScrollBarHilight
+kisak-ps4: gamemodes parse key index=14 depth=2 name=ScrollBarDark
+kisak-ps4: gamemodes recursive first child section ready
+kisak-ps4: gamemodes parse key index=15 depth=0 name=BaseSettings
+```
+
+There is no enclosing `LoadFromBuffer` or scheme-load return marker. The VPK
+path is therefore healthy; the remaining crash is inside the SourceScheme
+`BaseSettings` parse after its root key is identified. The next package will
+trace creation of that root key, its opening token, entry into its child
+recursion, and the first bounded keys and values within it without changing
+parser behavior.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
