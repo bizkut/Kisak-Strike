@@ -14,6 +14,19 @@
 #include "igameevents.h"
 extern IGameEventManager2 *gameeventmanager;
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+
+static inline bool KisakPs4IsHltvStatusEvent( const char *name )
+{
+	return name &&
+		name[0] == 'h' && name[1] == 'l' && name[2] == 't' &&
+		name[3] == 'v' && name[4] == '_' && name[5] == 's' &&
+		name[6] == 't' && name[7] == 'a' && name[8] == 't' &&
+		name[9] == 'u' && name[10] == 's' && name[11] == '\0';
+}
+#endif
+
 // A safer method than inheriting straight from IGameEventListener2.
 // Avoids requiring the user to remove themselves as listeners in 
 // their deconstructor, and sets the serverside variable based on
@@ -34,7 +47,28 @@ public:
 
 	void ListenForGameEvent( const char *name )
 	{
-		m_bRegisteredForEvents = true;
+#if defined( PLATFORM_PS4 )
+		const bool bTraceHltvStatus = KisakPs4IsHltvStatusEvent( name );
+		if ( bTraceHltvStatus )
+		{
+			KisakPs4StartupBreadcrumb( "kisak-ps4: game event listener hltv inline entered" );
+#ifdef CLIENT_DLL
+			KisakPs4StartupBreadcrumb( "kisak-ps4: game event listener hltv client inline selected" );
+#else
+			KisakPs4StartupBreadcrumb( "kisak-ps4: game event listener hltv server inline selected" );
+#endif
+		}
+
+		if ( !gameeventmanager )
+		{
+			if ( bTraceHltvStatus )
+				KisakPs4StartupBreadcrumb( "kisak-ps4: game event listener hltv manager missing" );
+			return;
+		}
+
+		if ( bTraceHltvStatus )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: game event listener hltv manager ready" );
+#endif
 
 #ifdef CLIENT_DLL
 		bool bServerSide = false;
@@ -42,7 +76,18 @@ public:
 		bool bServerSide = true;
 #endif
 
-		gameeventmanager->AddListener( this, name, bServerSide );
+		const bool bAdded = gameeventmanager->AddListener( this, name, bServerSide );
+		if ( bAdded )
+			m_bRegisteredForEvents = true;
+
+#if defined( PLATFORM_PS4 )
+		if ( bTraceHltvStatus )
+		{
+			KisakPs4StartupBreadcrumb( bAdded
+				? "kisak-ps4: game event listener hltv add returned true"
+				: "kisak-ps4: game event listener hltv add returned false" );
+		}
+#endif
 	}
 
 	void ListenForAllGameEvents()

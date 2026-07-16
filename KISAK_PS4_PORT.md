@@ -58,13 +58,15 @@ kisak-ps4: scoreboard constructor spectator counts ready
 kisak-ps4: scoreboard constructor before hltv event listen
 ```
 
-Scoreboard Panel/factory/resource behavior is no longer the active blocker. The
-next gate is the client game-event listener path: prove the selected inline
-`CGameEventListener::ListenForGameEvent` body and client `gameeventmanager`
-pointer, then bracket `CGameEventManager::AddListener`, its mutex acquisition,
-event-descriptor lookup, callback lookup/allocation, and descriptor listener
-insertion. Do not bypass scoreboard events until that shared registration path
-is attributed.
+Scoreboard Panel/factory/resource behavior is no longer the active blocker. A
+review of the same bounded log also exposes an earlier lifecycle violation:
+server `CPhysicsHook::Init` returns false, but `CServerGameDLL::DLLInit` ignores
+the result and startup continues into the client. v4.93 must first give the
+server the real PS4 physics-module factory and make every server-init failure
+stop and unwind. If physics succeeds, the same candidate brackets the client
+`hltv_status` registration through its manager lock, descriptor lookup,
+callback allocation, and listener insertions. Do not bypass scoreboard events
+or continue from a partially initialized server.
 
 ### v4.83 result and immediate v4.84 gate
 
@@ -701,14 +703,61 @@ body at `0x14f4180`, that body passes `bServerSide = false` and reads the client
 successful `INTERFACEVERSION_GAMEEVENTSMANAGER2` factory result into that same
 global. The separate server inline body and server global are not selected.
 
-The v4.93 gate is therefore a bounded shared event-manager trace, not an event
-bypass. Record inline-listener entry, logical side, and manager presence, then
-bracket the public `CGameEventManager::AddListener` lock, descriptor lookup,
-the overload's recursive lock, callback lookup/allocation, global listener
-insertion, and descriptor-listener insertion. An unknown `hltv_status`
-descriptor should return safely; a null manager may be guarded defensively,
-but neither condition should be assumed from the v4.92 boundary. Preserve
-normal event registration until hardware identifies the failing operation.
+The complete log adds an earlier, authoritative dependency to that gate. Server
+game-system initialization reaches `CPhysicsHook` at index 1 and records a
+false return, after which the `server game systems init all ready` marker is
+absent. `CServerGameDLL::DLLInit` stores that failure in `bInitSuccess` but then
+continues through debug overlay, game types, and its successful return. Because
+`CHLTVDirector::Init` occurs later in the aborted game-system list and loads
+`resource/hltvevents.res`, `hltv_status` is probably unknown when the client
+scoreboard asks for it. Descriptor absence should return safely, so this
+explains invalid lifecycle state but does not yet attribute the final crash.
+
+### v4.93 candidate: physics factory closure, fail-stop, and listener trace
+
+Package version 3.59 and build marker
+`server_physics_event_boundary_v493` identify the next manual-install candidate.
+On PS4, `SV_InitGameDLL` now passes `KisakVPhysicsFactory()` as the physics
+factory instead of substituting the app-system aggregate for the desktop
+physics-module factory contract. `CPhysicsHook::Init` separately records the
+factory and the `VPhysics031`, `VPhysicsCollision007`, and
+`VPhysicsSurfaceProps001` queries, surface-data parsing, and completion.
+
+The candidate also enforces the active plan's fail-stop rule. A failed game
+system Init unwinds the successfully initialized prefix and clears the game-
+system initialized flag. `CServerGameDLL::DLLInit` returns false immediately
+when `InitGameSystems` fails; `SV_InitGameDLL` now returns a real status; and
+`Host_Init` stops before log, HLTV, client, material, or model initialization
+when that status is false. The demand-load new-game path also rejects a failed
+server DLL initialization instead of using partially initialized interfaces.
+
+If the direct PS4 physics factory clears that earlier failure, bounded
+`hltv_status` markers then identify the client inline body, manager presence,
+public and recursive manager locks, event-map and descriptor-vector lookup,
+callback allocation, global-listener insertion, descriptor-listener insertion,
+and the unknown-event warning boundary. Descriptor indices are validated before
+vector access, and listeners are marked registered only after a successful
+manager registration. Normal event delivery is unchanged.
+
+Validation before the candidate commit:
+
+- `git diff --check` passes;
+- the focused `engine_client`, `client_client`, and `server_client` targets
+  compile;
+- the full `kisak_ps4_monolithic` target links and its retention-manifest check
+  passes;
+- the executable is 126,527,472 bytes with SHA-256
+  `6fb8e3f8ec2eec085b3395a454eb02469a907c544667129b34ac2ef75698f945`;
+- the OELF is 136,305,312 bytes with SHA-256
+  `cc8fe446e2655da270621474dc08826f6b7a642d872be578b5939830788c4539`;
+- the SELF input is 83,379,552 bytes with SHA-256
+  `16dd53492bbe53816910ef7eb293ad9b532aef4750e21e2f7abfda9ca7f4354c`;
+- binary string inspection confirms the v4.93 build marker, all three physics
+  interface outcomes, fail-stop marker, and event-manager boundary families;
+  and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`,
+  and `ps4_gnm_constants`).
 
 ## Runtime topology: two tracks, one production authority
 

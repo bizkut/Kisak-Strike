@@ -1029,6 +1029,12 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 		PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit game systems ready" );
 		COM_TimestampedLog( "InitGameSystems - Finish" );
 	}
+	if ( !bInitSuccess )
+	{
+		PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit stopping after game systems failure" );
+		return false;
+	}
+	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit game systems succeeded" );
 	// try to get debug overlay, may be NULL if on HLDS
 	debugoverlay = (IVDebugOverlay *)appSystemFactory( VDEBUG_OVERLAY_INTERFACE_VERSION, NULL );
 	PS4_SERVER_DLL_BREADCRUMB( "kisak-ps4: server DLLInit debug overlay query ready" );

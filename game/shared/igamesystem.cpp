@@ -283,6 +283,15 @@ bool IGameSystem::InitAllSystems()
 		if ( !valid )
 		{
 			DevWarning( 1, "Failed to load %s\n", sys->Name() );
+			for ( int shutdownIndex = i - 1; shutdownIndex >= 0; --shutdownIndex )
+			{
+#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+				KisakPs4TraceServerGameSystem( "failure unwind", shutdownIndex,
+					s_GameSystems[shutdownIndex]->Name(), i );
+#endif
+				s_GameSystems[shutdownIndex]->Shutdown();
+			}
+			s_bSystemsInitted = false;
 			return false;
 		}
 	}
@@ -490,4 +499,3 @@ void InvokeMethodReverseOrder( GameSystemFunc_t f )
 		(sys->*f)();
 	}
 }
-

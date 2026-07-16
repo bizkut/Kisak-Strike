@@ -23,6 +23,17 @@
 
 #define NETWORKED_TYPE_BITS 4
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+static bool s_bKisakPs4HltvListenerTrace = false;
+
+static inline void KisakPs4TraceHltvListener( bool enabled, const char *line )
+{
+	if ( enabled )
+		KisakPs4StartupBreadcrumb( line );
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -885,39 +896,118 @@ void CGameEventManager::ReloadEventDefinitions()
 
 bool CGameEventManager::AddListener( IGameEventListener2 *listener, const char *event, bool bServerSide )
 {
+#if defined( PLATFORM_PS4 )
+	const bool bTraceHltvStatus = event && !Q_strcmp( event, "hltv_status" );
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv public add entered" );
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv before public lock" );
+#endif
 	AUTO_LOCK_FM( m_mutex );
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv public lock ready" );
+#endif
 	if ( !event )
 		return false;
 
 	// look for the event descriptor
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv before descriptor lookup" );
+#endif
 	CGameEventDescriptor *descriptor = GetEventDescriptor( event );
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus, descriptor
+		? "kisak-ps4: game event manager hltv descriptor ready"
+		: "kisak-ps4: game event manager hltv descriptor missing" );
+#endif
 
 	if ( !descriptor )
 	{
+#if defined( PLATFORM_PS4 )
+		KisakPs4TraceHltvListener( bTraceHltvStatus,
+			"kisak-ps4: game event manager hltv before unknown warning" );
+#endif
 		Warning( "CGameEventManager::AddListener: event '%s' unknown.\n", event );
+#if defined( PLATFORM_PS4 )
+		KisakPs4TraceHltvListener( bTraceHltvStatus,
+			"kisak-ps4: game event manager hltv unknown warning ready" );
+#endif
 		return false;	// that should not happen
 	}
 
-	return AddListener( listener, descriptor, bServerSide ? SERVERSIDE : CLIENTSIDE );
+#if defined( PLATFORM_PS4 )
+	const bool bPreviousTrace = s_bKisakPs4HltvListenerTrace;
+	s_bKisakPs4HltvListenerTrace = bTraceHltvStatus;
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv before descriptor add" );
+#endif
+	const bool bAdded = AddListener( listener, descriptor, bServerSide ? SERVERSIDE : CLIENTSIDE );
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus, bAdded
+		? "kisak-ps4: game event manager hltv descriptor add returned true"
+		: "kisak-ps4: game event manager hltv descriptor add returned false" );
+	s_bKisakPs4HltvListenerTrace = bPreviousTrace;
+#endif
+	return bAdded;
 }
 
 bool CGameEventManager::AddListener( void *listener, CGameEventDescriptor *descriptor,  int nListenerType )
 {
+#if defined( PLATFORM_PS4 )
+	const bool bTraceHltvStatus = s_bKisakPs4HltvListenerTrace;
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv descriptor add entered" );
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv before descriptor lock" );
+#endif
 	AUTO_LOCK_FM( m_mutex );
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv descriptor lock ready" );
+#endif
 	if ( !listener || !descriptor )
 		return false;	// bahh
 
 	// check if we already know this listener
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv before callback lookup" );
+#endif
 	CGameEventCallback *pCallback = FindEventListener( listener );
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus, pCallback
+		? "kisak-ps4: game event manager hltv callback existing"
+		: "kisak-ps4: game event manager hltv callback missing" );
+#endif
 
 	if ( pCallback == NULL )
 	{
 		// add new callback 
+#if defined( PLATFORM_PS4 )
+		KisakPs4TraceHltvListener( bTraceHltvStatus,
+			"kisak-ps4: game event manager hltv before callback allocation" );
+#endif
 		pCallback = new CGameEventCallback;
+#if defined( PLATFORM_PS4 )
+		KisakPs4TraceHltvListener( bTraceHltvStatus,
+			"kisak-ps4: game event manager hltv callback allocation ready" );
+		KisakPs4TraceHltvListener( bTraceHltvStatus,
+			"kisak-ps4: game event manager hltv before global listener insert" );
+#endif
 		m_Listeners.AddToTail( pCallback );
+#if defined( PLATFORM_PS4 )
+		KisakPs4TraceHltvListener( bTraceHltvStatus,
+			"kisak-ps4: game event manager hltv global listener insert ready" );
+#endif
 
 		pCallback->m_nListenerType = nListenerType;
 		pCallback->m_pCallback = listener;
+#if defined( PLATFORM_PS4 )
+		KisakPs4TraceHltvListener( bTraceHltvStatus,
+			"kisak-ps4: game event manager hltv callback fields ready" );
+#endif
 	}
 	else
 	{
@@ -927,9 +1017,26 @@ bool CGameEventManager::AddListener( void *listener, CGameEventDescriptor *descr
 	}
 
 	// add to event listeners list if not already in there
-	if ( descriptor->listeners.Find( pCallback ) == descriptor->listeners.InvalidIndex() )
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv before descriptor listener lookup" );
+#endif
+	const int nDescriptorListenerIndex = descriptor->listeners.Find( pCallback );
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv descriptor listener lookup ready" );
+#endif
+	if ( nDescriptorListenerIndex == descriptor->listeners.InvalidIndex() )
 	{
+#if defined( PLATFORM_PS4 )
+		KisakPs4TraceHltvListener( bTraceHltvStatus,
+			"kisak-ps4: game event manager hltv before descriptor listener insert" );
+#endif
 		descriptor->listeners.AddToTail( pCallback );
+#if defined( PLATFORM_PS4 )
+		KisakPs4TraceHltvListener( bTraceHltvStatus,
+			"kisak-ps4: game event manager hltv descriptor listener insert ready" );
+#endif
 
 		if ( net_showeventlisteners.GetBool() )
 		{
@@ -944,6 +1051,10 @@ bool CGameEventManager::AddListener( void *listener, CGameEventDescriptor *descr
 			m_bClientListenersChanged = true;
 	}
 
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv descriptor add complete" );
+#endif
 	return true;
 }
 
@@ -1060,6 +1171,11 @@ void CGameEventManager::FreeEvent( IGameEvent *event )
 
 CGameEventDescriptor *CGameEventManager::GetEventDescriptor(const char * name, int *pCookie)
 {
+#if defined( PLATFORM_PS4 )
+	const bool bTraceHltvStatus = name && !Q_strcmp( name, "hltv_status" );
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv descriptor lookup entered" );
+#endif
 	const uint32 cookieBit = 0x80000000;
 	const uint32 cookieMask = ~cookieBit;
 
@@ -1075,15 +1191,46 @@ CGameEventDescriptor *CGameEventManager::GetEventDescriptor(const char * name, i
 			return pDescriptor;
 		}
 	}
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv before event map find" );
+#endif
 	int eventMapIndex = m_EventMap.Find( name );
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv event map find ready" );
+#endif
 	if ( eventMapIndex == m_EventMap.InvalidIndex() )
 		return NULL;
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv before event map element" );
+#endif
 	int gameEventIndex = m_EventMap[eventMapIndex];
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv event map element ready" );
+	if ( !m_GameEvents.IsValidIndex( gameEventIndex ) )
+	{
+		KisakPs4TraceHltvListener( bTraceHltvStatus,
+			"kisak-ps4: game event manager hltv descriptor vector index invalid" );
+		return NULL;
+	}
+#endif
 	if ( pCookie )
 	{
 		*pCookie = cookieBit | gameEventIndex;
 	}
-	return &m_GameEvents[gameEventIndex];
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv before descriptor vector element" );
+#endif
+	CGameEventDescriptor *pDescriptor = &m_GameEvents[gameEventIndex];
+#if defined( PLATFORM_PS4 )
+	KisakPs4TraceHltvListener( bTraceHltvStatus,
+		"kisak-ps4: game event manager hltv descriptor vector element ready" );
+#endif
+	return pDescriptor;
 }
 
 bool CGameEventManager::AddListenerAll( void *listener, int nListenerType )

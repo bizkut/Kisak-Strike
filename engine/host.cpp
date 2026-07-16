@@ -5634,7 +5634,13 @@ void Host_Init( bool bDedicated )
 
 	if ( !CommandLine()->FindParm( "-nogamedll" ) )
 	{
-		SV_InitGameDLL();
+		if ( !SV_InitGameDLL() )
+		{
+#if defined( PLATFORM_PS4 )
+			KisakPs4StartupBreadcrumb( "kisak-ps4: host init stopping after game DLL failure" );
+#endif
+			return;
+		}
 	}
 
 	TRACEINIT( g_Log.Init(), g_Log.Shutdown() );

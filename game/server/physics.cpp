@@ -60,6 +60,13 @@ void PrecachePhysicsSounds( void );
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_SERVER_PHYSICS_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_SERVER_PHYSICS_BREADCRUMB( line ) ((void)0)
+#endif
+
 ConVar phys_speeds( "phys_speeds", "0" );
 ConVar phys_show_active( "phys_show_active", "0", FCVAR_CHEAT );
 
@@ -170,25 +177,55 @@ IGameSystem* PhysicsGameSystem()
 //-----------------------------------------------------------------------------
 bool CPhysicsHook::Init( void )
 {
+	PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook init entered" );
 	factorylist_t factories;
 	
 	// Get the list of interface factories to extract the physics DLL's factory
 	FactoryList_Retrieve( factories );
+	PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook factory list ready" );
 
 	if ( !factories.physicsFactory )
+	{
+		PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook factory missing" );
 		return false;
+	}
+	PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook factory ready" );
 
-	if ((physics = (IPhysics *)factories.physicsFactory( VPHYSICS_INTERFACE_VERSION, NULL )) == NULL ||
-		(physcollision = (IPhysicsCollision *)factories.physicsFactory( VPHYSICS_COLLISION_INTERFACE_VERSION, NULL )) == NULL ||
-		(physprops = (IPhysicsSurfaceProps *)factories.physicsFactory( VPHYSICS_SURFACEPROPS_INTERFACE_VERSION, NULL )) == NULL
-		)
+	PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook before main interface" );
+	physics = (IPhysics *)factories.physicsFactory( VPHYSICS_INTERFACE_VERSION, NULL );
+	if ( !physics )
+	{
+		PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook main interface missing" );
 		return false;
+	}
+	PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook main interface ready" );
 
+	PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook before collision interface" );
+	physcollision = (IPhysicsCollision *)factories.physicsFactory( VPHYSICS_COLLISION_INTERFACE_VERSION, NULL );
+	if ( !physcollision )
+	{
+		PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook collision interface missing" );
+		return false;
+	}
+	PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook collision interface ready" );
+
+	PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook before surface props interface" );
+	physprops = (IPhysicsSurfaceProps *)factories.physicsFactory( VPHYSICS_SURFACEPROPS_INTERFACE_VERSION, NULL );
+	if ( !physprops )
+	{
+		PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook surface props interface missing" );
+		return false;
+	}
+	PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook surface props interface ready" );
+
+	PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook before surface data" );
 	PhysParseSurfaceData( physprops, filesystem );
+	PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook surface data ready" );
 
 	m_isFinalTick = true;
 	m_impactSoundTime = 0;
 	m_vehicleScripts.EnsureCapacity(4);
+	PS4_SERVER_PHYSICS_BREADCRUMB( "kisak-ps4: server physics hook init complete" );
 	return true;
 }
 
@@ -3034,4 +3071,3 @@ void DumpCollideToGlView( CPhysCollide *pCollide, const Vector &origin, const QA
 	physcollision->DestroyDebugMesh( vertCount, outVerts );
 }
 #endif
-

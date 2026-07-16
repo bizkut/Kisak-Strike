@@ -88,6 +88,9 @@
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 #include "serializedentity.h"
 #include "matchmaking/imatchframework.h"
+#if defined( PLATFORM_PS4 )
+#include "appframework/Ps4StaticModules.h"
+#endif
 
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -1030,7 +1033,7 @@ void ServerDLL_Unload()
 //-----------------------------------------------------------------------------
 // Purpose: Loads the game .dll
 //-----------------------------------------------------------------------------
-void SV_InitGameDLL( void )
+bool SV_InitGameDLL( void )
 {
     PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll init entered" );
     COM_TimestampedLog( "SV_InitGameDLL" );
@@ -1049,7 +1052,7 @@ void SV_InitGameDLL( void )
     if ( sv.dll_initialized )
     {
         PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll already initialized" );
-        return;
+        return true;
     }
 
 #if !defined(DEDICATED) && !defined( _GAMECONSOLE )
@@ -1057,13 +1060,13 @@ void SV_InitGameDLL( void )
     if ( CL_IsHL2Demo() && !sv.IsDedicated() && Q_stricmp( COM_GetModDirectory(), "hl2" ) )
     {
         Error( "The HL2 demo is unable to run Mods.\n" );
-        return;			
+        return false;
     } 
 
     if ( CL_IsPortalDemo() && !sv.IsDedicated() && Q_stricmp( COM_GetModDirectory(), "portal" ) )
     {
         Error( "The Portal demo is unable to run Mods.\n" );
-        return;			
+        return false;
     } 
 
     // check permissions
@@ -1085,7 +1088,7 @@ void SV_InitGameDLL( void )
                 else
                 {
                     Error( "No permissions to run '%s'\n", COM_GetModDirectory() );
-                    return;			
+                    return false;
                 }
 
                 break;
@@ -1098,7 +1101,7 @@ void SV_InitGameDLL( void )
             if ( ! Steam3Client().SteamApps()->BIsSubscribedApp( 215  ) )
             {
                 Error( "A Source engine game is required to run mods\n" );
-                return;
+                return false;
             }
         }
     }
@@ -1109,7 +1112,7 @@ void SV_InitGameDLL( void )
     {
         PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll interface missing" );
         Warning( "Failed to load server binary\n" );
-        return;
+        return false;
     }
     PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll interface ready" );
 
@@ -1120,13 +1123,21 @@ void SV_InitGameDLL( void )
 
     // Tell the game DLL to start up
     PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before DLLInit" );
-    if ( !serverGameDLL->DLLInit( g_GameSystemFactory, g_AppSystemFactory, g_AppSystemFactory, &g_ServerGlobalVariables ) )
+#if defined( PLATFORM_PS4 )
+	CreateInterfaceFn physicsFactory = KisakVPhysicsFactory();
+	PS4_GAME_SERVER_BREADCRUMB( physicsFactory
+		? "kisak-ps4: game dll PS4 physics factory ready"
+		: "kisak-ps4: game dll PS4 physics factory missing" );
+#else
+	CreateInterfaceFn physicsFactory = g_AppSystemFactory;
+#endif
+	if ( !physicsFactory || !serverGameDLL->DLLInit( g_GameSystemFactory, physicsFactory, g_AppSystemFactory, &g_ServerGlobalVariables ) )
     {
         PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll DLLInit failed" );
         Sys_Error( "serverGameDLL->DLLInit() failed.\n");
 		sv.dll_initialized = false;
 		PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll aborting after DLLInit failure" );
-		return;
+		return false;
     }
     PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll DLLInit complete" );
 
@@ -1197,6 +1208,7 @@ void SV_InitGameDLL( void )
     PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll before final command execute" );
     Cbuf_Execute();
     PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll init complete" );
+	return true;
 }
 
 //

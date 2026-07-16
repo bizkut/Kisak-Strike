@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
+//===== Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: Expose functions from sv_main.cpp.
 //
@@ -34,7 +34,7 @@ void SV_ProcessVoice( void );
 void SV_Frame( bool send_client_updates );
 void SV_FrameExecuteThreadDeferred();
 
-void SV_InitGameDLL( void );
+bool SV_InitGameDLL( void );
 
 void SV_ReplicateConVarChange( ConVar const *var, char const *newValue );
 void SV_ExecuteRemoteCommand( const char *pCommand, int nClientSlot = -1 );
@@ -126,5 +126,4 @@ void SV_FlushMemoryOnNextServer();
 void SV_SetSteamCrashComment();
 
 #endif
-
 

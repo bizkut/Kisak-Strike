@@ -422,7 +422,11 @@ void CHostState::State_NewGame()
 		// Demand load game .dll if running with -nogamedll flag, etc.
 		if ( !serverGameClients )
 		{
-			SV_InitGameDLL();
+			if ( !SV_InitGameDLL() )
+			{
+				Warning( "Can't start game, server.dll initialization failed\n" );
+				return;
+			}
 		}
 
 		if ( !serverGameClients )
@@ -955,4 +959,3 @@ static bool Host_ValidGame( void )
 {
 	return true;
 }
-
