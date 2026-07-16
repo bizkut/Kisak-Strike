@@ -23,54 +23,48 @@ DLL/PRX ownership assumptions merely because the original code used them.
 
 | Item | Value |
 |---|---|
-| Test | v4.91, 2026-07-16 |
-| Package version | 3.57 |
+| Test | v4.92, 2026-07-16 |
+| Package version | 3.58 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Package size | 103,415,808 bytes |
-| Package SHA-256 | `689723ddbf469d02ab6223ba2a3fdf6df14196e164f15b77dd93b1814a6fd71c` |
+| Package size | 103,481,344 bytes |
+| Package SHA-256 | `5d5f01852d90b98e6ac2b7bcfc86152eb4c566dd1416a5b3b7188883ad44d40e` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `505b7ab1` (`Instrument PS4 viewport startup`) |
-| Hardware-result commit | This v4.91 result record (`Record v4.91 scoreboard construction crash`) |
+| Candidate commit | `ec3ad15c` (`Trace PS4 scoreboard resource construction`) |
+| Hardware-result commit | This v4.92 result record (`Record v4.92 game-event listener crash`) |
 
-v4.91 clears ClientScheme and proves the first normal viewport allocation,
-`CounterStrikeViewport::Start`, the base viewport constructor, background-panel
-creation, event registration, scheme assignment, and the start of default-panel
-creation. Missing team and buy factories return safely. The crash is inside the
-first real default-panel allocation, `new CClientScoreBoardDialog( this )`; its
-factory return marker is absent.
+v4.92 clears the complete scoreboard resource construction path. `SysMenu` and
+`ServerName` factories return, all Panel parent/input/context/sibling-pin stages
+complete, existing `PlayerList` settings apply, `BuildGroup` returns, and the
+scoreboard finishes its post-resource size, visibility, and spectator state.
+The crash is inside the first `ListenForGameEvent( "hltv_status" )` call.
 
-The fresh v4.91 log was last modified at 2026-07-16 16:51:45 UTC. It is
-453,233 bytes and 12,054 lines with SHA-256
-`1d2d3faca8d3b677b6ca756f0d71ac0cf07a4ed7e77d12308bee2ab06a0346f9`.
+The fresh v4.92 log was last modified at 2026-07-16 17:15:32 UTC. It is
+482,699 bytes and 12,501 lines with SHA-256
+`c3ccf6fdf2d3a5dc3c039ce4260345ea522324ee03903ec8be47f2d916e3f3f3`.
 It is neither capped nor inherited from the prior run, so its tail is a valid
 constructor boundary.
 
 The final milestones are:
 
 ```text
-kisak-ps4: scheme borders object pass ready
-kisak-ps4: scheme data load complete
-kisak-ps4: scheme load ex complete
-kisak-ps4: client game systems client scheme load returned
-kisak-ps4: client game systems before viewport init
-kisak-ps4: client mode viewport allocation ready slot=-1
-kisak-ps4: base viewport start before default panels
-kisak-ps4: cs viewport default panels team ready
-kisak-ps4: cs viewport default panels buy ready
-kisak-ps4: viewport panel factory entered name=scores
-kisak-ps4: viewport panel factory before scoreboard allocation name=scores
-kisak-ps4: panel set mouse input complete
+kisak-ps4: scoreboard build panel apply ready key=ServerName control=Label
+kisak-ps4: scoreboard build existing control apply ready key=PlayerList control=SectionedListPanel
+kisak-ps4: scoreboard build apply complete key=Resource/UI/ScoreBoard.res control=missing
+kisak-ps4: scoreboard build load complete key=Resource/UI/ScoreBoard.res control=missing
+kisak-ps4: scoreboard constructor control settings ready
+kisak-ps4: scoreboard constructor desired height ready
+kisak-ps4: scoreboard constructor player list hidden
+kisak-ps4: scoreboard constructor spectator counts ready
+kisak-ps4: scoreboard constructor before hltv event listen
 ```
 
-The missing VGUI material family, ClientScheme, viewport allocation, and base
-viewport startup are no longer blockers. Seven child-panel mouse-input calls
-complete after scoreboard allocation begins, proving that the scoreboard's
-base and part of its child-control construction execute. The next gate is the
-scoreboard constructor itself: distinguish its scalar initialization,
-`SectionedListPanel` allocation/configuration, `ScoreBoard.res` load and
-BuildGroup control creation, desired-height/visibility setup, event listeners,
-and avatar/image-list initialization before changing downstream viewport
-behavior.
+Scoreboard Panel/factory/resource behavior is no longer the active blocker. The
+next gate is the client game-event listener path: prove the selected inline
+`CGameEventListener::ListenForGameEvent` body and client `gameeventmanager`
+pointer, then bracket `CGameEventManager::AddListener`, its mutex acquisition,
+event-descriptor lookup, callback lookup/allocation, and descriptor listener
+insertion. Do not bypass scoreboard events until that shared registration path
+is attributed.
 
 ### v4.83 result and immediate v4.84 gate
 
@@ -682,6 +676,39 @@ The embedded SFO reports 3.58. It is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the FTP server reports the
 same size and a 2026-07-16 17:09:41 UTC modification time. Two independent
 complete readbacks produced the same SHA-256.
+
+### v4.92 result and immediate v4.93 gate
+
+The manual-install run clears every scoreboard resource and post-resource
+constructor stage instrumented by v4.92. `SysMenu` and `ServerName` are created
+and applied, the existing `PlayerList` settings return, the outer BuildGroup
+load returns, and the scoreboard reaches its desired-height, player-list
+visibility, and spectator-count initialization. The exact final line is:
+
+```text
+kisak-ps4: scoreboard constructor before hltv event listen
+```
+
+The corresponding `scoreboard constructor hltv event listen ready` marker is
+absent, so the active failure is inside
+`ListenForGameEvent( "hltv_status" )`, not in Panel parenting, control factory
+selection, `ScoreBoard.res`, or the scoreboard's scalar initialization.
+
+Static final-OELF inspection rules out the most immediate monolithic ownership
+hypothesis for this call. The scoreboard constructor calls the client inline
+body at `0x14f4180`, that body passes `bServerSide = false` and reads the client
+`gameeventmanager` global at `0x4b45a58`, and `CHLClient::Init` stores its
+successful `INTERFACEVERSION_GAMEEVENTSMANAGER2` factory result into that same
+global. The separate server inline body and server global are not selected.
+
+The v4.93 gate is therefore a bounded shared event-manager trace, not an event
+bypass. Record inline-listener entry, logical side, and manager presence, then
+bracket the public `CGameEventManager::AddListener` lock, descriptor lookup,
+the overload's recursive lock, callback lookup/allocation, global listener
+insertion, and descriptor-listener insertion. An unknown `hltv_status`
+descriptor should return safely; a null manager may be guarded defensively,
+but neither condition should be assumed from the v4.92 boundary. Preserve
+normal event registration until hardware identifies the failing operation.
 
 ## Runtime topology: two tracks, one production authority
 
