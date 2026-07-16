@@ -283,6 +283,13 @@ the SELF input is 83,330,304 bytes with SHA-256
 Eleven of fourteen host tests pass; the same three Linux high-address OpenGNM
 descriptor fixtures fail outside this VGUI scheme-loading path.
 
+Candidate commit `53c5d052` produces a 103,415,808-byte package with SHA-256
+`da63191f79fb32b4bb3c3f39e6cf372c1c487c9599b74790fc826006a7394dc5`.
+The embedded SFO reports version 3.53, and verbose PkgTool validation reports
+every limit, digest, and signature check `[OK]`. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete FTP
+readbacks each return 103,415,808 bytes with the same SHA-256.
+
 ## Runtime topology: two tracks, one production authority
 
 `KisakRegisterStaticModules` registers both tracks in
