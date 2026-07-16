@@ -156,6 +156,13 @@ inline UI_BASEMOD_PANEL_CLASS & ConstructUiBaseModPanelClass() { return *BasePan
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_GAMEUI_INIT_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_GAMEUI_INIT_BREADCRUMB( line ) ((void)0)
+#endif
+
 IEngineVGui *enginevguifuncs = NULL;
 // dgoodenough - xonline only exists on the 360.  All uses of xonline have had their
 // protection changed like this one
@@ -261,13 +268,30 @@ CGameUI::~CGameUI()
 void CGameUI::Initialize( CreateInterfaceFn factory )
 {
 	MEM_ALLOC_CREDIT();
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init memory credit ready" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before tier1 connect" );
 	ConnectTier1Libraries( &factory, 1 );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init tier1 connect returned" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before tier2 connect" );
 	ConnectTier2Libraries( &factory, 1 );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init tier2 connect returned" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before convar register" );
 	ConVar_Register( FCVAR_CLIENTDLL );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init convar register returned" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before tier3 connect" );
 	ConnectTier3Libraries( &factory, 1 );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init tier3 connect returned" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before engine sound factory" );
 
 	enginesound = (IEngineSound *)factory(IENGINESOUND_CLIENT_INTERFACE_VERSION, NULL);
+	PS4_GAMEUI_INIT_BREADCRUMB( enginesound
+		? "kisak-ps4: gameui init engine sound ready"
+		: "kisak-ps4: gameui init engine sound null" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before engine client factory" );
 	engine = (IVEngineClient *)factory( VENGINE_CLIENT_INTERFACE_VERSION, NULL );
+	PS4_GAMEUI_INIT_BREADCRUMB( engine
+		? "kisak-ps4: gameui init engine client ready"
+		: "kisak-ps4: gameui init engine client null" );
 #if defined( BINK_VIDEO )
 	bik = (IBik*)factory( BIK_INTERFACE_VERSION, NULL );
 #endif
@@ -277,15 +301,30 @@ void CGameUI::Initialize( CreateInterfaceFn factory )
 #endif
 
 #ifndef _GAMECONSOLE
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before steam api init" );
 	SteamAPI_InitSafe();
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init steam api init returned" );
+	PS4_GAMEUI_INIT_BREADCRUMB( steamapicontext
+		? "kisak-ps4: gameui init steam context ready"
+		: "kisak-ps4: gameui init steam context null" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before steam context init" );
 	steamapicontext->Init();
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init steam context init returned" );
 #endif
 
 	CGameUIConVarRef var( "gameui_xbox" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init xbox convar constructed" );
 	m_bIsConsoleUI = var.IsValid() && var.GetBool();
+	PS4_GAMEUI_INIT_BREADCRUMB( m_bIsConsoleUI
+		? "kisak-ps4: gameui init console ui value=1"
+		: "kisak-ps4: gameui init console ui value=0" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before vgui interfaces" );
 
 	vgui::VGui_InitInterfacesList( "GameUI", &factory, 1 );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init vgui interfaces returned" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before matsys interfaces" );
 	vgui::VGui_InitMatSysInterfacesList( "GameUI", &factory, 1 );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init matsys interfaces returned" );
 
 	// load localization file
 #if !defined( CSTRIKE15 )
@@ -293,16 +332,36 @@ void CGameUI::Initialize( CreateInterfaceFn factory )
 #endif
 
 	// load mod info
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before mod info" );
 	ModInfo().LoadCurrentGameInfo();
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init mod info ready" );
 
 	// load localization file for kb_act.lst
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before valve localization" );
 	g_pVGuiLocalize->AddFile( "resource/valve_%language%.txt", "GAME", true );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init valve localization returned" );
 
 	bool bFailed = false;
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before engine vgui factory" );
 	enginevguifuncs = (IEngineVGui *)factory( VENGINE_VGUI_VERSION, NULL );
+	PS4_GAMEUI_INIT_BREADCRUMB( enginevguifuncs
+		? "kisak-ps4: gameui init engine vgui ready"
+		: "kisak-ps4: gameui init engine vgui null" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before engine surface factory" );
 	enginesurfacefuncs = (vgui::ISurface *)factory(VGUI_SURFACE_INTERFACE_VERSION, NULL);
+	PS4_GAMEUI_INIT_BREADCRUMB( enginesurfacefuncs
+		? "kisak-ps4: gameui init engine surface ready"
+		: "kisak-ps4: gameui init engine surface null" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before gameui funcs factory" );
 	gameuifuncs = (IGameUIFuncs *)factory( VENGINE_GAMEUIFUNCS_VERSION, NULL );
+	PS4_GAMEUI_INIT_BREADCRUMB( gameuifuncs
+		? "kisak-ps4: gameui init gameui funcs ready"
+		: "kisak-ps4: gameui init gameui funcs null" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before xbox system factory" );
 	xboxsystem = (IXboxSystem *)factory( XBOXSYSTEM_INTERFACE_VERSION, NULL );
+	PS4_GAMEUI_INIT_BREADCRUMB( xboxsystem
+		? "kisak-ps4: gameui init xbox system ready"
+		: "kisak-ps4: gameui init xbox system null" );
 // dgoodenough - xonline only exists on the 360.
 // PS3_BUILDFIX
 #ifdef _X360
@@ -322,6 +381,9 @@ void CGameUI::Initialize( CreateInterfaceFn factory )
 		!g_pMatchExtSwarm ||
 #endif
 		!g_pMatchFramework;
+	PS4_GAMEUI_INIT_BREADCRUMB( bFailed
+		? "kisak-ps4: gameui init required interfaces missing"
+		: "kisak-ps4: gameui init required interfaces ready" );
 
 #ifdef PANORAMA_ENABLE
 	panorama::IUIEngine *pPanoramaUIEngine = g_pPanoramaUIEngine->AccessUIEngine();
@@ -347,24 +409,38 @@ void CGameUI::Initialize( CreateInterfaceFn factory )
 	
 	if ( bFailed )
 	{
+		PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before required interface error" );
 		Error( "CGameUI::Initialize() failed to get necessary interfaces\n" );
+		PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init required interface error returned" );
 	}
 
 	// setup base panel
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before base panel construct" );
 	UI_BASEMOD_PANEL_CLASS& factoryBasePanel = ConstructUiBaseModPanelClass(); // explicit singleton instantiation
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init base panel constructed" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before base panel visual setup" );
 
 	factoryBasePanel.SetBounds( 0, 0, 640, 480 );
 	factoryBasePanel.SetPaintBorderEnabled( false );
 	factoryBasePanel.SetPaintBackgroundEnabled( true );
 	factoryBasePanel.SetPaintEnabled( true );
 	factoryBasePanel.SetVisible( true );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init base panel visual setup ready" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before base panel input setup" );
 
 	factoryBasePanel.SetMouseInputEnabled( IsPC() );
 	// factoryBasePanel.SetKeyBoardInputEnabled( IsPC() );
 	factoryBasePanel.SetKeyBoardInputEnabled( true );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init base panel input setup ready" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before root panel query" );
 
 	vgui::VPANEL rootpanel = enginevguifuncs->GetPanel( PANEL_GAMEUIDLL );
+	PS4_GAMEUI_INIT_BREADCRUMB( rootpanel
+		? "kisak-ps4: gameui init root panel ready"
+		: "kisak-ps4: gameui init root panel null" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init before base panel parent" );
 	factoryBasePanel.SetParent( rootpanel );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui init complete" );
 }
 
 void CGameUI::PostInit()

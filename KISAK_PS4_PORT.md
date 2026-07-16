@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.41
+Version: 3.42
 Size: 103,219,200 bytes
-SHA-256: f62d113e84a8c935d8e7c0353be9b3725e6e041c0f6abcd1682e7697c447c576
+SHA-256: ab2f0949e6eab093fbb0eaa73f742299021dc719569bc3b7c18b094074a6f87a
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.75 crosses cursor/panel setup and stops inside `CGameUI::Initialize`
+Hardware result: pending; v4.76 traces the complete `CGameUI::Initialize` fall-through
 ```
 
 Current hardware baseline:
@@ -8116,6 +8116,63 @@ from `ConVar_Register(FCVAR_CLIENTDLL)`, calls
 and then requests `IEngineSound` through the supplied interface factory.
 The v4.76 diagnostic should bracket those operations and the following GameUI
 interface/localization/base-panel stages without skipping any work.
+
+### v4.76: Trace GameUI initialization after the ConVar return
+
+Package version 3.42 and build marker `gameui_init_trace_v476` identify
+the diagnostic for the v4.75 boundary. The final v4.75 breadcrumb is emitted
+inside `ConVar_Register` immediately before its return, so it does not prove
+that control reaches the caller. The first new marker is immediately after
+that call. The next markers bracket the empty `ConnectTier3Libraries`
+implementation and report ready/null results for the `IEngineSound` and
+`IVEngineClient` factory queries.
+
+The same PS4-only trace continues through the compiled Steam-free stub/context
+calls, the `gameui_xbox` ConVarRef, VGUI and material-system interface
+initialization, mod-info and Valve localization loads, the four required
+GameUI interface queries, required-interface validation, base-panel
+construction, visual/input setup, root-panel lookup, and final parenting.
+The PS4 client defines `NO_STEAM` but not `_GAMECONSOLE`, so the legacy
+Steam block is compiled; the trace records the context pointer before the
+existing call without changing it. That build initializes `steamapicontext`
+to null, making the existing member call formal C++ undefined behavior. The
+current OELF returns from `CSteamAPIContext::Init` on the stubbed zero Steam
+pipe before accessing `this`, so this is a latent defect rather than proof of
+the v4.75 crash; v4.76 deliberately preserves it so the hardware trace can
+separate it from the preceding boundary. All breadcrumb arguments are constant
+strings or already-computed pointer/value checks behind a PS4-only macro.
+Other platforms preprocess the macro to `((void)0)`, so their call order,
+state, and argument evaluation are unchanged.
+
+The narrow `client_client` and `engine_client` targets compile, and the
+complete monolithic link succeeds. The final GameUI object and OELF each
+contain one `CGameUI::Initialize`; the final OELF resolves the startup logger,
+contains the v4.76 build marker once, and retains all 59 bounded GameUI
+initialization marker strings. Both package scripts pass `bash -n` and retain
+mode 0755. The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic.oelf
+Size: 136,028,120 bytes
+SHA-256: f3b618543bb1ae04a31c52d1b58a022b8116b32db6afe7f8ad3de24c5110cef7
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,142,752 bytes
+SHA-256: 71b8ee48d48fcf118157c8707d093de4c5cc49383c00d8da1530825f3e53bbe7
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.42
+Size: 103,219,200 bytes
+SHA-256: ab2f0949e6eab093fbb0eaa73f742299021dc719569bc3b7c18b094074a6f87a
+```
+
+PkgTool reports every displayed package limit, digest, and signature check as
+`[OK]`, and `param.sfo` reports both `APP_VER` and `VERSION` as 3.42.
+The host PS4 suite remains at 11/14 with only the known `ps4_gnm_device`,
+`ps4_gnm_buffer`, and `ps4_gnm_constants` baseline failures. The package is
+staged at `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete
+FTP readback matches the local 103,219,200-byte package and SHA-256 above.
+Manual install and hardware execution remain.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
