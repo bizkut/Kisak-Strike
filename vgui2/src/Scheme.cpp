@@ -35,6 +35,13 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include <tier0/memdbgon.h>
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_SCHEME_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_SCHEME_BREADCRUMB( line ) ((void)0)
+#endif
+
 using namespace vgui;
 #define FONT_ALIAS_NAME_LENGTH 64
 
@@ -377,101 +384,194 @@ void CSchemeManager::Shutdown( bool full )
 //-----------------------------------------------------------------------------
 HScheme CSchemeManager::FindLoadedScheme( const char *pFilename )
 {
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme find loaded entered" );
+	PS4_SCHEME_BREADCRUMB( pFilename
+		? "kisak-ps4: scheme find loaded filename ready"
+		: "kisak-ps4: scheme find loaded filename null" );
 	VPROF_2( "CSchemeManager::FindLoadedScheme", VPROF_BUDGETGROUP_OTHER_VGUI, false, 0 );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme find loaded vprof ready" );
 
 	// normalize the filename, can't trust outside callers or scripts
 	// otherwise silly duplicate build out occurs
 	char fileName[MAX_PATH];
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme find loaded before filename copy" );
 	Q_strncpy( fileName, pFilename, sizeof( fileName ) );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme find loaded filename copied" );
 	V_FixSlashes( fileName );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme find loaded filename normalized" );
 
 	// Find the scheme in the list of already loaded schemes
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme find loaded before list scan" );
 	for (int i = 1; i < m_Schemes.Count(); i++)
 	{
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme find loaded list entry" );
 		char const *schemeFileName = m_Schemes[i]->GetFileName();
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme find loaded entry filename ready" );
 		if ( !V_stricmp( schemeFileName, fileName ) )
 		{
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme find loaded match ready" );
 			return i;
 		}
 	}
 
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme find loaded complete not found" );
 	return 0;
 }
 
 // first scheme loaded becomes the default scheme, and all subsequent loaded scheme are derivitives of that
 HScheme CSchemeManager::LoadSchemeFromFileEx( VPANEL sizingPanel, const char *pFilename, const char *tag)
 {
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex entered" );
+	PS4_SCHEME_BREADCRUMB( pFilename
+		? "kisak-ps4: scheme load ex filename ready"
+		: "kisak-ps4: scheme load ex filename null" );
+	PS4_SCHEME_BREADCRUMB( tag
+		? "kisak-ps4: scheme load ex tag ready"
+		: "kisak-ps4: scheme load ex tag null" );
+	PS4_SCHEME_BREADCRUMB( g_pFullFileSystem
+		? "kisak-ps4: scheme load ex filesystem ready"
+		: "kisak-ps4: scheme load ex filesystem null" );
 	VPROF("CSchemeManager::LoadSchemeFromFile");
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex vprof ready" );
 
 	// Look to see if we've already got this scheme...
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before find loaded" );
 	HScheme hScheme = FindLoadedScheme( pFilename );
+	PS4_SCHEME_BREADCRUMB( hScheme != 0
+		? "kisak-ps4: scheme load ex existing handle ready"
+		: "kisak-ps4: scheme load ex no existing handle" );
 	CScheme *pScheme = NULL;
 
 	if ( hScheme != 0 )
 	{
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before existing scheme lookup" );
 		pScheme = m_Schemes[ hScheme ];
+		PS4_SCHEME_BREADCRUMB( pScheme
+			? "kisak-ps4: scheme load ex existing scheme ready"
+			: "kisak-ps4: scheme load ex existing scheme null" );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before active query" );
 		if ( pScheme->IsActive() )
 		{
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex existing scheme active" );
 			// found active scheme
 			if ( IsPC() )
 			{
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before existing font reload" );
 				pScheme->ReloadFontGlyphs();
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex existing font reload ready" );
 			}
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex existing scheme complete" );
 			return hScheme;
 		}
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex existing scheme inactive" );
 	}
 	
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before keyvalues create" );
 	KeyValues *pKVData = new KeyValues( "Scheme" );
+	PS4_SCHEME_BREADCRUMB( pKVData
+		? "kisak-ps4: scheme load ex keyvalues ready"
+		: "kisak-ps4: scheme load ex keyvalues null" );
 
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before escape sequences" );
 	pKVData->UsesEscapeSequences( true );	// VGUI uses this
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex escape sequences ready" );
 	
 	{
 		//VPROF_2( "CSchemeManager::LoadSchemeFromFileEx -> LoadFromFile", VPROF_BUDGETGROUP_OTHER_VGUI, false, 0 );
 		VPROF( "CSchemeManager::LoadSchemeFromFileEx -> LoadFromFile" );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex file vprof ready" );
 
 		// look first in skins directory
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before skin keyvalues load" );
 		bool bResult = pKVData->LoadFromFile( g_pFullFileSystem, pFilename, "SKIN" );
+		PS4_SCHEME_BREADCRUMB( bResult
+			? "kisak-ps4: scheme load ex skin keyvalues load ready value=1"
+			: "kisak-ps4: scheme load ex skin keyvalues load ready value=0" );
 		if ( !bResult )
 		{
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before game keyvalues load" );
 			bResult = pKVData->LoadFromFile( g_pFullFileSystem, pFilename, "GAME" );
+			PS4_SCHEME_BREADCRUMB( bResult
+				? "kisak-ps4: scheme load ex game keyvalues load ready value=1"
+				: "kisak-ps4: scheme load ex game keyvalues load ready value=0" );
 			if ( !bResult )
 			{
 				// look in any directory
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before any keyvalues load" );
 				bResult = pKVData->LoadFromFile( g_pFullFileSystem, pFilename, NULL );
+				PS4_SCHEME_BREADCRUMB( bResult
+					? "kisak-ps4: scheme load ex any keyvalues load ready value=1"
+					: "kisak-ps4: scheme load ex any keyvalues load ready value=0" );
 			}
 		}
 
 		if ( !bResult )
 		{
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before failed keyvalues delete" );
 			pKVData->deleteThis();
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex failed keyvalues deleted" );
 			return 0;
 		}
 	}
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex keyvalues load complete" );
 	
 	if ( hScheme == 0 )
 	{
 		// not using an existing inactive scheme
 		// add new scheme
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before scheme create" );
 		pScheme = new CScheme();
+		PS4_SCHEME_BREADCRUMB( pScheme
+			? "kisak-ps4: scheme load ex scheme created"
+			: "kisak-ps4: scheme load ex scheme create null" );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before scheme append" );
 		hScheme = m_Schemes.AddToTail( pScheme );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex scheme append ready" );
 	}
 
-	if ( IsPC() )
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before pc query" );
+	bool bIsPC = IsPC();
+	PS4_SCHEME_BREADCRUMB( bIsPC
+		? "kisak-ps4: scheme load ex pc query ready value=1"
+		: "kisak-ps4: scheme load ex pc query ready value=0" );
+	if ( bIsPC )
 	{
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before hud minmode ref" );
 		ConVarRef cl_hud_minmode( "cl_hud_minmode", true );
-		if ( cl_hud_minmode.IsValid() && cl_hud_minmode.GetBool() )
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex hud minmode ref ready" );
+		bool bHudMinModeValid = cl_hud_minmode.IsValid();
+		PS4_SCHEME_BREADCRUMB( bHudMinModeValid
+			? "kisak-ps4: scheme load ex hud minmode valid"
+			: "kisak-ps4: scheme load ex hud minmode invalid" );
+		if ( bHudMinModeValid )
 		{
-			pKVData->ProcessResolutionKeys( "_minmode" );
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before hud minmode value" );
+			bool bHudMinMode = cl_hud_minmode.GetBool();
+			PS4_SCHEME_BREADCRUMB( bHudMinMode
+				? "kisak-ps4: scheme load ex hud minmode value=1"
+				: "kisak-ps4: scheme load ex hud minmode value=0" );
+			if ( bHudMinMode )
+			{
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before minmode process" );
+				pKVData->ProcessResolutionKeys( "_minmode" );
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex minmode process ready" );
+			}
 		}
 	}
 
 	{
 		//VPROF_2( "pScheme->LoadFromFile", VPROF_BUDGETGROUP_OTHER_VGUI, false, 0 );
 		VPROF( "pScheme->LoadFromFile" );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex scheme vprof ready" );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before set active" );
 		pScheme->SetActive( true );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex set active ready" );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex before scheme data load" );
 		pScheme->LoadFromFile( sizingPanel, pFilename, tag, pKVData );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex scheme data load ready" );
 	}
 
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load ex complete" );
 	return hScheme;
 }
 
@@ -480,7 +580,19 @@ HScheme CSchemeManager::LoadSchemeFromFileEx( VPANEL sizingPanel, const char *pF
 //-----------------------------------------------------------------------------
 HScheme CSchemeManager::LoadSchemeFromFile(const char *fileName, const char *tag)
 {
-	return LoadSchemeFromFileEx( 0, fileName, tag );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load wrapper entered" );
+	PS4_SCHEME_BREADCRUMB( fileName
+		? "kisak-ps4: scheme load wrapper filename ready"
+		: "kisak-ps4: scheme load wrapper filename null" );
+	PS4_SCHEME_BREADCRUMB( tag
+		? "kisak-ps4: scheme load wrapper tag ready"
+		: "kisak-ps4: scheme load wrapper tag null" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme load wrapper before ex" );
+	HScheme hScheme = LoadSchemeFromFileEx( 0, fileName, tag );
+	PS4_SCHEME_BREADCRUMB( hScheme != 0
+		? "kisak-ps4: scheme load wrapper ex ready value=nonzero"
+		: "kisak-ps4: scheme load wrapper ex ready value=zero" );
+	return hScheme;
 }
 
 //-----------------------------------------------------------------------------
@@ -909,58 +1021,102 @@ const char *CScheme::GetResourceString(const char *stringName)
 //-----------------------------------------------------------------------------
 void CScheme::LoadFromFile( VPANEL sizingPanel, const char *pFilename, const char *inTag, KeyValues *inKeys )
 {
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load entered" );
+	PS4_SCHEME_BREADCRUMB( pFilename
+		? "kisak-ps4: scheme data load filename ready"
+		: "kisak-ps4: scheme data load filename null" );
+	PS4_SCHEME_BREADCRUMB( inTag
+		? "kisak-ps4: scheme data load tag ready"
+		: "kisak-ps4: scheme data load tag null" );
+	PS4_SCHEME_BREADCRUMB( inKeys
+		? "kisak-ps4: scheme data load keyvalues ready"
+		: "kisak-ps4: scheme data load keyvalues null" );
 	COM_TimestampedLog( "CScheme::LoadFromFile( %s )", pFilename );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load timestamp ready" );
 
 	// the filename is user for lookup comparison purposes
 	// must store it normalized
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load before filename store" );
 	m_fileName = pFilename;
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load filename stored" );
 	V_FixSlashes( m_fileName.Get() );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load filename normalized" );
 	
 	m_SizingPanel = sizingPanel;
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load sizing panel ready" );
 
 	m_pData = inKeys;
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load before base settings" );
 	m_pkvBaseSettings = m_pData->FindKey("BaseSettings", true);
+	PS4_SCHEME_BREADCRUMB( m_pkvBaseSettings
+		? "kisak-ps4: scheme data load base settings ready"
+		: "kisak-ps4: scheme data load base settings null" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load before colors" );
 	m_pkvColors = m_pData->FindKey("Colors", true);
+	PS4_SCHEME_BREADCRUMB( m_pkvColors
+		? "kisak-ps4: scheme data load colors ready"
+		: "kisak-ps4: scheme data load colors null" );
 
 	// override the scheme name with the tag name
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load before name" );
 	KeyValues *name = m_pData->FindKey("Name", true);
+	PS4_SCHEME_BREADCRUMB( name
+		? "kisak-ps4: scheme data load name ready"
+		: "kisak-ps4: scheme data load name null" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load before name set" );
 	name->SetString("Name", inTag);
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load name set ready" );
 
 	if ( inTag )
 	{
 		m_tag = inTag;
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load tag stored" );
 	}
 	else
 	{
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load before missing tag error" );
 		Error( "You need to name the scheme (%s)!", m_fileName.String() );
 		m_tag = "default";
 	}
 
 	// translate format from goldsrc scheme to new scheme
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load before translation" );
 	for (int i = 0; i < ARRAYSIZE(g_SchemeTranslation); i++)
 	{
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load translation entry" );
 		if (!m_pkvBaseSettings->FindKey(g_SchemeTranslation[i].pchNewEntry, false))
 		{
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load translation missing entry" );
 			const char *pchColor;
 
 			if (g_SchemeTranslation[i].pchOldEntry)
 			{
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load before translation lookup" );
 				pchColor = LookupSchemeSetting(g_SchemeTranslation[i].pchOldEntry);
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load translation lookup ready" );
 			}
 			else
 			{
 				pchColor = g_SchemeTranslation[i].pchDefaultValue;
+				PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load translation default ready" );
 			}
 
 			Assert( pchColor );
 
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load before translation set" );
 			m_pkvBaseSettings->SetString(g_SchemeTranslation[i].pchNewEntry, pchColor);
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load translation set ready" );
 		}
 	}
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load translation complete" );
 
 	// need to copy tag before loading fonts
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load before fonts" );
 	LoadFonts();
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load fonts ready" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load before borders" );
 	LoadBorders();
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme data load complete" );
 }
 
 //-----------------------------------------------------------------------------
@@ -1010,26 +1166,47 @@ void CScheme::SetFontRange( const char *fontname, int nMin, int nMax )
 //-----------------------------------------------------------------------------
 void CScheme::LoadFonts()
 {
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts entered" );
 	char language[64];
 	bool bValid = false;
 
 	// get our language
-	if ( IsPC() )
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts before pc query" );
+	bool bIsPC = IsPC();
+	PS4_SCHEME_BREADCRUMB( bIsPC
+		? "kisak-ps4: scheme fonts pc query ready value=1"
+		: "kisak-ps4: scheme fonts pc query ready value=0" );
+	if ( bIsPC )
 	{
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts before registry language" );
 		bValid = vgui::g_pSystem->GetRegistryString( "HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Language", language, sizeof( language ) - 1 );
+		PS4_SCHEME_BREADCRUMB( bValid
+			? "kisak-ps4: scheme fonts registry language ready value=1"
+			: "kisak-ps4: scheme fonts registry language ready value=0" );
 	}
-	else if ( IsGameConsole() )
+	else
 	{
-		Q_strncpy( language, XBX_GetLanguageString(), sizeof( language ) );
-		bValid = true;
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts before game console query" );
+		bool bIsGameConsole = IsGameConsole();
+		PS4_SCHEME_BREADCRUMB( bIsGameConsole
+			? "kisak-ps4: scheme fonts game console query ready value=1"
+			: "kisak-ps4: scheme fonts game console query ready value=0" );
+		if ( bIsGameConsole )
+		{
+			Q_strncpy( language, XBX_GetLanguageString(), sizeof( language ) );
+			bValid = true;
+			PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts game console language ready" );
+		}
 	}
 
 	if ( !bValid )
 	{
 		Q_strncpy( language, "english", sizeof( language ) );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts default language ready" );
 	}
 
 	// add our custom fonts
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts before custom font files" );
 	for (KeyValues *kv = m_pData->FindKey("CustomFontFiles", true)->GetFirstSubKey(); kv != NULL; kv = kv->GetNextKey())
 	{
 		const char *fontFile = kv->GetString();
@@ -1089,8 +1266,10 @@ void CScheme::LoadFonts()
 			}
 		}
 	}
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts custom font files ready" );
 
 	// add bitmap fonts
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts before bitmap font files" );
 	for (KeyValues *kv = m_pData->FindKey("BitmapFontFiles", true)->GetFirstSubKey(); kv != NULL; kv = kv->GetNextKey())
 	{
 		const char *fontFile = kv->GetString();
@@ -1104,8 +1283,10 @@ void CScheme::LoadFonts()
 			}
 		}
 	}
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts bitmap font files ready" );
 
 	// create the fonts
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts before font aliases" );
 	for (KeyValues *kv = m_pData->FindKey("Fonts", true)->GetFirstSubKey(); kv != NULL; kv = kv->GetNextKey())
 	{
 		// check to see if the font has been specified as having ONLY a proportional or ONLY a nonproportional
@@ -1144,8 +1325,10 @@ void CScheme::LoadFonts()
 			*/
 		}
 	}
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts font aliases ready" );
 
 	// add critical font section
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts before critical fonts" );
 	for ( KeyValues *kv = m_pData->FindKey( "CriticalFonts", true )->GetFirstSubKey(); kv != NULL; kv = kv->GetNextKey() )
 	{
 		const char *pFontFile = kv->GetName();
@@ -1154,22 +1337,40 @@ void CScheme::LoadFonts()
 			AddCriticalFont( pFontFile, kv );
 		}
 	}
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts critical fonts ready" );
 
 	// load in the font glyphs
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts before glyph reload" );
 	ReloadFontGlyphs();
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts glyph reload ready" );
 
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts before critical glyph precache" );
 	PrecacheCriticalFontGlyphs( language );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme fonts complete" );
 }
 
 void CScheme::AddFontHelper( const char *kvfontname, bool proportional ) // a small helper func to LoadFonts (simplifies a loop there)
 {
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme font helper entered" );
+	PS4_SCHEME_BREADCRUMB( kvfontname
+		? "kisak-ps4: scheme font helper name ready"
+		: "kisak-ps4: scheme font helper name null" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme font helper before munged name" );
 	const char *fontName = GetMungedFontName( kvfontname, m_tag.String(), proportional );
+	PS4_SCHEME_BREADCRUMB( fontName
+		? "kisak-ps4: scheme font helper munged name ready"
+		: "kisak-ps4: scheme font helper munged name null" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme font helper before surface font create" );
 	HFont font = g_pSchemeManager->GetSurface()->CreateFont();
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme font helper surface font ready" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme font helper before alias append" );
 	int j = m_FontAliases.AddToTail();
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme font helper alias append ready" );
 	m_FontAliases[j]._fontName = fontName;
 	m_FontAliases[j]._trueFontName = kvfontname;
 	m_FontAliases[j]._font = font;
 	m_FontAliases[j].m_bProportional = proportional;
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme font helper complete" );
 }
 
 //-----------------------------------------------------------------------------
@@ -1177,27 +1378,41 @@ void CScheme::AddFontHelper( const char *kvfontname, bool proportional ) // a sm
 //-----------------------------------------------------------------------------
 void CScheme::ReloadFontGlyphs( int inScreenTall )
 {
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload entered" );
 	//VPROF_2( "CScheme::ReloadFontGlyphs", VPROF_BUDGETGROUP_OTHER_VGUI, false, 0 );
 	VPROF( "CScheme::ReloadFontGlyphs" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload vprof ready" );
 
 	COM_TimestampedLog( "ReloadFontGlyphs(): Start [%s]", GetFileName() );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload timestamp ready" );
 
 	int nScreenWide, nScreenTall;
 	// get our current resolution
 	if ( m_SizingPanel != 0 )
 	{
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload before panel size" );
 		g_pIPanel->GetSize( m_SizingPanel, nScreenWide, nScreenTall );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload panel size ready" );
 	}
 	else
 	{
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload before surface size" );
 		g_pSchemeManager->GetSurface()->GetScreenSize( nScreenWide, nScreenTall );
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload surface size ready" );
 	}
 
 	// if the screen resolution has changed, go on to reload the fonts. Otherwise it's redundant.
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload before language" );
 	const char * const pCurrentLanguage = g_Scheme.GetLanguage();
+	PS4_SCHEME_BREADCRUMB( pCurrentLanguage
+		? "kisak-ps4: scheme glyph reload language ready"
+		: "kisak-ps4: scheme glyph reload language null" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload before language hash" );
 	unsigned int nHashOfCurrentLanguage = HashString( pCurrentLanguage );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload language hash ready" );
 	if ( nScreenWide == m_nScreenWide && nScreenTall == m_nScreenTall && nHashOfCurrentLanguage == m_nLastLoadedLanguage )
 	{
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload unchanged complete" );
 		return;
 	}
 	else
@@ -1209,12 +1424,19 @@ void CScheme::ReloadFontGlyphs( int inScreenTall )
 	}
 
 	// check our language; some have minimum sizes
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload before minimum height" );
 	int minimumFontHeight = GetMinimumFontHeightForCurrentLanguage( pCurrentLanguage );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload minimum height ready" );
 
 	// add the data to all the fonts
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload before fonts keyvalues" );
 	KeyValues *fonts = m_pData->FindKey("Fonts", true);
+	PS4_SCHEME_BREADCRUMB( fonts
+		? "kisak-ps4: scheme glyph reload fonts keyvalues ready"
+		: "kisak-ps4: scheme glyph reload fonts keyvalues null" );
 	for (int i = 0; i < m_FontAliases.Count(); i++)
 	{
+		PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload alias entry" );
 		// for ease of debugging
 		const char *pTrueFontName = m_FontAliases[i]._trueFontName.String();
 
@@ -1378,6 +1600,7 @@ void CScheme::ReloadFontGlyphs( int inScreenTall )
 	}
 
 	COM_TimestampedLog( "ReloadFontGlyphs(): End" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme glyph reload complete" );
 }
 
 //-----------------------------------------------------------------------------
@@ -1385,7 +1608,13 @@ void CScheme::ReloadFontGlyphs( int inScreenTall )
 //-----------------------------------------------------------------------------
 void CScheme::LoadBorders()
 {
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme borders entered" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme borders before keyvalues" );
 	m_pkvBorders = m_pData->FindKey("Borders", true);
+	PS4_SCHEME_BREADCRUMB( m_pkvBorders
+		? "kisak-ps4: scheme borders keyvalues ready"
+		: "kisak-ps4: scheme borders keyvalues null" );
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme borders before object pass" );
 	{for ( KeyValues *kv = m_pkvBorders->GetFirstSubKey(); kv != NULL; kv = kv->GetNextKey())
 	{
 		if (kv->GetDataType() == KeyValues::TYPE_STRING)
@@ -1429,8 +1658,10 @@ void CScheme::LoadBorders()
 			m_BorderList[i].borderSymbol = kv->GetNameSymbol();
 		}
 	}}
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme borders object pass ready" );
 
 	// iterate again to get the border references
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme borders before reference pass" );
 	for ( KeyValues *kv = m_pkvBorders->GetFirstSubKey(); kv != NULL; kv = kv->GetNextKey())
 	{
 		if (kv->GetDataType() == KeyValues::TYPE_STRING)
@@ -1447,8 +1678,13 @@ void CScheme::LoadBorders()
 			m_BorderList[i].borderSymbol = kv->GetNameSymbol();
 		}
 	}
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme borders reference pass ready" );
 	
+	PS4_SCHEME_BREADCRUMB( "kisak-ps4: scheme borders before base border" );
 	m_pBaseBorder = GetBorder("BaseBorder");
+	PS4_SCHEME_BREADCRUMB( m_pBaseBorder
+		? "kisak-ps4: scheme borders complete base ready"
+		: "kisak-ps4: scheme borders complete base null" );
 }
 
 void CScheme::SpewFonts( void )

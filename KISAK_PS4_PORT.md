@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.29
-Size: 103,153,664 bytes
-SHA-256: 4827da6ca6917a21fa3517a19ec6fb8dd2a4bf6e2e0ed350a15bd9f80a890362
+Version: 3.30
+Size: 103,219,200 bytes
+SHA-256: 4514ad4f73c17b15c09c743d54b8d26f6b63cf7ef4d7f57620d7b79bb2be9f3a
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.63 stops inside the EngineVGui scheme load
+Hardware result: awaiting manual installation and v4.64 launch
 ```
 
 Current hardware baseline:
@@ -7368,6 +7368,42 @@ immediately delegates to `LoadSchemeFromFileEx`, which searches loaded schemes,
 allocates and loads the scheme `KeyValues`, constructs a `CScheme`, and applies
 the parsed data. The next package will trace those internal stages without
 changing the loader behavior.
+
+### v4.64: Trace scheme interface dispatch and loading
+
+Package version 3.30 and build marker `scheme_load_trace_v464` identify the
+targeted diagnostic for the v4.63 boundary. `CEngineVGui::Init` now records the
+return value from `VGui_InitMatSysInterfacesList`, queries and records the scheme
+manager pointer before virtual dispatch, and calls through that unchanged pointer.
+PS4-only breadcrumbs in `CSchemeManager` then cover the wrapper and extended
+loader, existing-scheme scan, `KeyValues` allocation and the `SKIN`, `GAME`, and
+unscoped file attempts, scheme construction, PC min-mode handling, scheme-data
+translation, fonts, glyphs, and borders. Non-PS4 builds compile the breadcrumb
+macro to a no-op; stored query results preserve the original branches.
+
+The narrow `vgui2_client` and `engine_client` targets, full OpenOrbis monolith,
+FSELF, and package build successfully. The SELF contains the v4.64 marker,
+scheme-manager-ready, wrapper-entry, `KeyValues`-load, scheme-data-complete,
+fonts-complete, and borders-complete breadcrumbs, and does not contain the v4.63
+build marker. The generated `param.sfo` reports version 3.30. Direct verbose
+PkgTool validation reports `[OK]` for every size, digest, and signature check.
+Artifact identities:
+
+```text
+OELF: 135,994,208 bytes
+SHA-256: 9ce5dc29d9b7a62bd03c2bc7384e08e0c407c0adcd4bb197c87b801ef827e655
+SELF: 83,109,920 bytes
+SHA-256: 2e6bc8d34f9d150b5b739f2528373c2b8a1dd9b97694f9eb5c5cf9552454af0f
+PKG: 103,219,200 bytes
+SHA-256: 4514ad4f73c17b15c09c743d54b8d26f6b63cf7ef4d7f57620d7b79bb2be9f3a
+```
+
+The host suite remains at the established 11/14 baseline, with only the known
+Linux high-address failures in `ps4_gnm_device`, `ps4_gnm_buffer`, and
+`ps4_gnm_constants`. The package is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its 103,219,200-byte remote
+copy was read back completely and its SHA-256 matches the local package. Manual
+installation and launch are the remaining hardware gate.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

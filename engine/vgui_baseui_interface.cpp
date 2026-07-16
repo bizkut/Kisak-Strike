@@ -808,8 +808,10 @@ void CEngineVGui::Init()
 	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui surface input context installed" );
 
 	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before matsys interface init" );
-	VGui_InitMatSysInterfacesList( "BaseUI", &g_AppSystemFactory, 1 );
-	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui matsys interface init ready" );
+	bool bMatSysInterfacesReady = VGui_InitMatSysInterfacesList( "BaseUI", &g_AppSystemFactory, 1 );
+	PS4_ENGINE_VGUI_BREADCRUMB( bMatSysInterfacesReady
+		? "kisak-ps4: engine vgui matsys interface init ready value=1"
+		: "kisak-ps4: engine vgui matsys interface init ready value=0" );
 	
 #ifdef OSX
 	if ( Steam3Client().SteamApps() )
@@ -832,8 +834,13 @@ void CEngineVGui::Init()
 
 	// load scheme
 	const char *pStr = "Resource/SourceScheme.res";
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before scheme manager query" );
+	ISchemeManager *pSchemeManager = scheme();
+	PS4_ENGINE_VGUI_BREADCRUMB( pSchemeManager
+		? "kisak-ps4: engine vgui scheme manager ready"
+		: "kisak-ps4: engine vgui scheme manager null" );
 	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before scheme load" );
-	if ( !scheme()->LoadSchemeFromFile( pStr, "Tracker" ))
+	if ( !pSchemeManager->LoadSchemeFromFile( pStr, "Tracker" ))
 	{
 		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui scheme load failed" );
 		Sys_Error( "Error loading file %s\n", pStr );
