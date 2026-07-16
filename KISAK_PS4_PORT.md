@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.39
+Version: 3.40
 Size: 103,219,200 bytes
-SHA-256: f7d7239891412efb860d18499916ee2e9e283255bf55818f18f065c60241afcf
-Hardware run: v4.73 (2026-07-16), fixes custom fonts and reaches first static-panel construction
+SHA-256: 840129dd17a0a226cfb76dbc84bb8c4325da22a70ae98c39ae50d1ac7d6741a9
+Hardware run: v4.74 (2026-07-16), isolates PS4 cursor selection inside first static-panel construction
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.39
+Version: 3.40
 Size: 103,219,200 bytes
-SHA-256: f7d7239891412efb860d18499916ee2e9e283255bf55818f18f065c60241afcf
-Hardware result: v4.73 stops inside `new CStaticPanel(NULL, "staticPanel")`
+SHA-256: 840129dd17a0a226cfb76dbc84bb8c4325da22a70ae98c39ae50d1ac7d6741a9
+Hardware result: v4.74 stops inside `CMatSystemSurface::SetCursor(dc_none)`
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: 840129dd17a0a226cfb76dbc84bb8c4325da22a70ae98c39ae50d1ac7d6741a9
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: pending; v4.74 traces first static-panel construction
+Hardware result: v4.74 stops inside `CMatSystemSurface::SetCursor(dc_none)`
 ```
 
 Current hardware baseline:
@@ -8006,6 +8006,36 @@ is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
 readback matches the local 103,219,200-byte package and SHA-256 above. Manual
 install and hardware execution remain.
+
+The 2026-07-16 hardware run confirms the v4.74 marker exactly once. It
+appends 1,108,281 bytes and 21,154 lines to the existing log, producing a
+29,681,254-byte, 607,619-line capture with SHA-256
+`9c65e0887135a40699e0c910e8253e017c6a11cb0f42a70eb7414a94a13754c3`.
+The appended slice has SHA-256
+`01215e6a0726cc4c62b5214b078623332f8e38837c89603b012b79ed9331b3aa`.
+
+The trace completes VPanel allocation and initialization, handle-table and
+surface registration, Panel geometry, flags, colors, name, parent, and
+build-mode state, then enters and completes the static panel's cursor and
+keyboard-input setters. Its mouse-input setter reaches
+`CMatSystemSurface::CalculateMouseVisible`; capture, popup-count,
+modal-subtree, PC fallback, and input-context disable all return. The popup
+loop is not entered. The final marker is
+`matsurface calculate mouse before none cursor`, seen once.
+`none cursor returned`, `before lock cursor`, calculate-mouse completion,
+mouse-setter completion, static-panel completion, and
+`engine vgui static panel created` are all absent.
+
+This proves the v4.74 crash is inside
+`CMatSystemSurface::SetCursor(vgui::dc_none)`. That function first reads the
+file-static cursor-lock flag, then updates `_currentCursor` and calls
+`CursorSelect`. The PS4 branch of `CursorSelect` is intentionally empty,
+but a function-local
+`static ConVarRef cv_vguipanel_active("vgui_panel_active")` is initialized
+unconditionally before the platform branches. It is unused on PS4 and is the
+only nontrivial operation remaining on the no-op cursor-selection path. The
+next repair should prevent that PS4-only unused initialization while
+preserving cursor state, lock checks, and every non-PS4 path.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
