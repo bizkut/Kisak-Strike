@@ -30,7 +30,7 @@ DLL/PRX ownership assumptions merely because the original code used them.
 | Package SHA-256 | `8d8210b33b18a7eb3c1ea3cfb6372c3f43ac1d743d4f960c7b0f072bb7114be6` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `d0bb9c97` (`Instrument PS4 particle manager startup`) |
-| Hardware-result commit | Pending (this checkpoint) |
+| Hardware-result commit | `a724a805` (`Record v4.83 particle parse boundary`) |
 
 v4.83 closes the broad ParticleMgr boundary. The function-local manager was
 already constructed during the ordinary constructor walk. Client cleanup,
@@ -101,6 +101,34 @@ bounded detailed parse probe for the client and distinguish sheet policy,
 manifest loading, each config/definition, forced precache, and final decommit.
 Do not attribute this crash to query ownership until a query-dependent call is
 actually reached.
+
+### v4.84 candidate instrumentation
+
+Package version 3.50 and build marker `particle_client_parse_v484` identify the
+next manual-install candidate. The client now enables the existing particle
+parse probe before the first body operation. Separate markers distinguish
+function entry, `MEM_ALLOC_CREDIT`, sheet-policy setup, manifest loading, each
+config, and final temp-memory decommit.
+
+Detailed markers reset for every config, remain capped at 256 entries, and emit
+one explicit `detail limit reached` marker when the cap is exhausted. Forced
+precache now brackets material initialization, proxy handling, sheet loading,
+material modulation, fallback recursion, renderer precache, and child
+precache. `FindOrLoadSheet` separately brackets its sheet-policy/cache checks,
+material and `$basetexture` lookup, texture/error checks, sheet resource data,
+`CSheet` construction, and definition-cache update. These changes do not alter
+shared particle-query ownership, manifest order, forced-precache policy, or
+sheet-loading behavior; v4.84 is an attribution candidate, not a speculative
+particle fix.
+
+The Linux OpenOrbis monolithic build completes. The OELF is 136,086,560 bytes
+with SHA-256
+`07d8cac5afc51e696cf38a000574080bcc72793e8a4b2edf6b1add2db0adf930`;
+the SELF input is 83,192,528 bytes with SHA-256
+`8b007ed0dca06a0db7565f683e33e72f98d50caa4460ef63b5f685965c1d1ea9`.
+Eleven of fourteen host tests pass. The same three OpenGNM descriptor tests
+fail only because their Linux stack pointers exceed the PS4 descriptor's
+44-bit address field; they do not exercise this particle-parser change.
 
 The gate remains open until hardware proves `ClientDLL_Init` completion,
 successful EngineVGui/GameUI hookup, and one complete production

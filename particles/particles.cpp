@@ -72,9 +72,18 @@ void KisakPs4ParticleParseBreadcrumb( const char *pPhase, const char *pName, int
 static void KisakPs4ParticleParseDetail( const char *pPhase, const char *pName,
 	int nValue )
 {
-	if ( !s_bKisakPs4ParticleParseProbeEnabled ||
-		s_nKisakPs4ParticleParseDetailCount >= k_nKisakPs4ParticleParseDetailLimit )
+	if ( !s_bKisakPs4ParticleParseProbeEnabled )
 	{
+		return;
+	}
+	if ( s_nKisakPs4ParticleParseDetailCount >= k_nKisakPs4ParticleParseDetailLimit )
+	{
+		if ( s_nKisakPs4ParticleParseDetailCount == k_nKisakPs4ParticleParseDetailLimit )
+		{
+			++s_nKisakPs4ParticleParseDetailCount;
+			KisakPs4FormatParticleParseBreadcrumb( "detail limit reached", pName,
+				k_nKisakPs4ParticleParseDetailLimit );
+		}
 		return;
 	}
 
@@ -460,29 +469,52 @@ bool CParticleSystemDefinition::ShouldAlwaysPrecache() const
 //-----------------------------------------------------------------------------
 void CParticleSystemDefinition::Precache()
 {
+	KisakPs4ParticleParseDetail( "precache entered", GetName(), 0 );
 	if ( m_bIsPrecached )
+	{
+		KisakPs4ParticleParseDetail( "precache already ready", GetName(), 0 );
 		return;
+	}
 
 	m_bIsPrecached = true;
 #ifndef DEDICATED
-	if ( !UTIL_IsDedicatedServer() &&  g_pMaterialSystem )
+	KisakPs4ParticleParseDetail( "precache before material policy", GetName(), 0 );
+	const bool bUseParticleMaterial = !UTIL_IsDedicatedServer() && ( g_pMaterialSystem != NULL );
+	KisakPs4ParticleParseDetail( bUseParticleMaterial
+		? "precache material policy enabled"
+		: "precache material policy disabled", GetName(), 0 );
+	if ( bUseParticleMaterial )
 	{
+		KisakPs4ParticleParseDetail( "precache before material init", GetName(), 0 );
 		m_Material.Init( MaterialName(), TEXTURE_GROUP_OTHER, true );
-		if ( m_Material->HasProxy() )
+		KisakPs4ParticleParseDetail( "precache material init ready", GetName(), 0 );
+		KisakPs4ParticleParseDetail( "precache before proxy check", GetName(), 0 );
+		const bool bHasProxy = m_Material->HasProxy();
+		KisakPs4ParticleParseDetail( bHasProxy
+			? "precache proxy found"
+			: "precache proxy clear", GetName(), 0 );
+		if ( bHasProxy )
 		{
 			Warning( "Material %s used by particle systems cannot use proxies!\n", m_Material->GetName() );
+			KisakPs4ParticleParseDetail( "precache before error material", GetName(), 0 );
 			m_Material.Init( "debug/particleerror", TEXTURE_GROUP_OTHER, true );
+			KisakPs4ParticleParseDetail( "precache error material ready", GetName(), 0 );
 		}
+		KisakPs4ParticleParseDetail( "precache before sheet load", GetName(), 0 );
 		g_pParticleSystemMgr->FindOrLoadSheet( this );
+		KisakPs4ParticleParseDetail( "precache sheet load ready", GetName(), 0 );
 
 		// NOTE: Subtle. This has to be called after HasProxy, which will
 		// have loaded all material vars. The "queue friendly" version of a material
 		// doesn't precache material vars
+		KisakPs4ParticleParseDetail( "precache before material modulation", GetName(), 0 );
 		m_Material->GetColorModulation( &m_vecMaterialModulation[0], &m_vecMaterialModulation[1], &m_vecMaterialModulation[2] );
 		m_vecMaterialModulation[3] = m_Material->GetAlphaModulation();
+		KisakPs4ParticleParseDetail( "precache material modulation ready", GetName(), 0 );
 	}
 #endif
 
+	KisakPs4ParticleParseDetail( "precache before fallback", GetName(), 0 );
 	if ( HasFallback() )
 	{
 		CParticleSystemDefinition *pFallback = GetFallbackReplacementDefinition();
@@ -491,11 +523,14 @@ void CParticleSystemDefinition::Precache()
 			pFallback->Precache();
 		}
 	}
+	KisakPs4ParticleParseDetail( "precache fallback ready", GetName(), 0 );
 	// call the precache method of the renderers in case they need assets
 	for( int i = 0; i < m_Renderers.Count(); i++ )
 	{
 		CParticleOperatorInstance *pOp = m_Renderers[i];
+		KisakPs4ParticleParseDetail( "precache before renderer", GetName(), i );
 		pOp->Precache();
+		KisakPs4ParticleParseDetail( "precache renderer ready", GetName(), i );
 	}
 
 	int nChildCount = m_Children.Count();
@@ -513,9 +548,12 @@ void CParticleSystemDefinition::Precache()
 
 		if ( pChild )
 		{
+			KisakPs4ParticleParseDetail( "precache before child", GetName(), i );
 			pChild->Precache();
+			KisakPs4ParticleParseDetail( "precache child ready", GetName(), i );
 		}
 	}
+	KisakPs4ParticleParseDetail( "precache complete", GetName(), 0 );
 }
 
 void CParticleSystemDefinition::Uncache()
@@ -4508,56 +4546,105 @@ static unsigned int s_nBaseTextureVarCache = 0;
 
 CSheet *CParticleSystemMgr::FindOrLoadSheet( CParticleSystemDefinition *pDef, bool bTryReloading )
 {
+	KisakPs4ParticleParseDetail( "sheet load entered", pDef->GetName(), bTryReloading ? 1 : 0 );
 	if ( !m_bShouldLoadSheets )
+	{
+		KisakPs4ParticleParseDetail( "sheet load disabled", pDef->GetName(), 0 );
 		return NULL;
+	}
 
 	if ( !bTryReloading )
 	{
+		KisakPs4ParticleParseDetail( "sheet load before cache check", pDef->GetName(), 0 );
 		if ( pDef->IsSheetSymbolCached() )
 		{
 			if ( !pDef->GetSheetSymbol().IsValid() )
+			{
+				KisakPs4ParticleParseDetail( "sheet load cached miss", pDef->GetName(), 0 );
 				return NULL;
+			}
+			KisakPs4ParticleParseDetail( "sheet load cached hit", pDef->GetName(), 0 );
 			return m_SheetList[ pDef->GetSheetSymbol() ];
 		}
 
 		pDef->CacheSheetSymbol( UTL_INVAL_SYMBOL );
+		KisakPs4ParticleParseDetail( "sheet load cache initialized", pDef->GetName(), 0 );
 	}
 
+	KisakPs4ParticleParseDetail( "sheet load before material", pDef->GetName(), 0 );
 	IMaterial *pMaterial = pDef->GetMaterial();
 	if ( !pMaterial )
+	{
+		KisakPs4ParticleParseDetail( "sheet load material missing", pDef->GetName(), 0 );
 		return NULL;
+	}
+	KisakPs4ParticleParseDetail( "sheet load material ready", pDef->GetName(), 0 );
 
+	KisakPs4ParticleParseDetail( "sheet load before base texture var", pDef->GetName(), 0 );
 	IMaterialVar *pVar = pMaterial->FindVarFast( "$basetexture", &s_nBaseTextureVarCache );
-	if ( !pVar || !pVar->IsDefined() )
+	if ( !pVar )
+	{
+		KisakPs4ParticleParseDetail( "sheet load base texture var missing", pDef->GetName(), 0 );
 		return NULL;
+	}
+	KisakPs4ParticleParseDetail( "sheet load base texture var ready", pDef->GetName(), 0 );
+	if ( !pVar->IsDefined() )
+	{
+		KisakPs4ParticleParseDetail( "sheet load base texture undefined", pDef->GetName(), 0 );
+		return NULL;
+	}
+	KisakPs4ParticleParseDetail( "sheet load base texture defined", pDef->GetName(), 0 );
 
+	KisakPs4ParticleParseDetail( "sheet load before texture", pDef->GetName(), 0 );
 	ITexture *pTex = pVar->GetTextureValue();
-	if ( !pTex || pTex->IsError() )
+	if ( !pTex )
+	{
+		KisakPs4ParticleParseDetail( "sheet load texture missing", pDef->GetName(), 0 );
 		return NULL;
+	}
+	KisakPs4ParticleParseDetail( "sheet load texture ready", pDef->GetName(), 0 );
+	if ( pTex->IsError() )
+	{
+		KisakPs4ParticleParseDetail( "sheet load texture error", pDef->GetName(), 0 );
+		return NULL;
+	}
 
 	CSheet *pNewSheet = NULL;
 	int nCurCount = m_SheetList.GetNumStrings();
-	CUtlSymbol sheetName = m_SheetList.AddString( pTex->GetName() );
+	KisakPs4ParticleParseDetail( "sheet load before texture name", pDef->GetName(), 0 );
+	const char *pTextureName = pTex->GetName();
+	KisakPs4ParticleParseDetail( "sheet load texture name ready", pTextureName, 0 );
+	CUtlSymbol sheetName = m_SheetList.AddString( pTextureName );
+	KisakPs4ParticleParseDetail( "sheet load symbol ready", pTextureName, sheetName );
 	if ( ( sheetName < nCurCount ) && ( !bTryReloading ) )
 	{
 		// Means the string was already known
 		pNewSheet = m_SheetList[ sheetName ];
+		KisakPs4ParticleParseDetail( "sheet load reused", pTextureName, pNewSheet ? 1 : 0 );
 	}
 	else
 	{
 		// get compact sheet representation held by texture
-		size_t numBytes;
+		size_t numBytes = 0;
+		KisakPs4ParticleParseDetail( "sheet load before resource data", pTextureName, 0 );
 		void const *pSheetData = pTex->GetResourceData( VTF_RSRC_SHEET, &numBytes );
+		KisakPs4ParticleParseDetail( pSheetData
+			? "sheet load resource data ready"
+			: "sheet load resource data missing", pTextureName, (int)numBytes );
 		if ( pSheetData )
 		{
 			// expand compact sheet into fatter runtime form
 			CUtlBuffer bufLoad( pSheetData, numBytes, CUtlBuffer::READ_ONLY );
+			KisakPs4ParticleParseDetail( "sheet load before sheet construct", pTextureName, (int)numBytes );
 			pNewSheet = new CSheet( bufLoad );
+			KisakPs4ParticleParseDetail( "sheet load sheet construct ready", pTextureName, pNewSheet ? 1 : 0 );
 		}
 		m_SheetList[ sheetName ] = pNewSheet;
 	}
 
+	KisakPs4ParticleParseDetail( "sheet load before definition cache", pDef->GetName(), sheetName );
 	pDef->CacheSheetSymbol( sheetName );
+	KisakPs4ParticleParseDetail( "sheet load complete", pDef->GetName(), pNewSheet ? 1 : 0 );
 	return pNewSheet;
 }
 

@@ -69,12 +69,12 @@ int GetAttachTypeFromString( const char *pszString )
 //-----------------------------------------------------------------------------
 void ParseParticleEffects( bool bLoadSheets )
 {
-	MEM_ALLOC_CREDIT();
-
 #if defined( PLATFORM_PS4 )
-	const bool bProbeServerParse = !bLoadSheets;
-	KisakPs4SetParticleParseProbeEnabled( bProbeServerParse );
+	KisakPs4SetParticleParseProbeEnabled( true );
 #endif
+	PS4_PARTICLE_PARSE_BREADCRUMB( "function entered", NULL, bLoadSheets ? 1 : 0 );
+	MEM_ALLOC_CREDIT();
+	PS4_PARTICLE_PARSE_BREADCRUMB( "allocation credit ready", NULL, bLoadSheets ? 1 : 0 );
 	PS4_PARTICLE_PARSE_BREADCRUMB( "entered", NULL,
 		g_pParticleSystemMgr->GetParticleSystemCount() );
 
