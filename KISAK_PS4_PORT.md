@@ -56,6 +56,51 @@ Retain that provider through the explicit composition manifest, verify unique
 ownership, then require `CPhysicsHook::Init` to parse surface data and complete.
 Do not weaken the fail-stop behavior or substitute a dummy surface database.
 
+### v4.94 candidate: retain the vphysics surface database
+
+Package version 3.60 and build marker
+`vphysics_surface_retention_v494` identify the next manual-install candidate.
+Archive inspection proves `libkisakvphysics_client.a` contains
+`physics_material.cpp.obj`, which uniquely defines `g_SurfaceDatabase`, while
+the v4.93 monolithic ELF omits that symbol. All linked archives were inspected;
+there is no second owner. The similarly named `physprops` is deliberately not
+an anchor because engine and vphysics both define it and the monolithic link
+allows duplicate definitions.
+
+The composition manifest now has a distinct vphysics ownership bucket retaining
+`g_SurfaceDatabase`. The same symbol is included in the post-link verifier, so
+the build fails if the provider is ever discarded again. Pulling that archive
+member also retains its `EXPOSE_SINGLE_INTERFACE_GLOBALVAR` constructor and
+therefore registers the real `VPhysicsSurfaceProps001` implementation with the
+shared `InterfaceReg` chain.
+
+Independent GLM 5.2 and Kimi 2.7 ACP audits agree on the retention diagnosis and
+symbol choice. The forward audit identified one remaining attribution gap:
+`PhysParseSurfaceData` collapsed manifest loading and every referenced file into
+one boundary. PS4-only breadcrumbs now bracket the manifest and record each
+listed filename and successful parse without changing the existing fatal-error
+policy. The first hardware gate is `CPhysicsHook::Init` completion; existing
+game-system and `hltv_status` traces cover the downstream path.
+
+Validation before the candidate commit:
+
+- `git diff --check` passes;
+- the full `kisak_ps4_monolithic` target links and the post-link retention check
+  runs successfully;
+- the generated link includes `--undefined=g_SurfaceDatabase`, and final-ELF
+  inspection finds exactly one defined `g_SurfaceDatabase`;
+- the executable is 126,554,488 bytes with SHA-256
+  `cf8ea058beb84860619cd47fa37958f9c1252b6cedb46c5890c9e4289ebbf012`;
+- the OELF is 136,334,216 bytes with SHA-256
+  `4d1ddd82cc6d2ede2ac7062683d216a413e36fd4577ec26c4aebfa029698205f`;
+- the SELF input is 83,397,872 bytes with SHA-256
+  `317fadd822aba5ddc45763e5e36d97e4b42a8b453b2e54b2ac6e1861fe9d5b76`;
+- binary strings confirm the v4.94 marker, retained surface-interface success
+  branch, and manifest/per-file boundary families; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`,
+  and `ps4_gnm_constants`).
+
 ### v4.92 result and immediate v4.93 gate
 
 v4.92 clears the complete scoreboard resource construction path. `SysMenu` and

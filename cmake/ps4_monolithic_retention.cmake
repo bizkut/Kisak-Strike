@@ -14,12 +14,16 @@ set(KISAK_PS4_CLIENT_RETENTION_SYMBOLS
 
 set(KISAK_PS4_ENGINE_RETENTION_SYMBOLS)
 set(KISAK_PS4_SERVER_RETENTION_SYMBOLS)
+set(KISAK_PS4_VPHYSICS_RETENTION_SYMBOLS
+    g_SurfaceDatabase
+)
 
 function(kisak_ps4_apply_monolithic_retention target)
     foreach(symbol IN LISTS
             KISAK_PS4_CLIENT_RETENTION_SYMBOLS
             KISAK_PS4_ENGINE_RETENTION_SYMBOLS
-            KISAK_PS4_SERVER_RETENTION_SYMBOLS)
+            KISAK_PS4_SERVER_RETENTION_SYMBOLS
+            KISAK_PS4_VPHYSICS_RETENTION_SYMBOLS)
         target_link_options(${target} PRIVATE "--undefined=${symbol}")
     endforeach()
 

@@ -18,7 +18,8 @@ endif()
 foreach(symbol IN LISTS
         KISAK_PS4_CLIENT_RETENTION_SYMBOLS
         KISAK_PS4_ENGINE_RETENTION_SYMBOLS
-        KISAK_PS4_SERVER_RETENTION_SYMBOLS)
+        KISAK_PS4_SERVER_RETENTION_SYMBOLS
+        KISAK_PS4_VPHYSICS_RETENTION_SYMBOLS)
     if(NOT defined_symbols MATCHES "(^|\n)${symbol} [A-Za-z]")
         message(FATAL_ERROR
             "PS4 monolithic retention symbol is missing after link: ${symbol}")

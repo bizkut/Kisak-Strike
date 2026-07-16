@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright (c) 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Game & Client shared functions moved from physics.cpp
 //
@@ -25,6 +25,10 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#endif
 
 //
 IPhysics			*physics = NULL;
@@ -506,6 +510,10 @@ void PhysDestroyObject( IPhysicsObject *pObject, CBaseEntity *pEntity )
 
 void AddSurfacepropFile( const char *pFileName, IPhysicsSurfaceProps *pProps, IFileSystem *pFileSystem )
 {
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: surface props file load entered" );
+	KisakPs4StartupBreadcrumb( pFileName );
+#endif
 	// Load file into memory
 	FileHandle_t file = pFileSystem->Open( pFileName, "rb", "GAME" );
 
@@ -520,6 +528,9 @@ void AddSurfacepropFile( const char *pFileName, IPhysicsSurfaceProps *pProps, IF
 		pFileSystem->Close( file );
 		buffer[len] = 0;
 		pProps->ParseSurfaceData( pFileName, buffer );
+#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: surface props file parse complete" );
+#endif
 		// buffer is on the stack, no need to free
 	}
 	else
@@ -530,9 +541,15 @@ void AddSurfacepropFile( const char *pFileName, IPhysicsSurfaceProps *pProps, IF
 
 void PhysParseSurfaceData( IPhysicsSurfaceProps *pProps, IFileSystem *pFileSystem )
 {
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: surface props manifest load entered" );
+#endif
 	KeyValues *manifest = new KeyValues( SURFACEPROP_MANIFEST_FILE );
 	if ( manifest->LoadFromFile( pFileSystem, SURFACEPROP_MANIFEST_FILE, "GAME" ) )
 	{
+#if defined( PLATFORM_PS4 )
+		KisakPs4StartupBreadcrumb( "kisak-ps4: surface props manifest load ready" );
+#endif
 		for ( KeyValues *sub = manifest->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey() )
 		{
 			if ( !Q_stricmp( sub->GetName(), "file" ) )
@@ -552,6 +569,9 @@ void PhysParseSurfaceData( IPhysicsSurfaceProps *pProps, IFileSystem *pFileSyste
 	}
 
 	manifest->deleteThis();
+#if defined( PLATFORM_PS4 )
+	KisakPs4StartupBreadcrumb( "kisak-ps4: surface props manifest parse complete" );
+#endif
 }
 
 void PhysCreateVirtualTerrain( CBaseEntity *pWorld, const objectparams_t &defaultParams )
