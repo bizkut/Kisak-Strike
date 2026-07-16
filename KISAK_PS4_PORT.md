@@ -140,6 +140,16 @@ Validation before the candidate commit:
   high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
   `ps4_gnm_constants`).
 
+Candidate commit `6ecbee92` produces a 103,481,344-byte package with SHA-256
+`cf2180640940140d995291e391c7ada0293a81796995aa304bbfd9d44fb18ad9`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.61. PkgTool validation has no
+`[FAIL]` entries and reports every digest/signature check `[OK]`. FTP metadata
+reports the same 103,481,344-byte size and a 2026-07-16 23:11:51 UTC modified
+time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance remains pending manual
+installation and launch.
+
 ## Runtime topology: two tracks, one production authority
 
 `KisakRegisterStaticModules` registers both tracks in
