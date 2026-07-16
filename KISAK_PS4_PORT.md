@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.28
+Version: 3.29
 Size: 103,153,664 bytes
-SHA-256: 2cbb25b02cb1278af17636b692518b8062219cf8d9cd34e21ed2fa428c2850ec
-Hardware run: v4.62 (2026-07-16), completes material init and enters EngineVGui
+SHA-256: 4827da6ca6917a21fa3517a19ec6fb8dd2a4bf6e2e0ed350a15bd9f80a890362
+Hardware run: v4.63 (2026-07-16), crashes inside the EngineVGui scheme load
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.28
+Version: 3.29
 Size: 103,153,664 bytes
-SHA-256: 2cbb25b02cb1278af17636b692518b8062219cf8d9cd34e21ed2fa428c2850ec
-Hardware result: v4.62 completes material init; EngineVGui::Init crashes
+SHA-256: 4827da6ca6917a21fa3517a19ec6fb8dd2a4bf6e2e0ed350a15bd9f80a890362
+Hardware result: v4.63 crashes in `scheme()->LoadSchemeFromFile`
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,153,664 bytes
 SHA-256: 4827da6ca6917a21fa3517a19ec6fb8dd2a4bf6e2e0ed350a15bd9f80a890362
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: awaiting manual installation and v4.63 launch
+Hardware result: v4.63 stops inside the EngineVGui scheme load
 ```
 
 Current hardware baseline:
@@ -7346,6 +7346,28 @@ Linux high-address failures in `ps4_gnm_device`, `ps4_gnm_buffer`, and
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size and complete
 readback are 103,153,664 bytes and the readback SHA-256 matches the local package.
 Manual installation and launch are the remaining hardware gate.
+
+The v4.63 package was installed and run manually. Its single build marker and
+389,513-line, 18,239,709-byte startup log validate the GameUI client factory and
+interface, both input contexts, material-system interface initialization, and the
+VGUI sound callback. The exact final sequence is:
+
+```text
+kisak-ps4: engine vgui before matsys interface init
+kisak-ps4: engine vgui matsys interface init ready
+kisak-ps4: engine vgui before sound callback
+kisak-ps4: engine vgui sound callback ready
+kisak-ps4: engine vgui before scheme load
+```
+
+There is no `engine vgui scheme load ready` or `scheme load failed` marker. The
+failure is therefore inside
+`scheme()->LoadSchemeFromFile( "Resource/SourceScheme.res", "Tracker" )`, before
+the call can report success or failure. `CSchemeManager::LoadSchemeFromFile`
+immediately delegates to `LoadSchemeFromFileEx`, which searches loaded schemes,
+allocates and loads the scheme `KeyValues`, constructs a `CScheme`, and applies
+the parsed data. The next package will trace those internal stages without
+changing the loader behavior.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
