@@ -23,14 +23,40 @@ DLL/PRX ownership assumptions merely because the original code used them.
 
 | Item | Value |
 |---|---|
-| Test | v4.92, 2026-07-16 |
-| Package version | 3.58 |
+| Test | v4.93, 2026-07-16 |
+| Package version | 3.59 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
-| Package SHA-256 | `5d5f01852d90b98e6ac2b7bcfc86152eb4c566dd1416a5b3b7188883ad44d40e` |
+| Package SHA-256 | `76f1b250d28772f2daaa0a1877c3e242fe468e2d3abae9f42fa0fee9851a9527` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `ec3ad15c` (`Trace PS4 scoreboard resource construction`) |
-| Hardware-result commit | This v4.92 result record (`Record v4.92 game-event listener crash`) |
+| Candidate commit | `a0bbfa0a` (`Harden PS4 event and init failure tracing`) |
+| Hardware-result commit | This v4.93 result record (`Record v4.93 physics fail-stop`) |
+
+v4.93 no longer crashes. It proves the direct PS4 physics factory resolves
+`VPhysics031` and `VPhysicsCollision007`, then fails to resolve
+`VPhysicsSurfaceProps001`. The new lifecycle rule works as intended:
+`CPhysicsHook::Init` returns false, the initialized game-system prefix unwinds,
+`CServerGameDLL::DLLInit` and `SV_InitGameDLL` propagate failure, and `Host_Init`
+stops before client/render initialization. The application performs an orderly
+shutdown, leaving the observed black screen rather than entering a partial
+Source runtime.
+
+The fresh log was last modified at 2026-07-16 22:31:58 UTC. It is 255,797 bytes
+and 8,508 lines with SHA-256
+`afd98f2ebeb0e3401509e84129dea076fd03add6b4d30c0ec03e30e7cf34dba0`.
+Its final causal sequence is surface-properties lookup failure, game-system
+unwind, DLL/host fail-stop, orderly app/filesystem shutdown, and
+`LauncherMain returned`.
+
+The immediate v4.94 gate is monolithic retention of the real vphysics surface-
+properties provider. `vphysics/physics_material.cpp` defines
+`g_SurfaceDatabase` and exposes `VPhysicsSurfaceProps001`, so archive and final-
+OELF evidence must determine whether its registrar-only member was discarded.
+Retain that provider through the explicit composition manifest, verify unique
+ownership, then require `CPhysicsHook::Init` to parse surface data and complete.
+Do not weaken the fail-stop behavior or substitute a dummy surface database.
+
+### v4.92 result and immediate v4.93 gate
 
 v4.92 clears the complete scoreboard resource construction path. `SysMenu` and
 `ServerName` factories return, all Panel parent/input/context/sibling-pin stages
