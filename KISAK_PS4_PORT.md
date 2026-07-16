@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.36
+Version: 3.37
 Size: 103,219,200 bytes
-SHA-256: c3f0166beee4d80af684c2974907f0577f91cbd2acf2fe799f2120c5f672317f
+SHA-256: 2a024b8993b553c3ea69a56b96af3f2302bfe59fda0a8d0de7a0acc3d2c657b6
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.70 reaches `Warning` for unknown `INPUTSWAPAB` but never returns
+Hardware result: awaiting manual v4.71 install and run
 ```
 
 Current hardware baseline:
@@ -7740,10 +7740,60 @@ emits `get-before-warning` for unknown `INPUTSWAPAB`; neither
 `get-return-false` nor the expression evaluator's runtime-symbol-return
 marker follows. The crash is therefore inside the unknown-symbol `Warning`,
 not inside the mutex, hash table, chain traversal, or conditional map.
-`CInputSystem::InitializeXDevices` would eventually register
-`INPUTSWAPAB=false` on PS4, but SourceScheme evaluates the conditional before
-that initialization. The next repair should provide the same PS4 default-false
-value before the warning path without changing later explicit registrations.
+PS4 never calls `CInputSystem::InitializeXDevices`: its deliberately PC-like,
+POSIX configuration compiles out that XInput block and uses the PS4
+`InitializeJoysticks` backend instead. The symbol therefore remains
+unregistered. The next repair should register the PS4 default-false value in
+that real backend before the warning path while preserving later explicit
+registrations.
+
+### v4.71: Register the PS4 INPUTSWAPAB default in the real pad backend
+
+Package version 3.37 and build marker `inputswapab_default_v471` identify the
+repair for the v4.70 boundary. PS4 intentionally reports `IsPC()=1` and
+`IsGameConsole()=0` while also defining `PLATFORM_POSIX`. Consequently,
+`CInputSystem::Init` skips the non-POSIX XInput block that calls
+`InitializeXDevices` and instead enters
+`inputsystem_ps4.cpp::InitializeJoysticks`. The former contained the only
+production `INPUTSWAPAB` setter, so the symbol was never registered on PS4.
+
+The PS4 joystick backend now calls
+`SetKeyValuesExpressionSymbol("INPUTSWAPAB", false)` before user-service or
+pad initialization. This matches its fixed Cross-as-A and Circle-as-B mapping,
+works even when controller setup fails, uses the existing conditional-symbol
+table contract, and permits a future regional-input implementation to
+overwrite the value. Unknown-symbol warnings remain unchanged so malformed
+resources are still diagnosed. The existing targeted traces remain for this
+hardware run: they should prove the early setter completes, the later getter
+finds the stored false value, and the compound SourceScheme conditional returns
+without entering `Warning`.
+
+The PS4 `inputsystem_client` and `engine_client` targets and the complete
+`kisak_ps4_monolithic` target build successfully. The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic
+Size: 126,273,728 bytes
+SHA-256: 26b3b488c35c3068445a9955fed7009130f730e351bcacfea2b45a1686c180c5
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,126,336 bytes
+SHA-256: 959ca6cc84c1b2b60f65dafc3b594ad2ac3571f1c7baa4ec4c62d8f38fe17f1c
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.37
+Size: 103,219,200 bytes
+SHA-256: 2a024b8993b553c3ea69a56b96af3f2302bfe59fda0a8d0de7a0acc3d2c657b6
+```
+
+PkgTool reports every package size, digest, and signature check as `[OK]`,
+and `param.sfo` reports both `APP_VER` and `VERSION` as 3.37. The host PS4
+suite remains at 11/14 with only the known `ps4_gnm_device`,
+`ps4_gnm_buffer`, and `ps4_gnm_constants` baseline failures. The package
+is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
+readback matches the local 103,219,200-byte package and SHA-256 above. Manual
+install and hardware execution remain.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

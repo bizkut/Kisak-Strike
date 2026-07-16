@@ -5,6 +5,8 @@
 
 #include "inputsystem.h"
 
+#include "vstdlib/ikeyvaluessystem.h"
+
 #include <orbis/Pad.h>
 #include <orbis/UserService.h>
 
@@ -69,6 +71,10 @@ void CInputSystem::InitializeJoysticks( void )
 	g_ps4PadHandle = -1;
 	g_ps4PadButtons = 0;
 	g_ps4PadConnected = false;
+
+	KeyValuesSystem()->SetKeyValuesExpressionSymbol( "INPUTSWAPAB", false );
+	KisakPs4StartupBreadcrumb(
+		"kisak-ps4: pad conditional INPUTSWAPAB default false" );
 
 	const int userServiceResult = sceUserServiceInitialize( NULL );
 	int userId = -1;
