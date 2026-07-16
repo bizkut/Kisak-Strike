@@ -565,6 +565,15 @@ Validation before the candidate commit:
   high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`,
   and `ps4_gnm_constants`).
 
+Candidate commit `505b7ab1` (`Instrument PS4 viewport startup`) was packaged as
+monolithic version 3.57. PkgTool reports every size, digest, and signature check
+`[OK]`. The package is 103,415,808 bytes with SHA-256
+`689723ddbf469d02ab6223ba2a3fdf6df14196e164f15b77dd93b1814a6fd71c`.
+The embedded SFO reports 3.57. It is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the FTP server reports
+the same size, and two independent complete readbacks produced the same
+SHA-256.
+
 ## Runtime topology: two tracks, one production authority
 
 `KisakRegisterStaticModules` registers both tracks in
