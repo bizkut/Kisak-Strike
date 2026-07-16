@@ -484,12 +484,25 @@ void CGameUI::SetLoadingBackgroundDialog( vgui::VPANEL panel )
 //-----------------------------------------------------------------------------
 void CGameUI::Connect( CreateInterfaceFn gameFactory )
 {
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui connect entered" );
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui connect before client exports" );
 	g_pGameClientExports = (IGameClientExports *)gameFactory(GAMECLIENTEXPORTS_INTERFACE_VERSION, NULL);
+	PS4_GAMEUI_INIT_BREADCRUMB( g_pGameClientExports
+		? "kisak-ps4: gameui connect client exports ready"
+		: "kisak-ps4: gameui connect client exports missing" );
 #if defined( INCLUDE_SCALEFORM )
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui connect before scaleform" );
 	g_pScaleformUI = ( IScaleformUI* ) gameFactory( SCALEFORMUI_INTERFACE_VERSION, NULL );
+	PS4_GAMEUI_INIT_BREADCRUMB( g_pScaleformUI
+		? "kisak-ps4: gameui connect scaleform ready"
+		: "kisak-ps4: gameui connect scaleform missing" );
 #endif
 
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui connect before achievement manager" );
 	achievementmgr = engine->GetAchievementMgr();
+	PS4_GAMEUI_INIT_BREADCRUMB( achievementmgr
+		? "kisak-ps4: gameui connect achievement manager ready"
+		: "kisak-ps4: gameui connect achievement manager missing" );
 
 	if (!g_pGameClientExports)
 	{
@@ -497,6 +510,7 @@ void CGameUI::Connect( CreateInterfaceFn gameFactory )
 	}
 
 	m_GameFactory = gameFactory;
+	PS4_GAMEUI_INIT_BREADCRUMB( "kisak-ps4: gameui connect complete" );
 }
 
 //-----------------------------------------------------------------------------

@@ -1220,8 +1220,20 @@ void CEngineVGui::PostInit()
 //-----------------------------------------------------------------------------
 void CEngineVGui::Connect()
 {
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui connect entered" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui connect before input query" );
 	m_pInputInternal = (IInputInternal *)g_GameSystemFactory( VGUI_INPUTINTERNAL_INTERFACE_VERSION,  NULL );
+	PS4_ENGINE_VGUI_BREADCRUMB( m_pInputInternal
+		? "kisak-ps4: engine vgui connect input ready"
+		: "kisak-ps4: engine vgui connect input missing" );
+	PS4_ENGINE_VGUI_BREADCRUMB( staticGameUIFuncs
+		? "kisak-ps4: engine vgui connect gameui ready"
+		: "kisak-ps4: engine vgui connect gameui missing" );
+	if ( !staticGameUIFuncs )
+		return;
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui connect before gameui connect" );
 	staticGameUIFuncs->Connect( g_GameSystemFactory );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui connect gameui returned" );
 
 	#if OSX
 //		g_pLauncherMgr = (ILauncherMgr *)g_GameSystemFactory(  COCOAMGR_INTERFACE_VERSION, NULL );	
@@ -1232,6 +1244,7 @@ void CEngineVGui::Connect()
 	#if defined( _WIN32 ) && defined( DX_TO_GL_ABSTRACTION )
 //		g_pLauncherMgr = (ILauncherMgr *)g_GameSystemFactory(  WINMGR_INTERFACE_VERSION, NULL );	
 	#endif
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui connect complete" );
 }
 
 //-----------------------------------------------------------------------------

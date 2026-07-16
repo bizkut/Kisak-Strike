@@ -58,12 +58,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.47
-Size: 103,219,200 bytes
-SHA-256: 360a459d5cfe67a5f7536d2b84fa98b245b9c7810a78b2890bfd767fd17bfb79
+Version: 3.48
+Size: 103,284,736 bytes
+SHA-256: 9c8f9e4ba4da343831438411c2f85004aaff5cc1fb1f5238afb4efb72fbb224d
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.81 client Init fails at the render-to-RT interface lookup
+Hardware result: v4.82 awaits manual installation and launch
 ```
 
 Current hardware baseline:
@@ -8713,6 +8713,93 @@ to PS4 runtime requirements, then make client-init failure propagation safe and
 bracket `EngineVGui()->Connect()`. It will retain all validated v4.81 policy
 changes and use the source tree's full PS4 implementation freedom rather than
 preserving an unsuitable desktop module condition.
+
+### v4.82 packaged candidate: retain RenderToRTHelper and fail startup safely
+
+Package version 3.48 and build marker `render_to_rt_link_v482` identify this
+manual-install test. Source, archive, and final-OELF inspection proves the
+v4.81 failure was a static-link extraction defect, not an absent PS4 feature.
+`game/client/render_to_rt_helper.cpp` defines the sole
+`RenderToRTHelper001` provider and its real `CRenderToRTHelper` singleton. Its
+object and `InterfaceReg` were present in `libclient_client.a`, but the ordinary
+archive link found no external reference that required that member. The v4.81
+OELF consequently contained no `CRenderToRTHelper`, registrar, or
+`ProcessRenderToRTHelper` symbol, so the client factory could not return the
+interface.
+
+`KisakGameClientFactory` now retains `ProcessRenderToRTHelper` through the
+same volatile relocation technique already used for CS:GO's client render
+targets. The client object contains the expected undefined relocation, and the
+final OELF now contains `ProcessRenderToRTHelper`, the helper Init/Shutdown/
+Process methods, and
+`__g_CreateCRenderToRTHelperIRenderToRTHelper_reg`. This preserves the real
+implementation and factory contract instead of declaring the dependency
+optional. The `render_to_rt_helper` texture target is created earlier during
+material-system setup. Its current consumers are dynamic weapon/glove
+inventory images; PS4 texture readback remains incomplete, so those generated
+icons may use their existing fallback images, but this does not block menu
+navigation or an offline match.
+
+The helper Init path now records material-system, lighting, texture lookup, and
+end-frame callback boundaries, and it handles a null texture result without a
+null dereference. `ClientDLL_Init` now returns success explicitly. On PS4,
+`Host_Init` retains the normal trace/shutdown registration but stops immediately
+when client initialization fails. Because `host_initialized` remains false,
+the existing `Sys_InitGame` and `CEngine::Load` result chain reports failure
+instead of continuing through SCR, renderer, decals, and UI hookup with a
+partially initialized client. This control flow does not depend on the current
+PS4 `Sys_Error` implementation returning or terminating correctly.
+
+`Host_Init`, `CEngineVGui::Connect`, and `CGameUI::Connect` now bracket the
+previously uninstrumented hookup boundary. The breadcrumbs identify the VGUI
+input query, GameUI dispatch, client-exports query, optional Scaleform query,
+achievement-manager lookup, and completion. Static inspection already confirms
+the final OELF contains the required `CGameClientExports` registrar; the added
+markers make any later hardware stop attributable without assuming that v4.81
+crashed inside Connect.
+
+The narrow `client_client` and `engine_client` targets compile, and the complete
+monolithic OELF/SELF link succeeds. The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic.oelf
+Size: 136,070,176 bytes
+SHA-256: 3aa91214a1b488d2f203a8e67b6cf9455ed575890b193403bdd0f0cfbec1ab4c
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,176,112 bytes
+SHA-256: d88c018abf0cd515afce0c135aad1b28a925c3cedb30f5701e070202c58ad9b3
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.48
+Size: 103,284,736 bytes
+SHA-256: 9c8f9e4ba4da343831438411c2f85004aaff5cc1fb1f5238afb4efb72fbb224d
+```
+
+`git diff --check` and both packaging-script syntax checks pass. PkgTool reports
+28 `[OK]` checks and no `[FAIL]`; SFO `APP_VER` and `VERSION` are both 3.48,
+and the package staging tree's eboot is byte-identical to the SELF. PkgTool's
+optional full extraction command cannot run on this host because its bundled
+.NET runtime requires an unavailable legacy `libssl`; package construction,
+signature/hash validation, and PS4 installation are unaffected. The host PS4
+suite remains at 11/14 with only the known `ps4_gnm_device`, `ps4_gnm_buffer`,
+and `ps4_gnm_constants` baseline failures.
+
+The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`. Two complete FTP
+readbacks each report 103,284,736 bytes and SHA-256
+`9c8f9e4ba4da343831438411c2f85004aaff5cc1fb1f5238afb4efb72fbb224d`,
+matching the local package. It awaits manual installation and launch.
+
+Hardware interpretation is deterministic. The v4.82 marker must occur once.
+Successful provider recovery advances from `client impl before render-to-rt
+interface` to `client impl before render-to-rt init`, the internal
+`render-to-rt ...` sequence, and `client impl render-to-rt init ready`. A clean
+client failure records `host client dll init failed; startup stopped` and must
+not reach SCR, renderer, decals, or Connect. A successful client Init reaches
+`client dll init complete`, the enclosing trace-after marker, and then the
+new Host/EngineVGui/GameUI Connect sequence; its final marker identifies the
+next boundary without conflating it with the repaired registrar failure.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

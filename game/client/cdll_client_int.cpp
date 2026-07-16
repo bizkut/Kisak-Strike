@@ -1079,13 +1079,15 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CHLClient, IBaseClientDLL, CLIENT_DLL_INTERFA
 
 #if defined( PLATFORM_PS4 )
 extern ConVar cl_disable_water_render_targets;
+extern bool ProcessRenderToRTHelper();
 CreateInterfaceFn KisakGameClientFactory()
 {
-	// The render-target registrar lives in an otherwise registration-only archive
-	// member. Keep a volatile reference so the monolithic linker retains the full
-	// CS:GO client render-target implementation instead of silently dropping it.
+	// These providers live in otherwise registration-only archive members. Keep
+	// relocations to both so their InterfaceReg objects reach the monolithic ELF.
 	ConVar * volatile pRenderTargetLinkAnchor = &cl_disable_water_render_targets;
+	bool (* volatile pRenderToRTLinkAnchor)() = &ProcessRenderToRTHelper;
 	(void)pRenderTargetLinkAnchor;
+	(void)pRenderToRTLinkAnchor;
 	return Sys_GetFactoryThis();
 }
 #endif

@@ -179,6 +179,13 @@ void *g_pMilesAudioEngineRef;
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_HOST_INIT_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_HOST_INIT_BREADCRUMB( line ) ((void)0)
+#endif
+
 //-----------------------------------------------------------------------------
 // Forward declarations
 //-----------------------------------------------------------------------------
@@ -5668,7 +5675,19 @@ void Host_Init( bool bDedicated )
 
 		TRACEINIT( TextMessageInit(), TextMessageShutdown() );
 
+		#if defined( PLATFORM_PS4 )
+		KisakPs4TraceInitPhase( "dispatch", "ClientDLL_Init()" );
+		TraceInit( "ClientDLL_Init()", "ClientDLL_Shutdown()", 0 );
+		KisakPs4TraceInitPhase( "before", "ClientDLL_Init()" );
+		if ( !ClientDLL_Init() )
+		{
+			PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host client dll init failed; startup stopped" );
+			return;
+		}
+		KisakPs4TraceInitPhase( "after", "ClientDLL_Init()" );
+		#else
 		TRACEINIT( ClientDLL_Init(), ClientDLL_Shutdown() );
+		#endif
 
 		TRACEINIT( SCR_Init(), SCR_Shutdown() );
 
@@ -5677,7 +5696,9 @@ void Host_Init( bool bDedicated )
 		TRACEINIT( Decal_Init(), Decal_Shutdown() );
 
 		// hookup interfaces
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host before engine vgui connect" );
 		EngineVGui()->Connect();
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host engine vgui connect ready" );
 	}
 	else
 #endif

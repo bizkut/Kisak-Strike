@@ -20,7 +20,7 @@ class ClientClass;
 
 bool ClientDLL_Load( void );
 void ClientDLL_Unload ( void );
-void ClientDLL_Init( void );
+bool ClientDLL_Init( void );
 void ClientDLL_Connect( void );
 void ClientDLL_Disconnect();
 void ClientDLL_Shutdown( void );

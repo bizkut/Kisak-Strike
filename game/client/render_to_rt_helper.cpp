@@ -13,6 +13,13 @@
 // NOTE: This has to be the last file included!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_RENDER_TO_RT_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_RENDER_TO_RT_BREADCRUMB( line ) ((void)0)
+#endif
+
 // uncomment these to write out VTFs of the inventory icons with no lighting to be used for the "default icon images"
 //#define WRITE_OUT_VTF
 //#define ICON_VTF_BASE_PATH "d:/temp"
@@ -41,8 +48,12 @@ bool ProcessRenderToRTHelper()
 
 bool CRenderToRTHelper::Init()
 {
+	PS4_RENDER_TO_RT_BREADCRUMB( "render-to-rt init entered" );
 	if ( !g_pMaterialSystem )
+	{
+		PS4_RENDER_TO_RT_BREADCRUMB( "render-to-rt material system missing" );
 		return false;
+	}
 
 	memset( &m_LightingState, 0, sizeof(MaterialLightingState_t) );
 	for ( int i = 0; i < 6; ++i )
@@ -57,12 +68,19 @@ bool CRenderToRTHelper::Init()
 	//the default light is a blueish rim
 	m_LightingState.m_pLocalLightDesc[0].InitDirectional( Vector( -1.0f, 0.3f, 1.0f ), Vector( 1.5f, 1.8f, 2.0f ) );
 	m_LightingState.m_nLocalLightCount = 1;
+	PS4_RENDER_TO_RT_BREADCRUMB( "render-to-rt lighting ready" );
 
+	PS4_RENDER_TO_RT_BREADCRUMB( "render-to-rt before texture lookup" );
 	m_pRenderTarget = g_pMaterialSystem->FindTexture( "render_to_rt_helper", TEXTURE_GROUP_RENDER_TARGET );
+	PS4_RENDER_TO_RT_BREADCRUMB( m_pRenderTarget ? "render-to-rt texture ready" : "render-to-rt texture missing" );
 	Assert( m_pRenderTarget );
+	if ( !m_pRenderTarget )
+		return false;
 	m_pRenderTarget->AddRef();
 
+	PS4_RENDER_TO_RT_BREADCRUMB( "render-to-rt before callback registration" );
 	g_pMaterialSystem->AddEndFramePriorToNextContextFunc( ::ProcessRenderToRTHelper );
+	PS4_RENDER_TO_RT_BREADCRUMB( "render-to-rt init complete" );
 
 	return true;
 }
@@ -70,7 +88,8 @@ bool CRenderToRTHelper::Init()
 
 void CRenderToRTHelper::Shutdown( void )
 {
-	g_pMaterialSystem->RemoveEndFramePriorToNextContextFunc( ::ProcessRenderToRTHelper );
+	if ( g_pMaterialSystem )
+		g_pMaterialSystem->RemoveEndFramePriorToNextContextFunc( ::ProcessRenderToRTHelper );
 
 	if ( m_pRenderTarget )
 	{

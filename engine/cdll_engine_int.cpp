@@ -2731,7 +2731,7 @@ void ClientDLL_Disconnect()
 //-----------------------------------------------------------------------------
 // Purpose: Inits the client .dll
 //-----------------------------------------------------------------------------
-void ClientDLL_Init( void )
+bool ClientDLL_Init( void )
 {
 	extern void CL_SetSteamCrashComment();
 	PS4_CLIENT_DLL_BREADCRUMB( "client dll init entered" );
@@ -2741,6 +2741,8 @@ void ClientDLL_Init( void )
 	Assert ( g_ClientFactory );
 	PS4_CLIENT_DLL_BREADCRUMB( g_ClientDLL ? "client dll interface ready" : "client dll interface missing" );
 	PS4_CLIENT_DLL_BREADCRUMB( g_ClientFactory ? "client dll factory ready" : "client dll factory missing" );
+	if ( !g_ClientDLL || !g_ClientFactory )
+		return false;
 
 	// this will get updated after we load a map, but this gets video info if we sys_error() prior to loading a map
 #if defined( PLATFORM_PS4 )
@@ -2759,7 +2761,7 @@ void ClientDLL_Init( void )
 		if ( !bClientInitSucceeded )
 		{
 			Sys_Error("Client.dll Init() in library client failed.");
-			return;
+			return false;
 		}
 
 		if ( g_ClientFactory )
@@ -2772,7 +2774,7 @@ void ClientDLL_Init( void )
 			if ( !g_pClientSidePrediction )
 			{
 				Sys_Error( "Could not get IPrediction interface from library client" );
-				return;
+				return false;
 			}
 			PS4_CLIENT_DLL_BREADCRUMB( "client dll before prediction init" );
 			g_pClientSidePrediction->Init();
@@ -2783,7 +2785,7 @@ void ClientDLL_Init( void )
 			if ( !entitylist )
 			{
 				Sys_Error( "Could not get client entity list interface from library client" );
-				return;
+				return false;
 			}
 
 			clientleafsystem = ( IClientLeafSystemEngine *)g_ClientFactory( CLIENTLEAFSYSTEM_INTERFACE_VERSION, NULL );
@@ -2791,7 +2793,7 @@ void ClientDLL_Init( void )
 			if ( !clientleafsystem )
 			{
 				Sys_Error( "Could not get client leaf system interface from library client" );
-				return;
+				return false;
 			}
 
 			g_pClientAlphaPropertyMgr = ( IClientAlphaPropertyMgr* )g_ClientFactory( CLIENT_ALPHA_PROPERTY_MGR_INTERFACE_VERSION, NULL );
@@ -2799,7 +2801,7 @@ void ClientDLL_Init( void )
 			if ( !g_pClientAlphaPropertyMgr )
 			{
 				Sys_Error( "Could not get client alpha property mgr interface from library client" );
-				return;
+				return false;
 			}
 
 			PS4_CLIENT_DLL_BREADCRUMB( "client dll before tool framework init" );
@@ -2925,6 +2927,7 @@ void ClientDLL_Init( void )
 	ClientDLL_InitRecvTableMgr();
 	PS4_CLIENT_DLL_BREADCRUMB( "client dll recv table init ready" );
 	PS4_CLIENT_DLL_BREADCRUMB( "client dll init complete" );
+	return true;
 }
 
 //-----------------------------------------------------------------------------
