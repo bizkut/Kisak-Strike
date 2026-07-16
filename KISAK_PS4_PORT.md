@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.35
+Version: 3.36
 Size: 103,219,200 bytes
-SHA-256: 94d2d91081b87c30a4c2f275e7eb200a475fdc9563d7aa5bb82b771968dbae00
-Hardware run: v4.69 (2026-07-16), crashes in the INPUTSWAPAB runtime-symbol lookup
+SHA-256: c3f0166beee4d80af684c2974907f0577f91cbd2acf2fe799f2120c5f672317f
+Hardware run: v4.70 (2026-07-16), crashes inside the unknown-INPUTSWAPAB warning
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.35
+Version: 3.36
 Size: 103,219,200 bytes
-SHA-256: 94d2d91081b87c30a4c2f275e7eb200a475fdc9563d7aa5bb82b771968dbae00
-Hardware result: v4.69 enters `GetKeyValuesExpressionSymbol("INPUTSWAPAB")` but never returns
+SHA-256: c3f0166beee4d80af684c2974907f0577f91cbd2acf2fe799f2120c5f672317f
+Hardware result: v4.70 reaches `Warning` for unknown `INPUTSWAPAB` but never returns
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: c3f0166beee4d80af684c2974907f0577f91cbd2acf2fe799f2120c5f672317f
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: awaiting manual v4.70 install and run
+Hardware result: v4.70 reaches `Warning` for unknown `INPUTSWAPAB` but never returns
 ```
 
 Current hardware baseline:
@@ -7730,6 +7730,20 @@ is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
 readback matches the local 103,219,200-byte package and SHA-256 above. Manual
 install and hardware execution remain.
+
+The 2026-07-16 hardware run confirms the v4.70 marker exactly once in a
+25,373,444-byte, 525,714-line startup log. The targeted symbol trace contains
+30 events. It proves the KeyValues mutex is acquired, hash bucket 936 is valid,
+all six chained entries compare and advance normally, and the lookup returns
+not found. `GetKeyValuesExpressionSymbol` then reaches its fallback path and
+emits `get-before-warning` for unknown `INPUTSWAPAB`; neither
+`get-return-false` nor the expression evaluator's runtime-symbol-return
+marker follows. The crash is therefore inside the unknown-symbol `Warning`,
+not inside the mutex, hash table, chain traversal, or conditional map.
+`CInputSystem::InitializeXDevices` would eventually register
+`INPUTSWAPAB=false` on PS4, but SourceScheme evaluates the conditional before
+that initialization. The next repair should provide the same PS4 default-false
+value before the warning path without changing later explicit registrations.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
