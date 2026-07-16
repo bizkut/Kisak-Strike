@@ -205,7 +205,9 @@ void CursorSelect( InputContextHandle_t hContext, HCursor hCursor )
 	if ( s_bCursorLocked )
 		return;
 
+#if !defined( PLATFORM_PS4 )
 	static ConVarRef cv_vguipanel_active( "vgui_panel_active" );
+#endif
 
 #if defined( USE_SDL )
 	switch (hCursor)

@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.40
+Version: 3.41
 Size: 103,219,200 bytes
-SHA-256: 840129dd17a0a226cfb76dbc84bb8c4325da22a70ae98c39ae50d1ac7d6741a9
+SHA-256: f62d113e84a8c935d8e7c0353be9b3725e6e041c0f6abcd1682e7697c447c576
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.74 stops inside `CMatSystemSurface::SetCursor(dc_none)`
+Hardware result: pending; v4.75 skips the unused PS4 cursor ConVarRef
 ```
 
 Current hardware baseline:
@@ -8036,6 +8036,54 @@ unconditionally before the platform branches. It is unused on PS4 and is the
 only nontrivial operation remaining on the no-op cursor-selection path. The
 next repair should prevent that PS4-only unused initialization while
 preserving cursor state, lock checks, and every non-PS4 path.
+
+### v4.75: Skip the unused PS4 cursor ConVarRef
+
+Package version 3.41 and build marker `cursor_convar_guard_v475` identify the
+repair for the v4.74 boundary. The preceding hardware run reaches
+`CMatSystemSurface::SetCursor(vgui::dc_none)` after successfully disabling
+the input context, then stops before the call returns. On PS4,
+`CursorSelect` has an intentionally empty platform branch, but it previously
+constructed the PC-oriented function-local
+`ConVarRef cv_vguipanel_active("vgui_panel_active")` before selecting that
+branch.
+
+The local ConVarRef is now compiled on every existing platform except PS4.
+The PS4 path still performs the existing cursor-lock check, while
+`CMatSystemSurface::SetCursor` still updates its `_currentCursor` state
+before calling the no-op backend. Windows, macOS, SDL, Linux, PS3, and Xbox
+preprocessing and behavior are unchanged. The v4.74 construction breadcrumbs
+remain so the next run can prove `none cursor returned`, cursor locking,
+mouse-visibility completion, static-panel completion, and the following engine
+boundary without adding another speculative skip.
+
+The directly affected `vguimatsurface_client` and `engine_client` PS4
+targets compile, both package scripts pass `bash -n`, and the complete
+monolithic link succeeds. The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic.oelf
+Size: 136,028,120 bytes
+SHA-256: f2cd5a79c079f88312d7abe21c2c70630e09fc2da9ebff6878ecd17dc9a0ac40
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,142,752 bytes
+SHA-256: 5367e407827afe1f4641786c22ea8fe703bcad1b86d5eef31a7f45dc7aa25c95
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.41
+Size: 103,219,200 bytes
+SHA-256: f62d113e84a8c935d8e7c0353be9b3725e6e041c0f6abcd1682e7697c447c576
+```
+
+PkgTool reports every package size, digest, and signature check as `[OK]`,
+and `param.sfo` reports both `APP_VER` and `VERSION` as 3.41. The host
+PS4 suite remains at 11/14 with only the known `ps4_gnm_device`,
+`ps4_gnm_buffer`, and `ps4_gnm_constants` baseline failures. The package
+is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
+readback matches the local 103,219,200-byte package and SHA-256 above. Manual
+install and hardware execution remain.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
