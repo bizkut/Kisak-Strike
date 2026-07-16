@@ -38,20 +38,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.46
+Version: 3.47
 Size: 103,219,200 bytes
-SHA-256: 36b5f3c9fceb5acc2a2f06cb0a231a5c49d08690e5019d681b68716b818d58e2
-Hardware run: v4.80 (2026-07-16), reaches the ClientDLL_Init call
+SHA-256: 360a459d5cfe67a5f7536d2b84fa98b245b9c7810a78b2890bfd767fd17bfb79
+Hardware run: v4.81 (2026-07-16), missing RenderToRTHelper; reaches Decal_Init
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.46
+Version: 3.47
 Size: 103,219,200 bytes
-SHA-256: 36b5f3c9fceb5acc2a2f06cb0a231a5c49d08690e5019d681b68716b818d58e2
-Hardware result: v4.80 stops inside the ClientDLL_Init() call
+SHA-256: 360a459d5cfe67a5f7536d2b84fa98b245b9c7810a78b2890bfd767fd17bfb79
+Hardware result: v4.81 client Init fails at the render-to-RT interface lookup
 ```
 
 Latest package staged for manual install and hardware test:
@@ -63,7 +63,7 @@ Size: 103,219,200 bytes
 SHA-256: 360a459d5cfe67a5f7536d2b84fa98b245b9c7810a78b2890bfd767fd17bfb79
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware status: v4.81 awaits manual installation and launch
+Hardware result: v4.81 client Init fails at the render-to-RT interface lookup
 ```
 
 Current hardware baseline:
@@ -8679,6 +8679,40 @@ lookup returns. The nested before/ready markers then localize any deeper crash
 without another broad probe. Reaching `client dll init complete` and the
 enclosing `trace init after / ClientDLL_Init()` pair validates this repair and
 moves startup to the next dispatcher operation.
+
+The 2026-07-16 hardware run confirms the v4.81 marker exactly once. The v4.80
+log is an exact 46,727,679-byte prefix of the new capture. This run appends
+3,088,015 bytes and 63,568 lines with SHA-256
+`5fd580180d32c801f86f9f228aba57c4a8cac6f6c34e853209d5906a9b3e571f`,
+producing a 49,815,694-byte, 1,020,734-line log with SHA-256
+`b8c0723da16679cc7dc4484ba9938b745806b20cf300e6e5c55fb6dd4a22f8c5`.
+
+The run validates the direct Steam crash-comment skip and proves entry through
+the expected `CHLClient::Init` virtual dispatch. Every required factory lookup
+through the Xbox-system interface advances to the following marker. The exact
+last implementation marker is `client impl before render-to-rt interface`;
+`client impl before render-to-rt init` is absent. The enclosing engine then
+records `client dll client impl init failed`. Therefore
+`RENDER_TO_RT_HELPER_INTERFACE_VERSION` returned null and caused the client
+Init method to return `false`; this is a cleanly attributed dependency failure,
+not a crash inside virtual dispatch.
+
+PS4's current `Sys_Error` primitive returns, so `ClientDLL_Init` returns to
+the trace dispatcher despite that failed client initialization. The enclosing
+`trace init after / ClientDLL_Init()` pair appears, and `SCR_Init`,
+`R_Init`, and `Decal_Init` all dispatch, enter, and return. The exact final
+three lines are `kisak-ps4: trace init after`, `Decal_Init()`, and the
+terminating newline. The next source operation is the uninstrumented
+`EngineVGui()->Connect()` call, but the log does not prove whether its body is
+entered. That late crash is downstream of the already proven partial client
+initialization and must not be treated as an independent healthy-state
+boundary.
+
+v4.82 will first restore or replace the missing render-to-RT helper according
+to PS4 runtime requirements, then make client-init failure propagation safe and
+bracket `EngineVGui()->Connect()`. It will retain all validated v4.81 policy
+changes and use the source tree's full PS4 implementation freedom rather than
+preserving an unsuitable desktop module condition.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
