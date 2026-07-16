@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.40
+Version: 3.41
 Size: 103,219,200 bytes
-SHA-256: 840129dd17a0a226cfb76dbc84bb8c4325da22a70ae98c39ae50d1ac7d6741a9
-Hardware run: v4.74 (2026-07-16), isolates PS4 cursor selection inside first static-panel construction
+SHA-256: f62d113e84a8c935d8e7c0353be9b3725e6e041c0f6abcd1682e7697c447c576
+Hardware run: v4.75 (2026-07-16), crosses cursor/panel setup and stops inside GameUI initialization
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.40
+Version: 3.41
 Size: 103,219,200 bytes
-SHA-256: 840129dd17a0a226cfb76dbc84bb8c4325da22a70ae98c39ae50d1ac7d6741a9
-Hardware result: v4.74 stops inside `CMatSystemSurface::SetCursor(dc_none)`
+SHA-256: f62d113e84a8c935d8e7c0353be9b3725e6e041c0f6abcd1682e7697c447c576
+Hardware result: v4.75 ends after GameUI's already-registered ConVar path
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: f62d113e84a8c935d8e7c0353be9b3725e6e041c0f6abcd1682e7697c447c576
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: pending; v4.75 skips the unused PS4 cursor ConVarRef
+Hardware result: v4.75 crosses cursor/panel setup and stops inside `CGameUI::Initialize`
 ```
 
 Current hardware baseline:
@@ -8082,8 +8082,40 @@ PS4 suite remains at 11/14 with only the known `ps4_gnm_device`,
 `ps4_gnm_buffer`, and `ps4_gnm_constants` baseline failures. The package
 is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
-readback matches the local 103,219,200-byte package and SHA-256 above. Manual
-install and hardware execution remain.
+readback matches the local 103,219,200-byte package and SHA-256 above. The
+package was then installed and executed manually.
+
+The 2026-07-16 hardware run confirms the v4.75 marker exactly once. It appends
+2,750,007 bytes and 56,281 lines to the prior capture, producing a
+32,431,261-byte, 663,900-line log with SHA-256
+`77a9be0fbeb626c336387b47bfd1eca1359459bc0e65b47de3c2da5ca2920fe7`.
+The appended slice has SHA-256
+`730823ff0efb2709d7622d97ff194b53a6e1e0d81e8968743d7a3c46482e673d`.
+
+The cursor repair is hardware validated: all 25
+`matsurface calculate mouse before none cursor` markers have matching
+`none cursor returned` markers, and all 25 cursor-lock calls also return.
+Mouse-visibility completion appears 44 times, panel mouse-input completion
+appears 42 times, and `engine vgui static panel created` appears once. The
+engine then completes the remaining panel construction, layout loading,
+constant-color material setup, material caching, and Valve, base-game, and mod
+localization.
+
+The new final boundary is inside `CGameUI::Initialize`.
+`engine vgui before gameui initialize` appears once while
+`engine vgui gameui initialize ready` and `engine vgui before gameui start`
+are absent. The final two records are `ConVar_Register entered` and
+`ConVar_Register skipped already registered`; across the appended slice,
+`ConnectInterfaces entered` and `ConnectInterfaces complete` each appear
+22 times, while `ConVar_Register entered` appears 19 times and its
+already-registered return appears 18 times.
+
+Source inspection maps the next operations precisely. The GameUI call returns
+from `ConVar_Register(FCVAR_CLIENTDLL)`, calls
+`ConnectTier3Libraries(&factory, 1)` (whose current implementation is empty),
+and then requests `IEngineSound` through the supplied interface factory.
+The v4.76 diagnostic should bracket those operations and the following GameUI
+interface/localization/base-panel stages without skipping any work.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
