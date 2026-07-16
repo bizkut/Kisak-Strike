@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.32
+Version: 3.33
 Size: 103,219,200 bytes
-SHA-256: 852d34f3ab51177b0b36283696284c7b133eb41c64b913c3608670b08d35a555
-Hardware run: v4.66 (2026-07-16), completes BaseSettings and crashes later in the SourceScheme root parse
+SHA-256: e02dfc699c6533ba85a0a5a2ee194ee90e58c5a4499429b970444ea6b3499904
+Hardware run: v4.67 (2026-07-16), crashes on entry to the BitmapFontFiles child recursion
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.32
+Version: 3.33
 Size: 103,219,200 bytes
-SHA-256: 852d34f3ab51177b0b36283696284c7b133eb41c64b913c3608670b08d35a555
-Hardware result: v4.66 completes `BaseSettings` and crashes later in SourceScheme parsing
+SHA-256: e02dfc699c6533ba85a0a5a2ee194ee90e58c5a4499429b970444ea6b3499904
+Hardware result: v4.67 enters `BitmapFontFiles` recursion but never returns
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: e02dfc699c6533ba85a0a5a2ee194ee90e58c5a4499429b970444ea6b3499904
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: awaiting manual v4.67 install and run
+Hardware result: v4.67 enters `BitmapFontFiles` recursion but never returns
 ```
 
 Current hardware baseline:
@@ -7577,6 +7577,15 @@ remains at 11/14 with only the known `ps4_gnm_device`, `ps4_gnm_buffer`, and
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP readback
 matches the local 103,219,200-byte package and SHA-256 above. Manual install and
 hardware execution remain.
+
+The 2026-07-16 hardware run confirms the v4.67 marker exactly once in a
+22,295,013-byte, 467,083-line startup log. The bounded root-tail trace contains
+eight events. After `BaseSettings` returns, the parser reads
+`BitmapFontFiles`, creates its child, reads the opening `{`, and emits
+`phase=section-enter token=BitmapFontFiles`. No matching `section-return`
+marker follows. The crash is therefore inside the recursive parse of the
+`BitmapFontFiles` child, not root key allocation or opening-token handling.
+The next diagnostic should arm a bounded nested trace only for that child.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
