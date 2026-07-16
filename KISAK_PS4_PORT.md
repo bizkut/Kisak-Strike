@@ -80,6 +80,13 @@ tests use Linux stack addresses above the PS4 descriptor's 44-bit address
 range and fail their pointer round-trip checks; this pre-existing host-fixture
 defect does not exercise the changed client/particle code.
 
+Candidate commit `d0bb9c97` produces a 103,284,736-byte package with SHA-256
+`8d8210b33b18a7eb3c1ea3cfb6372c3f43ac1d743d4f960c7b0f072bb7114be6`.
+Verbose PkgTool validation reports every limit, digest, and signature check
+`[OK]`. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete FTP
+readbacks match the local size and SHA-256.
+
 Static and final-OELF inspection also expose the next ownership question: the
 monolith has one `g_pParticleSystemMgr` but two `g_pParticleSystemQuery`
 objects. Server startup initializes the shared manager first, and its Init
