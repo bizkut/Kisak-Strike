@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.26
+Version: 3.27
 Size: 103,153,664 bytes
-SHA-256: 46f3ef04ae032d21c890bc6599bac8fa1805959cf0175d2e5cbba9d45edce7e8
+SHA-256: 27f684b07162825d5807fc9865563d154d5fd54eeb358862c8f4f426dce399be
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Staged: 2026-07-15
-Hardware result: v4.60 stops inside IMaterialSystem::UpdateConfig(false)
+Staged: 2026-07-16
+Hardware result: awaiting manual install/run of v4.61 UpdateConfig trace
 ```
 
 Current hardware baseline:
@@ -7199,6 +7199,41 @@ debug-material initialization. The next package will split
 `CMaterialSystem::UpdateConfig` across its queued-convar check, config copy,
 `ReadConfigFromConVars`, and `OverrideConfig` calls without changing their
 behavior.
+
+### v4.61: Split the material-system configuration update
+
+Package version 3.27 and build marker
+`material_update_config_trace_v461` identify a diagnostics-only split of the
+call that failed on v4.60. `CMaterialSystem::UpdateConfig` now brackets the
+queued material-convar query, optional single-thread transition and queued-set
+processing, global-config copy, `ReadConfigFromConVars`, and `OverrideConfig`.
+The convar reader records each field or risky interface access. The override
+path records interface readiness, equality comparison, material locking,
+graphics-device state, default-state setup, config storage, and every optional
+reload/reset/device action. The original calls still execute once in their
+original order with the same arguments.
+
+The narrow `materialsystem_client` target, full OpenOrbis monolith, FSELF, and
+package build successfully. The OELF contains the v4.61 marker plus the terminal
+read/override breadcrumbs and does not contain the v4.60 marker. Direct verbose
+PkgTool validation reports `[OK]` for every size, digest, and signature check.
+Artifact identities:
+
+```text
+OELF: 126,239,632 bytes
+SHA-256: 102aaeb340e4a24720b7427489af2a9d40cf693756dc538631e19d8def6d48eb
+SELF: 83,093,504 bytes
+SHA-256: ac1ba64c2c786dacd1f22bd08944f78a2068ed5758f9dc3455ae83427a352967
+PKG: 103,153,664 bytes
+SHA-256: 27f684b07162825d5807fc9865563d154d5fd54eeb358862c8f4f426dce399be
+```
+
+The host suite remains at the established 11/14 baseline, with only the known
+Linux high-address failures in `ps4_gnm_device`, `ps4_gnm_buffer`, and
+`ps4_gnm_constants`. The package is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and its complete readback SHA-256 matches the local package.
+Manual installation and launch are the remaining hardware gate.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

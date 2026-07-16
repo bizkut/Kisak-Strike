@@ -2256,67 +2256,128 @@ uint32 g_nDebugVarsSignature = 0;
 //-----------------------------------------------------------------------------
 void CMaterialSystem::ReadConfigFromConVars( MaterialSystem_Config_t *pConfig )
 {
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config entered" );
+	PS4_MATSYS_BREADCRUMB( pConfig
+		? "kisak-ps4: materialsystem read config output ready"
+		: "kisak-ps4: materialsystem read config output null" );
 	if ( !g_pCVar )
+	{
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config cvar null" );
 		return;
+	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config cvar ready" );
 
 	// video panel config items
 	pConfig->SetFlag( MATSYS_VIDCFG_FLAGS_NO_WAIT_FOR_VSYNC, !mat_vsync.GetBool() );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config vsync ready" );
 	pConfig->SetFlag( MATSYS_VIDCFG_FLAGS_DISABLE_SPECULAR, !mat_specular.GetBool() );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config specular ready" );
 	pConfig->SetFlag( MATSYS_VIDCFG_FLAGS_DISABLE_BUMPMAP, !mat_bumpmap.GetBool() );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config bumpmap ready" );
 	pConfig->SetFlag( MATSYS_VIDCFG_FLAGS_DISABLE_DETAIL, !mat_detail_tex.GetBool() );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config detail ready" );
 	pConfig->SetFlag( MATSYS_VIDCFG_FLAGS_DISABLE_PHONG, !mat_phong.GetBool() );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config phong ready" );
 	pConfig->SetFlag( MATSYS_VIDCFG_FLAGS_ENABLE_PARALLAX_MAPPING, mat_parallaxmap.GetBool() );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config parallax ready" );
 	pConfig->m_nForceAnisotropicLevel = MAX( mat_forceaniso.GetInt(), 1 );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config anisotropic ready" );
 
 	// special handling for mat_dxlevel since it must be clamped to allowable values
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config before dx level" );
 	int nDxLevel = clamp( mat_dxlevel.GetInt(), g_pMaterialSystemHardwareConfig->GetMinDXSupportLevel(), g_pMaterialSystemHardwareConfig->GetMaxDXSupportLevel() );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config dx level clamped" );
 	pConfig->dxSupportLevel = nDxLevel;
 	mat_dxlevel.SetValue( nDxLevel );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config dx level ready" );
 
 	pConfig->skipMipLevels = mat_picmip.GetInt();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config picmip ready" );
 
 	pConfig->m_fMonitorGamma = mat_monitorgamma.GetFloat();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config monitor gamma ready" );
 	pConfig->m_fGammaTVRangeMin = mat_monitorgamma_tv_range_min.GetFloat();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config gamma range min ready" );
 	pConfig->m_fGammaTVRangeMax = mat_monitorgamma_tv_range_max.GetFloat();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config gamma range max ready" );
 	pConfig->m_fGammaTVExponent = mat_monitorgamma_tv_exp.GetFloat();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config gamma exponent ready" );
 	pConfig->m_bGammaTVEnabled = mat_monitorgamma_tv_enabled.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config gamma tv ready" );
 
 	pConfig->m_bWantTripleBuffered = mat_triplebuffered.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config triple buffer ready" );
 	pConfig->m_nAASamples = mat_antialias.GetInt();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config aa samples ready" );
 	pConfig->m_nAAQuality = mat_aaquality.GetInt();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config aa quality ready" );
 	pConfig->bShowDiffuse = mat_diffuse.GetBool();	
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config diffuse ready" );
 //	pConfig->bAllowCheats = false; // hack
 	pConfig->bShowNormalMap = mat_normalmaps.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config normal map ready" );
 	pConfig->bShowLowResImage = mat_showlowresimage.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config low res ready" );
 	pConfig->bMeasureFillRate = mat_measurefillrate.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config measure fill ready" );
 	pConfig->bVisualizeFillRate = mat_fillrate.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config visualize fill ready" );
 	pConfig->bFilterLightmaps = mat_filterlightmaps.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config filter lightmaps ready" );
 	pConfig->bFilterTextures = mat_filtertextures.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config filter textures ready" );
 	pConfig->bMipMapTextures = mat_mipmaptextures.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config mipmap textures ready" );
 	pConfig->nShowMipLevels = mat_showmiplevels.GetInt();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config show mip levels ready" );
 	pConfig->bReverseDepth = mat_reversedepth.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config reverse depth ready" );
 	pConfig->bBufferPrimitives = mat_bufferprimitives.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config buffer primitives ready" );
 	pConfig->bDrawFlat = mat_drawflat.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config draw flat ready" );
 	pConfig->bSoftwareLighting = mat_softwarelighting.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config software lighting ready" );
 	pConfig->proxiesTestMode = mat_proxy.GetInt();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config proxy ready" );
 	pConfig->m_bSuppressRendering = mat_norendering.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config suppress rendering ready" );
 	pConfig->bCompressedTextures = mat_compressedtextures.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config compressed textures ready" );
 	pConfig->bShowSpecular = mat_fastspecular.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config show specular ready" );
 	pConfig->nFullbright = mat_fullbright.GetInt();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config fullbright ready" );
 	pConfig->m_bFastNoBump = mat_fastnobump.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config fast no bump ready" );
 	pConfig->m_bMotionBlur = mat_motion_blur_enabled.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config motion blur ready" );
 	pConfig->m_bSupportFlashlight = mat_supportflashlight.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config flashlight ready" );
 	pConfig->m_bShadowDepthTexture = r_flashlightdepthtexture.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config shadow depth ready" );
 	pConfig->bDrawGray = mat_drawgray.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config draw gray ready" );
 	
 	// PAINT
 	pConfig->m_bPaintInGame = mat_paint_enabled.GetBool();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config paint in game ready" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config before paint maps" );
 	pConfig->m_bPaintInMap = GetPaintmaps()->IsEnabled();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config paint maps ready" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config before csm ref" );
 	ConVarRef csm_quality_level( "csm_quality_level" );
+	PS4_MATSYS_BREADCRUMB( csm_quality_level.IsValid()
+		? "kisak-ps4: materialsystem read config csm ref ready"
+		: "kisak-ps4: materialsystem read config csm ref invalid" );
 	pConfig->m_nCSMQuality = (CSMQualityMode_t)clamp( csm_quality_level.GetInt(), CSMQUALITY_VERY_LOW, (int)CSMQUALITY_TOTAL_MODES - 1 );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config csm quality ready" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config before hdr" );
 	pConfig->SetFlag( MATSYS_VIDCFG_FLAGS_ENABLE_HDR, HardwareConfig() && HardwareConfig()->GetHDREnabled() );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config hdr ready" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config complete" );
 }
 
 
@@ -2384,24 +2445,43 @@ void CMaterialSystem::WriteConfigIntoConVars( const MaterialSystem_Config_t &con
 //-----------------------------------------------------------------------------
 bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bool forceUpdate )
 {
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config entered" );
+	PS4_MATSYS_BREADCRUMB( m_bGeneratedConfig
+		? "kisak-ps4: materialsystem override config generated ready"
+		: "kisak-ps4: materialsystem override config generated false" );
+	PS4_MATSYS_BREADCRUMB( g_pShaderDevice
+		? "kisak-ps4: materialsystem override config shader device ready"
+		: "kisak-ps4: materialsystem override config shader device null" );
+	PS4_MATSYS_BREADCRUMB( g_pShaderAPI
+		? "kisak-ps4: materialsystem override config shader api ready"
+		: "kisak-ps4: materialsystem override config shader api null" );
 	Assert( m_bGeneratedConfig );
 	// internal config settings
 
 #ifndef _GAMECONSOLE
 	MaterialSystem_Config_Internal_t config_internal;
 	config_internal.gpu_level = gpu_level.GetInt();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config gpu level ready" );
 #endif
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before compare" );
 	if ( 
 		!memcmp( &_config, &g_config, sizeof(_config) ) 
 #ifndef _GAMECONSOLE
 		&& !memcmp( &config_internal, &g_config_internal, sizeof(config_internal) ) 
 #endif
 		)
+	{
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config unchanged" );
 		return false;
+	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config changed" );
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before lock" );
 	MaterialLock_t hLock = Lock();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config lock ready" );
 	MaterialSystem_Config_t config = _config;
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config copy ready" );
 
 	// It's illegal to create a window larger than the screen resolution
 	if ( config.Windowed() )
@@ -2421,7 +2501,12 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 	bool bResetTextureFilter = false;
 	bool bForceAltTab = false;
 
-	if ( !g_pShaderDevice->IsUsingGraphics() )
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before graphics query" );
+	bool bUsingGraphics = g_pShaderDevice->IsUsingGraphics();
+	PS4_MATSYS_BREADCRUMB( bUsingGraphics
+		? "kisak-ps4: materialsystem override config graphics active"
+		: "kisak-ps4: materialsystem override config graphics inactive" );
+	if ( !bUsingGraphics )
 	{
 		g_config = config;
 
@@ -2430,8 +2515,11 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 #endif
 
 		// Shouldn't call this more than once.
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before inactive gamma" );
 		ColorSpace::SetGamma( 2.2f, 2.2f, OVERBRIGHT, g_config.bAllowCheats, false );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config inactive gamma ready" );
 		Unlock( hLock );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config inactive complete" );
 		return bRedownloadLightmaps;
 	}
 
@@ -2439,7 +2527,9 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 	// texture units, etc. (i.e. we don't want to leave unit 2 in overbright mode
 	// if it isn't going to be reset upon each SetDefaultState because there is
 	// effectively only one texture unit.)
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before default state" );
 	g_pShaderAPI->SetDefaultState();
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config default state ready" );
 	
 	// toggle dx emulation level
 	if ( config.dxSupportLevel != g_config.dxSupportLevel )
@@ -2498,6 +2588,7 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 
 	if ( forceUpdate )
 	{
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config force update entered" );
 		if ( mat_debugalttab.GetBool() )
 		{
 			Warning( "mat_debugalttab: forceUpdate is true, therefore setting recomputeSnapshots, bRedownloadLightmaps, bRedownloadTextures, bResetAnisotropy, and bSetStandardVertexShaderConstants\n" );
@@ -2509,6 +2600,7 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 		bResetAnisotropy = true;
 		bSetStandardVertexShaderConstants = true;
 	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config force update ready" );
 
 	// toggle bump mapping
 	if ( config.UseBumpmapping() != g_config.UseBumpmapping() )
@@ -2729,15 +2821,19 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 	}
 
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config comparisons ready" );
 	g_config = config;
 #ifndef _GAMECONSOLE
 	g_config_internal = config_internal;
 #endif
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config stored" );
 
 	if ( bRedownloadTextures || bRedownloadLightmaps )
 	{
 		// Get rid of this?
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before gamma refresh" );
 		ColorSpace::SetGamma( 2.2f, 2.2f, OVERBRIGHT, g_config.bAllowCheats, false );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config gamma refresh ready" );
 	}
 
 	// 360 does not support various configuration changes and cannot reload materials
@@ -2758,7 +2854,9 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 		{
 			Warning( "mat_debugalttab: ReloadMaterials\n" );
 		}
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before reload materials" );
 		ReloadMaterials();
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config reload materials ready" );
 	}
 
 	// 360 does not support various configuration changes and cannot reload textures
@@ -2773,8 +2871,11 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 
 		if ( CanDownloadTextures() )
 		{
+			PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before restore targets" );
 			TextureManager()->RestoreRenderTargets();
+			PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config restore targets ready" );
 			TextureManager()->RestoreNonRenderTargetTextures();
+			PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config restore textures ready" );
 		}
 	}
 	else if ( bResetTextureFilter )
@@ -2783,7 +2884,9 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 		{
 			Warning( "mat_debugalttab: ResetTextureFilteringState\n" );
 		}
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before reset filtering" );
 		TextureManager()->ResetTextureFilteringState();
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config reset filtering ready" );
 	}
 
 	// Recompute all state snapshots
@@ -2793,7 +2896,9 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 		{
 			Warning( "mat_debugalttab: RecomputeAllStateSnapshots\n" );
 		}
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before snapshots" );
 		RecomputeAllStateSnapshots();
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config snapshots ready" );
 	}
 
 	if ( bResetAnisotropy )
@@ -2802,7 +2907,9 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 		{
 			Warning( "mat_debugalttab: SetAnisotropicLevel\n" );
 		}
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before anisotropic" );
 		g_pShaderAPI->SetAnisotropicLevel( config.m_nForceAnisotropicLevel );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config anisotropic ready" );
 	}
 
 	if ( bSetStandardVertexShaderConstants )
@@ -2811,7 +2918,9 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 		{
 			Warning( "mat_debugalttab: SetStandardVertexShaderConstants\n" );
 		}
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before standard constants" );
 		g_pShaderAPI->SetStandardVertexShaderConstants( OVERBRIGHT );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config standard constants ready" );
 	}
 
 	if ( bMonitorGammaChanged )
@@ -2820,8 +2929,10 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 		{
 			Warning( "mat_debugalttab: SetHardwareGammaRamp\n" );
 		}
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before hardware gamma" );
 		g_pShaderDevice->SetHardwareGammaRamp( config.m_fMonitorGamma, config.m_fGammaTVRangeMin, config.m_fGammaTVRangeMax, 
 			config.m_fGammaTVExponent, config.m_bGammaTVEnabled );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config hardware gamma ready" );
 	}
 
 	if ( bVideoModeChange )
@@ -2832,7 +2943,9 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 		}
 		ShaderDeviceInfo_t info;
 		ConvertModeStruct( &info, config );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config video mode converted" );
 		g_pShaderAPI->ChangeVideoMode( info );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config video mode ready" );
 	}
 
 	if ( bForceAltTab )
@@ -2842,11 +2955,14 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 //		g_pShaderAPI->ReacquireResources();
 	}
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config before unlock" );
 	Unlock( hLock );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config unlock ready" );
 	if ( bVideoModeChange )
 	{
 		ForceSingleThreaded();
 	}
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem override config complete" );
 	return bRedownloadLightmaps;
 }
 
@@ -2856,18 +2972,41 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 //-----------------------------------------------------------------------------
 bool CMaterialSystem::UpdateConfig( bool forceUpdate )
 {
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem update config entered" );
+	PS4_MATSYS_BREADCRUMB( g_pCVar
+		? "kisak-ps4: materialsystem update config cvar ready"
+		: "kisak-ps4: materialsystem update config cvar null" );
 	int nUpdateFlags = 0;
-	if ( g_pCVar && g_pCVar->HasQueuedMaterialThreadConVarSets() )
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem update config before queued query" );
+	bool bHasQueuedMaterialConVars = g_pCVar && g_pCVar->HasQueuedMaterialThreadConVarSets();
+	PS4_MATSYS_BREADCRUMB( bHasQueuedMaterialConVars
+		? "kisak-ps4: materialsystem update config queued query ready value=1"
+		: "kisak-ps4: materialsystem update config queued query ready value=0" );
+	if ( bHasQueuedMaterialConVars )
 	{
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem update config before force single threaded" );
 		ForceSingleThreaded();
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem update config force single threaded ready" );
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem update config before process queued" );
 		nUpdateFlags = g_pCVar->ProcessQueuedMaterialThreadConVarSets();
+		PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem update config process queued ready" );
 	}
 
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem update config before config copy" );
 	MaterialSystem_Config_t config = g_config;
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem update config config copy ready" );
 #ifndef DEDICATED
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem update config before read convars" );
 	ReadConfigFromConVars( &config );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem update config read convars ready" );
 #endif
-	return OverrideConfig( config, forceUpdate );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem update config before override" );
+	bool bLightmapsNeedReloading = OverrideConfig( config, forceUpdate );
+	PS4_MATSYS_BREADCRUMB( bLightmapsNeedReloading
+		? "kisak-ps4: materialsystem update config override ready reload=1"
+		: "kisak-ps4: materialsystem update config override ready reload=0" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem update config complete" );
+	return bLightmapsNeedReloading;
 }
 
 
