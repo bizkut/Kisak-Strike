@@ -38,20 +38,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.44
+Version: 3.45
 Size: 103,219,200 bytes
-SHA-256: e109f3d440b6e1047dd9602e2658d97a4b4a643b025a8a359e155d3036e82f92
-Hardware run: v4.78 (2026-07-16), reaches the animation-script setup call
+SHA-256: 2fd3ef28de973e70def3b65c159bf4846a9f939824e9463e50eae5e401875b96
+Hardware run: v4.79 (2026-07-16), reaches the CGameUI::Start call
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.44
+Version: 3.45
 Size: 103,219,200 bytes
-SHA-256: e109f3d440b6e1047dd9602e2658d97a4b4a643b025a8a359e155d3036e82f92
-Hardware result: v4.78 stops during the animation-script setup call expression
+SHA-256: 2fd3ef28de973e70def3b65c159bf4846a9f939824e9463e50eae5e401875b96
+Hardware result: v4.79 stops inside the staticGameUIFuncs->Start() call
 ```
 
 Latest package staged for manual install and hardware test:
@@ -63,7 +63,7 @@ Size: 103,219,200 bytes
 SHA-256: 2fd3ef28de973e70def3b65c159bf4846a9f939824e9463e50eae5e401875b96
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.79 pending manual install and run
+Hardware result: v4.79 stops inside the staticGameUIFuncs->Start() call
 ```
 
 Current hardware baseline:
@@ -8485,11 +8485,39 @@ checks as `[OK]`, no displayed `[FAIL]`, and both `APP_VER` and `VERSION` as
 
 The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`. A complete FTP readback
-reports 103,219,200 bytes and the same SHA-256 above. Hardware validation is
-pending manual installation and launch. A successful path should report a
-nonzero animation sizing panel, complete `UpdateScreenSize`, find and fully
-read 8,886 bytes, parse 31 events and 83 commands, return `animation script
-file loaded`, then continue to the lowercase console-settings load.
+reports 103,219,200 bytes and the same SHA-256 above. The package was manually
+installed and launched.
+
+The 2026-07-16 hardware run confirms the v4.79 marker exactly once. The v4.78
+log is an exact 40,700,911-byte prefix of the new capture. This run appends
+2,944,692 bytes and 60,560 lines with SHA-256
+`fa55ef87e114519991226e44587e1a8c74b8307ab928344bc75ae05e91b1e2a7`,
+producing a 43,645,603-byte, 893,728-line log with SHA-256
+`f5835ed9250e1f8e0f076c38454a61d652a39f7f56dc5d4f75562eaf188dff0e`.
+
+The run validates the complete v4.79 repair. The base-panel controller receives
+a nonzero sizing panel, completes `IPanel::GetSize` and `GetPos`, opens the
+canonical lowercase script, reads exactly 8,886 bytes, parses the expected 31
+events and 83 commands, and returns loaded. The lowercase Xbox settings load
+also succeeds. `CBaseModPanel` finishes all menu, logo, dialog-prefetch, and
+version-label work; `CGameUI::Initialize` records its complete marker; and the
+engine records `engine vgui gameui initialize ready`.
+
+The exact final line is `kisak-ps4: engine vgui before gameui start`, seen once.
+`engine vgui gameui start ready` is absent. Source order maps the intervening
+expression to `staticGameUIFuncs->Start()`, whose CS:GO implementation is
+`CGameUI::Start`. Therefore v4.79 proves that the crash occurs inside that call,
+but does not yet prove entry into the method because it has no internal
+breadcrumbs.
+
+`CGameUI::Start` first calls `FindPlatformDirectory`. The inherited platform
+policy then treats PS4 as PC: `FindPlatformDirectory` selects `getcwd` instead
+of the existing `PLATFORM` search path, and later PC-only code creates a Steam
+configuration path, emits `Msg`, installs user configuration, and enables the
+friends-loading loop. v4.80 will split every one of those boundaries and give
+PS4 an explicit console path rather than treating PC behavior as a fixed
+contract. The platform-directory failure path will return safely on PS4
+without entering the legacy fatal `Error` route.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
