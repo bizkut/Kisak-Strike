@@ -11,7 +11,7 @@ OpenGNM is the only graphics backend. Linux ToGL/OpenGL and PS3 shader binaries
 are not part of the PS4 runtime. The first acceptance target is menu navigation
 and a complete offline bot match.
 
-## Current status — 2026-07-15
+## Current status — 2026-07-16
 
 The OpenOrbis bootstrap is hardware validated. Title `KISK00001` starts on PS4,
 creates `/data/kisak-strike/startup.log`, and remains stable in a one-second
@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.25
+Version: 3.26
 Size: 103,153,664 bytes
-SHA-256: 4c76ec60e65052b8c90256db99c83814824d2e8f1cfbf2978e0419c487709703
-Hardware run: v4.59 (2026-07-15), reaches InitMaterialSystem
+SHA-256: 46f3ef04ae032d21c890bc6599bac8fa1805959cf0175d2e5cbba9d45edce7e8
+Hardware run: v4.60 (2026-07-16), enters material-system UpdateConfig
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.25
+Version: 3.26
 Size: 103,153,664 bytes
-SHA-256: 4c76ec60e65052b8c90256db99c83814824d2e8f1cfbf2978e0419c487709703
-Hardware result: v4.59 completes server DLLInit; material init crashes
+SHA-256: 46f3ef04ae032d21c890bc6599bac8fa1805959cf0175d2e5cbba9d45edce7e8
+Hardware result: v4.60 crashes inside IMaterialSystem::UpdateConfig(false)
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,153,664 bytes
 SHA-256: 46f3ef04ae032d21c890bc6599bac8fa1805959cf0175d2e5cbba9d45edce7e8
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-15
-Hardware result: awaiting manual install/run of v4.60 material-init trace
+Hardware result: v4.60 stops inside IMaterialSystem::UpdateConfig(false)
 ```
 
 Current hardware baseline:
@@ -7178,6 +7178,27 @@ PKG is FTP-staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; its remote size is
 103,153,664 bytes and a complete readback matches the local PKG SHA-256. Manual
 installation and launch are the remaining hardware gate.
+
+The v4.60 package was installed and run manually. Its single build marker and
+7,968-line run confirm that all material-system interface pointers reported by
+the diagnostic slice are non-null. Release and restore callback registration,
+`PreferZPrepass()` (value 0), and the `r_fastzreject` update all complete. The
+exact final sequence is:
+
+```text
+kisak-ps4: material init before update config
+kisak-ps4: material config entered
+kisak-ps4: material config before game directory base
+kisak-ps4: material config game directory base ready
+kisak-ps4: material config before update config
+```
+
+There is no `material config update config ready` marker. The crash is therefore
+inside `materials->UpdateConfig( false )`, before well-known render-target or
+debug-material initialization. The next package will split
+`CMaterialSystem::UpdateConfig` across its queued-convar check, config copy,
+`ReadConfigFromConVars`, and `OverrideConfig` calls without changing their
+behavior.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
