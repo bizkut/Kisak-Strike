@@ -23,51 +23,54 @@ DLL/PRX ownership assumptions merely because the original code used them.
 
 | Item | Value |
 |---|---|
-| Test | v4.90, 2026-07-16 |
-| Package version | 3.56 |
+| Test | v4.91, 2026-07-16 |
+| Package version | 3.57 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,415,808 bytes |
-| Package SHA-256 | `1195622c2db572f399b29b0dabbe58194a8870ca47310e6e9d80ecaff277c9e5` |
+| Package SHA-256 | `689723ddbf469d02ab6223ba2a3fdf6df14196e164f15b77dd93b1814a6fd71c` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `10a0e035` (`Handle all PS4 missing VGUI materials safely`) |
-| Hardware-result commit | This v4.90 result record (`Record v4.90 viewport initialization crash`) |
+| Candidate commit | `505b7ab1` (`Instrument PS4 viewport startup`) |
+| Hardware-result commit | This v4.91 result record (`Record v4.91 scoreboard construction crash`) |
 
-v4.90 clears the complete ClientScheme border-object pass. All 49 entries,
-including the stale store image family, retain real error-material binding and
-complete their pointer, reference, precache, mapping, draw, and border storage
-paths. Scheme data loading and `CSchemeManager::LoadSchemeFromFileEx` return
-successfully, and client game systems then enter the first normal viewport
-initialization.
+v4.91 clears ClientScheme and proves the first normal viewport allocation,
+`CounterStrikeViewport::Start`, the base viewport constructor, background-panel
+creation, event registration, scheme assignment, and the start of default-panel
+creation. Missing team and buy factories return safely. The crash is inside the
+first real default-panel allocation, `new CClientScoreBoardDialog( this )`; its
+factory return marker is absent.
 
-The fresh v4.90 log was last modified at 2026-07-16 16:24:24 UTC. It is
-4,194,320 bytes and 79,458 lines with SHA-256
-`2ef71c00a48aa20e5529c30844c6328e2e45fc965131cb7fa3129f17e4ca2c7d`.
+The fresh v4.91 log was last modified at 2026-07-16 16:51:45 UTC. It is
+453,233 bytes and 12,054 lines with SHA-256
+`1d2d3faca8d3b677b6ca756f0d71ac0cf07a4ed7e77d12308bee2ab06a0346f9`.
+It is neither capped nor inherited from the prior run, so its tail is a valid
+constructor boundary.
 
 The final milestones are:
 
 ```text
-kisak-ps4: client scheme border entry complete entry=48 value=48 name=StoreItemSelectedBorder type=scalable_image
 kisak-ps4: scheme borders object pass ready
-kisak-ps4: scheme borders reference pass ready
-kisak-ps4: scheme borders complete base ready
 kisak-ps4: scheme data load complete
 kisak-ps4: scheme load ex complete
 kisak-ps4: client game systems client scheme load returned
 kisak-ps4: client game systems before viewport init
-...
-kisak-ps4: matsurface calculate mouse unlock cursor returned
-kisak-ps4: matsurface calculate mouse complete
+kisak-ps4: client mode viewport allocation ready slot=-1
+kisak-ps4: base viewport start before default panels
+kisak-ps4: cs viewport default panels team ready
+kisak-ps4: cs viewport default panels buy ready
+kisak-ps4: viewport panel factory entered name=scores
+kisak-ps4: viewport panel factory before scoreboard allocation name=scores
 kisak-ps4: panel set mouse input complete
 ```
 
-The missing VGUI material family and ClientScheme are no longer blockers. The
-recorded tail completes a parented child panel's mouse-input call, including
-`CalculateMouseVisible`, input-context enablement, and cursor unlock, but the
-log is exactly 4,194,320 bytes and was opened in append mode. Direct ordering
-shows viewport allocation and many later child panels completed before that
-tail, so it is a logging cutoff rather than a proven crash instruction. The
-v4.91 gate is a fresh, bounded log around normal/fullscreen viewport allocation,
-`CounterStrikeViewport::Start`, default-panel creation, and panel registration.
+The missing VGUI material family, ClientScheme, viewport allocation, and base
+viewport startup are no longer blockers. Seven child-panel mouse-input calls
+complete after scoreboard allocation begins, proving that the scoreboard's
+base and part of its child-control construction execute. The next gate is the
+scoreboard constructor itself: distinguish its scalar initialization,
+`SectionedListPanel` allocation/configuration, `ScoreBoard.res` load and
+BuildGroup control creation, desired-height/visibility setup, event listeners,
+and avatar/image-list initialization before changing downstream viewport
+behavior.
 
 ### v4.83 result and immediate v4.84 gate
 
@@ -573,6 +576,44 @@ The embedded SFO reports 3.57. It is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the FTP server reports
 the same size, and two independent complete readbacks produced the same
 SHA-256.
+
+### v4.91 result and immediate v4.92 gate
+
+The fresh-log policy works: the hardware run produced a bounded 453,233-byte,
+12,054-line log rather than another 4 MiB append cap. Marker
+`viewport_start_boundary_v491` confirms the tested binary. ClientScheme returns,
+the normal viewport allocation and base startup complete through background,
+event, scheme, and proportional setup, and default-panel creation begins.
+
+The team and buy factory misses are expected and safe. The first scoreboard
+factory then records:
+
+```text
+kisak-ps4: viewport panel factory entered name=scores
+kisak-ps4: viewport panel factory before scoreboard allocation name=scores
+... seven complete Panel::SetMouseInputEnabled sequences ...
+kisak-ps4: panel set mouse input complete
+```
+
+No `panel factory scoreboard allocation ready` marker follows. This proves the
+failure is contained by `new CClientScoreBoardDialog( this )` in
+`game/client/game_controls/baseviewport.cpp`; it is not the earlier
+`RichTextInterior`/text-window hypothesis. The constructor in
+`game/client/game_controls/ClientScoreBoardDialog.cpp` creates its base panel,
+sets input and scheme state, allocates/configures `SectionedListPanel`, loads
+`Resource/UI/ScoreBoard.res`, then completes size, visibility, event, image-list,
+and avatar-map initialization. Existing mouse markers do not distinguish those
+statements.
+
+The v4.92 gate is a focused scoreboard-construction trace. It must bracket the
+constructor body and each stage above, then bracket `EditablePanel`/
+`BuildGroup::LoadControlSettings`, resource-file load, root `ApplySettings`, and
+each resource child dispatch only if the outer resource-load boundary fails to
+return. Initialize members that resource or scheme callbacks can observe before
+the resource load; in particular, `ApplySchemeSettings` reads and may delete
+`m_pImageList`, while the current constructor assigns it only after
+`LoadControlSettings`. Keep that ordering repair separate and explicit in the
+trace rather than treating desktop construction order as authoritative.
 
 ## Runtime topology: two tracks, one production authority
 
