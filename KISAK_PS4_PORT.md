@@ -58,12 +58,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.44
+Version: 3.45
 Size: 103,219,200 bytes
-SHA-256: e109f3d440b6e1047dd9602e2658d97a4b4a643b025a8a359e155d3036e82f92
+SHA-256: 2fd3ef28de973e70def3b65c159bf4846a9f939824e9463e50eae5e401875b96
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.78 stops during the animation-script setup call expression
+Hardware result: v4.79 pending manual install and run
 ```
 
 Current hardware baseline:
@@ -8416,12 +8416,80 @@ expression evaluates the inline `GetVPanel()` argument and calls
 failure to that call expression; it does not yet prove entry into
 `SetScriptFile`.
 
-v4.79 will first capture the base-panel handle separately, then trace
-`SetScriptFile` entry, filename symbol insertion, filename-vector lookup and
-growth, screen-size update, filesystem open/read, and parse result. Its
-`UpdateScreenSize` probes will split the `IPanel` query, `GetSize`, and
-`GetPos` calls. This preserves attribution while allowing the same run to
-continue through a nonfatal missing animation file.
+### v4.79: Repair PS4 animation-resource casing and trace script loading
+
+Package version 3.45 and build marker `animation_script_trace_v479` identify
+this manual-install hardware test. The v4.78 boundary ended before the entire
+`SetScriptFile(GetVPanel(), ...)` expression returned, so v4.79 first captures
+and records the base-panel handle separately. It then bounds filename-symbol
+insertion, filename-vector lookup and growth, the screen-size query, file
+open/read/close, parser entry, first sequence and command allocations,
+proportional `Position` scaling, parse completion, and the return to
+`CBaseModPanel`.
+
+The resource audit found a concrete PS4 defect rather than an optional-file
+case. The mounted asset exists only as
+`/data/kisak-strike/csgo/scripts/gameuianimations.txt`: 8,886 bytes, 329 lines,
+SHA-256
+`02c44cdd01232badfd1e37ed44aa3fb343c330abb4c1a6128d2c8e85d0c02a5a`.
+The mixed-case loose path returns FTP 550, and `pak01_dir.vpk` has no animation
+script entry. `CBaseFileSystem::OpenEx` lowercases only on Windows, while the
+case-insensitive stdio retry is Linux-only and excludes PS4. The PS4 call now
+uses canonical `scripts/gameuianimations.txt`; non-PS4 retains
+`scripts/GameUIAnimations.txt`. This follows the existing PS4 lowercase repair
+for `gamemodes.txt`.
+
+The same audit verified exact VPK entry `resource/ui/xboxdialogs.res` (archive
+73, offset 90,933,357, length 60,447, preload 20,000). Both the constructor and
+resource-reload paths now use that canonical lowercase name on PS4 while
+retaining the inherited spelling elsewhere. No proprietary resource is copied
+into the package, and the animation controller is not skipped: the validated
+script supplies 31 menu events and 83 commands used by menu transitions and
+callback timing.
+
+The new animation trace is enabled only for the duration of `SetScriptFile`, so
+`UpdateScreenSize` does not add per-frame log traffic after setup. The loader
+also rejects negative or larger-than-16-MiB PS4 file sizes, checks allocation
+and `ReadEx` results before indexing the buffer, and closes/frees every failure
+path. A PS4 missing file or parse failure returns `false` with a direct
+breadcrumb instead of entering the legacy `Warning` path; non-PS4 warnings are
+unchanged. A valid script still follows the original parse and animation
+semantics.
+
+The narrow `vgui_controls_client`, `client_client`, and `engine_client` targets
+compile, and the complete monolithic OELF/SELF link succeeds. The final
+artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic.oelf
+Size: 136,045,056 bytes
+SHA-256: b1f0599b92e9b538a3e2467739e9a6beea5c7e5e62969b7825401384ab829440
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,159,168 bytes
+SHA-256: 0f3166d8d7c5a28ee867bfaeb47fcca8756245dad5d464cf0bc3438791562aca
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.45
+Size: 103,219,200 bytes
+SHA-256: 2fd3ef28de973e70def3b65c159bf4846a9f939824e9463e50eae5e401875b96
+```
+
+The packaged eboot is byte-identical to the SELF. The final OELF contains the
+v4.79 marker, both canonical PS4 resource paths, and the expected 31-event and
+83-command completion markers. Both packaging scripts pass `bash -n` and
+remain mode 0755. PkgTool reports all 28 displayed limit, digest, and signature
+checks as `[OK]`, no displayed `[FAIL]`, and both `APP_VER` and `VERSION` as
+3.45. The host PS4 suite remains at 11/14 with only the known
+`ps4_gnm_device`, `ps4_gnm_buffer`, and `ps4_gnm_constants` baseline failures.
+
+The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`. A complete FTP readback
+reports 103,219,200 bytes and the same SHA-256 above. Hardware validation is
+pending manual installation and launch. A successful path should report a
+nonzero animation sizing panel, complete `UpdateScreenSize`, find and fully
+read 8,886 bytes, parse 31 events and 83 commands, return `animation script
+file loaded`, then continue to the lowercase console-settings load.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

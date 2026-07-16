@@ -648,7 +648,13 @@ CBaseModPanel::CBaseModPanel( const char *panelName ) : Panel(NULL, panelName )
 
 		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel before animation script file" );
 #if defined( PLATFORM_PS4 )
-		if ( m_pConsoleAnimationController->SetScriptFile( GetVPanel(), "scripts/GameUIAnimations.txt" ) )
+		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel before animation sizing GetVPanel" );
+		VPANEL hAnimationSizePanel = GetVPanel();
+		PS4_BASEPANEL_BREADCRUMB(
+			hAnimationSizePanel != 0
+				? "kisak-ps4: basepanel animation sizing GetVPanel returned nonzero"
+				: "kisak-ps4: basepanel animation sizing GetVPanel returned zero" );
+		if ( m_pConsoleAnimationController->SetScriptFile( hAnimationSizePanel, "scripts/gameuianimations.txt" ) )
 		{
 			PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel animation script file loaded" );
 		}
@@ -666,7 +672,12 @@ CBaseModPanel::CBaseModPanel( const char *panelName ) : Panel(NULL, panelName )
 		m_pConsoleControlSettings = new KeyValues( "XboxDialogs.res" );
 		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel console settings new returned" );
 		PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel before console settings load" );
-		if ( !m_pConsoleControlSettings->LoadFromFile( g_pFullFileSystem, "resource/UI/XboxDialogs.res", "GAME" ) )
+#if defined( PLATFORM_PS4 )
+		const char *pConsoleControlSettingsPath = "resource/ui/xboxdialogs.res";
+#else
+		const char *pConsoleControlSettingsPath = "resource/UI/XboxDialogs.res";
+#endif
+		if ( !m_pConsoleControlSettings->LoadFromFile( g_pFullFileSystem, pConsoleControlSettingsPath, "GAME" ) )
 		{
 			PS4_BASEPANEL_BREADCRUMB( "kisak-ps4: basepanel console settings load failed" );
 			Error( "Failed to load UI control settings!\n" );
@@ -5269,7 +5280,11 @@ DECLARE_BUILD_FACTORY( CFooterPanel );
 void CBaseModPanel::Reload_Resources( const CCommand &args )
 {
 	m_pConsoleControlSettings->Clear();
+#if defined( PLATFORM_PS4 )
+	m_pConsoleControlSettings->LoadFromFile( g_pFullFileSystem, "resource/ui/xboxdialogs.res" );
+#else
 	m_pConsoleControlSettings->LoadFromFile( g_pFullFileSystem, "resource/UI/XboxDialogs.res" );
+#endif
 }
 #endif
 

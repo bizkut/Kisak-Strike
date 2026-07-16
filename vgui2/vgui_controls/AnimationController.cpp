@@ -51,8 +51,16 @@ static bool KisakPs4IsPanelClass( const char *className )
 }
 
 static bool g_bKisakPs4AnimationMapTrace = false;
+static bool g_bKisakPs4AnimationScriptTrace = false;
+#define PS4_ANIMATION_SCRIPT_TRACE_BEGIN() do { g_bKisakPs4AnimationScriptTrace = true; } while ( 0 )
+#define PS4_ANIMATION_SCRIPT_TRACE_END() do { g_bKisakPs4AnimationScriptTrace = false; } while ( 0 )
+#define PS4_ANIMATION_SCRIPT_BREADCRUMB( line ) \
+	do { if ( g_bKisakPs4AnimationScriptTrace ) PS4_ANIMATION_BREADCRUMB( line ); } while ( 0 )
 #else
 #define PS4_ANIMATION_BREADCRUMB( line ) ((void)0)
+#define PS4_ANIMATION_SCRIPT_TRACE_BEGIN() ((void)0)
+#define PS4_ANIMATION_SCRIPT_TRACE_END() ((void)0)
+#define PS4_ANIMATION_SCRIPT_BREADCRUMB( line ) ((void)0)
 #endif
 
 static CUtlSymbolTable g_ScriptSymbols(0, 128, true);
@@ -134,28 +142,62 @@ AnimationController::~AnimationController()
 //-----------------------------------------------------------------------------
 bool AnimationController::SetScriptFile( VPANEL sizingPanel, const char *fileName, bool wipeAll /*=false*/ )
 {
+	PS4_ANIMATION_SCRIPT_TRACE_BEGIN();
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetScriptFile entered" );
 	m_hSizePanel = sizingPanel;
+	PS4_ANIMATION_SCRIPT_BREADCRUMB(
+		m_hSizePanel != 0
+			? "kisak-ps4: animation SetScriptFile size panel stored nonzero"
+			: "kisak-ps4: animation SetScriptFile size panel stored zero" );
 
 	if ( wipeAll )
 	{
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetScriptFile wipe all entered" );
 		// clear the current script
 		m_Sequences.RemoveAll();
 		m_ScriptFileNames.RemoveAll();
 
 		CancelAllAnimations();
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetScriptFile wipe all complete" );
+	}
+	else
+	{
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetScriptFile wipe all value=0" );
 	}
 
 	// Store off this filename for reloading later on (if we don't have it already)
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetScriptFile before filename AddString" );
 	UtlSymId_t sFilename = g_ScriptSymbols.AddString( fileName );
-	if ( m_ScriptFileNames.Find( sFilename ) == m_ScriptFileNames.InvalidIndex() )
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetScriptFile filename AddString returned" );
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetScriptFile before script filename Find" );
+	int nScriptFileIndex = m_ScriptFileNames.Find( sFilename );
+	PS4_ANIMATION_SCRIPT_BREADCRUMB(
+		nScriptFileIndex == m_ScriptFileNames.InvalidIndex()
+			? "kisak-ps4: animation SetScriptFile script filename Find returned missing"
+			: "kisak-ps4: animation SetScriptFile script filename Find returned present" );
+	if ( nScriptFileIndex == m_ScriptFileNames.InvalidIndex() )
 	{
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetScriptFile before script filename AddToTail" );
 		m_ScriptFileNames.AddToTail( sFilename );
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetScriptFile script filename AddToTail returned" );
 	}
 
-	UpdateScreenSize();
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetScriptFile before UpdateScreenSize" );
+	bool bScreenSizeChanged = UpdateScreenSize();
+	PS4_ANIMATION_SCRIPT_BREADCRUMB(
+		bScreenSizeChanged
+			? "kisak-ps4: animation SetScriptFile UpdateScreenSize returned changed"
+			: "kisak-ps4: animation SetScriptFile UpdateScreenSize returned unchanged" );
 
 	// load the new script file
-	return LoadScriptFile( fileName );
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetScriptFile before LoadScriptFile" );
+	bool bLoaded = LoadScriptFile( fileName );
+	PS4_ANIMATION_SCRIPT_BREADCRUMB(
+		bLoaded
+			? "kisak-ps4: animation SetScriptFile LoadScriptFile returned loaded"
+			: "kisak-ps4: animation SetScriptFile LoadScriptFile returned missing" );
+	PS4_ANIMATION_SCRIPT_TRACE_END();
+	return bLoaded;
 }
 
 //-----------------------------------------------------------------------------
@@ -187,25 +229,85 @@ void AnimationController::ReloadScriptFile()
 //-----------------------------------------------------------------------------
 bool AnimationController::LoadScriptFile(const char *fileName)
 {
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile entered" );
+#if defined( PLATFORM_PS4 )
+	if ( !g_pFullFileSystem )
+	{
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile filesystem pointer zero" );
+		return false;
+	}
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile filesystem pointer nonzero" );
+#endif
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile before Open" );
 	FileHandle_t f = g_pFullFileSystem->Open(fileName, "rt");
 	if (!f)
 	{
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile Open returned missing" );
+#if !defined( PLATFORM_PS4 )
 		Warning("Couldn't find script file %s\n", fileName);
+#endif
 		return false;
 	}
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile Open returned found" );
 
 	// read the whole thing into memory
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile before Size" );
 	int size = g_pFullFileSystem->Size(f);
+	PS4_ANIMATION_SCRIPT_BREADCRUMB(
+		size == 8886
+			? "kisak-ps4: animation LoadScriptFile Size returned expected 8886"
+			: "kisak-ps4: animation LoadScriptFile Size returned other" );
+#if defined( PLATFORM_PS4 )
+	if ( size < 0 || size > 16 * 1024 * 1024 )
+	{
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile invalid size" );
+		g_pFullFileSystem->Close(f);
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile invalid-size Close returned" );
+		return false;
+	}
+#endif
 	// read into temporary memory block
 	int nBufSize = size+1;
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile before malloc" );
 	char *pMem = (char *)malloc(nBufSize);
+	if ( !pMem )
+	{
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile malloc returned zero" );
+		g_pFullFileSystem->Close(f);
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile allocation-failure Close returned" );
+		return false;
+	}
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile malloc returned nonzero" );
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile before ReadEx" );
 	int bytesRead = g_pFullFileSystem->ReadEx(pMem, nBufSize, size, f);
+	PS4_ANIMATION_SCRIPT_BREADCRUMB(
+		bytesRead == size
+			? "kisak-ps4: animation LoadScriptFile ReadEx returned full size"
+			: "kisak-ps4: animation LoadScriptFile ReadEx returned other size" );
+	if ( bytesRead < 0 || bytesRead > size )
+	{
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile invalid ReadEx result" );
+		g_pFullFileSystem->Close(f);
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile read-failure Close returned" );
+		free(pMem);
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile read-failure free complete" );
+		return false;
+	}
 	Assert(bytesRead <= size);
 	pMem[bytesRead] = 0;
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile buffer terminated" );
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile before Close" );
 	g_pFullFileSystem->Close(f);
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile Close returned" );
 	// parse
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile before ParseScriptFile" );
 	bool success = ParseScriptFile(pMem, bytesRead);
+	PS4_ANIMATION_SCRIPT_BREADCRUMB(
+		success
+			? "kisak-ps4: animation LoadScriptFile ParseScriptFile returned success"
+			: "kisak-ps4: animation LoadScriptFile ParseScriptFile returned failure" );
 	free(pMem);
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation LoadScriptFile free complete" );
 	return success;
 }
 
@@ -312,7 +414,9 @@ void AnimationController::SetupPosition( AnimCmdAnimate_t& cmd, float *output, c
 	// scale the values
 	if (IsProportional())
 	{
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetupPosition before proportional scale" );
 		pos = vgui::scheme()->GetProportionalScaledValueEx( GetScheme(), pos );
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation SetupPosition proportional scale returned" );
 	}
 
 	// adjust the positions
@@ -335,18 +439,37 @@ void AnimationController::SetupPosition( AnimCmdAnimate_t& cmd, float *output, c
 //-----------------------------------------------------------------------------
 bool AnimationController::ParseScriptFile(char *pMem, int length)
 {
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile entered" );
+#if defined( PLATFORM_PS4 )
+	int nKisakPs4ParsedEvents = 0;
+	int nKisakPs4ParsedCommands = 0;
+	bool bKisakPs4FirstSequenceAllocated = false;
+	bool bKisakPs4FirstCommandAllocated = false;
+#endif
 	// get the scheme (for looking up color names)
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile before scheme lookup" );
 	IScheme *scheme = vgui::scheme()->GetIScheme(GetScheme());
+	PS4_ANIMATION_SCRIPT_BREADCRUMB(
+		scheme
+			? "kisak-ps4: animation ParseScriptFile scheme lookup returned nonzero"
+			: "kisak-ps4: animation ParseScriptFile scheme lookup returned zero" );
 
 	// get our screen size (for left/right/center alignment)
 	int screenWide = m_nScreenBounds[ 2 ];
 	int screenTall = m_nScreenBounds[ 3 ];
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile screen bounds ready" );
 
 	CExpressionEvaluator ExpressionHandler;
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile expression handler ready" );
 
 	// start by getting the first token
 	char token[512];
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile before first token" );
 	pMem = ParseFile(pMem, token, NULL);
+	PS4_ANIMATION_SCRIPT_BREADCRUMB(
+		token[0]
+			? "kisak-ps4: animation ParseScriptFile first token ready"
+			: "kisak-ps4: animation ParseScriptFile first token empty" );
 	while (token[0])
 	{
 		bool bAccepted = true;
@@ -354,7 +477,10 @@ bool AnimationController::ParseScriptFile(char *pMem, int length)
 		// should be 'event'
 		if (stricmp(token, "event"))
 		{
+			PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile expected-event failure" );
+#if !defined( PLATFORM_PS4 )
 			Warning("Couldn't parse script file: expected 'event', found '%s'\n", token);
+#endif
 			return false;
 		}
 
@@ -362,7 +488,10 @@ bool AnimationController::ParseScriptFile(char *pMem, int length)
 		pMem = ParseFile(pMem, token, NULL);
 		if (strlen(token) < 1)
 		{
+			PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile event-name failure" );
+#if !defined( PLATFORM_PS4 )
 			Warning("Couldn't parse script file: expected <event name>, found nothing\n");
+#endif
 			return false;
 		}
 		
@@ -370,7 +499,21 @@ bool AnimationController::ParseScriptFile(char *pMem, int length)
 		UtlSymId_t nameIndex = g_ScriptSymbols.AddString(token);
 				
 		// Create a new sequence
+#if defined( PLATFORM_PS4 )
+		if ( !bKisakPs4FirstSequenceAllocated )
+		{
+			PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile before first sequence AddToTail" );
+		}
+#endif
 		seqIndex = m_Sequences.AddToTail();
+#if defined( PLATFORM_PS4 )
+		++nKisakPs4ParsedEvents;
+		if ( !bKisakPs4FirstSequenceAllocated )
+		{
+			bKisakPs4FirstSequenceAllocated = true;
+			PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile first sequence AddToTail returned" );
+		}
+#endif
 		AnimSequence_t &seq = m_Sequences[seqIndex];
 		seq.name = nameIndex;
 		seq.duration = 0.0f;
@@ -387,7 +530,10 @@ bool AnimationController::ParseScriptFile(char *pMem, int length)
 
 		if (stricmp(token, "{"))
 		{
+			PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile open-brace failure" );
+#if !defined( PLATFORM_PS4 )
 			Warning("Couldn't parse script sequence '%s': expected '{', found '%s'\n", g_ScriptSymbols.String(seq.name), token);
+#endif
 			return false;
 		}
 
@@ -402,7 +548,21 @@ bool AnimationController::ParseScriptFile(char *pMem, int length)
 				break;
 
 			// create a new command
+#if defined( PLATFORM_PS4 )
+			if ( !bKisakPs4FirstCommandAllocated )
+			{
+				PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile before first command AddToTail" );
+			}
+#endif
 			int cmdIndex = seq.cmdList.AddToTail();
+#if defined( PLATFORM_PS4 )
+			++nKisakPs4ParsedCommands;
+			if ( !bKisakPs4FirstCommandAllocated )
+			{
+				bKisakPs4FirstCommandAllocated = true;
+				PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile first command AddToTail returned" );
+			}
+#endif
 			AnimCommand_t &animCmd = seq.cmdList[cmdIndex];
 			memset(&animCmd, 0, sizeof(animCmd));
 			if (!stricmp(token, "animate"))
@@ -636,7 +796,10 @@ bool AnimationController::ParseScriptFile(char *pMem, int length)
 			}
 			else
 			{
+				PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile command failure" );
+#if !defined( PLATFORM_PS4 )
 				Warning("Couldn't parse script sequence '%s': expected <anim command>, found '%s'\n", g_ScriptSymbols.String(seq.name), token);
+#endif
 				return false;
 			}
 			
@@ -678,6 +841,17 @@ bool AnimationController::ParseScriptFile(char *pMem, int length)
 		pMem = ParseFile(pMem, token, NULL);
 	}
 
+#if defined( PLATFORM_PS4 )
+	PS4_ANIMATION_SCRIPT_BREADCRUMB(
+		nKisakPs4ParsedEvents == 31
+			? "kisak-ps4: animation ParseScriptFile parsed expected 31 events"
+			: "kisak-ps4: animation ParseScriptFile parsed other event count" );
+	PS4_ANIMATION_SCRIPT_BREADCRUMB(
+		nKisakPs4ParsedCommands == 83
+			? "kisak-ps4: animation ParseScriptFile parsed expected 83 commands"
+			: "kisak-ps4: animation ParseScriptFile parsed other command count" );
+#endif
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation ParseScriptFile complete" );
 	return true;
 }
 
@@ -803,28 +977,64 @@ void AnimationController::UpdateActiveAnimations(bool bRunToCompletion)
 
 bool AnimationController::UpdateScreenSize()
 {
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize entered" );
 	// get our screen size (for left/right/center alignment)
 	int screenWide, screenTall;
 	int sx = 0, sy = 0;
 	if ( m_hSizePanel != 0 )
 	{
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize panel branch" );
+#if defined( PLATFORM_PS4 )
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize before ipanel" );
+		IPanel *pPanel = ipanel();
+		if ( !pPanel )
+		{
+			PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize ipanel returned zero" );
+			return false;
+		}
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize ipanel returned nonzero" );
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize before GetSize" );
+		pPanel->GetSize( m_hSizePanel, screenWide, screenTall );
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize GetSize returned" );
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize before GetPos" );
+		pPanel->GetPos( m_hSizePanel, sx, sy );
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize GetPos returned" );
+#else
 		ipanel()->GetSize( m_hSizePanel, screenWide, screenTall );
 		ipanel()->GetPos( m_hSizePanel, sx, sy );
+#endif
 	}
 	else
 	{
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize surface branch" );
+#if defined( PLATFORM_PS4 )
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize before surface" );
+		ISurface *pSurface = surface();
+		if ( !pSurface )
+		{
+			PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize surface returned zero" );
+			return false;
+		}
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize surface returned nonzero" );
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize before GetScreenSize" );
+		pSurface->GetScreenSize(screenWide, screenTall);
+		PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize GetScreenSize returned" );
+#else
 		surface()->GetScreenSize(screenWide, screenTall);
+#endif
 	}
 
 	bool changed =	m_nScreenBounds[ 0 ] != sx || 
 					m_nScreenBounds[ 1 ] != sy ||
 					m_nScreenBounds[ 2 ] != screenWide || 
 					m_nScreenBounds[ 3 ] != screenTall;
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize bounds compared" );
 
 	m_nScreenBounds[ 0 ] = sx;
 	m_nScreenBounds[ 1 ] = sy;
 	m_nScreenBounds[ 2 ] = screenWide;
 	m_nScreenBounds[ 3 ] = screenTall;
+	PS4_ANIMATION_SCRIPT_BREADCRUMB( "kisak-ps4: animation UpdateScreenSize bounds committed" );
 
 	return changed;
 }
