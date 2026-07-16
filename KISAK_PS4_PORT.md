@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.38
+Version: 3.39
 Size: 103,219,200 bytes
-SHA-256: 93ee4d6bda5183540c1127fb9e232eaac8940132f97d62afc9218032a9e29284
-Hardware run: v4.72 (2026-07-16), proves the crash is the missing custom-font `Warning`
+SHA-256: f7d7239891412efb860d18499916ee2e9e283255bf55818f18f065c60241afcf
+Hardware run: v4.73 (2026-07-16), fixes custom fonts and reaches first static-panel construction
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.38
+Version: 3.39
 Size: 103,219,200 bytes
-SHA-256: 93ee4d6bda5183540c1127fb9e232eaac8940132f97d62afc9218032a9e29284
-Hardware result: v4.72 stops inside the missing custom-font `Warning`
+SHA-256: f7d7239891412efb860d18499916ee2e9e283255bf55818f18f065c60241afcf
+Hardware result: v4.73 stops inside `new CStaticPanel(NULL, "staticPanel")`
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,219,200 bytes
 SHA-256: f7d7239891412efb860d18499916ee2e9e283255bf55818f18f065c60241afcf
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: pending v4.73 custom-font early-return repair
+Hardware result: v4.73 stops inside `new CStaticPanel(NULL, "staticPanel")`
 ```
 
 Current hardware baseline:
@@ -7924,6 +7924,31 @@ is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
 readback matches the local 103,219,200-byte package and SHA-256 above. Manual
 install and hardware execution remain.
+
+The 2026-07-16 hardware run confirms the v4.73 marker exactly once. It
+appends 1,101,321 bytes and 21,001 lines to the existing log, producing a
+28,572,973-byte, 586,465-line capture with SHA-256
+`aba067860c5139d1a753a04bad74a95abed6116b13bb157781b521dedb7dfe38`.
+The appended slice has SHA-256
+`2bce3e06932a541cfff7a8197d5b3d2ad8128f38653d2c73cc1b5e14fbef5643`.
+
+Both custom-font entries reach `ps4 unsupported early return` and the caller's
+`direct add returned` marker; each occurs twice. Custom-font iteration,
+bitmap fonts, font aliases, critical fonts, glyph reload, the full font load,
+borders, scheme loading, `IVGui::Start`, and `IVGui::SetSleep(false)` all
+complete.
+This validates the v4.73 repair and advances the startup boundary beyond the
+entire SourceScheme path.
+
+The new final marker is `engine vgui before static panel create`, seen exactly
+once; `engine vgui static panel created` is absent. The next statement is
+`staticPanel = new CStaticPanel(NULL, "staticPanel")`. The allocation and
+constructor are not yet separated. `CStaticPanel` derives directly from
+`vgui::Panel`; its own body only disables cursor, keyboard, and mouse input,
+while the base constructor calls `Panel::Init`, allocates and initializes a
+VPanel, sets geometry/flags/colors, and assigns name/parent/build-mode state.
+The next diagnostic should mark entry and each base-initialization boundary
+without skipping panel construction.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
