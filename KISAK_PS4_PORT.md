@@ -30,7 +30,7 @@ DLL/PRX ownership assumptions merely because the original code used them.
 | Package SHA-256 | `400ef8e2b159e4a8ab67264d5d502a13b2f3de063ae917027e7a49e59bc248a9` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `f30f3272` (`Instrument PS4 VGUI material fallback`) |
-| Hardware-result commit | This v4.88 result record |
+| Hardware-result commit | `33b90b78` (`Record v4.88 missing material message crash`) |
 
 v4.88 proves the concrete texture-dictionary path, all five search-path misses,
 the intended missing-VMT fallback, and a live `g_pErrorMaterial`. The queue-
@@ -372,6 +372,37 @@ v4.89 gate is therefore a narrow PS4-only suppression of that exact optional
 message for `vgui/store/store_item_bg`. Do not skip `SetMaterial(pMaterial)`:
 the next run must prove reference acquisition, cleanup, mapping dimensions,
 lazy error-material precache, texture binding, and the pending text flush.
+
+### v4.89 candidate repair
+
+Package version 3.55 and build marker `vgui_missing_message_v489` identify the
+next manual-install candidate. On PS4 only, and only when the exact
+`vgui/store/store_item_bg` lookup returns the error material, the VGUI texture
+dictionary records `material file missing message suppressed` instead of
+calling the failing `Msg` diagnostic. All other missing materials and all
+non-PS4 platforms retain the original complaint behavior.
+
+The repair deliberately continues through `SetMaterial(pMaterial)` with the
+real queue-friendly error material. The retained v4.88 probes will therefore
+locate any next failure in reference acquisition, old-material cleanup, lazy
+precache, mapping dimensions, dictionary return, or `DrawFlushText` without
+combining those stages with another renderer change.
+
+Validation before the candidate commit:
+
+- the focused `vgui2_client` target and full `kisak_ps4_monolithic` target
+  compile successfully;
+- the post-link retention hook and an explicit
+  `verify_ps4_retained_symbols.cmake` run pass;
+- the OELF is 126,490,968 bytes with SHA-256
+  `f30f43707ca86e645eaef143ddde45902539080573e8f2a085324c67e8af0a78`;
+- the SELF input is 83,346,720 bytes with SHA-256
+  `395fe216182d87ae88676a2fc5e7142268352061b9f8d57ee5896a35f767aad3`;
+- binary string inspection confirms the v4.89 marker, suppression marker,
+  pointer-set probe, and raw error-material mapping probe; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`,
+  and `ps4_gnm_constants`).
 
 ## Runtime topology: two tracks, one production authority
 

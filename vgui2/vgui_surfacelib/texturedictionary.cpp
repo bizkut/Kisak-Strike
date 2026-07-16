@@ -1043,11 +1043,20 @@ void CMatSystemTexture::SetMaterial( const char *pFileName )
 	}
 	if ( bErrorMaterial && !s_bTextMode )
 	{
-		if (IsOSX())
+#if defined( PLATFORM_PS4 )
+		if ( bPs4StoreItemProbe )
 		{
-			printf( "\n ##### Missing Vgui material %s\n", pFileName );
+			PS4_VGUI_TEXTURE_DETAIL( "material file missing message suppressed", pFileName, 0 );
 		}
-		Msg( "--- Missing Vgui material %s\n", pFileName );
+		else
+#endif
+		{
+			if (IsOSX())
+			{
+				printf( "\n ##### Missing Vgui material %s\n", pFileName );
+			}
+			Msg( "--- Missing Vgui material %s\n", pFileName );
+		}
 	}
 
 	IMaterial *pPreviousPs4PointerTarget = PS4_VGUI_TEXTURE_POINTER_TARGET();
