@@ -101,6 +101,15 @@ Validation before the candidate commit:
   high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`,
   and `ps4_gnm_constants`).
 
+Candidate commit `79664c15` produces a 103,481,344-byte package with SHA-256
+`1486680143f635748c84602d28c2fb24e59f3e3ac4d3a9853e05ba06efbe3081`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.60, verbose PkgTool
+validation reports no `[FAIL]` entries and every digest/signature check `[OK]`,
+and FTP metadata reports the same 103,481,344-byte size. The package is staged
+at `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance remains pending manual
+installation and launch.
+
 ### v4.92 result and immediate v4.93 gate
 
 v4.92 clears the complete scoreboard resource construction path. `SysMenu` and
