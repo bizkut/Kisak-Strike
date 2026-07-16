@@ -111,6 +111,13 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_ENGINE_VGUI_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_ENGINE_VGUI_BREADCRUMB( line ) ((void)0)
+#endif
+
 using namespace vgui;
 
 extern IVEngineClient *engineClient;
@@ -692,14 +699,27 @@ bool CEngineVGui::SetVGUIDirectories()
 
 void CEngineVGui::PreparePanel( Panel *panel, int nZPos, bool bVisible /*= true*/ )
 {
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui prepare panel entered" );
+	PS4_ENGINE_VGUI_BREADCRUMB( panel
+		? "kisak-ps4: engine vgui prepare panel pointer ready"
+		: "kisak-ps4: engine vgui prepare panel pointer null" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui prepare panel before bounds" );
 	panel->SetBounds( 0, 0, videomode->GetModeWidth(), videomode->GetModeHeight() );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui prepare panel bounds ready" );
 	panel->SetPaintBorderEnabled(false);
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui prepare panel border ready" );
 	panel->SetPaintBackgroundEnabled(false);
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui prepare panel background ready" );
 	panel->SetPaintEnabled(false);
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui prepare panel paint ready" );
 	panel->SetVisible(true);
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui prepare panel visible bootstrap ready" );
 	panel->SetCursor( dc_none );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui prepare panel cursor ready" );
 	panel->SetVisible( bVisible );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui prepare panel final visibility ready" );
 	panel->SetZPos( nZPos );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui prepare panel complete" );
 }
 
 //-----------------------------------------------------------------------------
@@ -707,16 +727,36 @@ void CEngineVGui::PreparePanel( Panel *panel, int nZPos, bool bVisible /*= true*
 //-----------------------------------------------------------------------------
 void CEngineVGui::Init()
 {
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui init entered" );
+	PS4_ENGINE_VGUI_BREADCRUMB( g_pInputStackSystem
+		? "kisak-ps4: engine vgui input stack ready"
+		: "kisak-ps4: engine vgui input stack null" );
+	PS4_ENGINE_VGUI_BREADCRUMB( g_pMatSystemSurface
+		? "kisak-ps4: engine vgui mat surface ready"
+		: "kisak-ps4: engine vgui mat surface null" );
+	PS4_ENGINE_VGUI_BREADCRUMB( g_pVGuiLocalize
+		? "kisak-ps4: engine vgui localize ready"
+		: "kisak-ps4: engine vgui localize null" );
 	const char *szDllName = "";
 	
-	if ( CommandLine()->FindParm( "-gameuidll" ) )
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before gameuidll query" );
+	bool bLoadGameUIDll = CommandLine()->FindParm( "-gameuidll" ) != 0;
+	PS4_ENGINE_VGUI_BREADCRUMB( bLoadGameUIDll
+		? "kisak-ps4: engine vgui gameuidll query ready value=1"
+		: "kisak-ps4: engine vgui gameuidll query ready value=0" );
+	if ( bLoadGameUIDll )
 	{
 		COM_TimestampedLog( "Loading gameui.dll" );
 
 		// load the GameUI dll
 		szDllName = "gameui";
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before gameui module load" );
 		m_hStaticGameUIModule = g_pFileSystem->LoadModule(szDllName, "GAMEBIN", true); // LoadModule() does a GetLocalCopy() call
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui gameui module load ready" );
 		m_GameUIFactory = Sys_GetFactory(m_hStaticGameUIModule);
+		PS4_ENGINE_VGUI_BREADCRUMB( m_GameUIFactory
+			? "kisak-ps4: engine vgui module factory ready"
+			: "kisak-ps4: engine vgui module factory null" );
 		if ( !m_GameUIFactory )
 		{
 			Error( "Could not load: %s\n", szDllName );
@@ -728,10 +768,17 @@ void CEngineVGui::Init()
 		extern CreateInterfaceFn g_ClientFactory;
 		m_GameUIFactory = g_ClientFactory;
 		szDllName = "client";
+		PS4_ENGINE_VGUI_BREADCRUMB( m_GameUIFactory
+			? "kisak-ps4: engine vgui client factory ready"
+			: "kisak-ps4: engine vgui client factory null" );
 	}
 	
 	// get the initialization func
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before gameui interface query" );
 	staticGameUIFuncs = (IGameUI *)m_GameUIFactory(GAMEUI_INTERFACE_VERSION, NULL);
+	PS4_ENGINE_VGUI_BREADCRUMB( staticGameUIFuncs
+		? "kisak-ps4: engine vgui gameui interface ready"
+		: "kisak-ps4: engine vgui gameui interface null" );
 	if (!staticGameUIFuncs )
 	{
 		Error( "Could not get IGameUI interface %s from %s\n", GAMEUI_INTERFACE_VERSION, szDllName );
@@ -749,12 +796,20 @@ void CEngineVGui::Init()
 	// Create UI Input contexts
 	// NOTE: The GameUI context may or may not be used by the client
 	// so we'll start it out disabled
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before gameui input context" );
 	m_hGameUIInputContext = g_pInputStackSystem->PushInputContext();
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui gameui input context ready" );
 	g_pInputStackSystem->EnableInputContext( m_hGameUIInputContext, false );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui gameui input disabled" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before surface input context" );
 	InputContextHandle_t hVGuiInputContext = g_pInputStackSystem->PushInputContext();
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui surface input context ready" );
 	g_pMatSystemSurface->SetInputContext( hVGuiInputContext );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui surface input context installed" );
 
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before matsys interface init" );
 	VGui_InitMatSysInterfacesList( "BaseUI", &g_AppSystemFactory, 1 );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui matsys interface init ready" );
 	
 #ifdef OSX
 	if ( Steam3Client().SteamApps() )
@@ -769,17 +824,22 @@ void CEngineVGui::Init()
 	COM_TimestampedLog( "AttachToWindow" );
 
 	// Need to be able to play sounds through vgui
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before sound callback" );
 	g_pMatSystemSurface->InstallPlaySoundFunc( VGui_PlaySound );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui sound callback ready" );
 
 	COM_TimestampedLog( "Load Scheme File" );
 
 	// load scheme
 	const char *pStr = "Resource/SourceScheme.res";
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before scheme load" );
 	if ( !scheme()->LoadSchemeFromFile( pStr, "Tracker" ))
 	{
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui scheme load failed" );
 		Sys_Error( "Error loading file %s\n", pStr );
 		return;
 	}
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui scheme load ready" );
 
 	if ( IsGameConsole() )
 	{
@@ -796,8 +856,11 @@ void CEngineVGui::Init()
 	COM_TimestampedLog( "ivgui()->Start()" );
 
 	// Start the App running
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before ivgui start" );
 	ivgui()->Start();
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui ivgui start ready" );
 	ivgui()->SetSleep(false);
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui ivgui awake" );
 
 	bool bTools = CommandLine()->CheckParm( "-tools" ) != NULL;
 
@@ -822,18 +885,31 @@ void CEngineVGui::Init()
 #endif
 
 	COM_TimestampedLog( "Building Panels (staticPanel)" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before static panel create" );
 	staticPanel = new CStaticPanel( NULL, "staticPanel" );	
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui static panel created" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before static panel parent" );
 	staticPanel->SetParent( surface()->GetEmbeddedPanel() );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui static panel parent ready" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before static panel prepare" );
 	PreparePanel( staticPanel, 0 );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui static panel ready" );
 
 	COM_TimestampedLog( "Building Panels (staticGameUIBackgroundPanel)" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before background panel create" );
 	staticGameUIBackgroundPanel = new CEnginePanel( staticPanel, "GameUI Background Panel" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui background panel created" );
 	PreparePanel( staticGameUIBackgroundPanel, 0 );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui background panel ready" );
 
 	COM_TimestampedLog( "Building Panels (staticClientDLLPanel)" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before client panel create" );
 	staticClientDLLPanel = new CEnginePanel( staticPanel, "staticClientDLLPanel" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui client panel created" );
 	PreparePanel( staticClientDLLPanel, 25, false );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui client panel prepared" );
 	staticClientDLLPanel->SetKeyBoardInputEnabled( false );	// popups in the client DLL can enable this.
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui client panel ready" );
 
 	// This panel has it's own animation controller, which makes it 1.1Mb to instance
 	//  which is too much on the console which doesn't support plugins anyway.
@@ -844,31 +920,42 @@ void CEngineVGui::Init()
 	}
 
 	COM_TimestampedLog( "Building Panels (staticClientDLLToolsPanel)" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before client tools panel create" );
 	staticClientDLLToolsPanel = new CEnginePanel( staticPanel, "staticClientDLLToolsPanel" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui client tools panel created" );
 	PreparePanel( staticClientDLLToolsPanel, 28 );
 	// popups in the client DLL can enable this.
 	staticClientDLLToolsPanel->SetKeyBoardInputEnabled( false );	
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui client tools panel ready" );
 
 	COM_TimestampedLog( "Building Panels (staticGameUIPanel)" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before gameui panel create" );
 	staticGameUIPanel = new CEnginePanel( staticPanel, "GameUI Panel" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui gameui panel created" );
 #if defined( TOOLFRAMEWORK_VGUI_REFACTOR )
 	PreparePanel( staticGameUIPanel, 40 );
 #else
 	PreparePanel( staticGameUIPanel, 100 );
 #endif
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui gameui panel ready" );
 
 	COM_TimestampedLog( "Building Panels (staticGameDLLPanel)" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before game dll panel create" );
 	staticGameDLLPanel = new CEnginePanel( staticPanel, "staticGameDLLPanel" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui game dll panel created" );
 #if defined( TOOLFRAMEWORK_VGUI_REFACTOR )
 	PreparePanel( staticGameDLLPanel, 50 );
 #else
 	PreparePanel( staticGameDLLPanel, 135 );
 #endif
 	staticGameDLLPanel->SetKeyBoardInputEnabled( false );	// popups in the game DLL can enable this.
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui game dll panel ready" );
 
 	COM_TimestampedLog( "Building Panels (Engine Tools)" );
 
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before engine tools panel create" );
 	staticEngineToolsPanel = new CEnginePanel( bTools ? staticGameDLLPanel->GetVPanel() : staticPanel->GetVPanel(), "Engine Tools" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui engine tools panel created" );
 #if defined( TOOLFRAMEWORK_VGUI_REFACTOR )
 	PreparePanel( staticEngineToolsPanel, 75 );
 #else
@@ -876,6 +963,7 @@ void CEngineVGui::Init()
 #endif
 	staticEngineToolsPanel->SetKeyBoardInputEnabled( false );	// popups in the game DLL can enable this.
 	staticEngineToolsPanel->SetMouseInputEnabled( false );	// popups in the game DLL can enable this.
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui engine tools panel ready" );
 
 	if ( IsPC() )
 	{
@@ -915,8 +1003,11 @@ void CEngineVGui::Init()
 
 	COM_TimestampedLog( "Building Panels (staticTransitionPanel)" );
 
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before transition panel create" );
 	staticTransitionPanel = new CTransitionEffectPanel( staticPanel, "TransitionEffect" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui transition panel created" );
 	staticTransitionPanel->SetZPos( 135 );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui transition panel ready" );
 
 	if ( IsPS3() )
 	{
@@ -931,10 +1022,14 @@ void CEngineVGui::Init()
 	COM_TimestampedLog( "Building Panels (FocusOverlayPanel)" );
 
 	// Make sure this is on top of everything
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before focus panel create" );
 	staticFocusOverlayPanel = new CFocusOverlayPanel( staticPanel, "FocusOverlayPanel" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui focus panel created" );
 	staticFocusOverlayPanel->SetBounds( 0, 0, videomode->GetModeWidth(), videomode->GetModeHeight() );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui focus panel bounds ready" );
 	staticFocusOverlayPanel->SetZPos( 150 );
 	staticFocusOverlayPanel->MoveToFront();
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui focus panel ready" );
 
 	COM_TimestampedLog( "Building Panels (console, entity report, drawtree, texturelist, vprof)" );
 
@@ -957,8 +1052,11 @@ void CEngineVGui::Init()
 #ifndef _CERT
 	else if ( IsGameConsole() )
 	{
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before console panels" );
 		Con_CreateConsolePanel( staticEngineToolsPanel );
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui console panel ready" );
 		CL_CreateEntityReportPanel( staticEngineToolsPanel );
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui entity report panel ready" );
 
 		if ( IsX360() )
 		{
@@ -975,27 +1073,39 @@ void CEngineVGui::Init()
 
 
 
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before layout load" );
 	staticEngineToolsPanel->LoadControlSettings( "scripts/EngineVGuiLayout.res" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui layout load ready" );
 	// Loading the .res will show some panels which really should stay hidden
 	HideVProfPanels();
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui vprof hidden" );
 
 	COM_TimestampedLog( "materials->CacheUsedMaterials()" );
 
 	// This material is used by CPotteryWheelPanel::Paint() to copy stencil to the render target's alpha. Not sure of the best place to put it, but this needs to be done sometime before the used materials are precached.
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before constant color material" );
 	m_pConstantColorMaterial = materials->FindMaterial( "dev/constant_color", TEXTURE_GROUP_OTHER, true );
+	PS4_ENGINE_VGUI_BREADCRUMB( m_pConstantColorMaterial
+		? "kisak-ps4: engine vgui constant color material ready"
+		: "kisak-ps4: engine vgui constant color material null" );
 	if ( m_pConstantColorMaterial )
 	{
 		m_pConstantColorMaterial->IncrementReferenceCount();
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui constant color retained" );
 	}
 		
 	// Make sure that these materials are in the materials cache
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before material cache" );
 	materials->CacheUsedMaterials();
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui material cache ready" );
 
 	COM_TimestampedLog( "g_pVGuiLocalize->AddFile" );
 
 
 	// load the base localization file
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before valve localization" );
 	g_pVGuiLocalize->AddFile( "resource/valve_%language%.txt" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui valve localization ready" );
 
 	char szFileName[MAX_PATH];
 
@@ -1003,7 +1113,9 @@ void CEngineVGui::Init()
 	// with CSGO we decided to move them into csgo_language (which is NOT a mod).
 	Q_snprintf( szFileName, sizeof( szFileName ) - 1, "resource/%s_%%language%%.txt", GetCurrentGame() );
 	szFileName[ sizeof( szFileName ) - 1 ] = '\0';
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before base game localization" );
 	g_pVGuiLocalize->AddFile( szFileName );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui base game localization ready" );
 
 
 	// don't need to load the "valve" localization file twice
@@ -1011,7 +1123,9 @@ void CEngineVGui::Init()
 	// load mod-specific localization file for kb_act.lst, user.scr, settings.scr, etc.
 	Q_snprintf( szFileName, sizeof( szFileName ) - 1, "resource/%s_%%language%%.txt", GetCurrentMod() );
 	szFileName[ sizeof( szFileName ) - 1 ] = '\0';
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before mod localization" );
 	g_pVGuiLocalize->AddFile( szFileName );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui mod localization ready" );
 
 	// Load a low-violence-specific string file to override strings in the mod string file
 	if ( g_bLowViolence )
@@ -1023,10 +1137,14 @@ void CEngineVGui::Init()
 
 	COM_TimestampedLog( "staticGameUIFuncs->Initialize" );
 
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before gameui initialize" );
 	staticGameUIFuncs->Initialize( g_GameSystemFactory );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui gameui initialize ready" );
 
 	COM_TimestampedLog( "staticGameUIFuncs->Start" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before gameui start" );
 	staticGameUIFuncs->Start();
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui gameui start ready" );
 
 	// setup console
 	if ( staticGameConsole )
@@ -1042,12 +1160,16 @@ void CEngineVGui::Init()
 	if ( IsGameConsole() )
 	{
 		// provide an interface for loader to send progress notifications
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before loader progress" );
 		g_pQueuedLoader->InstallProgress( &s_LoaderProgress ); 
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui loader progress ready" );
 	}
 
 	// show the game UI
 	COM_TimestampedLog( "ActivateGameUI()" );
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before activate gameui" );
 	ActivateGameUI();
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui activate gameui ready" );
 
 	if ( staticGameConsole && 
 		!CommandLine()->CheckParm( "-forcestartupmenu" ) && 
@@ -1058,7 +1180,9 @@ void CEngineVGui::Init()
 		staticGameConsole->Activate();
 	}
 
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui before no shader query" );
 	m_bNoShaderAPI = CommandLine()->FindParm( "-noshaderapi" ) ? true : false;
+	PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: engine vgui init complete" );
 }
 
 void CEngineVGui::PostInit()

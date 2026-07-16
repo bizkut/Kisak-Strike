@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.28
+Version: 3.29
 Size: 103,153,664 bytes
-SHA-256: 2cbb25b02cb1278af17636b692518b8062219cf8d9cd34e21ed2fa428c2850ec
+SHA-256: 4827da6ca6917a21fa3517a19ec6fb8dd2a4bf6e2e0ed350a15bd9f80a890362
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.62 completes material init and stops in EngineVGui::Init
+Hardware result: awaiting manual installation and v4.63 launch
 ```
 
 Current hardware baseline:
@@ -7312,6 +7312,40 @@ system is no longer the active crash boundary. The next package will trace the
 existing `CEngineVGui::Init` stages—from GameUI factory acquisition and input
 contexts through scheme loading, panel construction, localization, GameUI
 startup, and activation—without changing their behavior.
+
+### v4.63: Trace EngineVGui initialization
+
+Package version 3.29 and build marker `engine_vgui_init_trace_v463` identify the
+targeted diagnostic for the v4.62 boundary. PS4-only breadcrumbs now cover the
+GameUI factory and interface query, input-context setup, material-surface and
+scheme initialization, VGUI startup, panel creation and preparation, console
+panels, layout and material caching, localization, GameUI startup and activation,
+and the final no-shader query. `PreparePanel` also traces each panel operation.
+Non-PS4 builds compile the breadcrumb macro to a no-op; the existing
+`-gameuidll` query is stored once and used by the unchanged branch.
+
+The narrow `engine_client` target, full OpenOrbis monolith, FSELF, and package
+build successfully. The SELF contains the v4.63 marker, GameUI-interface-ready,
+scheme-load, panel-complete, and terminal EngineVGui-complete breadcrumbs, and
+does not contain the v4.62 build marker. The generated `param.sfo` reports
+version 3.29. Direct verbose PkgTool validation reports `[OK]` for every size,
+digest, and signature check. Artifact identities:
+
+```text
+OELF: 135,977,824 bytes
+SHA-256: b589ecd35b7ab78545d1953365fd13d78cc8db4540a7bb6b582105da00a7826c
+SELF: 83,093,504 bytes
+SHA-256: c01d99415a7ffdd08941b73bfc6f495a7b0c4d580d0495396194924b7277fd67
+PKG: 103,153,664 bytes
+SHA-256: 4827da6ca6917a21fa3517a19ec6fb8dd2a4bf6e2e0ed350a15bd9f80a890362
+```
+
+The host suite remains at the established 11/14 baseline, with only the known
+Linux high-address failures in `ps4_gnm_device`, `ps4_gnm_buffer`, and
+`ps4_gnm_constants`. The package is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size and complete
+readback are 103,153,664 bytes and the readback SHA-256 matches the local package.
+Manual installation and launch are the remaining hardware gate.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
