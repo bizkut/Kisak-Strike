@@ -23,44 +23,43 @@ DLL/PRX ownership assumptions merely because the original code used them.
 
 | Item | Value |
 |---|---|
-| Test | v4.87, 2026-07-16 |
-| Package version | 3.53 |
+| Test | v4.88, 2026-07-16 |
+| Package version | 3.54 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,415,808 bytes |
-| Package SHA-256 | `da63191f79fb32b4bb3c3f39e6cf372c1c487c9599b74790fc826006a7394dc5` |
+| Package SHA-256 | `400ef8e2b159e4a8ab67264d5d502a13b2f3de063ae917027e7a49e59bc248a9` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `53c5d052` (`Instrument PS4 ClientScheme border loading`) |
-| Hardware-result commit | `a49a7acc` (`Record v4.87 scalable border crash`) |
+| Candidate commit | `f30f3272` (`Instrument PS4 VGUI material fallback`) |
+| Hardware-result commit | This v4.88 result record |
 
-v4.87 proves ClientScheme traversal, base-border allocation, name assignment,
-and base-border settings through entry 18. Entry 19 is `LoadoutItemBorder`, the
-first `scalable_image`; its constructor succeeds with texture ID 5 and its
-settings reach image `vgui/store/store_item_bg`. The process fails inside
-`g_pSurface->DrawSetTextureFile` before that call returns.
+v4.88 proves the concrete texture-dictionary path, all five search-path misses,
+the intended missing-VMT fallback, and a live `g_pErrorMaterial`. The queue-
+friendly error material returns successfully and `IsErrorMaterial` reports
+true. The process fails before `SetMaterial(IMaterial *)` begins.
 
-The fresh v4.87 log is 3,829,930 bytes and 73,451 lines with SHA-256
-`87b7963c959baaff823147b0c415282105c96c4b7b4fbc2df94bb69a4e95c8c3`.
+The fresh v4.88 log is 3,837,490 bytes and 73,565 lines with SHA-256
+`89680c87edaaa1ca71c60c8b53673ad6df081ccc70c2f81aa9b2f1e4a24c11ac`.
 
-The final scheme milestones are:
+The final milestones are:
 
 ```text
-kisak-ps4: client scheme border entry complete entry=18 value=18 name=BlackBorder type=<none>
-kisak-ps4: client scheme border border type ready entry=19 value=1 name=<none> type=scalable_image
-kisak-ps4: scalable border constructor surface state value=1
-kisak-ps4: scalable border constructor complete value=5
-kisak-ps4: client scheme border entry name ready entry=19 value=1 name=LoadoutItemBorder type=scalable_image
-kisak-ps4: scalable border settings image lookup ready value=1
-kisak-ps4: scalable border set image length ready value=25
-kisak-ps4: scalable border set image path ready value=0
-kisak-ps4: scalable border set image before texture file value=5
+kisak-ps4: store item vmt search paths exhausted
+kisak-ps4: store item vmt keyvalues open failed
+kisak-ps4: material find vmt load ready value=0 name=materials/vgui/store/store_item_bg
+kisak-ps4: material find missing cleanup ready value=0 name=materials/vgui/store/store_item_bg
+kisak-ps4: material find missing complaint ready value=0 name=vgui/store/store_item_bg
+kisak-ps4: material find before error material return value=1 name=vgui/store/store_item_bg
+kisak-ps4: material find error material return ready value=1 name=vgui/store/store_item_bg
+kisak-ps4: vgui texture material file find ready value=1 name=vgui/store/store_item_bg
+kisak-ps4: vgui texture material file before error check value=0 name=vgui/store/store_item_bg
+kisak-ps4: vgui texture material file error check ready value=1 name=vgui/store/store_item_bg
 ```
 
-This is not evidence that the border subsystem or scalable images must be
-removed. v4.88 must trace the actual monolithic `DrawSetTextureFile` provider
-through texture-dictionary binding, material lookup/creation, and filesystem
-loading. Only replace or defer the failing operation if source and runtime
-evidence identify a PS4-native incompatibility or prove the asset is optional
-for the first production frame.
+The next source statement would emit the optional missing-VGUI-material message.
+`IsOSX()` is compile-time false on PS4, so the only executed operation before
+the absent `material file before pointer set` marker is `Msg`. v4.89 may bypass
+that diagnostic on PS4 for this exact missing asset, then retain the normal
+error-material assignment so the existing probes test the real fallback path.
 
 ### v4.83 result and immediate v4.84 gate
 
@@ -357,6 +356,22 @@ The embedded SFO reports version 3.54, and verbose PkgTool validation reports
 every limit, digest, and signature check `[OK]`. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the FTP server reports
 103,415,808 bytes, and two complete readbacks return the same SHA-256.
+
+### v4.88 result and immediate v4.89 gate
+
+The manual-install run clears every negative filesystem lookup boundary and
+returns the real queue-friendly error material. It also clears the error check:
+`IsErrorMaterial` returns true. The next expected marker, `material file before
+pointer set`, is absent. Between those two markers the original code only emits
+`Msg( "--- Missing Vgui material %s\n", pFileName )`; the OSX-only `printf`
+branch is compiled false for PS4.
+
+This is a diagnostic-output failure, not evidence against scalable borders,
+the texture dictionary, material lookup, or error-material precaching. The
+v4.89 gate is therefore a narrow PS4-only suppression of that exact optional
+message for `vgui/store/store_item_bg`. Do not skip `SetMaterial(pMaterial)`:
+the next run must prove reference acquisition, cleanup, mapping dimensions,
+lazy error-material precache, texture binding, and the pending text flush.
 
 ## Runtime topology: two tracks, one production authority
 
