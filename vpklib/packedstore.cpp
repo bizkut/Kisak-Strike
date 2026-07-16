@@ -151,19 +151,48 @@ static inline int SkipAllFilesInDir( char const * & pData )
 }
 
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+static bool KisakPs4TraceSourceSchemeEntry( const char *pBaseName, const char *pExtension )
+{
+	return pBaseName && pExtension &&
+		V_stricmp( pBaseName, "sourcescheme" ) == 0 && V_stricmp( pExtension, "res" ) == 0;
+}
+#define PS4_PACKEDSTORE_SCHEME_BREADCRUMB( enabled, line ) \
+	do { if ( enabled ) KisakPs4StartupBreadcrumb( line ); } while ( 0 )
+#else
+#define PS4_PACKEDSTORE_SCHEME_BREADCRUMB( enabled, line ) ((void)(enabled))
+#endif
+
 CFileHeaderFixedData *CPackedStore::FindFileEntry( char const *pDirname, char const *pBaseName, char const *pExtension, uint8 **pExtBaseOut , uint8 **pNameBaseOut )
 {
+	#if defined( PLATFORM_PS4 )
+	const bool bTracePs4SourceScheme = KisakPs4TraceSourceSchemeEntry( pBaseName, pExtension );
+	#else
+	const bool bTracePs4SourceScheme = false;
+	#endif
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk find entry entered" );
 	if ( pExtBaseOut )
 		*pExtBaseOut = NULL;
 	if ( pNameBaseOut )
 		*pNameBaseOut = NULL;
 
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk before extension hash" );
 	int nExtensionHash = HashString( pExtension ) % PACKEDFILE_EXT_HASH_SIZE;
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk extension hash ready" );
 	CFileExtensionData const *pExt = m_pExtensionData[nExtensionHash].FindNamedNodeCaseSensitive( pExtension );
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, pExt
+		? "kisak-ps4: sourcescheme vpk extension ready"
+		: "kisak-ps4: sourcescheme vpk extension missing" );
 	if ( pExt )
 	{
+		PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk before directory hash" );
 		int nDirHash = HashString( pDirname ) % PACKEDFILE_DIR_HASH_SIZE;
+		PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk directory hash ready" );
 		CFileDirectoryData const *pDir = pExt->m_pDirectoryHashTable[nDirHash].FindNamedNodeCaseSensitive( pDirname );
+		PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, pDir
+			? "kisak-ps4: sourcescheme vpk directory ready"
+			: "kisak-ps4: sourcescheme vpk directory missing" );
 		if ( pDir )
 		{
 			if ( pExtBaseOut )
@@ -172,11 +201,13 @@ CFileHeaderFixedData *CPackedStore::FindFileEntry( char const *pDirname, char co
 			// this is a little awkward. See fileformat.txt
 			char const *pData = pDir->m_Name;
 			pData += 1 + strlen( pData );					// skip dir name
+			PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk file scan entered" );
 			// now, march through all the files
 			while( *pData )									// until we're out of files to look at
 			{
 				if ( !V_strcmp( pData, pBaseName ) )		// found it?
 				{
+					PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk file entry found" );
 					if ( pNameBaseOut )
 						*pNameBaseOut = (uint8 *) pData;
 
@@ -187,6 +218,7 @@ CFileHeaderFixedData *CPackedStore::FindFileEntry( char const *pDirname, char co
 			}
 		}
 	}
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk find entry complete not found" );
 	return NULL;
 }
 
@@ -562,6 +594,12 @@ void SplitFileComponents( char const *pFileName, char *pDirOut, char *pBaseOut, 
 
 CPackedStoreFileHandle CPackedStore::OpenFile( char const *pFileName )
 {
+	#if defined( PLATFORM_PS4 )
+	const bool bTracePs4SourceScheme = pFileName && V_stricmp( pFileName, "Resource/SourceScheme.res" ) == 0;
+	#else
+	const bool bTracePs4SourceScheme = false;
+	#endif
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk open entered" );
 	char dirName[MAX_PATH];
 	char baseName[MAX_PATH];
 	char extName[MAX_PATH];
@@ -569,7 +607,9 @@ CPackedStoreFileHandle CPackedStore::OpenFile( char const *pFileName )
 	// Fix up the filename first
 	char tempFileName[MAX_PATH];
 
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk before filename copy" );
 	V_strncpy( tempFileName, pFileName, sizeof( tempFileName ) );
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk filename copied" );
 	V_FixSlashes( tempFileName, CORRECT_PATH_SEPARATOR );
 //	V_RemoveDotSlashes( tempFileName, CORRECT_PATH_SEPARATOR, true );
 	V_FixDoubleSlashes( tempFileName );
@@ -577,29 +617,42 @@ CPackedStoreFileHandle CPackedStore::OpenFile( char const *pFileName )
 	{
 		V_strlower( tempFileName );
 	}
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk filename normalized" );
 	
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk before split" );
 	SplitFileComponents( tempFileName, dirName, baseName, extName );
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk split ready" );
 
 	CPackedStoreFileHandle ret;
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk return handle ready" );
 
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk before find entry" );
 	CFileHeaderFixedData *pHeader = FindFileEntry( dirName, baseName, extName, NULL, &( ret.m_pDirFileNamePtr ) );
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, pHeader
+		? "kisak-ps4: sourcescheme vpk header ready"
+		: "kisak-ps4: sourcescheme vpk header missing" );
 	
 	if ( pHeader )
 	{
+		PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk before part descriptor" );
 		ret.m_nFileNumber = pHeader->m_PartDescriptors[0].m_nFileNumber;
 		ret.m_nFileOffset = pHeader->m_PartDescriptors[0].m_nFileDataOffset;
 		ret.m_nFileSize = pHeader->m_PartDescriptors[0].m_nFileDataSize + pHeader->m_nMetaDataSize;
+		PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk part descriptor ready" );
 		ret.m_nCurrentFileOffset = 0;
+		PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk before metadata pointer" );
 		ret.m_pMetaData = pHeader->MetaData();
 		ret.m_nMetaDataSize = pHeader->m_nMetaDataSize;
-  		ret.m_pHeaderData = pHeader;
+		ret.m_pHeaderData = pHeader;
 		ret.m_pOwner = this;
+		PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk handle configured" );
 	}
 	else
 	{
 		ret.m_nFileNumber = -1;
 		ret.m_pOwner = NULL;
 	}
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk open returning" );
 	return ret;
 
 }
@@ -1181,18 +1234,28 @@ void CPackedStore::GetPackFileLoadErrorSummaryKV( KeyValues *pKV )
 
 int CPackedStore::ReadData( CPackedStoreFileHandle &handle, void *pOutData, int nNumBytes )
 {
+	#if defined( PLATFORM_PS4 )
+	const bool bTracePs4SourceScheme = handle.m_pDirFileNamePtr &&
+		V_stricmp( reinterpret_cast<const char *>( handle.m_pDirFileNamePtr ), "sourcescheme" ) == 0;
+	#else
+	const bool bTracePs4SourceScheme = false;
+	#endif
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk read entered" );
 	int nRet = 0;
 
 	// clamp read size to file size
 	nNumBytes = MIN( nNumBytes, handle.m_nFileSize - handle.m_nCurrentFileOffset );
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk read size clamped" );
 	if ( nNumBytes > 0 )
 	{
 		// first satisfy from the metadata, if we can
 		int nNumMetaDataBytes = MIN( nNumBytes, handle.m_nMetaDataSize - handle.m_nCurrentFileOffset );
 		if ( nNumMetaDataBytes > 0 )
 		{
+			PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk before metadata copy" );
 			memcpy( pOutData, reinterpret_cast<uint8 const *>( handle.m_pMetaData )
 					+ handle.m_nCurrentFileOffset, nNumMetaDataBytes );
+			PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk metadata copy ready" );
 			nRet += nNumMetaDataBytes;
 			pOutData = reinterpret_cast<uint8 *>( pOutData ) + nNumMetaDataBytes;
 			handle.m_nCurrentFileOffset += nNumMetaDataBytes;
@@ -1201,16 +1264,21 @@ int CPackedStore::ReadData( CPackedStoreFileHandle &handle, void *pOutData, int 
 		// satisfy remaining bytes from file
 		if ( nNumBytes > 0 )
 		{
+			PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk before archive handle" );
 			FileHandleTracker_t &fHandle = GetFileHandle( handle.m_nFileNumber );
+			PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk archive handle ready" );
 			int nDesiredPos = handle.m_nFileOffset + handle.m_nCurrentFileOffset - handle.m_nMetaDataSize;
 			int nRead;
+			PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk before archive lock" );
 			fHandle.m_Mutex.Lock();
+			PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk archive lock ready" );
 			if ( handle.m_nFileNumber == VPKFILENUMBER_EMBEDDED_IN_DIR_FILE )
 			{
 				// for file data in the directory header, all offsets are relative to the size of the dir header.
 				nDesiredPos += m_nDirectoryDataSize + sizeof( VPKDirHeader_t );
 			}
 
+			PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk before archive read" );
 			if ( m_PackedStoreReadCache.BCanSatisfyFromReadCache( (uint8 *)pOutData, handle, fHandle, nDesiredPos, nNumBytes, nRead ) )
 			{
 				handle.m_nCurrentFileOffset += nRead;
@@ -1228,12 +1296,15 @@ int CPackedStore::ReadData( CPackedStoreFileHandle &handle, void *pOutData, int 
 				handle.m_nCurrentFileOffset += nRead;
 				fHandle.m_nCurOfs = nRead + nDesiredPos;
 			}
+			PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk archive read ready" );
 			Assert( nRead == nNumBytes );
 			nRet += nRead;
 			fHandle.m_Mutex.Unlock();
 		}
 	}
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk before cache retry" );
 	m_PackedStoreReadCache.RetryAllBadCacheLines();
+	PS4_PACKEDSTORE_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme vpk read returning" );
 	return nRet;
 }
 
@@ -2112,4 +2183,3 @@ int CPackedStore::GetFileAndDirLists( const char *pWildCard, CUtlStringList &out
 
 	return outDirnames.Count();
 }
-

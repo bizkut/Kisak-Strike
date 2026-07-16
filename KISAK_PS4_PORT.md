@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.30
+Version: 3.31
 Size: 103,219,200 bytes
-SHA-256: 4514ad4f73c17b15c09c743d54b8d26f6b63cf7ef4d7f57620d7b79bb2be9f3a
+SHA-256: 40b9643786123b8f9c90f8367713c7b8da0b858325e3085a58e973f7162f3ba0
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.64 crashes in the GAME-path `KeyValues::LoadFromFile`
+Hardware result: awaiting manual v4.65 install and run
 ```
 
 Current hardware baseline:
@@ -7426,6 +7426,45 @@ its name and contents are present in `csgo/pak01_dir.vpk`, making the GAME VPK
 lookup the leading candidate. The next package will trace `KeyValues::LoadFromFile`
 and the read-only filesystem/VPK open path without changing file-selection
 behavior.
+
+### v4.65: Trace the SourceScheme GAME VPK lookup
+
+Package version 3.31 and build marker `scheme_game_vpk_trace_v465` identify the
+targeted diagnostic for the v4.64 boundary. PS4-only breadcrumbs now extend
+the existing `KeyValues` file-load diagnostics to `Resource/SourceScheme.res`
+and trace its read-only route through `CBaseFileSystem::Open`, `OpenEx`,
+`OpenForRead`, search-path iteration, VPK selection, and file-handle setup.
+`CPackedStore` breadcrumbs then cover path hashing and entry lookup, VPK handle
+construction, metadata preload copying, archive reads, and cache retry. The
+diagnostic stores several direct return values in locals so they can be logged,
+but does not change file selection, parsing, or error handling.
+
+The PS4 `tier1_client`, `vpklib_client`, `filesystem_stdio_client`, and
+`engine_client` targets and the complete `kisak_ps4_monolithic` target build
+successfully. The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic
+Size: 126,253,976 bytes
+SHA-256: 91d5ffd8ea659282ce339b7b9ee8748284448fab0b40b71ad3c0ada152de4231
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,109,920 bytes
+SHA-256: bf0210d1dde56d2ea2bbc6c7ca2a40ee822ce5da7c2ed7ecd1c781a315a0d1ce
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.31
+Size: 103,219,200 bytes
+SHA-256: 40b9643786123b8f9c90f8367713c7b8da0b858325e3085a58e973f7162f3ba0
+```
+
+Direct PkgTool validation reports every size, digest, and signature check as
+`[OK]`; `param.sfo` reports both `APP_VER` and `VERSION` as 3.31. The host PS4
+suite remains at 11/14 with only the known `ps4_gnm_device`, `ps4_gnm_buffer`,
+and `ps4_gnm_constants` baseline failures. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP readback
+matches the local 103,219,200-byte package and SHA-256 above. Manual install and
+hardware execution remain.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

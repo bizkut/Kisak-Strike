@@ -33,7 +33,8 @@
 #if defined( PLATFORM_PS4 )
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 #define PS4_KEYVALUES_TRACE_GAMEMODES( resourceName ) \
-	( ( resourceName ) && V_strcmp( ( resourceName ), "gamemodes.txt" ) == 0 )
+	( ( resourceName ) && ( V_strcmp( ( resourceName ), "gamemodes.txt" ) == 0 || \
+		V_stricmp( ( resourceName ), "Resource/SourceScheme.res" ) == 0 ) )
 #define PS4_KEYVALUES_LOAD_BREADCRUMB( enabled, line ) \
 	do { if ( enabled ) KisakPs4StartupBreadcrumb( line ); } while ( 0 )
 #define PS4_KEYVALUES_RESET_KEY_TRACE( enabled ) \

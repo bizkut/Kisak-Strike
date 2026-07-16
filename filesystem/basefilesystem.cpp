@@ -4154,6 +4154,18 @@ void CBaseFileSystem::HandleOpenRegularFile( CFileOpenInfo &openInfo, bool bIsAb
 //			*filetime - 
 // Output : FileHandle_t
 //-----------------------------------------------------------------------------
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+static bool KisakPs4TraceSourceSchemeFile( const char *pFileName )
+{
+	return pFileName && V_stricmp( pFileName, "Resource/SourceScheme.res" ) == 0;
+}
+#define PS4_FILESYSTEM_SCHEME_BREADCRUMB( enabled, line ) \
+	do { if ( enabled ) KisakPs4StartupBreadcrumb( line ); } while ( 0 )
+#else
+#define PS4_FILESYSTEM_SCHEME_BREADCRUMB( enabled, line ) ((void)(enabled))
+#endif
+
 FileHandle_t CBaseFileSystem::FindFile( 
 	const CSearchPath *path, 
 	const char *pFileName, 
@@ -4163,12 +4175,23 @@ FileHandle_t CBaseFileSystem::FindFile(
 	bool bTrackCRCs )
 {
 	VPROF( "CBaseFileSystem::FindFile" );
+	#if defined( PLATFORM_PS4 )
+	const bool bTracePs4SourceScheme = KisakPs4TraceSourceSchemeFile( pFileName );
+	#else
+	const bool bTracePs4SourceScheme = false;
+	#endif
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem find entered" );
 
 	char tempSymlinkBuffer[MAX_PATH];
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem before symlink format" );
 	pFileName = V_FormatFilenameForSymlinking( tempSymlinkBuffer, pFileName );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem symlink format ready" );
 	
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem before open info" );
 	CFileOpenInfo openInfo( this, pFileName, path, pOptions, flags, ppszResolvedFilename, bTrackCRCs );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem open info ready" );
 	bool bIsAbsolutePath = V_IsAbsolutePath( pFileName );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem absolute probe ready" );
 	if ( bIsAbsolutePath )
 	{
 #ifdef SUPPORT_VPK
@@ -4189,25 +4212,35 @@ FileHandle_t CBaseFileSystem::FindFile(
 	{
 		// check vpk file
 #ifdef SUPPORT_VPK
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem vpk scan entered" );
 		for( int i = 0 ; i < m_VPKFiles.Count(); i++ )
 		{
+			PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem before vpk open" );
 			CPackedStoreFileHandle fHandle = m_VPKFiles[i]->OpenFile( pFileName );
+			PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem vpk open returned" );
 			if ( fHandle )
 			{
+				PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem vpk handle ready" );
+				PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem before file handle allocation" );
 				openInfo.m_pFileHandle = new CFileHandle(this);
+				PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem file handle ready" );
 				openInfo.m_pFileHandle->m_VPKHandle = fHandle;
 				openInfo.m_pFileHandle->m_type = FT_NORMAL;
 				openInfo.m_pFileHandle->m_nLength = fHandle.m_nFileSize;
 				openInfo.SetResolvedFilename( openInfo.m_AbsolutePath );
+				PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem vpk handle configured" );
 		
 				// Remember what was returned by the Steam filesystem and track the CRC.
 				openInfo.m_bLoadedFromSteamCache = false;
 				openInfo.m_bSteamCacheOnly = false;
 				openInfo.m_pVPKFile = m_VPKFiles[i];
+				PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem before crc tracking" );
 				openInfo.HandleFileCRCTracking( openInfo.m_pFileName, false );
+				PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem crc tracking ready" );
 				return ( FileHandle_t ) openInfo.m_pFileHandle;
 			}
 		}
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filesystem vpk scan complete not found" );
 #endif
 		// Caller provided a relative path
 		if ( path->GetPackFile() )
@@ -4235,6 +4268,12 @@ FileHandle_t CBaseFileSystem::FindFileInSearchPaths(
 	char **ppszResolvedFilename, 
 	bool bTrackCRCs )
 {
+	#if defined( PLATFORM_PS4 )
+	const bool bTracePs4SourceScheme = KisakPs4TraceSourceSchemeFile( pFileName );
+	#else
+	const bool bTracePs4SourceScheme = false;
+	#endif
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme search paths entered" );
 	// Run through all the search paths.
 	PathTypeFilter_t pathFilter = FILTER_NONE;
 
@@ -4270,12 +4309,24 @@ FileHandle_t CBaseFileSystem::FindFileInSearchPaths(
 		}
 	}
 
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme before search iterator" );
 	CSearchPathsIterator iter( this, &pFileName, pathID, pathFilter );
-	for ( CSearchPath *pSearchPath = iter.GetFirst(); pSearchPath != NULL; pSearchPath = iter.GetNext() )
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme search iterator ready" );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme before first search path" );
+	CSearchPath *pSearchPath = iter.GetFirst();
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, pSearchPath
+		? "kisak-ps4: sourcescheme first search path ready"
+		: "kisak-ps4: sourcescheme first search path missing" );
+	for ( ; pSearchPath != NULL; )
 	{
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme before search path find" );
 		FileHandle_t filehandle = FindFile( pSearchPath, pFileName, pOptions, flags, ppszResolvedFilename, bTrackCRCs );
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme search path find returned" );
 		if ( filehandle )
 			return filehandle;
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme before next search path" );
+		pSearchPath = iter.GetNext();
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme next search path ready" );
 	}
 
 	return ( FileHandle_t )0;
@@ -4287,7 +4338,15 @@ FileHandle_t CBaseFileSystem::FindFileInSearchPaths(
 FileHandle_t CBaseFileSystem::OpenForRead( const char *pFileName, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename )
 {
 	VPROF( "CBaseFileSystem::OpenForRead" );
-	return FindFileInSearchPaths( pFileName, pOptions, pathID, flags, ppszResolvedFilename, true );
+	#if defined( PLATFORM_PS4 )
+	const bool bTracePs4SourceScheme = KisakPs4TraceSourceSchemeFile( pFileName );
+	#else
+	const bool bTracePs4SourceScheme = false;
+	#endif
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme open for read entered" );
+	FileHandle_t hFile = FindFileInSearchPaths( pFileName, pOptions, pathID, flags, ppszResolvedFilename, true );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme open for read returned" );
+	return hFile;
 }
 
 
@@ -4386,7 +4445,15 @@ void CBaseFileSystem::ParsePathID( const char* &pFilename, const char* &pPathID,
 //-----------------------------------------------------------------------------
 FileHandle_t CBaseFileSystem::Open( const char *pFileName, const char *pOptions, const char *pathID )
 {
-	return OpenEx( pFileName, pOptions, 0, pathID );
+	#if defined( PLATFORM_PS4 )
+	const bool bTracePs4SourceScheme = KisakPs4TraceSourceSchemeFile( pFileName );
+	#else
+	const bool bTracePs4SourceScheme = false;
+	#endif
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme open wrapper entered" );
+	FileHandle_t hFile = OpenEx( pFileName, pOptions, 0, pathID );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme open wrapper returned" );
+	return hFile;
 }
 
 //-----------------------------------------------------------------------------
@@ -4395,6 +4462,12 @@ FileHandle_t CBaseFileSystem::Open( const char *pFileName, const char *pOptions,
 FileHandle_t CBaseFileSystem::OpenEx( const char *pFileName, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename )
 {
 	VPROF_BUDGET( "CBaseFileSystem::Open", VPROF_BUDGETGROUP_OTHER_FILESYSTEM );
+	#if defined( PLATFORM_PS4 )
+	const bool bTracePs4SourceScheme = KisakPs4TraceSourceSchemeFile( pFileName );
+	#else
+	const bool bTracePs4SourceScheme = false;
+	#endif
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme open ex entered" );
 
 	if ( !pFileName )
 		return (FileHandle_t)0;
@@ -4450,10 +4523,14 @@ FileHandle_t CBaseFileSystem::OpenEx( const char *pFileName, const char *pOption
 
 	// Allow for UNC-type syntax to specify the path ID.
 	char tempPathID[MAX_PATH];
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme before path id parse" );
 	ParsePathID( pFileName, pathID, tempPathID );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme path id parse ready" );
 	char tempFileName[MAX_PATH];
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme before filename copy" );
 	Q_strncpy( tempFileName, pFileName, sizeof(tempFileName) );
 	Q_FixSlashes( tempFileName );
+	PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme filename copy ready" );
 #ifdef _WIN32
 	Q_strlower( tempFileName );
 #endif
@@ -4464,7 +4541,9 @@ FileHandle_t CBaseFileSystem::OpenEx( const char *pFileName, const char *pOption
 	// FIXME: call createdirhierarchy upon opening for write.
 	if ( strstr( pOptions, "r" ) && !strstr( pOptions, "+" ) )
 	{
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme before open for read" );
 		hFile = OpenForRead( tempFileName, pOptions, flags, pathID, ppszResolvedFilename );
+		PS4_FILESYSTEM_SCHEME_BREADCRUMB( bTracePs4SourceScheme, "kisak-ps4: sourcescheme open for read ready" );
 	}
 	else
 	{
@@ -9496,4 +9575,3 @@ CON_COMMAND( fs_fios_cancel_prefetches, "Cancels all the prefetches in progress.
 }
 
 #endif
-
