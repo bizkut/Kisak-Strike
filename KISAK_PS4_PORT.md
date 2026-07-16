@@ -38,23 +38,25 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.47
-Size: 103,219,200 bytes
-SHA-256: 360a459d5cfe67a5f7536d2b84fa98b245b9c7810a78b2890bfd767fd17bfb79
-Hardware run: v4.81 (2026-07-16), missing RenderToRTHelper; reaches Decal_Init
+Version: 3.48
+Size: 103,284,736 bytes
+SHA-256: 9c8f9e4ba4da343831438411c2f85004aaff5cc1fb1f5238afb4efb72fbb224d
+Hardware run: v4.82 (2026-07-16), RenderToRTHelper repaired; reaches the
+client particle-manager initialization boundary
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.47
-Size: 103,219,200 bytes
-SHA-256: 360a459d5cfe67a5f7536d2b84fa98b245b9c7810a78b2890bfd767fd17bfb79
-Hardware result: v4.81 client Init fails at the render-to-RT interface lookup
+Version: 3.48
+Size: 103,284,736 bytes
+SHA-256: 9c8f9e4ba4da343831438411c2f85004aaff5cc1fb1f5238afb4efb72fbb224d
+Hardware result: v4.82 initializes RenderToRTHelper, then stops before
+`ParticleMgr()->Init`
 ```
 
-Latest package staged for manual install and hardware test:
+Latest package staged and manually tested:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
@@ -63,7 +65,7 @@ Size: 103,284,736 bytes
 SHA-256: 9c8f9e4ba4da343831438411c2f85004aaff5cc1fb1f5238afb4efb72fbb224d
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.82 awaits manual installation and launch
+Hardware result: v4.82 reaches `client impl before particle manager init`
 ```
 
 Current hardware baseline:
@@ -8789,17 +8791,39 @@ The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`. Two complete FTP
 readbacks each report 103,284,736 bytes and SHA-256
 `9c8f9e4ba4da343831438411c2f85004aaff5cc1fb1f5238afb4efb72fbb224d`,
-matching the local package. It awaits manual installation and launch.
+matching the local package.
 
-Hardware interpretation is deterministic. The v4.82 marker must occur once.
-Successful provider recovery advances from `client impl before render-to-rt
-interface` to `client impl before render-to-rt init`, the internal
-`render-to-rt ...` sequence, and `client impl render-to-rt init ready`. A clean
-client failure records `host client dll init failed; startup stopped` and must
-not reach SCR, renderer, decals, or Connect. A successful client Init reaches
-`client dll init complete`, the enclosing trace-after marker, and then the
-new Host/EngineVGui/GameUI Connect sequence; its final marker identifies the
-next boundary without conflating it with the repaired registrar failure.
+The 2026-07-16 hardware run validates the retention repair and fail-stop gate.
+The cumulative startup log is 52,901,325 bytes and 1,084,293 LF-terminated
+lines with SHA-256
+`5f052e5fffa62df7a430f55506814d26de30fc22c8a87ab673e0ae453a2defed`.
+The complete v4.81 log is an exact byte prefix; the v4.82 append is 3,085,631
+bytes and 63,559 lines with SHA-256
+`79a1adbaff529cedd249ccbbc66c2099d4aae223d43590d2fa242f8004eecaa0`.
+`render_to_rt_link_v482`, `render-to-rt init complete`, and `client impl
+render-to-rt init ready` each occur once in the append. The repaired helper
+finds its texture target, registers its callback, and returns successfully.
+
+The final three lines are `client impl before game systems init`, `client impl
+serial init path`, and `client impl before particle manager init`. The next
+breadcrumb, `client impl particle manager ready`, is absent, as are the client
+Init completion, `EngineVGui()->Connect()`, and first-Source-frame markers.
+Source attribution is deliberately bounded: after the final breadcrumb,
+`game/client/cdll_client_int.cpp` calls `COM_TimestampedLog`, evaluates the
+function-local `CParticleMgr` singleton through `ParticleMgr()`, and enters
+`CParticleMgr::Init`. The log does not yet prove which of those operations
+fails. The timestamp helper already returned earlier in the same path and is a
+no-op without `-profile`, making singleton construction or particle-manager
+initialization the stronger candidate, but not a proven root cause.
+
+The next attributable test must split this boundary without changing behavior:
+mark after the timestamp call, before and after `ParticleMgr()`, at
+`CParticleMgr::Init` entry, and around `Term`, the global particle-system
+manager Init, both builtin-operator registrations, and
+`ParseParticleEffects( true )`. It must validate the relevant pointers and
+honor a false global particle-system Init result. Only after this path, the
+remainder of `ClientDLL_Init`, `EngineVGui()->Connect()`, and the first real
+Source frame complete is the immediate lifecycle gate closed.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
