@@ -13,6 +13,9 @@
 #if defined( PLATFORM_PS4 )
 #include "appframework/StaticModuleRegistry.h"
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_CLIENT_DLL_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_CLIENT_DLL_BREADCRUMB( line ) ((void)0)
 #endif
 #include "getintersectingsurfaces_struct.h"
 #include "gl_model_private.h"
@@ -2731,21 +2734,32 @@ void ClientDLL_Disconnect()
 void ClientDLL_Init( void )
 {
 	extern void CL_SetSteamCrashComment();
+	PS4_CLIENT_DLL_BREADCRUMB( "client dll init entered" );
 
 	// Assert ClientDLL_Load successfully created these interfaces, as we need them to init properly
 	Assert ( g_ClientDLL );
 	Assert ( g_ClientFactory );
+	PS4_CLIENT_DLL_BREADCRUMB( g_ClientDLL ? "client dll interface ready" : "client dll interface missing" );
+	PS4_CLIENT_DLL_BREADCRUMB( g_ClientFactory ? "client dll factory ready" : "client dll factory missing" );
 
 	// this will get updated after we load a map, but this gets video info if we sys_error() prior to loading a map
+#if defined( PLATFORM_PS4 )
+	PS4_CLIENT_DLL_BREADCRUMB( "client dll steam crash comment skipped" );
+#else
 	CL_SetSteamCrashComment();
+#endif
 
 	if ( g_ClientDLL )
 	{
 		COM_TimestampedLog( "g_ClientDLL->Init" );
+		PS4_CLIENT_DLL_BREADCRUMB( "client dll before client impl init" );
 
-		if ( !g_ClientDLL->Init( g_GameSystemFactory, &g_ClientGlobalVariables ) )
+		const bool bClientInitSucceeded = g_ClientDLL->Init( g_GameSystemFactory, &g_ClientGlobalVariables );
+		PS4_CLIENT_DLL_BREADCRUMB( bClientInitSucceeded ? "client dll client impl init ready" : "client dll client impl init failed" );
+		if ( !bClientInitSucceeded )
 		{
 			Sys_Error("Client.dll Init() in library client failed.");
+			return;
 		}
 
 		if ( g_ClientFactory )
@@ -2754,34 +2768,52 @@ void ClientDLL_Init( void )
 
 			// Load the prediction interface from the client .dll
 			g_pClientSidePrediction = (IPrediction *)g_ClientFactory( VCLIENT_PREDICTION_INTERFACE_VERSION, NULL );
+			PS4_CLIENT_DLL_BREADCRUMB( g_pClientSidePrediction ? "client dll prediction interface ready" : "client dll prediction interface missing" );
 			if ( !g_pClientSidePrediction )
 			{
 				Sys_Error( "Could not get IPrediction interface from library client" );
+				return;
 			}
+			PS4_CLIENT_DLL_BREADCRUMB( "client dll before prediction init" );
 			g_pClientSidePrediction->Init();
+			PS4_CLIENT_DLL_BREADCRUMB( "client dll prediction init ready" );
 
 			entitylist = ( IClientEntityList  *)g_ClientFactory( VCLIENTENTITYLIST_INTERFACE_VERSION, NULL );
+			PS4_CLIENT_DLL_BREADCRUMB( entitylist ? "client dll entity list ready" : "client dll entity list missing" );
 			if ( !entitylist )
 			{
 				Sys_Error( "Could not get client entity list interface from library client" );
+				return;
 			}
 
 			clientleafsystem = ( IClientLeafSystemEngine *)g_ClientFactory( CLIENTLEAFSYSTEM_INTERFACE_VERSION, NULL );
+			PS4_CLIENT_DLL_BREADCRUMB( clientleafsystem ? "client dll leaf system ready" : "client dll leaf system missing" );
 			if ( !clientleafsystem )
 			{
 				Sys_Error( "Could not get client leaf system interface from library client" );
+				return;
 			}
 
 			g_pClientAlphaPropertyMgr = ( IClientAlphaPropertyMgr* )g_ClientFactory( CLIENT_ALPHA_PROPERTY_MGR_INTERFACE_VERSION, NULL );
+			PS4_CLIENT_DLL_BREADCRUMB( g_pClientAlphaPropertyMgr ? "client dll alpha property manager ready" : "client dll alpha property manager missing" );
 			if ( !g_pClientAlphaPropertyMgr )
 			{
 				Sys_Error( "Could not get client alpha property mgr interface from library client" );
+				return;
 			}
 
+			PS4_CLIENT_DLL_BREADCRUMB( "client dll before tool framework init" );
 			toolframework->ClientInit( g_ClientFactory );
+			PS4_CLIENT_DLL_BREADCRUMB( "client dll tool framework init ready" );
 		}
 		 		
-		if ( g_pMaterialSystemHardwareConfig && !IsGameConsole( ) )
+#if defined( PLATFORM_PS4 )
+		PS4_CLIENT_DLL_BREADCRUMB( "client dll desktop gpu checks skipped" );
+		const bool bRunDesktopHardwareChecks = false;
+#else
+		const bool bRunDesktopHardwareChecks = g_pMaterialSystemHardwareConfig && !IsGameConsole( );
+#endif
+		if ( bRunDesktopHardwareChecks )
 		{
 			char pMessage[1024];
 			pMessage[0] = '\0';
@@ -2887,9 +2919,12 @@ void ClientDLL_Init( void )
 		}
 	}
 
+	PS4_CLIENT_DLL_BREADCRUMB( "client dll before recv table init" );
 	COM_TimestampedLog( "ClientDLL_InitRecvTableMgr" );
 
 	ClientDLL_InitRecvTableMgr();
+	PS4_CLIENT_DLL_BREADCRUMB( "client dll recv table init ready" );
+	PS4_CLIENT_DLL_BREADCRUMB( "client dll init complete" );
 }
 
 //-----------------------------------------------------------------------------

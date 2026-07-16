@@ -3298,6 +3298,11 @@ void CL_SetPagedPoolInfo()
 
 void CL_SetSteamCrashComment()
 {
+#if defined( PLATFORM_PS4 )
+	// Steam minidump comments are a desktop facility. PS4 deliberately keeps
+	// IsGameConsole() false for Source compatibility, so gate this explicitly.
+	return;
+#endif
 	if ( IsGameConsole() )
 		return;
 

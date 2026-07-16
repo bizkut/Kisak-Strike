@@ -58,12 +58,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.46
+Version: 3.47
 Size: 103,219,200 bytes
-SHA-256: 36b5f3c9fceb5acc2a2f06cb0a231a5c49d08690e5019d681b68716b818d58e2
+SHA-256: 360a459d5cfe67a5f7536d2b84fa98b245b9c7810a78b2890bfd767fd17bfb79
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.80 stops inside the ClientDLL_Init() call
+Hardware status: v4.81 awaits manual installation and launch
 ```
 
 Current hardware baseline:
@@ -8608,6 +8608,77 @@ return and instead gathers desktop driver, video-mode, ConVar, network, clock,
 and Steam minidump state before the client DLL is initialized. v4.81 will make
 that crash-comment policy explicitly PS4-safe and bracket every subsequent
 client interface and initialization boundary.
+
+### v4.81: Make ClientDLL initialization PS4-native and attributable
+
+Package version 3.47 and build marker `client_dll_init_trace_v481` identify
+this manual-install test. A static and final-ELF dispatch audit found one
+`VClient018` registrar, one `gHLClient`, one `CHLClient::Init`, and the
+expected Init vtable slot. Hardware had already returned through the same
+object's Connect slot, so the repair retains the valid monolithic dispatch path
+instead of bypassing it.
+
+PS4 now skips the desktop Steam crash-comment collection both at the initial
+`ClientDLL_Init` call site and inside `CL_SetSteamCrashComment`, protecting
+its later sign-on caller as well. The inherited desktop DX/CSM/unsupported-GPU
+validation is also disabled explicitly for the GNM backend. Inside
+`CHLClient::Init`, PS4 skips the optional dynamic `p4lib` development module
+and refuses to continue after a failed `InitGameSystems` result. The
+`ServerUploadGameStats001` query remains required deliberately: the monolith
+registers that engine service statically and client GameStats consumers expect
+it, so its console-style name is not grounds to remove it.
+
+Direct breadcrumbs now cover `ClientDLL_Init` entry and pointers, the virtual
+client Init result, prediction/entity/leaf/alpha interfaces, tool-framework
+initialization, the PS4 GPU-policy skip, and receive-table initialization.
+`CHLClient::Init` records entry before every required app-system lookup and
+brackets render-to-RT, GameInstructor, matchmaking, factory-list, sound,
+particle, game-system, bone-pool, HUD, and game-type initialization. The
+previously broad `InitGameSystems` call is split into attributable VGUI,
+front-buffer, registration, activity/event, mode-manager, scheme, viewport,
+HUD, client-mode, all-game-systems, view, input, panel, user-message, voice,
+physics, save/restore, and world-factory phases.
+
+The narrow `engine_client` and `client_client` targets compile, and the
+complete monolithic OELF/SELF link succeeds. The final artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic.oelf
+Size: 136,044,984 bytes
+SHA-256: 7c44cc036c57cdaac6befb961ce43028310a6a76751217de669d699d572f0110
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,159,168 bytes
+SHA-256: 5c39d1eb7ae53d70ace60e068ee92fe01c1aafcaacebb6854742a291909a16fc
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.47
+Size: 103,219,200 bytes
+SHA-256: 360a459d5cfe67a5f7536d2b84fa98b245b9c7810a78b2890bfd767fd17bfb79
+```
+
+`git diff --check` and both packaging-script syntax checks pass. The packaged
+eboot is byte-identical to the SELF, and the final OELF contains the v4.81
+identity plus the outer, implementation, and game-system completion markers.
+PkgTool reports 28 `[OK]` checks and no `[FAIL]`; SFO `APP_VER` and
+`VERSION` are both 3.47. An independent diff review found no blocking
+correctness or preprocessor issue. The host PS4 suite remains at 11/14 with
+only the known `ps4_gnm_device`, `ps4_gnm_buffer`, and
+`ps4_gnm_constants` baseline failures.
+
+The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`. A complete FTP
+readback reports 103,219,200 bytes and the same SHA-256 above. It awaits manual
+installation and launch.
+
+Hardware interpretation remains deterministic. If `client dll init entered`
+is absent, the boundary remains in the call expression before the function
+body. A final `client impl before ... interface` marker identifies a failed or
+crashing factory lookup because the following boundary appears only after that
+lookup returns. The nested before/ready markers then localize any deeper crash
+without another broad probe. Reaching `client dll init complete` and the
+enclosing `trace init after / ClientDLL_Init()` pair validates this repair and
+moves startup to the next dispatcher operation.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 

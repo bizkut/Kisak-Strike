@@ -223,6 +223,13 @@ extern void ProcessPortalTeleportations( void );
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_HLCLIENT_INIT_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_HLCLIENT_INIT_BREADCRUMB( line ) ((void)0)
+#endif
+
 extern IClientMode *GetClientModeNormal();
 
 DEFINE_LOGGING_CHANNEL_NO_TAGS( LOG_CONSOLE, "Console" );
@@ -1256,22 +1263,32 @@ bool InitParticleManager()
 
 CEG_NOINLINE bool InitGameSystems( CreateInterfaceFn appSystemFactory )
 {
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems init entered" );
 	CEG_ENCRYPT_FUNCTION( InitGameSystems );
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before vgui startup" );
 	if (!VGui_Startup( appSystemFactory ))
 		return false;
 
 	// Keep the spinner going.
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems vgui startup ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before first front buffer refresh" );
 	materials->RefreshFrontBufferNonInteractive();
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems first front buffer ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before vgui matsys interfaces" );
 	vgui::VGui_InitMatSysInterfacesList( "ClientDLL", &appSystemFactory, 1 );
 
 	// Keep the spinner going.
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems vgui matsys interfaces ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before second front buffer refresh" );
 	materials->RefreshFrontBufferNonInteractive();
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems second front buffer ready" );
 
 	// Add the client systems.	
 
 	// Client Leaf System has to be initialized first, since DetailObjectSystem uses it
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before registrations" );
 	IGameSystem::Add( GameStringSystem() );
 	IGameSystem::Add( g_pPrecacheRegister );
 	IGameSystem::Add( SoundEmitterSystem() );
@@ -1293,16 +1310,24 @@ CEG_NOINLINE bool InitGameSystems( CreateInterfaceFn appSystemFactory )
 	IGameSystem::Add( GetPredictionCopyTester() );
 #endif
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems registrations ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before activity and event lists" );
 	ActivityList_Init();
 	ActivityList_RegisterSharedActivities();
 	EventList_Init();
 	EventList_RegisterSharedEvents();
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems activity and event lists ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before mode manager init" );
 	modemanager->Init( );
 
 	// Load the ClientScheme just once
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems mode manager ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before client scheme load" );
 	vgui::scheme()->LoadSchemeFromFileEx( VGui_GetFullscreenRootVPANEL(), "resource/ClientScheme.res", "ClientScheme");
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems client scheme load returned" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before viewport init" );
 	for ( int hh = 0; hh < MAX_SPLITSCREEN_PLAYERS; ++hh )
 	{
 		ACTIVE_SPLITSCREEN_PLAYER_GUARD_VGUI( hh );
@@ -1314,12 +1339,16 @@ CEG_NOINLINE bool InitGameSystems( CreateInterfaceFn appSystemFactory )
 		}
 	}
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems viewport init ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before hud init" );
 	for ( int hh = 0; hh < MAX_SPLITSCREEN_PLAYERS; ++hh )
 	{
 		ACTIVE_SPLITSCREEN_PLAYER_GUARD_VGUI( hh );
 		GetHud().Init();
 	}
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems hud init ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before client mode init" );
 	for ( int hh = 0; hh < MAX_SPLITSCREEN_PLAYERS; ++hh )
 	{
 		ACTIVE_SPLITSCREEN_PLAYER_GUARD_VGUI( hh );
@@ -1331,9 +1360,13 @@ CEG_NOINLINE bool InitGameSystems( CreateInterfaceFn appSystemFactory )
 		}
 	}
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems client mode init ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before init all systems" );
 	if ( !IGameSystem::InitAllSystems() )
 		return false;
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems init all systems ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before client mode enable" );
 	for ( int hh = 0; hh < MAX_SPLITSCREEN_PLAYERS; ++hh )
 	{
 		ACTIVE_SPLITSCREEN_PLAYER_GUARD_VGUI( hh );
@@ -1346,55 +1379,84 @@ CEG_NOINLINE bool InitGameSystems( CreateInterfaceFn appSystemFactory )
 	}	
 
 	// Each mod is required to implement this
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems client mode enable ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before view instance lookup" );
 	view = GetViewRenderInstance();
+	PS4_HLCLIENT_INIT_BREADCRUMB( view ? "client game systems view instance ready" : "client game systems view instance missing" );
 	if ( !view )
 	{
 		Error( "GetViewRenderInstance() must be implemented by game." );
 	}
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before view init" );
 	view->Init();
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems view init ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before view effects init" );
 	for ( int hh = 0; hh < MAX_SPLITSCREEN_PLAYERS; ++hh )
 	{
 		ACTIVE_SPLITSCREEN_PLAYER_GUARD_VGUI( hh );
 		GetViewEffects()->Init();
 	}
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems view effects ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before temp entity precache" );
 	C_BaseTempEntity::PrecacheTempEnts();
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems temp entity precache ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before input init" );
 	input->Init_All();
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems input init ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before global panels" );
 	VGui_CreateGlobalPanels();
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems global panels ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before smoke fog overlay" );
 	InitSmokeFogOverlay();
 
 	// Register user messages..
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems smoke fog overlay ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before user message registration" );
 	for ( int hh = 0; hh < MAX_SPLITSCREEN_PLAYERS; ++hh )
 	{
 		ACTIVE_SPLITSCREEN_PLAYER_GUARD( hh );
 		CUserMessageRegisterBase::RegisterAll();
 	}
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems user messages ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before voice manager init" );
 	ClientVoiceMgr_Init();
 
 	// Embed voice status icons inside chat element
 	{
 		vgui::VPANEL parent = enginevgui->GetPanel( PANEL_CLIENTDLL );
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before voice status init" );
 		GetClientVoiceMgr()->Init( &g_VoiceStatusHelper, parent );
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems voice status ready" );
 	}
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before physics dll init" );
 	if ( !PhysicsDLLInit( appSystemFactory ) )
 		return false;
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems physics dll ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before save restore handlers" );
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetEntitySaveRestoreBlockHandler() );
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetPhysSaveRestoreBlockHandler() );
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetViewEffectsRestoreBlockHandler() );
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetGameInstructorRestoreBlockHandler() );
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems save restore handlers ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before world factory init" );
 	ClientWorldFactoryInit();
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems world factory ready" );
 
 	// Keep the spinner going.
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems before final front buffer refresh" );
 	materials->RefreshFrontBufferNonInteractive();
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems final front buffer ready" );
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client game systems init complete" );
 	return true;
 }
 
@@ -1479,54 +1541,77 @@ void CHLClient::Disconnect()
 
 int CHLClient::Init( CreateInterfaceFn appSystemFactory, CGlobalVarsBase *pGlobals )
 {
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl init entered" );
 	STEAMWORKS_TESTSECRETALWAYS();
 	STEAMWORKS_SELFCHECK();
 
 	COM_TimestampedLog( "ClientDLL factories - Start" );
 	// We aren't happy unless we get all of our interfaces.
 	// please don't collapse this into one monolithic boolean expression (impossible to debug)
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before engine interface" );
 	if ( (engine = (IVEngineClient *)appSystemFactory( VENGINE_CLIENT_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before model render interface" );
 	if ( (modelrender = (IVModelRender *)appSystemFactory( VENGINE_HUDMODEL_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before effects interface" );
 	if ( (effects = (IVEfx *)appSystemFactory( VENGINE_EFFECTS_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before engine trace interface" );
 	if ( (enginetrace = (IEngineTrace *)appSystemFactory( INTERFACEVERSION_ENGINETRACE_CLIENT, NULL )) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before file logging interface" );
 	if ( (filelogginglistener = (IFileLoggingListener *)appSystemFactory(FILELOGGINGLISTENER_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before render view interface" );
 	if ( (render = (IVRenderView *)appSystemFactory( VENGINE_RENDERVIEW_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before debug overlay interface" );
 	if ( (debugoverlay = (IVDebugOverlay *)appSystemFactory( VDEBUG_OVERLAY_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before data cache interface" );
 	if ( (datacache = (IDataCache*)appSystemFactory(DATACACHE_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before model cache interface" );
 	if ( !mdlcache )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before model info interface" );
 	if ( (modelinfo = (IVModelInfoClient *)appSystemFactory(VMODELINFO_CLIENT_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before engine vgui interface" );
 	if ( (enginevgui = (IEngineVGui *)appSystemFactory(VENGINE_VGUI_VERSION, NULL )) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before network string table interface" );
 	if ( (networkstringtable = (INetworkStringTableContainer *)appSystemFactory(INTERFACENAME_NETWORKSTRINGTABLECLIENT,NULL)) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before spatial partition interface" );
 	if ( (::partition = (ISpatialPartition *)appSystemFactory(INTERFACEVERSION_SPATIALPARTITION, NULL)) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before shadow manager interface" );
 	if ( (shadowmgr = (IShadowMgr *)appSystemFactory(ENGINE_SHADOWMGR_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before static prop interface" );
 	if ( (staticpropmgr = (IStaticPropMgrClient *)appSystemFactory(INTERFACEVERSION_STATICPROPMGR_CLIENT, NULL)) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before engine sound interface" );
 	if ( (enginesound = (IEngineSound *)appSystemFactory(IENGINESOUND_CLIENT_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before filesystem interface" );
 	if ( (filesystem = (IFileSystem *)appSystemFactory(FILESYSTEM_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before random interface" );
 	if ( (random = (IUniformRandomStream *)appSystemFactory(VENGINE_CLIENT_RANDOM_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before gameui funcs interface" );
 	if ( (gameuifuncs = (IGameUIFuncs * )appSystemFactory( VENGINE_GAMEUIFUNCS_VERSION, NULL )) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before game event manager interface" );
 	if ( (gameeventmanager = (IGameEventManager2 *)appSystemFactory(INTERFACEVERSION_GAMEEVENTSMANAGER2,NULL)) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before sound emitter interface" );
 	if ( (soundemitterbase = (ISoundEmitterSystemBase *)appSystemFactory(SOUNDEMITTERSYSTEM_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before input system interface" );
 	if ( (inputsystem = (IInputSystem *)appSystemFactory(INPUTSYSTEM_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
 #if defined ( AVI_VIDEO )		
@@ -1541,23 +1626,34 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CGlobalVarsBase *pGloba
 	if ( (pQuicktime = (IQuickTime*)appSystemFactory( QUICKTIME_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
 #endif
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before scene cache interface" );
 	if ( (scenefilecache = (ISceneFileCache *)appSystemFactory( SCENE_FILE_CACHE_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before blackbox interface" );
 	if ( (blackboxrecorder = (IBlackBox *)appSystemFactory(BLACKBOX_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before xbox system interface" );
 	if ( (xboxsystem = (IXboxSystem *)appSystemFactory( XBOXSYSTEM_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before render-to-rt interface" );
 	if ( (g_pRenderToRTHelper = (IRenderToRTHelper *)appSystemFactory( RENDER_TO_RT_HELPER_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before render-to-rt init" );
 	if ( !g_pRenderToRTHelper->Init() )
 		return false;
 
 #if defined( CSTRIKE15 )
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl render-to-rt init ready" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before game types interface" );
 	if ( ( g_pGameTypes = (IGameTypes *)appSystemFactory( VENGINE_GAMETYPES_VERSION, NULL )) == NULL )
 		return false;
 
-	// load the p4 lib - not doing it in CS:GO to prevent extra .dlls from being loaded
+#if defined( PLATFORM_PS4 )
+	// Perforce tooling is a desktop development facility and has no PS4 runtime role.
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl p4lib skipped" );
+#else
+	// Load the optional Perforce integration library for desktop development.
 	CSysModule *m_pP4Module = Sys_LoadModule( "p4lib" );
 	if ( m_pP4Module )
 	{
@@ -1574,15 +1670,21 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CGlobalVarsBase *pGloba
 		}
 	}
 #endif
+#endif
 
 #if defined( REPLAY_ENABLED )
 	if ( IsPC() && (g_pReplayHistoryManager = (IReplayHistoryManager *)appSystemFactory( REPLAYHISTORYMANAGER_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
 #endif
-#ifndef _GAMECONSOLE
+#if !defined( _GAMECONSOLE ) || defined( PLATFORM_PS4 )
+#if defined( PLATFORM_PS4 )
+	// The monolithic PS4 engine exposes this service statically and client GameStats uses it.
+#endif
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before game stats uploader interface" );
 	if ( ( gamestatsuploader = (IUploadGameStats *)appSystemFactory( INTERFACEVERSION_UPLOADGAMESTATS, NULL )) == NULL )
 		return false;
 #endif
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before material surface interface" );
 	if (!g_pMatSystemSurface)
 		return false;
 
@@ -1613,11 +1715,15 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CGlobalVarsBase *pGloba
 #endif // PORTAL2
 
 #ifdef CSTRIKE15
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before cstrike match framework" );
 	if ( !g_pMatchFramework )
 		return false;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before game instructor init" );
 	GameInstructor_Init();
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl game instructor init ready" );
 #endif
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before match extension registration" );
 	if ( !g_pMatchFramework )
 		return false;
 	if ( IMatchExtensions *pIMatchExtensions = g_pMatchFramework->GetMatchExtensions() )
@@ -1635,13 +1741,17 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CGlobalVarsBase *pGloba
 
 	if ( !CommandLine()->CheckParm( "-noscripting") )
 	{
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before script manager interface" );
 		scriptmanager = (IScriptManager *)appSystemFactory( VSCRIPT_INTERFACE_VERSION, NULL );
 	}
 
 	factorylist_t factories;
 	factories.appSystemFactory = appSystemFactory;
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before factory list store" );
 	FactoryList_Store( factories );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl factory list ready" );
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before sound emitter connect" );
 	COM_TimestampedLog( "soundemitterbase->Connect" );
 	// Yes, both the client and game .dlls will try to Connect, the soundemittersystem.dll will handle this gracefully
 	if ( !soundemitterbase->Connect( appSystemFactory ) )
@@ -1661,29 +1771,41 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CGlobalVarsBase *pGloba
 		g_bHeadTrackingEnabled = true;
 
 	// Not fatal if the material system stub isn't around.
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl sound emitter connect ready" );
 	materials_stub = (IMaterialSystemStub*)appSystemFactory( MATERIAL_SYSTEM_STUB_INTERFACE_VERSION, NULL );
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before hardware config interface" );
 	if( !g_pMaterialSystemHardwareConfig )
 		return false;
 
 	// Hook up the gaussian random number generator
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before gaussian stream attach" );
 	s_GaussianRandomStream.AttachToStream( random );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl gaussian stream ready" );
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before thread mode lookup" );
 	g_pcv_ThreadMode = g_pCVar->FindVar( "host_thread_mode" );
+	PS4_HLCLIENT_INIT_BREADCRUMB( g_pcv_ThreadMode ? "client impl thread mode ready" : "client impl thread mode missing" );
 
 
 #if defined( PORTAL2 )
 	engine->EnablePaintmapRender();
 #endif
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before game systems init" );
 	COM_TimestampedLog( "InitGameSystems" );
 
 	bool bInitSuccess = false;
 	if ( cl_threaded_init.GetBool() )
 	{
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl threaded init path" );
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before threaded particle job" );
 		CFunctorJob *pGameJob = new CFunctorJob( CreateFunctor( InitParticleManager ) );
 		g_pThreadPool->AddJob( pGameJob );
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl threaded particle job queued" );
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before threaded game systems" );
 		bInitSuccess = InitGameSystems( appSystemFactory );
+		PS4_HLCLIENT_INIT_BREADCRUMB( bInitSuccess ? "client impl threaded game systems ready" : "client impl threaded game systems failed" );
 
 		// While the InitParticleManager job isn't finished, try to update the spinner
 		while( !pGameJob->IsFinished() )
@@ -1697,25 +1819,41 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CGlobalVarsBase *pGloba
 	}
 	else
 	{
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl serial init path" );
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before particle manager init" );
 		COM_TimestampedLog( "ParticleMgr()->Init" );
 		if (!ParticleMgr()->Init(MAX_TOTAL_PARTICLES, materials))
 			return false;
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl particle manager ready" );
+		PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before serial game systems" );
 		COM_TimestampedLog( "InitGameSystems - Start" );
 		bInitSuccess = InitGameSystems( appSystemFactory );
+		PS4_HLCLIENT_INIT_BREADCRUMB( bInitSuccess ? "client impl serial game systems ready" : "client impl serial game systems failed" );
 		COM_TimestampedLog( "InitGameSystems - End" );
 	}
 
+
+	PS4_HLCLIENT_INIT_BREADCRUMB( bInitSuccess ? "client impl game systems ready" : "client impl game systems failed" );
+#if defined( PLATFORM_PS4 )
+	// Do not continue with a partially initialized client runtime on PS4.
+	if ( !bInitSuccess )
+		return false;
+#endif
 
 #ifdef INFESTED_PARTICLES	// let the emitter cache load in our standard
 	g_ASWGenericEmitterCache.PrecacheTemplates();
 #endif
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before bone thread pool init" );
 	COM_TimestampedLog( "C_BaseAnimating::InitBoneSetupThreadPool" );
 
 	C_BaseAnimating::InitBoneSetupThreadPool();
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl bone thread pool ready" );
 
 	// This is a fullscreen element, so only lives on slot 0!!!
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before close caption hud lookup" );
 	m_pHudCloseCaption = GET_FULLSCREEN_HUDELEMENT( CHudCloseCaption );
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl close caption hud lookup ready" );
 
 #if defined( PORTAL2_PUZZLEMAKER )
 	// This must be called after all other VGui initialization (i.e after InitGameSystems)
@@ -1724,7 +1862,9 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CGlobalVarsBase *pGloba
 
 #if defined( CSTRIKE15 )
 	// Load the game types.
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl before game types init" );
 	g_pGameTypes->Initialize();
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl game types init ready" );
 #endif
 
 	//
@@ -1737,6 +1877,7 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CGlobalVarsBase *pGloba
 		g_BannedWords.InitFromFile( "banlist.res" );
 	}
 
+	PS4_HLCLIENT_INIT_BREADCRUMB( "client impl init complete" );
 	COM_TimestampedLog( "ClientDLL Init - Finish" );
 	return true;
 }
