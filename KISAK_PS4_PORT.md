@@ -38,20 +38,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.43
+Version: 3.44
 Size: 103,219,200 bytes
-SHA-256: c47d2e20730a7e0a2c6ae53afa0a957a3c4c69e9ad7ad9701b4e3516eb8f76dd
-Hardware run: v4.77 (2026-07-16), reaches base-panel AnimationController construction
+SHA-256: e109f3d440b6e1047dd9602e2658d97a4b4a643b025a8a359e155d3036e82f92
+Hardware run: v4.78 (2026-07-16), reaches the animation-script setup call
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.43
+Version: 3.44
 Size: 103,219,200 bytes
-SHA-256: c47d2e20730a7e0a2c6ae53afa0a957a3c4c69e9ad7ad9701b4e3516eb8f76dd
-Hardware result: v4.77 stops during `AnimationController` derived construction
+SHA-256: e109f3d440b6e1047dd9602e2658d97a4b4a643b025a8a359e155d3036e82f92
+Hardware result: v4.78 stops during the animation-script setup call expression
 ```
 
 Latest package staged for manual install and hardware test:
@@ -63,7 +63,7 @@ Size: 103,219,200 bytes
 SHA-256: e109f3d440b6e1047dd9602e2658d97a4b4a643b025a8a359e155d3036e82f92
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: pending manual install/run of v4.78 AnimationController trace
+Hardware result: v4.78 stops during the animation-script setup call expression
 ```
 
 Current hardware baseline:
@@ -8389,8 +8389,39 @@ failures.
 
 The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`. A complete FTP
-readback reports 103,219,200 bytes and the same SHA-256 above. Manual package
-installation and launch are the only remaining steps for this hardware test.
+readback reports 103,219,200 bytes and the same SHA-256 above. The package was
+then installed and executed manually.
+
+The 2026-07-16 hardware run confirms the v4.78 marker exactly once. The v4.77
+log is an exact 37,939,011-byte prefix of the new capture. This run appends
+2,761,900 bytes and 56,532 lines with SHA-256
+`4e143a21e773a273f6ae5c39f3bcb77a9816cdc06f619077d164d4b6ccdc73ba`,
+producing a 40,700,911-byte, 833,168-line log with SHA-256
+`f8090cb81b8938dea4ba5989cdbb69b4ef3090de8046149e65508637c6048b8f`.
+
+The run clears every v4.77 uncertainty. The generated message, animation, and
+key-binding map registrations all return, including their chained `Panel`
+base lookups. All four vectors construct; the visible body completes its state,
+visibility, proportional-layout, and eight common-symbol operations. The
+global controller and the later base-panel-owned controller each emit
+`animation controller complete`. The base-panel allocation expression then
+returns.
+
+The final marker is `basepanel before animation script file`, seen once.
+Neither the loaded nor missing result marker appears, and
+`gameui init base panel constructed` remains absent. The exact next source
+expression evaluates the inline `GetVPanel()` argument and calls
+`AnimationController::SetScriptFile(GetVPanel(),
+"scripts/GameUIAnimations.txt")`. Therefore the hardware evidence bounds the
+failure to that call expression; it does not yet prove entry into
+`SetScriptFile`.
+
+v4.79 will first capture the base-panel handle separately, then trace
+`SetScriptFile` entry, filename symbol insertion, filename-vector lookup and
+growth, screen-size update, filesystem open/read, and parse result. Its
+`UpdateScreenSize` probes will split the `IPanel` query, `GetSize`, and
+`GetPos` calls. This preserves attribution while allowing the same run to
+continue through a nonfatal missing animation file.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
