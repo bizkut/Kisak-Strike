@@ -30,7 +30,7 @@ DLL/PRX ownership assumptions merely because the original code used them.
 | Package SHA-256 | `ce977ddc82105aaefcac08d1c55a24a1bf2d20719ffb608441d9511a3d7ccca7` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `9344e42e` (`Instrument PS4 client particle sheet loading`) |
-| Hardware-result commit | Pending (this checkpoint) |
+| Hardware-result commit | `25014a5a` (`Record v4.84 client mode boundary`) |
 
 v4.84 closes the entire particle-parser boundary. Both the server and client
 `ParseParticleEffects` passes complete with 1,062 definitions, including the
@@ -149,6 +149,32 @@ to bounded `CCSModeManager::Init` and panel-metaclass-loader attribution. A
 missing function-entry marker will implicate the `modemanager` dispatch or
 ownership; a present marker will isolate the split-screen client-mode setup or
 `scripts/vgui_screens.txt` loading.
+
+### v4.85 candidate instrumentation
+
+Package version 3.51 and build marker `client_mode_manager_v485` identify the
+next manual-install candidate. `CCSModeManager::Init` now records virtual-body
+entry, each split-screen guard's construction and release, the active-slot and
+normal-client-mode lookup, the panel-manager accessor, and the definition-file
+call. The client-mode detail probe is enabled only for this Init call.
+
+The panel-metaclass path records singleton readiness, allocation credit,
+existing-definition lookup and cleanup, `KeyValues` allocation/dictionary
+insertion, `scripts/vgui_screens.txt` loading, list traversal, panel-type
+lookup, and metaclass dictionary insertion. Detail is capped at 512 records
+plus one explicit sentinel. Call order, split-screen behavior, file-loading
+policy, parser return values, and dictionaries are unchanged; the legacy
+single-byte copyright header was mechanically normalized to ASCII so the file
+could be edited safely.
+
+The Linux OpenOrbis monolithic build completes. The OELF is 136,086,944 bytes
+with SHA-256
+`679d35e42f4ba47c22c364478a8ad4b5467ae4d6b37a46ef9339895a40c27a25`;
+the SELF input is 83,192,528 bytes with SHA-256
+`ce43676b91be5d26427b71761dfa3633b36289268db2e6f8482fcdd7eddad744`.
+The focused client target also compiles. Eleven of fourteen host tests pass;
+the same three Linux-address OpenGNM descriptor fixtures fail outside the
+changed client-mode/metaclass code.
 
 The gate remains open until hardware proves `ClientDLL_Init` completion,
 successful EngineVGui/GameUI hookup, and one complete production

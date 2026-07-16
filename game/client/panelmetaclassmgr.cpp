@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright (c) 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: A panel "metaclass" is a name given to a particular type of 
 // panel with particular instance data. Such panels tend to be dynamically
@@ -17,6 +17,44 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+
+static int s_nKisakPs4PanelMetaBreadcrumbCount = 0;
+static const int k_nKisakPs4PanelMetaBreadcrumbLimit = 512;
+
+static void KisakPs4ResetPanelMetaBreadcrumbs()
+{
+	s_nKisakPs4PanelMetaBreadcrumbCount = 0;
+}
+
+static void KisakPs4PanelMetaBreadcrumb( const char *pPhase, const char *pName,
+	int nValue )
+{
+	if ( s_nKisakPs4PanelMetaBreadcrumbCount >= k_nKisakPs4PanelMetaBreadcrumbLimit )
+	{
+		if ( s_nKisakPs4PanelMetaBreadcrumbCount == k_nKisakPs4PanelMetaBreadcrumbLimit )
+		{
+			++s_nKisakPs4PanelMetaBreadcrumbCount;
+			KisakPs4StartupBreadcrumb( "kisak-ps4: panel meta detail limit reached" );
+		}
+		return;
+	}
+
+	++s_nKisakPs4PanelMetaBreadcrumbCount;
+	char line[512];
+	V_snprintf( line, sizeof( line ),
+		pName && pName[0]
+			? "kisak-ps4: panel meta %s value=%d name=%s"
+			: "kisak-ps4: panel meta %s value=%d",
+		pPhase ? pPhase : "unknown", nValue, pName ? pName : "" );
+	KisakPs4StartupBreadcrumb( line );
+}
+#else
+#define KisakPs4ResetPanelMetaBreadcrumbs() ((void)0)
+#define KisakPs4PanelMetaBreadcrumb( phase, name, value ) ((void)0)
+#endif
 
 //-----------------------------------------------------------------------------
 // Helper KeyValue parsing methods
@@ -220,7 +258,9 @@ IPanelMetaClassMgr* PanelMetaClassMgr()
 {
 	// NOTE: the CPanelFactory implementation requires the local static here
 	// even though it means an extra check every time PanelMetaClassMgr is accessed
+	KisakPs4PanelMetaBreadcrumb( "manager accessor entered", NULL, 0 );
 	static CPanelMetaClassMgrImp s_MetaClassMgrImp;
+	KisakPs4PanelMetaBreadcrumb( "manager static ready", NULL, 0 );
 	return &s_MetaClassMgrImp;
 }
 
@@ -262,22 +302,37 @@ void CPanelMetaClassMgrImp::InstallPanelType( const char* pPanelName, IPanelFact
 bool CPanelMetaClassMgrImp::ParseSingleMetaClass( const char* pFileName,
 	const char* pMetaClassName, KeyValues* pMetaClassValues, int keyValueIndex )
 {
+	KisakPs4PanelMetaBreadcrumb( "single parse entered", pMetaClassName, keyValueIndex );
 	// Complain about duplicately defined metaclass names...
-	if ( m_MetaClassDict.Find( pMetaClassName ) != m_MetaClassDict.InvalidIndex() )
+	KisakPs4PanelMetaBreadcrumb( "single before duplicate lookup", pMetaClassName, 0 );
+	const unsigned short nExistingIndex = m_MetaClassDict.Find( pMetaClassName );
+	const unsigned short nInvalidMetaClassIndex = m_MetaClassDict.InvalidIndex();
+	KisakPs4PanelMetaBreadcrumb( nExistingIndex != nInvalidMetaClassIndex
+		? "single duplicate found"
+		: "single duplicate clear", pMetaClassName, nExistingIndex );
+	if ( nExistingIndex != nInvalidMetaClassIndex )
 	{
 		Warning( "Meta class %s duplicately defined (file %s)\n", pMetaClassName, pFileName );
 		return false;
 	}
 
 	// find the type...
+	KisakPs4PanelMetaBreadcrumb( "single before type value", pMetaClassName, 0 );
 	const char* pPanelType = pMetaClassValues->GetString( "type" );
+	KisakPs4PanelMetaBreadcrumb( pPanelType && pPanelType[0]
+		? "single type value ready"
+		: "single type value missing", pPanelType, 0 );
 	if (!pPanelType || !pPanelType[0])
 	{
 		Warning( "Unable to find type of meta class %s in file %s\n", pMetaClassName, pFileName );
 		return false;
 	}
 
+	KisakPs4PanelMetaBreadcrumb( "single before panel type lookup", pPanelType, 0 );
 	unsigned short i = m_PanelTypeDict.Find( pPanelType );
+	KisakPs4PanelMetaBreadcrumb( i == m_PanelTypeDict.InvalidIndex()
+		? "single panel type missing"
+		: "single panel type ready", pPanelType, i );
 	if (i == m_PanelTypeDict.InvalidIndex())
 	{
 		Warning( "Type %s of meta class %s undefined!\n", pPanelType, pMetaClassName );
@@ -290,7 +345,9 @@ bool CPanelMetaClassMgrImp::ParseSingleMetaClass( const char* pFileName,
 	element.m_TypeIndex = i;
 	element.m_KeyValueIndex = keyValueIndex;
 	element.m_pKeyValues = pMetaClassValues;
+	KisakPs4PanelMetaBreadcrumb( "single before dictionary insert", pMetaClassName, keyValueIndex );
 	m_MetaClassDict.Insert( pMetaClassName, element );
+	KisakPs4PanelMetaBreadcrumb( "single parse complete", pMetaClassName, keyValueIndex );
 
 	return true;
 }
@@ -303,17 +360,37 @@ bool CPanelMetaClassMgrImp::ParseMetaClassList( const char* pFileName,
 												  KeyValues* pKeyValues, int keyValueIdx )
 {
 	// Iterate over all metaclasses...
+	KisakPs4PanelMetaBreadcrumb( "list parse entered", pFileName, keyValueIdx );
+	KisakPs4PanelMetaBreadcrumb( "list before first subkey", pFileName, 0 );
 	KeyValues* pIter = pKeyValues->GetFirstSubKey();
+	KisakPs4PanelMetaBreadcrumb( pIter
+		? "list first subkey ready"
+		: "list first subkey missing", pFileName, 0 );
+	int nMetaClass = 0;
 	while( pIter )
 	{
-		if (!ParseSingleMetaClass( pFileName, pIter->GetName(), pIter, keyValueIdx ))
+		KisakPs4PanelMetaBreadcrumb( "list before entry name", pFileName, nMetaClass );
+		const char *pMetaClassName = pIter->GetName();
+		KisakPs4PanelMetaBreadcrumb( "list entry name ready", pMetaClassName, nMetaClass );
+		KisakPs4PanelMetaBreadcrumb( "list before single parse", pMetaClassName, nMetaClass );
+		const bool bParsed = ParseSingleMetaClass( pFileName, pMetaClassName, pIter, keyValueIdx );
+		KisakPs4PanelMetaBreadcrumb( bParsed
+			? "list single parse ready"
+			: "list single parse failed", pMetaClassName, nMetaClass );
+		if (!bParsed)
 		{
 		//	return false;
-			Warning( "MetaClass missing for %s\n", pIter->GetName() );
+			Warning( "MetaClass missing for %s\n", pMetaClassName );
 		}
+		KisakPs4PanelMetaBreadcrumb( "list before next entry", pMetaClassName, nMetaClass );
 		pIter = pIter->GetNextKey();
+		++nMetaClass;
+		KisakPs4PanelMetaBreadcrumb( pIter
+			? "list next entry ready"
+			: "list entries complete", pFileName, nMetaClass );
 	}
 
+	KisakPs4PanelMetaBreadcrumb( "list parse complete", pFileName, nMetaClass );
 	return true;
 }
 
@@ -323,13 +400,22 @@ bool CPanelMetaClassMgrImp::ParseMetaClassList( const char* pFileName,
 //-----------------------------------------------------------------------------
 void CPanelMetaClassMgrImp::LoadMetaClassDefinitionFile( const char *pFileName )
 {
+	KisakPs4ResetPanelMetaBreadcrumbs();
+	KisakPs4PanelMetaBreadcrumb( "load entered", pFileName, 0 );
+	KisakPs4PanelMetaBreadcrumb( "load before allocation credit", pFileName, 0 );
 	MEM_ALLOC_CREDIT();
+	KisakPs4PanelMetaBreadcrumb( "load allocation credit ready", pFileName, 0 );
 
 	// Blat out previous metaclass definitions read in from this file...
+	KisakPs4PanelMetaBreadcrumb( "load before existing lookup", pFileName, 0 );
 	int i = m_MetaClassKeyValues.Find( pFileName );
+	KisakPs4PanelMetaBreadcrumb( i != m_MetaClassKeyValues.InvalidIndex()
+		? "load existing definition found"
+		: "load existing definition clear", pFileName, i );
 	if (i != m_MetaClassKeyValues.InvalidIndex() )
 	{
 		// Blow away the previous keyvalues	from that file
+		KisakPs4PanelMetaBreadcrumb( "load before existing dictionary cleanup", pFileName, i );
 		unsigned short j = m_MetaClassDict.First();
 		while ( j != m_MetaClassDict.InvalidIndex() )
 		{
@@ -341,33 +427,55 @@ void CPanelMetaClassMgrImp::LoadMetaClassDefinitionFile( const char *pFileName )
 
 			j = next;
 		}
+		KisakPs4PanelMetaBreadcrumb( "load existing dictionary cleanup ready", pFileName, i );
 
+		KisakPs4PanelMetaBreadcrumb( "load before existing keyvalues delete", pFileName, i );
 		m_MetaClassKeyValues[i]->deleteThis();
 		m_MetaClassKeyValues.RemoveAt(i); 
+		KisakPs4PanelMetaBreadcrumb( "load existing keyvalues removed", pFileName, i );
 	}
 
 	// Create a new keyvalues entry
+	KisakPs4PanelMetaBreadcrumb( "load before keyvalues allocation", pFileName, 0 );
 	KeyValues* pKeyValues = new KeyValues(pFileName);
+	KisakPs4PanelMetaBreadcrumb( pKeyValues
+		? "load keyvalues allocation ready"
+		: "load keyvalues allocation missing", pFileName, 0 );
+	KisakPs4PanelMetaBreadcrumb( "load before keyvalues dictionary insert", pFileName, 0 );
 	int idx = m_MetaClassKeyValues.Insert( pFileName, pKeyValues );
+	KisakPs4PanelMetaBreadcrumb( "load keyvalues dictionary ready", pFileName, idx );
 
 	// Read in all metaclass definitions...
 
 	// Load the file
-	if ( !pKeyValues->LoadFromFile( filesystem, pFileName ) )
+	KisakPs4PanelMetaBreadcrumb( "load before file read", pFileName, filesystem ? 1 : 0 );
+	const bool bLoaded = pKeyValues->LoadFromFile( filesystem, pFileName );
+	KisakPs4PanelMetaBreadcrumb( bLoaded
+		? "load file read ready"
+		: "load file read failed", pFileName, idx );
+	if ( !bLoaded )
 	{
 		Warning( "Couldn't find metaclass definition file %s\n", pFileName );
+		KisakPs4PanelMetaBreadcrumb( "load before failed keyvalues cleanup", pFileName, idx );
 		pKeyValues->deleteThis();
 		m_MetaClassKeyValues.RemoveAt(idx);
+		KisakPs4PanelMetaBreadcrumb( "load failed cleanup ready", pFileName, idx );
 		return;
 	}
 	else
 	{
 		// Go ahead and parse the data now
-		if ( !ParseMetaClassList( pFileName, pKeyValues, idx ) )
+		KisakPs4PanelMetaBreadcrumb( "load before list parse", pFileName, idx );
+		const bool bParsed = ParseMetaClassList( pFileName, pKeyValues, idx );
+		KisakPs4PanelMetaBreadcrumb( bParsed
+			? "load list parse ready"
+			: "load list parse failed", pFileName, idx );
+		if ( !bParsed )
 		{
 			Warning( "Detected one or more errors parsing %s\n", pFileName );
 		}
 	}
+	KisakPs4PanelMetaBreadcrumb( "load complete", pFileName, idx );
 }
 
 
@@ -444,5 +552,3 @@ void CPanelMetaClassMgrImp::DestroyPanelMetaClass( vgui::Panel *pPanel )
 //		pPanel->MarkForDeletion();
 	delete pPanel;
 }
-
-

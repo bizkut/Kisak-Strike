@@ -95,6 +95,32 @@
 // NOTE: This has to be the last file included!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+static bool s_bKisakPs4ClientModeProbeEnabled = false;
+
+static void KisakPs4SetClientModeProbeEnabled( bool bEnabled )
+{
+	s_bKisakPs4ClientModeProbeEnabled = bEnabled;
+}
+
+static void KisakPs4ClientModeBreadcrumb( const char *pPhase, int nSlot )
+{
+	if ( !s_bKisakPs4ClientModeProbeEnabled )
+	{
+		return;
+	}
+
+	char line[256];
+	V_snprintf( line, sizeof( line ), "kisak-ps4: client mode %s slot=%d",
+		pPhase ? pPhase : "unknown", nSlot );
+	KisakPs4StartupBreadcrumb( line );
+}
+#else
+#define KisakPs4SetClientModeProbeEnabled( enabled ) ((void)0)
+#define KisakPs4ClientModeBreadcrumb( phase, slot ) ((void)0)
+#endif
+
 //
 // WARNING!! WARNING!! WARNING!! WARNING!! WARNING!! WARNING!! WARNING!! WARNING!!
 //
@@ -499,13 +525,35 @@ IVModeManager *modemanager = ( IVModeManager * )&g_ModeManager;
 
 void CCSModeManager::Init()
 {
+	KisakPs4SetClientModeProbeEnabled( true );
+	KisakPs4ClientModeBreadcrumb( "manager init entered", -1 );
 	for( int i = 0; i < MAX_SPLITSCREEN_PLAYERS; ++i )
 	{
-		ACTIVE_SPLITSCREEN_PLAYER_GUARD( i );
-		g_pClientMode[ i ] = GetClientModeNormal();
+		KisakPs4ClientModeBreadcrumb( "before split screen guard", i );
+		{
+			ACTIVE_SPLITSCREEN_PLAYER_GUARD( i );
+			KisakPs4ClientModeBreadcrumb( "split screen guard ready", i );
+			KisakPs4ClientModeBreadcrumb( "before normal mode lookup", i );
+			IClientMode *pClientMode = GetClientModeNormal();
+			KisakPs4ClientModeBreadcrumb( pClientMode
+				? "normal mode lookup ready"
+				: "normal mode lookup missing", i );
+			g_pClientMode[ i ] = pClientMode;
+			KisakPs4ClientModeBreadcrumb( "normal mode assigned", i );
+		}
+		KisakPs4ClientModeBreadcrumb( "split screen guard released", i );
 	}
 
-	PanelMetaClassMgr()->LoadMetaClassDefinitionFile( SCREEN_FILE );
+	KisakPs4ClientModeBreadcrumb( "before panel manager lookup", -1 );
+	IPanelMetaClassMgr *pPanelMetaClassMgr = PanelMetaClassMgr();
+	KisakPs4ClientModeBreadcrumb( pPanelMetaClassMgr
+		? "panel manager lookup ready"
+		: "panel manager lookup missing", -1 );
+	KisakPs4ClientModeBreadcrumb( "before panel definition load", -1 );
+	pPanelMetaClassMgr->LoadMetaClassDefinitionFile( SCREEN_FILE );
+	KisakPs4ClientModeBreadcrumb( "panel definition load ready", -1 );
+	KisakPs4ClientModeBreadcrumb( "manager init complete", -1 );
+	KisakPs4SetClientModeProbeEnabled( false );
 }
 
 void CCSModeManager::LevelInit( const char *newmap )
@@ -1964,8 +2012,14 @@ ClientModeCSNormal g_ClientModeNormal[ MAX_SPLITSCREEN_PLAYERS ];
 
 IClientMode *GetClientModeNormal()
 {
+	KisakPs4ClientModeBreadcrumb( "normal mode function entered", -1 );
+	KisakPs4ClientModeBreadcrumb( "before local player assertion", -1 );
 	ASSERT_LOCAL_PLAYER_RESOLVABLE();
-	return &g_ClientModeNormal[ GET_ACTIVE_SPLITSCREEN_SLOT() ];
+	KisakPs4ClientModeBreadcrumb( "local player assertion ready", -1 );
+	KisakPs4ClientModeBreadcrumb( "before active slot lookup", -1 );
+	const int nSlot = GET_ACTIVE_SPLITSCREEN_SLOT();
+	KisakPs4ClientModeBreadcrumb( "active slot lookup ready", nSlot );
+	return &g_ClientModeNormal[ nSlot ];
 }
 
 
