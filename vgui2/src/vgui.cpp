@@ -53,6 +53,12 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include <tier0/memdbgon.h>
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_VGUI_CORE_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_VGUI_CORE_BREADCRUMB( line ) ((void)0)
+#endif
 
 using namespace vgui;
 static const int WARN_PANEL_NUMBER = 32768; // in DEBUG if more panels than this are created then throw an Assert, helps catch panel leaks
@@ -543,12 +549,20 @@ void CVGui::RunFrame()
 //-----------------------------------------------------------------------------
 VPANEL CVGui::AllocPanel()
 {
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui alloc panel entered" );
 #ifdef DEBUG
 	m_iDeleteCount++;
 #endif
 
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui alloc panel before vpanel new" );
 	VPanel *panel = new VPanel;
+	PS4_VGUI_CORE_BREADCRUMB( panel
+		? "kisak-ps4: vgui alloc panel vpanel new returned value=1"
+		: "kisak-ps4: vgui alloc panel vpanel new returned value=0" );
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui alloc panel before panel created" );
 	PanelCreated(panel);
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui alloc panel panel created returned" );
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui alloc panel complete" );
 	return (VPANEL)panel;
 }
 
@@ -593,8 +607,16 @@ VPANEL CVGui::HandleToPanel(HPanel index)
 //-----------------------------------------------------------------------------
 void CVGui::PanelCreated(VPanel *panel)
 {
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui panel created entered" );
+	PS4_VGUI_CORE_BREADCRUMB( panel
+		? "kisak-ps4: vgui panel created panel ready value=1"
+		: "kisak-ps4: vgui panel created panel ready value=0" );
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui panel created before handle add" );
 	UtlHandle_t h = m_HandleTable.AddHandle();
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui panel created handle add ready" );
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui panel created before handle set" );
 	m_HandleTable.SetHandle( h, panel );
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui panel created handle set ready" );
 
 #if DUMP_PANEL_LIST
 	int nCount = m_HandleTable.GetHandleCount();
@@ -633,9 +655,17 @@ void CVGui::PanelCreated(VPanel *panel)
 	Assert( nActualCount < WARN_PANEL_NUMBER );
 #endif // DUMP_PANEL_LIST
 
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui panel created before hpanel set" );
 	((VPanel *)panel)->SetHPanel( h );
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui panel created hpanel set ready" );
 
+	PS4_VGUI_CORE_BREADCRUMB( g_pSurface
+		? "kisak-ps4: vgui panel created surface ready value=1"
+		: "kisak-ps4: vgui panel created surface ready value=0" );
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui panel created before surface add" );
 	g_pSurface->AddPanel((VPANEL)panel);
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui panel created surface add returned" );
+	PS4_VGUI_CORE_BREADCRUMB( "kisak-ps4: vgui panel created complete" );
 }
 
 //-----------------------------------------------------------------------------

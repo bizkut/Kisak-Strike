@@ -3426,11 +3426,18 @@ void CMatSystemSurface::CreatePopup(VPANEL panel, bool minimized,  bool showTask
 //-----------------------------------------------------------------------------
 void CMatSystemSurface::AddPanel(VPANEL panel)
 {
-	if (g_pVGuiPanel->IsPopup(panel))
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface add panel entered" );
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface add panel before is popup" );
+	bool bIsPopup = g_pVGuiPanel->IsPopup( panel );
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface add panel is popup returned" );
+	if ( bIsPopup )
 	{
 		// turn it into a popup menu
-		CreatePopup(panel, false);
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface add panel before create popup" );
+		CreatePopup( panel, false );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface add panel create popup returned" );
 	}
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface add panel complete" );
 }
 
 void CMatSystemSurface::ReleasePanel(VPANEL panel)
@@ -4639,44 +4646,81 @@ static bool IsChildOfModalSubTree(VPANEL panel)
 
 void CMatSystemSurface::CalculateMouseVisible()
 {
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse entered" );
 	int i;
 	m_bNeedsMouse = false;
 	m_bNeedsKeyboard = false;
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse defaults ready" );
 
-	if ( input()->GetMouseCapture() != 0 )
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse before capture query" );
+	VPANEL mouseCapture = input()->GetMouseCapture();
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse capture query returned" );
+	if ( mouseCapture != 0 )
+	{
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse capture early return" );
 		return;
+	}
 
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse before popup count" );
 	int c = surface()->GetPopupCount();
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse popup count returned" );
 
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse before modal subtree" );
 	VPANEL modalSubTree = input()->GetModalSubTree();
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal subtree returned" );
 	if ( modalSubTree )
 	{
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal branch" );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse before modal show mouse" );
 		m_bNeedsMouse = input()->ShouldModalSubTreeShowMouse();
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal show mouse returned" );
 
-		for (i = 0 ; i < c ; i++ )
+		for ( i = 0; i < c; i++ )
 		{
-			VPanel *pop = (VPanel *)surface()->GetPopup(i) ;
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal loop entered" );
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal before get popup" );
+			VPanel *pop = (VPanel *)surface()->GetPopup( i );
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal get popup returned" );
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal before child query" );
 			bool isChildOfModalSubPanel = IsChildOfModalSubTree( (VPANEL)pop );
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal child query returned" );
 			if ( !isChildOfModalSubPanel )
-				continue;
-
-			bool isVisible=pop->IsVisible();
-			VPanel *p= pop->GetParent();
-
-			while (p && isVisible)
 			{
-				if( p->IsVisible()==false)
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal skipped nonchild" );
+				continue;
+			}
+
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal before visible query" );
+			bool isVisible = pop->IsVisible();
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal visible query returned" );
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal before parent query" );
+			VPanel *p = pop->GetParent();
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal parent query returned" );
+
+			while ( p && isVisible )
+			{
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal parent loop entered" );
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal before parent visible" );
+				bool bParentVisible = p->IsVisible();
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal parent visible returned" );
+				if ( bParentVisible == false )
 				{
-					isVisible=false;
+					isVisible = false;
 					break;
 				}
-				p=p->GetParent();
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal before next parent" );
+				p = p->GetParent();
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal next parent returned" );
 			}
 
 			if ( isVisible )
 			{
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal before mouse enabled" );
 				m_bNeedsMouse = m_bNeedsMouse || pop->IsMouseInputEnabled();
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal mouse enabled returned" );
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal before keyboard enabled" );
 				m_bNeedsKeyboard = m_bNeedsKeyboard || pop->IsKeyBoardInputEnabled();
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse modal keyboard enabled returned" );
 
 				// Seen enough!!!
 				if ( m_bNeedsMouse && m_bNeedsKeyboard )
@@ -4686,27 +4730,45 @@ void CMatSystemSurface::CalculateMouseVisible()
 	}
 	else
 	{
-		for (i = 0 ; i < c ; i++ )
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal branch" );
+		for ( i = 0; i < c; i++ )
 		{
-			VPanel *pop = (VPanel *)surface()->GetPopup(i) ;
-			
-			bool isVisible=pop->IsVisible();
-			VPanel *p= pop->GetParent();
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal loop entered" );
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal before get popup" );
+			VPanel *pop = (VPanel *)surface()->GetPopup( i );
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal get popup returned" );
 
-			while (p && isVisible)
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal before visible query" );
+			bool isVisible = pop->IsVisible();
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal visible query returned" );
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal before parent query" );
+			VPanel *p = pop->GetParent();
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal parent query returned" );
+
+			while ( p && isVisible )
 			{
-				if( p->IsVisible()==false)
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal parent loop entered" );
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal before parent visible" );
+				bool bParentVisible = p->IsVisible();
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal parent visible returned" );
+				if ( bParentVisible == false )
 				{
-					isVisible=false;
+					isVisible = false;
 					break;
 				}
-				p=p->GetParent();
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal before next parent" );
+				p = p->GetParent();
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal next parent returned" );
 			}
-		
+
 			if ( isVisible )
 			{
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal before mouse enabled" );
 				m_bNeedsMouse = m_bNeedsMouse || pop->IsMouseInputEnabled();
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal mouse enabled returned" );
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal before keyboard enabled" );
 				m_bNeedsKeyboard = m_bNeedsKeyboard || pop->IsKeyBoardInputEnabled();
+				PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse normal keyboard enabled returned" );
 
 				// Seen enough!!!
 				if ( m_bNeedsMouse && m_bNeedsKeyboard )
@@ -4714,36 +4776,56 @@ void CMatSystemSurface::CalculateMouseVisible()
 			}
 		}
 	}
-	
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse popup scan complete" );
+
 	// [jason] If we don't handle windows input event messages, ensure that we UnlockCursor:
 	//	this is used so that in-game Scaleform can claim mouse focus on PC and have the mouse move around
 #if defined( CSTRIKE15 )
-	if ( IsPC() && !m_bNeedsMouse )
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse before is pc" );
+	bool bIsPC = IsPC();
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse is pc returned" );
+	if ( bIsPC && !m_bNeedsMouse )
 	{
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse applying pc fallback" );
 		m_bNeedsMouse = !m_bEnableInput;
 	}
 #endif // defined( CSTRIKE15 )
 
-	if (m_bNeedsMouse)
+	if ( m_bNeedsMouse )
 	{
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse needs mouse branch" );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse before enable input context" );
 		g_pInputStackSystem->EnableInputContext( GetInputContext(), true );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse enable input context returned" );
 
 		// NOTE: We must unlock the cursor *before* the set call here.
 		// Failing to do this causes s_bCursorVisible to not be set correctly
 		// (UnlockCursor fails to set it correctly)
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse before unlock cursor" );
 		UnlockCursor();
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse unlock cursor returned" );
 		if ( _currentCursor == vgui::dc_none )
 		{
-			SetCursor(vgui::dc_arrow);
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse before arrow cursor" );
+			SetCursor( vgui::dc_arrow );
+			PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse arrow cursor returned" );
 		}
 	}
 	else
 	{
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse no mouse branch" );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse before disable input context" );
 		g_pInputStackSystem->EnableInputContext( GetInputContext(), false );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse disable input context returned" );
 
-		SetCursor(vgui::dc_none);
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse before none cursor" );
+		SetCursor( vgui::dc_none );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse none cursor returned" );
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse before lock cursor" );
 		LockCursor();
+		PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse lock cursor returned" );
 	}
+	PS4_MATSURFACE_BREADCRUMB( "kisak-ps4: matsurface calculate mouse complete" );
 }
 
 bool CMatSystemSurface::NeedKBInput()

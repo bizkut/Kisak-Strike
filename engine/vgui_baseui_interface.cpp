@@ -296,9 +296,16 @@ class CStaticPanel : public Panel
 public:
 	CStaticPanel( Panel *pParent, const char *pName ) : Panel( pParent, pName )
 	{
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: static panel constructor body entered" );
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: static panel before cursor" );
 		SetCursor( dc_none );
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: static panel cursor ready" );
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: static panel before keyboard input" );
 		SetKeyBoardInputEnabled( false );
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: static panel keyboard input ready" );
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: static panel before mouse input" );
 		SetMouseInputEnabled( false );
+		PS4_ENGINE_VGUI_BREADCRUMB( "kisak-ps4: static panel constructor complete" );
 	}
 };
 

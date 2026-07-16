@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.39
+Version: 3.40
 Size: 103,219,200 bytes
-SHA-256: f7d7239891412efb860d18499916ee2e9e283255bf55818f18f065c60241afcf
+SHA-256: 840129dd17a0a226cfb76dbc84bb8c4325da22a70ae98c39ae50d1ac7d6741a9
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.73 stops inside `new CStaticPanel(NULL, "staticPanel")`
+Hardware result: pending; v4.74 traces first static-panel construction
 ```
 
 Current hardware baseline:
@@ -7949,6 +7949,63 @@ while the base constructor calls `Panel::Init`, allocates and initializes a
 VPanel, sets geometry/flags/colors, and assigns name/parent/build-mode state.
 The next diagnostic should mark entry and each base-initialization boundary
 without skipping panel construction.
+
+### v4.74: Trace the complete first static-panel construction path
+
+Package version 3.40 and build marker `static_panel_trace_v474` identify the
+diagnostic for the v4.73 boundary. Hardware v4.73 completes the entire scheme
+and font path, `IVGui::Start`, and `IVGui::SetSleep(false)`, then records
+`engine vgui before static panel create` without recording
+`engine vgui static panel created`. The exact failing expression is therefore
+the allocation or constructor path of
+`new CStaticPanel(NULL, "staticPanel")`.
+
+The PS4-only breadcrumbs now follow that construction without bypassing it:
+the `vgui::Panel` base constructor and `Panel::Init`; `CVGui::AllocPanel`;
+`VPanel` construction and initialization; `CVGui::PanelCreated` handle-table,
+client-handle, and surface registration; `CMatSystemSurface::AddPanel`;
+geometry, flag, color, name, parent, and build-mode setup; and each
+`CStaticPanel` cursor, keyboard-input, and mouse-input call. The mouse-input
+path additionally brackets capture, popup, modal-subtree, visibility,
+input-context, and cursor operations inside
+`CMatSystemSurface::CalculateMouseVisible`. All markers use constant strings
+behind PS4-only no-op macros, so other platform behavior is unchanged.
+
+The next hardware log should identify the last completed call boundary inside
+the constructor. In particular, a final `before disable input context` marker
+would isolate `g_pInputStackSystem->EnableInputContext`; an earlier final
+marker will instead identify the exact VPanel, handle-table, panel-interface,
+surface, geometry, color, name, parent, or setter operation. No speculative
+constructor step is skipped in this package.
+
+The four directly affected PS4 targets
+`vgui_controls_client`, `vgui2_client`, `vguimatsurface_client`, and
+`engine_client` compile, and the complete monolithic link succeeds. The final
+artifacts are:
+
+```text
+OELF: build-ps4-engine/kisak_ps4_monolithic.oelf
+Size: 136,028,344 bytes
+SHA-256: fb4bd98a5ec0a20feaa66aa51ace462c9819b4cffbff667a9f271a3bb05d1787
+
+SELF: build-ps4-engine/kisak_ps4_monolithic.bin
+Size: 83,142,752 bytes
+SHA-256: d66e91a212f41178aba772a1bf79fa05e27038f985aa3bf111f0e726b4e1594f
+
+Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
+Version: 3.40
+Size: 103,219,200 bytes
+SHA-256: 840129dd17a0a226cfb76dbc84bb8c4325da22a70ae98c39ae50d1ac7d6741a9
+```
+
+PkgTool reports every package size, digest, and signature check as `[OK]`,
+and `param.sfo` reports both `APP_VER` and `VERSION` as 3.40. The host
+PS4 suite remains at 11/14 with only the known `ps4_gnm_device`,
+`ps4_gnm_buffer`, and `ps4_gnm_constants` baseline failures. The package
+is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; a complete FTP
+readback matches the local 103,219,200-byte package and SHA-256 above. Manual
+install and hardware execution remain.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
