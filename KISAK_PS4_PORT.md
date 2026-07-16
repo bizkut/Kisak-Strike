@@ -23,14 +23,37 @@ DLL/PRX ownership assumptions merely because the original code used them.
 
 | Item | Value |
 |---|---|
-| Test | v4.93, 2026-07-16 |
-| Package version | 3.59 |
+| Test | v4.94, 2026-07-16 |
+| Package version | 3.60 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
-| Package SHA-256 | `76f1b250d28772f2daaa0a1877c3e242fe468e2d3abae9f42fa0fee9851a9527` |
+| Package SHA-256 | `1486680143f635748c84602d28c2fb24e59f3e3ac4d3a9853e05ba06efbe3081` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `a0bbfa0a` (`Harden PS4 event and init failure tracing`) |
-| Hardware-result commit | This v4.93 result record (`Record v4.93 physics fail-stop`) |
+| Candidate commit | `79664c15` (`Retain PS4 vphysics surface database`) |
+| Hardware-result commit | This v4.94 result record (`Record v4.94 info-panel crash`) |
+
+v4.94 clears the complete server-physics gate. The retained
+`VPhysicsSurfaceProps001` resolves, the manifest loads, and
+`scripts/surfaceproperties_cs.txt` parses. `CPhysicsHook::Init`, every traced
+server game system, `CServerGameDLL::DLLInit`, and the engine game-DLL boundary
+complete. The client also clears the former `hltv_status` crash: descriptor
+lookup, callback allocation, both listener insertions, scoreboard construction,
+and scoreboard viewport insertion all complete.
+
+The crash is now in the next default viewport panel. `CreatePanelByName("info")`
+enters the info-panel allocation, constructs its cursor controls, and completes
+a mouse-input update, but never returns from the allocation. The exact last line
+is `kisak-ps4: panel set mouse input complete`. The fresh log was last modified
+at 2026-07-16 22:46:04 UTC; it is 502,648 bytes and 12,797 lines with SHA-256
+`185c6b9fe21cc1c9957dbd9739210eb1be30407bbdcc2d53e41fb68340a12592`.
+
+The immediate v4.95 gate is the concrete `info`/text-window constructor after
+its last mouse-input operation, not renderer expansion. Attribute the remaining
+constructor stages and any registrar/ownership dependency, then require the
+panel allocation and insertion to return before advancing toward the first real
+Source frame.
+
+### v4.93 result and immediate v4.94 gate
 
 v4.93 no longer crashes. It proves the direct PS4 physics factory resolves
 `VPhysics031` and `VPhysicsCollision007`, then fails to resolve
