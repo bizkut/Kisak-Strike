@@ -226,6 +226,13 @@ strings: `c4_panel`, `c4_view_panel`, `movie_display_screen`,
 tests pass; the same three Linux high-address OpenGNM fixtures fail outside the
 changed link-composition path.
 
+Candidate commit `47fb2b0f` produces a 103,415,808-byte package with SHA-256
+`2b588685815d7640697a921dffea20964b3b7bb56a66be12ef2d598c05ada208`.
+The embedded SFO reports version 3.52, and verbose PkgTool validation reports
+every limit, digest, and signature check `[OK]`. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete FTP
+readbacks each return 103,415,808 bytes with the same SHA-256.
+
 The gate remains open until hardware proves `ClientDLL_Init` completion,
 successful EngineVGui/GameUI hookup, and one complete production
 `eng->Frame()`.
