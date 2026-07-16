@@ -23,48 +23,50 @@ DLL/PRX ownership assumptions merely because the original code used them.
 
 | Item | Value |
 |---|---|
-| Test | v4.89, 2026-07-16 |
-| Package version | 3.55 |
+| Test | v4.90, 2026-07-16 |
+| Package version | 3.56 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,415,808 bytes |
-| Package SHA-256 | `3ed21d69e652b71569c0db1ba043e7602c14d99e12e4889064e96059c60cb34c` |
+| Package SHA-256 | `1195622c2db572f399b29b0dabbe58194a8870ca47310e6e9d80ecaff277c9e5` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `e4f69fa5` (`Bypass PS4 missing VGUI material message`) |
-| Hardware-result commit | `4c85459d` (`Record v4.89 second VGUI border crash`) |
+| Candidate commit | `10a0e035` (`Handle all PS4 missing VGUI materials safely`) |
+| Hardware-result commit | This v4.90 result record (`Record v4.90 viewport initialization crash`) |
 
-v4.89 clears the PS4-only missing-message bypass and proves the complete real
-error-material path for `vgui/store/store_item_bg`: reference acquisition,
-cleanup, lazy precache, 32-by-32 mapping dimensions, texture-dictionary return,
-text flush, draw binding, scalable-border texture sizing, and ClientScheme
-entry 19 all complete.
+v4.90 clears the complete ClientScheme border-object pass. All 49 entries,
+including the stale store image family, retain real error-material binding and
+complete their pointer, reference, precache, mapping, draw, and border storage
+paths. Scheme data loading and `CSchemeManager::LoadSchemeFromFileEx` return
+successfully, and client game systems then enter the first normal viewport
+initialization.
 
-The fresh v4.89 log was last modified at 2026-07-16 16:04:30 UTC. It is
-3,845,262 bytes and 73,668 lines with SHA-256
-`190d7ace69f66f18fe64bc37ab4d53a4c8eda7388b91f659655d8a67e32d6ba3`.
+The fresh v4.90 log was last modified at 2026-07-16 16:24:24 UTC. It is
+4,194,320 bytes and 79,458 lines with SHA-256
+`2ef71c00a48aa20e5529c30844c6328e2e45fc965131cb7fa3129f17e4ca2c7d`.
 
 The final milestones are:
 
 ```text
-kisak-ps4: material detail error precache complete value=0 name=___error
-kisak-ps4: material detail error mapping width complete value=32 name=___error
-kisak-ps4: material detail error mapping height complete value=32 name=___error
-kisak-ps4: vgui texture bind file complete value=0 name=vgui/store/store_item_bg
-kisak-ps4: matsurface draw texture text flush ready
-kisak-ps4: matsurface texture file complete
-kisak-ps4: scalable border set image complete value=5
-kisak-ps4: client scheme border entry complete entry=19 value=19 name=LoadoutItemBorder type=scalable_image
-kisak-ps4: client scheme border entry name ready entry=20 value=1 name=LoadoutItemMouseOverBorder type=scalable_image
-kisak-ps4: scalable border set image length ready value=35
-kisak-ps4: scalable border set image path ready value=0
-kisak-ps4: scalable border set image before texture file value=6
+kisak-ps4: client scheme border entry complete entry=48 value=48 name=StoreItemSelectedBorder type=scalable_image
+kisak-ps4: scheme borders object pass ready
+kisak-ps4: scheme borders reference pass ready
+kisak-ps4: scheme borders complete base ready
+kisak-ps4: scheme data load complete
+kisak-ps4: scheme load ex complete
+kisak-ps4: client game systems client scheme load returned
+kisak-ps4: client game systems before viewport init
+...
+kisak-ps4: matsurface calculate mouse unlock cursor returned
+kisak-ps4: matsurface calculate mouse complete
+kisak-ps4: panel set mouse input complete
 ```
 
-The first border is no longer a renderer blocker. The process now fails inside
-the second `DrawSetTextureFile` call for `LoadoutItemMouseOverBorder`. Current
-material probes and the missing-message bypass are exact-name-scoped to the
-first border, so the v4.90 gate is to identify this second image and its sibling
-family, then replace the one-name exception with a justified PS4 policy that
-retains real error-material binding.
+The missing VGUI material family and ClientScheme are no longer blockers. The
+last mouse-input call completes, including `CalculateMouseVisible`, input-context
+enablement, and cursor unlock, but `client game systems viewport init ready`
+never appears. The v4.91 gate is therefore focused on
+`ClientModeCSNormal::InitViewport`, `CounterStrikeViewport::Start`, and
+`CBaseViewport` default-panel creation; it must identify the caller operation
+immediately following the final completed panel input call.
 
 ### v4.83 result and immediate v4.84 gate
 
@@ -486,6 +488,30 @@ It is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two independent complete
 FTP readbacks produced the same SHA-256, and the server reports the same
 103,415,808-byte content length.
+
+### v4.90 result and immediate v4.91 gate
+
+The manual-install run proves that the generalized PS4 error-material policy
+works across every stale VGUI store-border image without weakening real
+material binding. All 49 ClientScheme border entries complete, followed by the
+object and reference passes, base-border resolution, scheme-data load, and
+`LoadSchemeFromFileEx` return.
+
+Client game systems then enter viewport initialization. The log continues
+through roughly 2,800 panel, VPanel, and material-surface boundaries. Its final
+operation is a complete `Panel::SetMouseInputEnabled` call: exhaustive popup
+visibility scanning returns, the input context is enabled, the cursor unlocks,
+and `surface()->CalculateMouseVisible()` returns. The enclosing viewport call
+does not return, and neither `client game systems viewport init ready` nor a
+first Source frame appears.
+
+The next candidate must attribute the first normal viewport path rather than
+add renderer policy. Add bounded per-slot boundaries around normal and
+fullscreen `InitViewport`, then distinguish `ClientModeCSNormal` allocation,
+`CounterStrikeViewport::Start`, `CBaseViewport::Start`, default-panel creation,
+panel factory dispatch, and panel registration. A name-aware boundary at the
+completed mouse-input call may be used to identify the last constructed panel;
+do not change viewport behavior until the failing caller statement is proven.
 
 ## Runtime topology: two tracks, one production authority
 
