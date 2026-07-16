@@ -105,6 +105,41 @@ constructor stages and any registrar/ownership dependency, then require the
 panel allocation and insertion to return before advancing toward the first real
 Source frame.
 
+### v4.95 candidate: attribute info-panel construction
+
+Package version 3.61 and build marker `info_panel_construction_v495` identify
+this attribution-only candidate. It does not bypass a control or change panel
+behavior. PS4-only breadcrumbs bracket the `info` instance's `Frame` body,
+visibility and popup creation, base-frame setup, and constructor completion.
+The `CTextWindow` body then brackets its scheme/state operations, `TextEntry`,
+optional `CMOTDHTML`, both labels, button, command, multiline state, content
+type, mouse-input disable, and constructor return.
+
+The hardware decision is bounded: absence of the first `info frame` marker
+keeps the failure in base construction; a final `before popup` marker isolates
+`surface()->CreatePopup`; a completed frame followed by `before html allocation`
+isolates the optional Steam-oriented HTML control; otherwise the final paired
+marker names the next exact operation. Only after hardware isolates
+`CMOTDHTML` may the next candidate omit that optional control and retain the
+plain-text MOTD path.
+
+Validation before the candidate commit:
+
+- `git diff --check` passes;
+- the full `kisak_ps4_monolithic` target links, the retention verifier passes,
+  and `create-fself` completes with the OpenOrbis toolchain environment set;
+- the executable is 126,554,488 bytes with SHA-256
+  `bcd58a2d53f6feee1ebd9a1d5bcc28bcafdbe136d452c0765e9c08be6979c957`;
+- the OELF is 136,334,216 bytes with SHA-256
+  `5fca9f54d9d4bd0852de1cf2c0220b3f3b873fafaad2d52be3b7e026217e159b`;
+- the SELF input is 83,397,872 bytes with SHA-256
+  `8813792445aed7b53e7e8e8add537f941f2642924c64487191ff865ae94eb5e0`;
+- binary strings contain the v4.95 marker plus the frame-popup, HTML-allocation,
+  and constructor-completion boundary families; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
 ## Runtime topology: two tracks, one production authority
 
 `KisakRegisterStaticModules` registers both tracks in

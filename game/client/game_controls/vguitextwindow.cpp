@@ -40,6 +40,13 @@
 using namespace vgui;
 extern INetworkStringTable *g_pStringTableInfoPanel;
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_TEXT_WINDOW_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_TEXT_WINDOW_BREADCRUMB( line ) ((void)0)
+#endif
+
 #define TEMP_HTML_FILE	"textwindow_temp.html"
 
 ConVar cl_disablehtmlmotd( "cl_disablehtmlmotd", "0", FCVAR_ARCHIVE, "Disable HTML motds." );
@@ -92,20 +99,24 @@ CON_COMMAND( showinfo, "Shows a info panel: <type> <title> <message> [<command n
 //-----------------------------------------------------------------------------
 CTextWindow::CTextWindow(IViewPort *pViewPort) : Frame(NULL, PANEL_INFO	)
 {
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor body entered" );
 	m_dblTimeExecutedExitCommand = 0;
 	m_bHasMotd = false;
 	m_uiTimestampStarted = 0;
 	m_uiTimestampInfoLabelUpdated = 0;
 	m_bForcingWindowCloseRegardlessOfTime = false;
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor scalar defaults ready" );
 
 	// initialize dialog
 	m_pViewPort = pViewPort;
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor viewport ready" );
 
 //	SetTitle("", true);
 
 	m_szTitle[0] = '\0';
 	m_szMessage[0] = '\0';
 	m_szMessageFallback[0] = '\0';
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor string buffers ready" );
 	//=============================================================================
 	// HPE_BEGIN:
 	// [Forrest] Replaced text window command string with TEXTWINDOW_CMD enumeration
@@ -113,34 +124,64 @@ CTextWindow::CTextWindow(IViewPort *pViewPort) : Frame(NULL, PANEL_INFO	)
 	// message to run arbitrary commands on the client.
 	//=============================================================================
 	m_nExitCommand = TEXTWINDOW_CMD_NONE;
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor exit command ready" );
 	//=============================================================================
 	// HPE_END
 	//=============================================================================
 	
 	// load the new scheme early!!
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before scheme" );
 	SetScheme("ClientScheme");
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor scheme ready" );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before moveable" );
 	SetMoveable(false);
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor moveable ready" );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before sizeable" );
 	SetSizeable(false);
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor sizeable ready" );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before proportional" );
 	SetProportional(true);
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor proportional ready" );
 	
 	// hide the system buttons
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before title bar visibility" );
 	SetTitleBarVisible( false );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor title bar visibility ready" );
 
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before text entry allocation" );
 	m_pTextMessage = new TextEntry(this, "TextMessage");
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor text entry allocation ready" );
 #if defined( ENABLE_CHROMEHTMLWINDOW )
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before html allocation" );
 	m_pHTMLMessage = new CMOTDHTML( this,"HTMLMessage" );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor html allocation ready" );
 #else
 	m_pHTMLMessage = NULL;
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor html disabled" );
 #endif
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before title label allocation" );
 	m_pTitleLabel  = new Label( this, "MessageTitle", "Message Title" );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor title label allocation ready" );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before ticker label allocation" );
 	m_pInfoLabelTicker = new Label( this, "InfoLabelTicker", " " );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor ticker label allocation ready" );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before button allocation" );
 	m_pOK		   = new Button(this, "ok", "#PropertyDialog_OK");
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor button allocation ready" );
 
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before button command" );
 	m_pOK->SetCommand("okay");
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor button command ready" );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before multiline" );
 	m_pTextMessage->SetMultiline( true );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor multiline ready" );
 	m_nContentType = TYPE_TEXT;
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor content type ready" );
 
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor before mouse input disable" );
 	SetMouseInputEnabled( false );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor mouse input disable ready" );
+	PS4_TEXT_WINDOW_BREADCRUMB( "kisak-ps4: text window constructor complete" );
 }
 
 //-----------------------------------------------------------------------------

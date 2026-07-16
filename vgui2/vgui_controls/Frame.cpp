@@ -31,11 +31,20 @@
 #include "keyvalues.h"
 
 #include <stdio.h>
+#include <string.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 using namespace vgui;
+
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_INFO_FRAME_BREADCRUMB( panelName, line ) \
+	do { if ( (panelName) && !strcmp( (panelName), "info" ) ) KisakPs4StartupBreadcrumb( line ); } while ( 0 )
+#else
+#define PS4_INFO_FRAME_BREADCRUMB( panelName, line ) ((void)0)
+#endif
 
 static const int DEFAULT_SNAP_RANGE = 10; // number of pixels distance before the frame will snap to an edge
 static const int CAPTION_TITLE_BORDER = 7;
@@ -759,11 +768,16 @@ public:
 //-----------------------------------------------------------------------------
 Frame::Frame(Panel *parent, const char *panelName, bool showTaskbarIcon /*=true*/, bool bPopup /*=true*/ ) : EditablePanel(parent, panelName)
 {
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame constructor body entered" );
 	// frames start invisible, to avoid having window flicker in on taskbar
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame before visibility" );
 	SetVisible(false);
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame visibility ready" );
 	if ( bPopup )
 	{
+		PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame before popup" );
 		MakePopup(showTaskbarIcon);
+		PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame popup ready" );
 	}
 
 	m_hPreviousModal = 0;
@@ -790,15 +804,24 @@ Frame::Frame(Panel *parent, const char *panelName, bool showTaskbarIcon /*=true*
 	m_bPrimed = false;
 	m_hCustomTitleFont = INVALID_FONT;
 	m_iTitleTextInsetXOverride = m_iTitleTextInsetYOverride = 0;
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame scalar defaults ready" );
 
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame before title" );
 	SetTitle("#Frame_Untitled", parent ? false : true);
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame title ready" );
 	
 	// add ourselves to the build group
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame before build group" );
 	SetBuildGroup(GetBuildGroup());
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame build group ready" );
 	
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame before minimum size" );
 	SetMinimumSize(128,66);
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame minimum size ready" );
 	
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame before focus top level" );
 	GetFocusNavGroup().SetFocusTopLevel(true);
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame focus top level ready" );
 	
 #if !defined( _GAMECONSOLE )
 	_sysMenu = NULL;
@@ -849,14 +872,18 @@ Frame::Frame(Panel *parent, const char *panelName, bool showTaskbarIcon /*=true*
 	_menuButton->SetMenu(GetSysMenu());
 #endif
 	
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame before resize cursors" );
 	SetupResizeCursors();
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame resize cursors ready" );
 
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame before color overrides" );
 	REGISTER_COLOR_AS_OVERRIDABLE( m_InFocusBgColor, "infocus_bgcolor_override" );
 	REGISTER_COLOR_AS_OVERRIDABLE( m_OutOfFocusBgColor, "outoffocus_bgcolor_override" );
 	REGISTER_COLOR_AS_OVERRIDABLE( _titleBarBgColor, "titlebarbgcolor_override" );
 	REGISTER_COLOR_AS_OVERRIDABLE( _titleBarDisabledBgColor, "titlebardisabledbgcolor_override" );
 	REGISTER_COLOR_AS_OVERRIDABLE( _titleBarFgColor, "titlebarfgcolor_override" );
 	REGISTER_COLOR_AS_OVERRIDABLE( _titleBarDisabledFgColor, "titlebardisabledfgcolor_override" );
+	PS4_INFO_FRAME_BREADCRUMB( panelName, "kisak-ps4: info frame constructor complete" );
 }
 
 //-----------------------------------------------------------------------------
