@@ -367,6 +367,9 @@ if(ORBIS OR CMAKE_SYSTEM_NAME STREQUAL "Orbis")
         # client/server game overlap is isolated above; remaining static modules
         # still resolve their intentional duplicates to the first link input.
         target_link_options(kisak_ps4_monolithic PRIVATE --allow-multiple-definition)
+
+        include(cmake/ps4_monolithic_retention.cmake)
+        kisak_ps4_apply_monolithic_retention(kisak_ps4_monolithic)
     endif()
     target_link_directories(kisak_ps4_monolithic PRIVATE "${OPENORBIS_ROOT}/lib")
     target_link_libraries(kisak_ps4_monolithic PRIVATE

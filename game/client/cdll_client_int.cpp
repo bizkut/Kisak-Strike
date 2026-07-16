@@ -1078,16 +1078,8 @@ IBaseClientDLL *clientdll = &gHLClient;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CHLClient, IBaseClientDLL, CLIENT_DLL_INTERFACE_VERSION, gHLClient );
 
 #if defined( PLATFORM_PS4 )
-extern ConVar cl_disable_water_render_targets;
-extern bool ProcessRenderToRTHelper();
 CreateInterfaceFn KisakGameClientFactory()
 {
-	// These providers live in otherwise registration-only archive members. Keep
-	// relocations to both so their InterfaceReg objects reach the monolithic ELF.
-	ConVar * volatile pRenderTargetLinkAnchor = &cl_disable_water_render_targets;
-	bool (* volatile pRenderToRTLinkAnchor)() = &ProcessRenderToRTHelper;
-	(void)pRenderTargetLinkAnchor;
-	(void)pRenderToRTLinkAnchor;
 	return Sys_GetFactoryThis();
 }
 #endif

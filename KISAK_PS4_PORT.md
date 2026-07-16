@@ -30,7 +30,7 @@ DLL/PRX ownership assumptions merely because the original code used them.
 | Package SHA-256 | `0f9e308e6574ad9280bb6908cc8b72d002e0598232538cf49a62037bf07e2ec3` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `548faf46` (`Instrument PS4 client mode manager startup`) |
-| Hardware-result commit | This v4.85 result record |
+| Hardware-result commit | `5b34228f` (`Record v4.85 panel factory boundary`) |
 
 v4.85 proves that `CCSModeManager::Init` is entered, split-screen slot 0 obtains
 its normal client mode, and `PanelMetaClassMgr()` successfully reads and begins
@@ -197,6 +197,34 @@ explicit client interface-retention manifest and preflight every type required
 by `scripts/vgui_screens.txt`. Do not treat suppressing the legacy `Warning` as
 the fix: the required factory must be registered, uniquely owned, and usable
 before `CCSModeManager::Init` may report success.
+
+### v4.86 candidate: retain and verify client static providers
+
+Package version 3.52 and build marker `panel_factory_retention_v486` identify
+the next manual-install candidate. Archive and final-OELF inspection confirms
+the v4.85 failure was static archive extraction: all five VGUI factory objects
+exist in `libclient_client.a`, but the v4.85 OELF contains only
+`g_CVGuiScreenPanelFactory`. In particular, `vgui_c4panel.cpp.obj` defines
+`g_CC4PanelFactory`, its constructor, and the complete `CC4Panel` body, but no
+ordinary undefined reference caused the linker to extract that member.
+
+`cmake/ps4_monolithic_retention.cmake` is now the explicit client/engine/server
+retention manifest. It retains both earlier ad-hoc client providers and the
+complete known VGUI screen-factory set with linker undefined roots. The old
+volatile references were removed from `KisakGameClientFactory`. A post-link
+verification step fails the build if any manifest symbol is absent, converting
+silent registrar discard into a build-time composition failure.
+
+The Linux OpenOrbis monolithic build and post-link verification complete. The
+OELF is 136,251,888 bytes with SHA-256
+`e9881d55294027f173dcf9ecf74673009b3992a424b7ea4b9123b40ab0290ab3`;
+the SELF input is 83,330,304 bytes with SHA-256
+`60998ad798b9f61d836b2b198767d01c1df2cb510db69c5259e0303cfb9a0b84`.
+The final OELF contains all five factory globals and their exact registration
+strings: `c4_panel`, `c4_view_panel`, `movie_display_screen`,
+`slideshow_display_screen`, and `vgui_screen_panel`. Eleven of fourteen host
+tests pass; the same three Linux high-address OpenGNM fixtures fail outside the
+changed link-composition path.
 
 The gate remains open until hardware proves `ClientDLL_Init` completion,
 successful EngineVGui/GameUI hookup, and one complete production
