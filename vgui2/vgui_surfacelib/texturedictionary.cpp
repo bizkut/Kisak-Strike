@@ -1037,6 +1037,11 @@ void CMatSystemTexture::SetMaterial( const char *pFileName )
 #endif
 
 	const bool bErrorMaterial = IsErrorMaterial( pMaterial );
+#if defined( PLATFORM_PS4 )
+	const bool bPs4MissingMaterialProbe = bErrorMaterial && !s_bTextMode;
+#else
+	const bool bPs4MissingMaterialProbe = false;
+#endif
 	if ( bPs4StoreItemProbe )
 	{
 		PS4_VGUI_TEXTURE_DETAIL( "material file error check ready", pFileName, bErrorMaterial ? 1 : 0 );
@@ -1044,29 +1049,24 @@ void CMatSystemTexture::SetMaterial( const char *pFileName )
 	if ( bErrorMaterial && !s_bTextMode )
 	{
 #if defined( PLATFORM_PS4 )
-		if ( bPs4StoreItemProbe )
+		PS4_VGUI_TEXTURE_DETAIL( "material file missing message suppressed", pFileName, 0 );
+#else
+		if (IsOSX())
 		{
-			PS4_VGUI_TEXTURE_DETAIL( "material file missing message suppressed", pFileName, 0 );
+			printf( "\n ##### Missing Vgui material %s\n", pFileName );
 		}
-		else
+		Msg( "--- Missing Vgui material %s\n", pFileName );
 #endif
-		{
-			if (IsOSX())
-			{
-				printf( "\n ##### Missing Vgui material %s\n", pFileName );
-			}
-			Msg( "--- Missing Vgui material %s\n", pFileName );
-		}
 	}
 
 	IMaterial *pPreviousPs4PointerTarget = PS4_VGUI_TEXTURE_POINTER_TARGET();
-	if ( bPs4StoreItemProbe )
+	if ( bPs4StoreItemProbe || bPs4MissingMaterialProbe )
 	{
 		PS4_VGUI_TEXTURE_DETAIL( "material file before pointer set", pFileName, 0 );
 		PS4_VGUI_TEXTURE_SET_POINTER_TARGET( pMaterial );
 	}
 	SetMaterial( pMaterial );
-	if ( bPs4StoreItemProbe )
+	if ( bPs4StoreItemProbe || bPs4MissingMaterialProbe )
 	{
 		PS4_VGUI_TEXTURE_SET_POINTER_TARGET( pPreviousPs4PointerTarget );
 		PS4_VGUI_TEXTURE_DETAIL( "material file complete", pFileName, 0 );

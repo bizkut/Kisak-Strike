@@ -30,7 +30,7 @@ DLL/PRX ownership assumptions merely because the original code used them.
 | Package SHA-256 | `3ed21d69e652b71569c0db1ba043e7602c14d99e12e4889064e96059c60cb34c` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `e4f69fa5` (`Bypass PS4 missing VGUI material message`) |
-| Hardware-result commit | This v4.89 result record |
+| Hardware-result commit | `4c85459d` (`Record v4.89 second VGUI border crash`) |
 
 v4.89 clears the PS4-only missing-message bypass and proves the complete real
 error-material path for `vgui/store/store_item_bg`: reference acquisition,
@@ -429,13 +429,54 @@ size, paint-first, color, list storage, and ClientScheme entry lifecycle.
 Entry 20 is another `scalable_image` border named
 `LoadoutItemMouseOverBorder`. Its nonempty image produces a 35-byte allocation,
 formats the `vgui/` path, and enters `DrawSetTextureFile` with texture ID 6;
-that call does not return. Because v4.89 traces and suppresses only the exact
-first path, the log cannot yet name the second material from inside the texture
-dictionary. The repeated lifecycle shape makes another absent optional store
-background and the same missing-material `Msg` the leading hypothesis, not a
-new renderer requirement. Confirm the resource value and content absence
-before generalizing the PS4 bypass, and keep the successful error-material
-assignment intact.
+that call does not return.
+
+Direct extraction of the authoritative `resource/clientscheme.res` entry from
+the staged PS4 `pak01_dir.vpk` and `pak01_068.vpk` content identifies the image
+as `store/store_item_bg_highlight`, producing material path
+`vgui/store/store_item_bg_highlight`. The main VPK index contains only
+`materials/vgui/store/store_zoom.vmt`; the low-violence and Perfect World VPK
+indexes contain no store VMTs, and neither staged loose-content root has a
+store-material directory. The highlighted background is therefore confirmed
+absent, together with the other stale store-border images referenced by the
+scheme.
+
+An independent read-only ACP Router audit confirmed that this is the same
+`CMatSystemTexture::SetMaterial` diagnostic failure and recommended suppressing
+the missing-VGUI-material `Msg` for every PS4 error-material result at this one
+site. Its resource-name inference was superseded by the direct VPK extraction;
+its source-path and policy conclusions agree with the hardware and content
+evidence.
+
+### v4.90 candidate repair
+
+Package version 3.56 and build marker `vgui_missing_message_v490` identify the
+next manual-install candidate. On PS4, every VGUI lookup that has already
+resolved to the error material now emits the low-level
+`material file missing message suppressed` breadcrumb instead of entering the
+crashing `Msg` diagnostic. Non-PS4 behavior is unchanged.
+
+The filename overload still calls `SetMaterial(pMaterial)` unconditionally.
+All PS4 missing-material results now also set the existing pointer-probe target
+around that call, so the log records the exact missing filename plus reference,
+precache, mapping-dimension, and completion boundaries without adding another
+content-family exception.
+
+Validation before the candidate commit:
+
+- the focused `vgui2_client` target and the full OpenOrbis
+  `kisak_ps4_monolithic` target compile successfully with the pinned toolchain;
+- the post-link retention hook and a separate explicit retention-manifest run
+  pass;
+- the OELF is 126,490,968 bytes with SHA-256
+  `86ed33ff5c137f06702aafaf4b79d552cf76cf2f65e4608ef4531a98aaa69e6a`;
+- the SELF input is 83,346,720 bytes with SHA-256
+  `e306ac001d3bcfaf827c59bc0c603392dbb9e4cab90937bd154ad4a80752fdb1`;
+- binary string inspection confirms the v4.90 build marker, the generalized
+  suppression breadcrumb, pointer-set boundary, and raw mapping probe; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`,
+  and `ps4_gnm_constants`).
 
 ## Runtime topology: two tracks, one production authority
 
