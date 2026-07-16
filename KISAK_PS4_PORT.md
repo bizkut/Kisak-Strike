@@ -23,49 +23,44 @@ DLL/PRX ownership assumptions merely because the original code used them.
 
 | Item | Value |
 |---|---|
-| Test | v4.86, 2026-07-16 |
-| Package version | 3.52 |
+| Test | v4.87, 2026-07-16 |
+| Package version | 3.53 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,415,808 bytes |
-| Package SHA-256 | `2b588685815d7640697a921dffea20964b3b7bb56a66be12ef2d598c05ada208` |
+| Package SHA-256 | `da63191f79fb32b4bb3c3f39e6cf372c1c487c9599b74790fc826006a7394dc5` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `47fb2b0f` (`Retain PS4 client static providers explicitly`) |
-| Hardware-result commit | `85658577` (`Record v4.86 client scheme boundary`) |
+| Candidate commit | `53c5d052` (`Instrument PS4 ClientScheme border loading`) |
+| Hardware-result commit | This v4.87 result record |
 
-v4.86 proves the retention manifest fixed the missing VGUI registrations.
-`c4_panel` and `c4_view_panel` both resolve, the metaclass file completes,
-`CCSModeManager::Init` returns, and client startup enters the real
-`resource/ClientScheme.res` load. Colors, translations, custom fonts, aliases,
-glyph reload, and critical-font precache complete before the border object pass.
+v4.87 proves ClientScheme traversal, base-border allocation, name assignment,
+and base-border settings through entry 18. Entry 19 is `LoadoutItemBorder`, the
+first `scalable_image`; its constructor succeeds with texture ID 5 and its
+settings reach image `vgui/store/store_item_bg`. The process fails inside
+`g_pSurface->DrawSetTextureFile` before that call returns.
 
-The fresh v4.86 log is 3,796,400 bytes and 73,086 lines with SHA-256
-`b92b87dd89d972a3732a856f2c5d5494f5a37794a5753e4e0a6ed6d928f9b96b`.
-This launch started a new log rather than appending to v4.85, so no byte-prefix
-claim is made for this run.
+The fresh v4.87 log is 3,829,930 bytes and 73,451 lines with SHA-256
+`87b7963c959baaff823147b0c415282105c96c4b7b4fbc2df94bb69a4e95c8c3`.
 
-The final client-mode and scheme milestones are:
+The final scheme milestones are:
 
 ```text
-kisak-ps4: panel meta single panel type ready value=1 name=c4_panel
-kisak-ps4: panel meta single panel type ready value=0 name=c4_view_panel
-kisak-ps4: panel meta load complete value=0 name=scripts/vgui_screens.txt
-kisak-ps4: client mode manager init complete slot=-1
-client game systems mode manager ready
-client game systems before client scheme load
-kisak-ps4: scheme data load fonts ready
-kisak-ps4: scheme data load before borders
-kisak-ps4: scheme borders entered
-kisak-ps4: scheme borders keyvalues ready
-kisak-ps4: scheme borders before object pass
+kisak-ps4: client scheme border entry complete entry=18 value=18 name=BlackBorder type=<none>
+kisak-ps4: client scheme border border type ready entry=19 value=1 name=<none> type=scalable_image
+kisak-ps4: scalable border constructor surface state value=1
+kisak-ps4: scalable border constructor complete value=5
+kisak-ps4: client scheme border entry name ready entry=19 value=1 name=LoadoutItemBorder type=scalable_image
+kisak-ps4: scalable border settings image lookup ready value=1
+kisak-ps4: scalable border set image length ready value=25
+kisak-ps4: scalable border set image path ready value=0
+kisak-ps4: scalable border set image before texture file value=5
 ```
 
-An earlier scheme load in the same process completes both border passes and
-finds `BaseBorder`; the failure is specific to the later ClientScheme border
-object pass. The runtime VPK contains a 55,686-byte `ClientScheme.res` whose
-first object is an ordinary `BaseBorder`, followed later by scalable-image
-borders. The current marker does not identify which object or operation failed.
-v4.87 must bound entry traversal, list growth, type allocation, `SetName`, and
-`ApplySchemeSettings`, then instrument the selected border implementation.
+This is not evidence that the border subsystem or scalable images must be
+removed. v4.88 must trace the actual monolithic `DrawSetTextureFile` provider
+through texture-dictionary binding, material lookup/creation, and filesystem
+loading. Only replace or defer the failing operation if source and runtime
+evidence identify a PS4-native incompatibility or prove the asset is optional
+for the first production frame.
 
 ### v4.83 result and immediate v4.84 gate
 
@@ -289,6 +284,24 @@ The embedded SFO reports version 3.53, and verbose PkgTool validation reports
 every limit, digest, and signature check `[OK]`. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete FTP
 readbacks each return 103,415,808 bytes with the same SHA-256.
+
+### v4.87 result and immediate v4.88 gate
+
+The manual-install run clears all ordinary ClientScheme borders before reaching
+entry 19, `LoadoutItemBorder`, whose `bordertype` is `scalable_image`.
+`ScalableImageBorder` receives a live surface, creates texture ID 5, reads and
+scales its corner settings, resolves a nonempty image, allocates and formats the
+25-byte `vgui/store/store_item_bg` path, and enters
+`ISurface::DrawSetTextureFile`. That call does not return.
+
+The immediate v4.88 gate is the concrete texture-file binding implementation,
+not another general renderer feature. Resolve the actual `ISurface` owner in the
+monolith, then bound `DrawSetTextureFile`, texture-dictionary lookup/binding,
+material lookup or creation, and filesystem access. Confirm the texture asset's
+runtime availability and search path. Preserve normal Source behavior unless
+the observed failing operation depends on an unsupported desktop/dynamic-module
+contract; if the border is optional for the first frame, any temporary deferral
+must be PS4-specific, explicit, and leave a later restoration gate.
 
 ## Runtime topology: two tracks, one production authority
 
