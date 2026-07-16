@@ -75,14 +75,15 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Test | v4.95, 2026-07-16 |
-| Package version | 3.61 |
+| Last hardware result | v4.95, 2026-07-16 |
+| Staged candidate | v4.96 |
+| Package version | 3.62 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
-| Package SHA-256 | `cf2180640940140d995291e391c7ada0293a81796995aa304bbfd9d44fb18ad9` |
+| Package SHA-256 | `b8d4169510a4d5d39f4df9437938dcf0ed56147b11c12756697f9fa21e80aae4` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `6ecbee92` (`Trace PS4 info panel construction`) |
-| Hardware-result commit | `4b8078f1` (`Record v4.95 HTML control crash`) |
+| Candidate commit | `8bf3cba8` (`Disable Chrome HTML MOTD on PS4`) |
+| Prior hardware-result commit | `4b8078f1` (`Record v4.95 HTML control crash`) |
 
 v4.95 clears the complete `Frame` body and `TextEntry` allocation for the
 default `info` viewport panel. `CTextWindow::CTextWindow` reaches
@@ -181,6 +182,16 @@ Hardware acceptance requires the disabled-HTML and constructor-completion
 markers, followed by successful `info` panel allocation and viewport insertion.
 Any later crash must be attributed from the next final breadcrumb; this
 candidate does not authorize renderer expansion before that boundary is known.
+
+Candidate commit `8bf3cba8` produces a 103,481,344-byte package with SHA-256
+`b8d4169510a4d5d39f4df9437938dcf0ed56147b11c12756697f9fa21e80aae4`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.62. PkgTool validation has no
+`[FAIL]` entries and reports every digest/signature check `[OK]`. FTP metadata
+reports the same 103,481,344-byte size and a 2026-07-16 23:35:22 UTC modified
+time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance remains pending manual
+installation and launch.
 
 ## Runtime topology: two tracks, one production authority
 
