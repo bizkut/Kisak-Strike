@@ -23,20 +23,20 @@ Latest hardware-tested monolithic package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.26
+Version: 3.27
 Size: 103,153,664 bytes
-SHA-256: 46f3ef04ae032d21c890bc6599bac8fa1805959cf0175d2e5cbba9d45edce7e8
-Hardware run: v4.60 (2026-07-16), enters material-system UpdateConfig
+SHA-256: 27f684b07162825d5807fc9865563d154d5fd54eeb358862c8f4f426dce399be
+Hardware run: v4.61 (2026-07-16), reaches csm_quality_level ConVarRef
 ```
 
 Current installed package:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.26
+Version: 3.27
 Size: 103,153,664 bytes
-SHA-256: 46f3ef04ae032d21c890bc6599bac8fa1805959cf0175d2e5cbba9d45edce7e8
-Hardware result: v4.60 crashes inside IMaterialSystem::UpdateConfig(false)
+SHA-256: 27f684b07162825d5807fc9865563d154d5fd54eeb358862c8f4f426dce399be
+Hardware result: v4.61 crashes constructing the csm_quality_level ConVarRef
 ```
 
 Latest package staged for manual install and hardware test:
@@ -48,7 +48,7 @@ Size: 103,153,664 bytes
 SHA-256: 27f684b07162825d5807fc9865563d154d5fd54eeb358862c8f4f426dce399be
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: awaiting manual install/run of v4.61 UpdateConfig trace
+Hardware result: v4.61 stops constructing the csm_quality_level ConVarRef
 ```
 
 Current hardware baseline:
@@ -7234,6 +7234,28 @@ Linux high-address failures in `ps4_gnm_device`, `ps4_gnm_buffer`, and
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
 103,153,664 bytes and its complete readback SHA-256 matches the local package.
 Manual installation and launch are the remaining hardware gate.
+
+The v4.61 package was installed and run manually. Its single build marker and
+8,024-line run complete the queued-convar query with no queued work, copy the
+global material config, and read every direct material convar through paint-map
+enablement. The exact final sequence is:
+
+```text
+kisak-ps4: materialsystem read config shadow depth ready
+kisak-ps4: materialsystem read config draw gray ready
+kisak-ps4: materialsystem read config paint in game ready
+kisak-ps4: materialsystem read config before paint maps
+kisak-ps4: materialsystem read config paint maps ready
+kisak-ps4: materialsystem read config before csm ref
+```
+
+There is no `materialsystem read config csm ref ready` or `csm ref invalid`
+marker. The failure is inside the legacy
+`ConVarRef csm_quality_level( "csm_quality_level" )` construction, whose first
+operation is `g_pCVar->FindVar`. This file already owns the registered global
+`ConVar csm_quality_level`; the next PS4 package will read that object directly
+and retain the legacy lookup on other platforms. This avoids the failing,
+redundant registry round trip without changing the selected or clamped value.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
