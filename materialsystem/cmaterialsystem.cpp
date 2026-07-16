@@ -2366,13 +2366,14 @@ void CMaterialSystem::ReadConfigFromConVars( MaterialSystem_Config_t *pConfig )
 	pConfig->m_bPaintInMap = GetPaintmaps()->IsEnabled();
 	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config paint maps ready" );
 
-	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config before csm ref" );
-	ConVarRef csm_quality_level( "csm_quality_level" );
-	PS4_MATSYS_BREADCRUMB( csm_quality_level.IsValid()
-		? "kisak-ps4: materialsystem read config csm ref ready"
-		: "kisak-ps4: materialsystem read config csm ref invalid" );
+#if defined( PLATFORM_PS4 )
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config before csm direct" );
 	pConfig->m_nCSMQuality = (CSMQualityMode_t)clamp( csm_quality_level.GetInt(), CSMQUALITY_VERY_LOW, (int)CSMQUALITY_TOTAL_MODES - 1 );
-	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config csm quality ready" );
+	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config csm direct ready" );
+#else
+	ConVarRef csm_quality_level( "csm_quality_level" );
+	pConfig->m_nCSMQuality = (CSMQualityMode_t)clamp( csm_quality_level.GetInt(), CSMQUALITY_VERY_LOW, (int)CSMQUALITY_TOTAL_MODES - 1 );
+#endif
 
 	PS4_MATSYS_BREADCRUMB( "kisak-ps4: materialsystem read config before hdr" );
 	pConfig->SetFlag( MATSYS_VIDCFG_FLAGS_ENABLE_HDR, HardwareConfig() && HardwareConfig()->GetHDREnabled() );

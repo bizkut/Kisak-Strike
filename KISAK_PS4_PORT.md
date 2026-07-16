@@ -43,12 +43,12 @@ Latest package staged for manual install and hardware test:
 
 ```text
 Package: IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
-Version: 3.27
+Version: 3.28
 Size: 103,153,664 bytes
-SHA-256: 27f684b07162825d5807fc9865563d154d5fd54eeb358862c8f4f426dce399be
+SHA-256: 2cbb25b02cb1278af17636b692518b8062219cf8d9cd34e21ed2fa428c2850ec
 FTP path: /data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg
 Staged: 2026-07-16
-Hardware result: v4.61 stops constructing the csm_quality_level ConVarRef
+Hardware result: awaiting manual install/run of v4.62 direct CSM read
 ```
 
 Current hardware baseline:
@@ -7256,6 +7256,38 @@ operation is `g_pCVar->FindVar`. This file already owns the registered global
 `ConVar csm_quality_level`; the next PS4 package will read that object directly
 and retain the legacy lookup on other platforms. This avoids the failing,
 redundant registry round trip without changing the selected or clamped value.
+
+### v4.62: Read the owned CSM quality convar directly on PS4
+
+Package version 3.28 and build marker `material_csm_direct_v462` identify the
+targeted fix for the v4.61 boundary. On PS4,
+`CMaterialSystem::ReadConfigFromConVars` reads the file-local registered
+`ConVar csm_quality_level` directly and applies the same enum cast and clamp.
+Other platforms retain the legacy name-based `ConVarRef` lookup. The remaining
+v4.61 `UpdateConfig`, convar-reader, and `OverrideConfig` breadcrumbs stay in the
+PS4 executable so the same hardware run can expose the next boundary.
+
+The narrow `materialsystem_client` target, full OpenOrbis monolith, FSELF, and
+package build successfully. The OELF contains the v4.62 marker, direct-CSM ready
+marker, and terminal override marker, and does not contain the v4.61 marker.
+Direct verbose PkgTool validation reports `[OK]` for every size, digest, and
+signature check. Artifact identities:
+
+```text
+OELF: 126,239,632 bytes
+SHA-256: 0c3db20bbf81ed6b707e114c9f9b20e8d9b51f74f657b7b23cf2244b7cbc0b5e
+SELF: 83,093,504 bytes
+SHA-256: d5f2192e9499a2ac55a73f4cb2d966bff04a737af67b6ec9b7655ae6cc0b230c
+PKG: 103,153,664 bytes
+SHA-256: 2cbb25b02cb1278af17636b692518b8062219cf8d9cd34e21ed2fa428c2850ec
+```
+
+The host suite remains at the established 11/14 baseline, with only the known
+Linux high-address failures in `ps4_gnm_device`, `ps4_gnm_buffer`, and
+`ps4_gnm_constants`. The package is FTP-staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; the remote size is
+103,153,664 bytes and its complete readback SHA-256 matches the local package.
+Manual installation and launch are the remaining hardware gate.
 
 ### Historical autonomous PyPS4debug crash-debugging plan — retired 2026-07-15
 
