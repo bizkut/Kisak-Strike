@@ -76,13 +76,13 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v5.01, 2026-07-17 |
-| Staged candidate | None; v5.02 `fps_max` callback-phase probe built locally |
-| Package version | 3.68 candidate |
+| Staged candidate | v5.02 `fps_max` callback-phase probe |
+| Package version | 3.68 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Package size | Not yet packaged |
-| Package SHA-256 | Not yet packaged |
+| Package size | 103,481,344 bytes |
+| Package SHA-256 | `a58ff7b2809d893ddcae0a70c8b46bf94dfb3926c67e8c2f91dc1f01562203ac` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | Pending v5.02 probe commit |
+| Candidate commit | `dab1a35f` (`Trace PS4 fps_max callback phases`) |
 | Hardware-result commit | `4ebe5206` (`Record v5.01 fps_max callback crash`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
@@ -460,6 +460,15 @@ Validation before the candidate commit:
 Hardware acceptance requires a last marker that assigns the fault to lookup,
 linked-object access, callback insertion, immediate invocation, minspec state,
 or enforcement read/write. No callback is skipped by this candidate.
+
+Candidate commit `dab1a35f` produces a 103,481,344-byte package with SHA-256
+`a58ff7b2809d893ddcae0a70c8b46bf94dfb3926c67e8c2f91dc1f01562203ac`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.68. PkgTool validation has no
+`[FAIL]` entries and reports every digest/signature check `[OK]`. FTP metadata
+reports the same 103,481,344-byte size and a 2026-07-17 04:12:21 UTC modified
+time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance is pending.
 
 ## Runtime topology: two tracks, one production authority
 
