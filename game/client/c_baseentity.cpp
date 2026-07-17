@@ -56,6 +56,13 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_BASEENTITY_CTOR_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_BASEENTITY_CTOR_BREADCRUMB( line ) ((void)0)
+#endif
+
 
 #ifdef INTERPOLATEDVAR_PARANOID_MEASUREMENT
 	int g_nInterpolatedVarsChanged = 0;
@@ -1066,8 +1073,13 @@ C_BaseEntity::C_BaseEntity() :
 	m_iv_vecOrigin( "C_BaseEntity::m_iv_vecOrigin" ),
 	m_iv_angRotation( "C_BaseEntity::m_iv_angRotation" )
 {
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity constructor body entered" );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity before origin AddVar" );
 	AddVar( &m_vecOrigin, &m_iv_vecOrigin, LATCH_SIMULATION_VAR );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity origin AddVar ready" );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity before rotation AddVar" );
 	AddVar( &m_angRotation, &m_iv_angRotation, LATCH_SIMULATION_VAR );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity rotation AddVar ready" );
 
 	// made noise 'a long time ago'
 	m_flLastMadeNoiseTime = -99999.0f;
@@ -1087,7 +1099,9 @@ C_BaseEntity::C_BaseEntity() :
 	m_iParentAttachment = 0;
 	m_bIsValidIKAttachment = false;
 
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity before prediction eligibility" );
 	SetPredictionEligible( false );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity prediction eligibility ready" );
 	m_bPredictable = false;
 
 	m_bSimulatedEveryTick = false;
@@ -1113,7 +1127,9 @@ C_BaseEntity::C_BaseEntity() :
 	m_iCurrentThinkContext = NO_THINK_CONTEXT;
 
 #endif
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity before identity matrix" );
 	SetIdentityMatrix( m_rgflCoordinateFrame );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity identity matrix ready" );
 	m_nSimulationTick = -1;
 
 	// Assume drawing everything
@@ -1130,10 +1146,14 @@ C_BaseEntity::C_BaseEntity() :
 	{
 		m_ListEntry[i] = 0xFFFF;
 	}
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity before prerender list" );
 	AddToEntityList( ENTITY_LIST_PRERENDER );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity prerender list ready" );
 
 
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity before clear" );
 	Clear();
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity clear ready" );
 
 #ifndef NO_TOOLFRAMEWORK
 	m_bEnabledInToolView = true;
@@ -1143,7 +1163,14 @@ C_BaseEntity::C_BaseEntity() :
 	m_bRecordInTools = true;
 #endif
 
-	ParticleProp()->Init( this );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity before particle property lookup" );
+	CParticleProperty *pParticleProperty = ParticleProp();
+	PS4_BASEENTITY_CTOR_BREADCRUMB( pParticleProperty
+		? "kisak-ps4: base entity particle property lookup nonzero"
+		: "kisak-ps4: base entity particle property lookup zero" );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity before particle property init" );
+	pParticleProperty->Init( this );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity particle property init ready" );
 
 	m_spawnflags = 0;
 #if defined(ENABLE_CREATE_TIME)
@@ -1151,6 +1178,7 @@ C_BaseEntity::C_BaseEntity() :
 #endif
 
 	m_flUseLookAtAngle = DEFAULT_LOOK_AT_USE_ANGLE;
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity constructor complete" );
 }
 
 
@@ -1201,7 +1229,14 @@ void C_BaseEntity::Clear( void )
 	index = -1;
 	m_Collision.Init( this );
 	CleanUpAlphaProperty();
+	PS4_BASEENTITY_CTOR_BREADCRUMB( g_pClientAlphaPropertyMgr
+		? "kisak-ps4: base entity alpha property manager nonzero"
+		: "kisak-ps4: base entity alpha property manager zero" );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity before alpha property create" );
 	m_pClientAlphaProperty = static_cast< CClientAlphaProperty * >( g_pClientAlphaPropertyMgr->CreateClientAlphaProperty( this ) );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( m_pClientAlphaProperty
+		? "kisak-ps4: base entity alpha property create nonzero"
+		: "kisak-ps4: base entity alpha property create zero" );
 	SetLocalOrigin( vec3_origin );
 	SetLocalAngles( vec3_angle );
 	model = NULL;
@@ -4274,10 +4309,17 @@ bool C_BaseEntity::SnatchModelInstance( C_BaseEntity *pToEntity )
 //-----------------------------------------------------------------------------
 void *C_BaseEntity::operator new( size_t stAllocateBlock )
 {
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity operator new entered" );
 	Assert( stAllocateBlock != 0 );	
 	MEM_ALLOC_CREDIT();
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity operator new before aligned alloc" );
 	void *pMem = MemAlloc_AllocAligned( stAllocateBlock, 16 );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( pMem
+		? "kisak-ps4: base entity operator new aligned alloc nonzero"
+		: "kisak-ps4: base entity operator new aligned alloc zero" );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity operator new before zero" );
 	memset( pMem, 0, stAllocateBlock );
+	PS4_BASEENTITY_CTOR_BREADCRUMB( "kisak-ps4: base entity operator new zero ready" );
 	return pMem;												
 }
 

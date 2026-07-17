@@ -83,7 +83,7 @@ coverage.
 | Package SHA-256 | `add8d8eab92095f5619b20bdbe46cd4818214fc11f4941fc3a50dc3e73173012` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `df4e6833` (`Separate PS4 engine ConVar cache storage`) |
-| Hardware-result commit | Pending this documentation checkpoint |
+| Hardware-result commit | `35ee4ac3` (`Record v5.06 world factory crash`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -731,6 +731,52 @@ that function to `g_pClientWorld = new C_World`; v5.07 must distinguish aligned
 allocation/zeroing from `C_BaseEntity` base/member construction and the empty
 `C_World` constructor body before changing world behavior.
 
+### v5.07 candidate: separate engine alpha-property cache storage
+
+Package version 3.73 and build marker
+`unique_alpha_property_cache_v507` identify this ownership repair. The world
+constructor reaches `C_BaseEntity::Clear()`, which creates the entity's client
+alpha property through `g_pClientAlphaPropertyMgr`. The monolith previously
+contained two same-named pointer definitions: the client definition is
+initialized to `CClientLeafSystem::s_ClientLeafSystem`, while the engine
+definition starts null and is populated only after `g_ClientDLL->Init()`
+returns. Because `ClientWorldFactoryInit()` runs inside that Init call, linker
+coalescing selected pointer storage that was still null at first world
+construction.
+
+The engine cache is renamed to `g_pEngineClientAlphaPropertyMgr` in
+`cdll_engine_int.cpp` and the engine static-prop paths. The client keeps its
+original initialized symbol. Final-ELF inspection now shows distinct 8-byte
+objects: initialized `g_pClientAlphaPropertyMgr` at `0x45d2bc8` and engine BSS
+`g_pEngineClientAlphaPropertyMgr` at `0x4888688`. The v5.07 breadcrumbs also
+bound aligned allocation/zeroing, base-entity construction, alpha-property
+creation, particle-property setup, and the empty `C_World` constructor without
+bypassing world creation.
+
+Validation before the candidate commit:
+
+- `git diff --check` and both packaging-script syntax checks pass;
+- the full `kisak_ps4_monolithic` target links and the retention verifier
+  passes;
+- the executable is 126,570,592 bytes with SHA-256
+  `a37a99ed9638fbc427b6a65fc32247d314614d949dcd8bceebea230acbf3642a`;
+- the OELF is 136,350,608 bytes with SHA-256
+  `47f563e49e957cbcfe59ca15b483b74bd0dd7798746c571d747521a506a57977`;
+- the SELF input is 83,414,576 bytes with SHA-256
+  `bfe489ac0a300e18aae9b182da5a90b4abe6392dac2cfce5162e308f542b28d9`;
+- binary strings contain the v5.07 marker, nonzero client-manager boundary,
+  and completed world-factory boundary; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
+Hardware acceptance requires nonzero aligned allocation and client alpha
+manager markers, successful alpha/particle property initialization, completion
+of `ClientWorldFactoryInit()`, and advancement to the next `ClientDLL_Init`
+stage. A fault before the base-entity constructor body instead isolates one of
+its generated base/member initializers and must be attributed from the final
+marker.
+
 ## Runtime topology: two tracks, one production authority
 
 `KisakRegisterStaticModules` registers both tracks in
@@ -895,12 +941,12 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v5.07 hardware gate: attribute `ClientWorldFactoryInit()` across
-`C_BaseEntity::operator new`, aligned allocation and zeroing, base/member
-construction, the `C_BaseEntity` constructor body, and the empty `C_World`
-constructor body. v5.06 closes the ConVar collision and proves all 46 client
-game systems plus the following view/input/UI/physics/save-restore stages;
-retain that repair and do not bypass world creation.
+Immediate v5.07 hardware gate: preserve the client's initialized alpha-property
+manager by giving the engine's later-populated cache a unique symbol, then
+prove allocation, alpha/particle property setup, and world construction
+complete. v5.06 closes the ConVar collision and proves all 46 client game
+systems plus the following view/input/UI/physics/save-restore stages; retain
+that repair and do not bypass world creation.
 
 Phase hardware gate: preflight passes, every default viewport panel completes,
 `ClientDLL_Init` completes, EngineVGui/GameUI connect, and the first real Source

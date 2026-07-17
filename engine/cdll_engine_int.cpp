@@ -2558,7 +2558,7 @@ IPrediction	*g_pClientSidePrediction = NULL;
 IClientRenderTargets *g_pClientRenderTargets = NULL;
 IClientEntityList *entitylist = NULL;
 IClientLeafSystemEngine *clientleafsystem = NULL;
-IClientAlphaPropertyMgr *g_pClientAlphaPropertyMgr = NULL;
+IClientAlphaPropertyMgr *g_pEngineClientAlphaPropertyMgr = NULL;
 ClientClass *g_pClientClassHead = NULL;
 
 ClientClass *ClientDLL_GetAllClasses( void )
@@ -2796,9 +2796,9 @@ bool ClientDLL_Init( void )
 				return false;
 			}
 
-			g_pClientAlphaPropertyMgr = ( IClientAlphaPropertyMgr* )g_ClientFactory( CLIENT_ALPHA_PROPERTY_MGR_INTERFACE_VERSION, NULL );
-			PS4_CLIENT_DLL_BREADCRUMB( g_pClientAlphaPropertyMgr ? "client dll alpha property manager ready" : "client dll alpha property manager missing" );
-			if ( !g_pClientAlphaPropertyMgr )
+			g_pEngineClientAlphaPropertyMgr = ( IClientAlphaPropertyMgr* )g_ClientFactory( CLIENT_ALPHA_PROPERTY_MGR_INTERFACE_VERSION, NULL );
+			PS4_CLIENT_DLL_BREADCRUMB( g_pEngineClientAlphaPropertyMgr ? "client dll alpha property manager ready" : "client dll alpha property manager missing" );
+			if ( !g_pEngineClientAlphaPropertyMgr )
 			{
 				Sys_Error( "Could not get client alpha property mgr interface from library client" );
 				return false;

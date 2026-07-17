@@ -55,6 +55,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+extern IClientAlphaPropertyMgr *g_pEngineClientAlphaPropertyMgr;
+
 //-----------------------------------------------------------------------------
 // Convars!
 //-----------------------------------------------------------------------------
@@ -527,7 +529,7 @@ bool CStaticProp::Init( int index, StaticPropLump_t &lump, model_t *pModel )
 	if ( !sv.IsDedicated() ) 
 	{
 		CleanUpAlphaProperty();
-		m_pClientAlphaProperty = g_pClientAlphaPropertyMgr->CreateClientAlphaProperty( this );
+		m_pClientAlphaProperty = g_pEngineClientAlphaPropertyMgr->CreateClientAlphaProperty( this );
 		m_pClientAlphaProperty->SetAlphaModulation( lump.m_DiffuseModulation.a );
 		m_pClientAlphaProperty->SetDesyncOffset( index );
 		m_pClientAlphaProperty->SetRenderFX( kRenderFxNone, kRenderTransTexture );
@@ -850,7 +852,7 @@ void CStaticProp::CleanUpAlphaProperty()
 	if ( m_pClientAlphaProperty )
 	{
 #ifndef DEDICATED
-		g_pClientAlphaPropertyMgr->DestroyClientAlphaProperty( m_pClientAlphaProperty );
+		g_pEngineClientAlphaPropertyMgr->DestroyClientAlphaProperty( m_pClientAlphaProperty );
 #endif
 		m_pClientAlphaProperty = NULL;
 	}
@@ -2446,4 +2448,3 @@ void Cmd_PropCrosshair_f (void)
 }
 
 static ConCommand prop_crosshair( "prop_crosshair", Cmd_PropCrosshair_f, "Shows name for prop looking at", FCVAR_CHEAT );
-
