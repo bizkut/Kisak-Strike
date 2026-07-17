@@ -76,13 +76,13 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v5.04, 2026-07-17 |
-| Staged candidate | None; v5.05 duplicate-ConVar attribution probe is in development |
-| Package version | 3.70 |
+| Staged candidate | v5.05 duplicate-ConVar attribution probe |
+| Package version | 3.71 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
-| Package SHA-256 | `451da200b20032c71af79a1ec5c8984fbec4c6f8d37176bf4e087fd265df7930` |
+| Package SHA-256 | `35325810ef119e50a2ae89c83a218f32753db1831706dfca2b16d28f71d4fe6c` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `6ad1c731` (`Preserve PS4 monolithic ConVar construction`) |
+| Candidate commit | `84dd5c34` (`Trace PS4 duplicate ConVar linking`) |
 | Hardware-result commit | `fe827543` (`Record v5.04 duplicate ConVar crash`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
@@ -641,6 +641,16 @@ Hardware acceptance requires a final marker within the second
 repair PS4 diagnostic output before changing duplicate ownership. If parent or
 callback state fails first, validate both objects' final-binary identity and
 construction state before choosing the monolithic owner.
+
+Candidate commit `84dd5c34` produces a 103,481,344-byte package with SHA-256
+`35325810ef119e50a2ae89c83a218f32753db1831706dfca2b16d28f71d4fe6c`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.71. A separate verbose
+PkgTool validation reports every limit, digest, and signature check `[OK]` and
+no `[FAIL]` entry. FTP metadata reports the same size and a
+2026-07-17 05:07:56 UTC modified time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance is pending manual
+installation and launch.
 
 ## Runtime topology: two tracks, one production authority
 
