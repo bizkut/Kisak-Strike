@@ -76,13 +76,13 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v5.00, 2026-07-17 |
-| Staged candidate | None; v5.01 competitive-ConVar phase probe built locally |
-| Package version | 3.67 candidate |
+| Staged candidate | v5.01 competitive-ConVar phase probe |
+| Package version | 3.67 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Package size | Not yet packaged |
-| Package SHA-256 | Not yet packaged |
+| Package size | 103,481,344 bytes |
+| Package SHA-256 | `4a3d15cefe79bd3988a204e14ea52dbe4a5577cfef5040bdc75f519471f136b9` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | Pending v5.01 probe commit |
+| Candidate commit | `c663b8a2` (`Trace PS4 competitive ConVar initialization`) |
 | Hardware-result commit | `3d79d8e4` (`Record v5.00 post-inventory crash`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
@@ -403,6 +403,15 @@ Validation before the candidate commit:
 Hardware acceptance requires index 28 to report `CCompetitiveCvarManager` and
 either name the exact callback that faults or complete the manager and advance
 to the next system. No competitive callback is bypassed by this candidate.
+
+Candidate commit `c663b8a2` produces a 103,481,344-byte package with SHA-256
+`4a3d15cefe79bd3988a204e14ea52dbe4a5577cfef5040bdc75f519471f136b9`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.67. PkgTool validation has no
+`[FAIL]` entries and reports every digest/signature check `[OK]`. FTP metadata
+reports the same 103,481,344-byte size and a 2026-07-17 04:02:27 UTC modified
+time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance is pending.
 
 ## Runtime topology: two tracks, one production authority
 
