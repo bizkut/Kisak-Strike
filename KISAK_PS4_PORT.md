@@ -83,7 +83,7 @@ coverage.
 | Package SHA-256 | `35325810ef119e50a2ae89c83a218f32753db1831706dfca2b16d28f71d4fe6c` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `84dd5c34` (`Trace PS4 duplicate ConVar linking`) |
-| Hardware-result commit | Pending this documentation checkpoint |
+| Hardware-result commit | `0e937dee` (`Record v5.05 ConVar storage collision`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -592,24 +592,6 @@ no `[FAIL]` entry. FTP metadata reports the same size and a
 readbacks match the local SHA-256. Hardware acceptance is pending manual
 installation and launch.
 
-Hardware acceptance completed with an 898,490-byte, 23,937-line log, last
-modified at 2026-07-17 05:30:57 UTC and having SHA-256
-`c53beb47e4d22cc704b2f57520feb5f3b654d02161c208b5ba991eac2f978781`.
-The duplicate passes child/parent type dispatch, a live `ICvarQuery`,
-`AreConVarsLinkable`, parent assignment, and flag absorption. The exact final
-marker is `cvar register before callback transfer`.
-
-Final-OELF inspection identifies the corruption rather than a callback-policy
-failure. `sv_noclipduringpause` has one 144-byte ConVar object and one 8-byte
-object. The 8-byte definition is the engine's `ConVar *` cache in
-`engine/sys_dll.cpp`; its unmangled variable name collides with the client
-ConVar in `game/client/in_main.cpp` under global
-`--allow-multiple-definition`. The client constructor therefore writes a full
-ConVar over pointer-sized engine storage and adjacent BSS. The server-isolated
-ConVar remains correctly sized. v5.06 must rename the engine cache and all of
-its engine references, then verify two distinct 144-byte client/server ConVars
-plus one uniquely named 8-byte engine pointer in the final OELF.
-
 Hardware acceptance completed with an 858,333-byte, 23,012-line log, last
 modified at 2026-07-17 05:02:59 UTC and having SHA-256
 `28d3ff23072b8a4c5aa1a274829a3f838037e0dbc16779151c4592853395bbf9`.
@@ -669,6 +651,58 @@ no `[FAIL]` entry. FTP metadata reports the same size and a
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
 readbacks match the local SHA-256. Hardware acceptance is pending manual
 installation and launch.
+
+Hardware acceptance completed with an 898,490-byte, 23,937-line log, last
+modified at 2026-07-17 05:30:57 UTC and having SHA-256
+`c53beb47e4d22cc704b2f57520feb5f3b654d02161c208b5ba991eac2f978781`.
+The duplicate passes child/parent type dispatch, a live `ICvarQuery`,
+`AreConVarsLinkable`, parent assignment, and flag absorption. The exact final
+marker is `cvar register before callback transfer`.
+
+Final-OELF inspection identifies the corruption rather than a callback-policy
+failure. `sv_noclipduringpause` has one 144-byte ConVar object and one 8-byte
+object. The 8-byte definition is the engine's `ConVar *` cache in
+`engine/sys_dll.cpp`; its unmangled variable name collides with the client
+ConVar in `game/client/in_main.cpp` under global
+`--allow-multiple-definition`. The client constructor therefore writes a full
+ConVar over pointer-sized engine storage and adjacent BSS. The server-isolated
+ConVar remains correctly sized.
+
+### v5.06 candidate: separate engine noclip cache storage
+
+Package version 3.72 and build marker `unique_noclip_cache_v506` identify this
+ownership repair. The engine cache is renamed to
+`g_pSvNoclipDuringPause` in its definition, load/unload resets, game-DLL
+lookup, and frame use. Client and server retain their replicated
+`sv_noclipduringpause` ConVars and their normal duplicate-parent behavior.
+
+Final-OELF inspection proves the linker identities are now separated: the
+client and server-localized `sv_noclipduringpause` objects are each 144 bytes,
+while the uniquely named `g_pSvNoclipDuringPause` engine pointer is 8 bytes.
+This removes the pointer-sized construction target without weakening ConVar
+registration or callback transfer.
+
+Validation before the candidate commit:
+
+- `git diff --check` and both packaging-script syntax checks pass;
+- the full `kisak_ps4_monolithic` target links and `create-fself` completes;
+- the executable is 126,570,536 bytes with SHA-256
+  `961de3274ec8ff1501c84960ce1192a579f39482d98bdf98490ee54cc85375de`;
+- the OELF is 136,350,552 bytes with SHA-256
+  `8ba6713f9a5a108a6b14379cd23877d703fba32aec57edf1182e18f541859810`;
+- the SELF input is 83,414,576 bytes with SHA-256
+  `98693a184f4cca899dde86346db9985d1a930ed5dbc66afe400a76762b5341d1`;
+- binary strings contain `unique_noclip_cache_v506` and
+  `cvar register duplicate complete`; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
+Hardware acceptance requires the second `sv_noclipduringpause` registration
+to complete, all competitive-manager ConVar lookups and callback installation
+to finish, and client game-system initialization to advance beyond index 28.
+Any new final marker is the next observed integration blocker; it is not a
+reason to restore the colliding engine symbol.
 
 ## Runtime topology: two tracks, one production authority
 

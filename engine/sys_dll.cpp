@@ -106,7 +106,7 @@ bool				g_bV3SteamInterface = false;
 CreateInterfaceFn	g_AppSystemFactory = NULL;
 
 static bool			s_bIsDedicated = false;
-ConVar *sv_noclipduringpause = NULL;
+ConVar *g_pSvNoclipDuringPause = NULL;
 
 // Special mode where the client uses a console window and has no graphics. Useful for stress-testing a server
 // without having to round up 32 people.
@@ -1333,7 +1333,7 @@ void LoadEntityDLLs( const char *szBaseDir, bool bServerOnly )
 
 	// Run through all DLLs found in the extension DLL directory
 	g_GameDLL = NULL;
-	sv_noclipduringpause = NULL;
+	g_pSvNoclipDuringPause = NULL;
 
 	// Listing file for this game.
 	KeyValues *modinfo = new KeyValues("modinfo");
@@ -1700,7 +1700,7 @@ void UnloadEntityDLLs( void )
 	serverGameDLL = NULL;
 	serverGameEnts = NULL;
 	serverGameClients = NULL;
-	sv_noclipduringpause = NULL;
+	g_pSvNoclipDuringPause = NULL;
 }
 
 CON_COMMAND( star_memory, "Dump memory stats" )

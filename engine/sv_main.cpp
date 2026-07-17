@@ -322,7 +322,7 @@ void OnTVEnablehanged( IConVar *pConVar, const char *pOldString, float flOldValu
 ConVar tv_enable( "tv_enable", "0", FCVAR_NOTIFY | FCVAR_RELEASE, "Activates GOTV on server (0=off;1=on;2=on when reserved)", OnTVEnablehanged );
 ConVar tv_enable1( "tv_enable1", "0", FCVAR_NOTIFY | FCVAR_RELEASE, "Activates GOTV[1] on server (0=off;1=on;2=on when reserved)", OnTVEnablehanged );
 
-extern ConVar *sv_noclipduringpause;
+extern ConVar *g_pSvNoclipDuringPause;
 
 static bool s_bForceSend = false;
 
@@ -1158,7 +1158,7 @@ bool SV_InitGameDLL( void )
     Host_EnsureHostNameSet();
     PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll hostname ready" );
 
-    sv_noclipduringpause = ( ConVar * )g_pCVar->FindVar( "sv_noclipduringpause" );
+    g_pSvNoclipDuringPause = ( ConVar * )g_pCVar->FindVar( "sv_noclipduringpause" );
     PS4_GAME_SERVER_BREADCRUMB( "kisak-ps4: game dll noclip cvar queried" );
 
     COM_TimestampedLog( "SV_InitSendTables" );
@@ -3517,7 +3517,7 @@ void SV_Frame( bool finalTick )
     g_ServerGlobalVariables.frametime = host_state.interval_per_tick;
 
     bool bIsSimulating = SV_IsSimulating();
-    bool bSendDuringPause = sv_noclipduringpause ? sv_noclipduringpause->GetBool() : false;
+    bool bSendDuringPause = g_pSvNoclipDuringPause ? g_pSvNoclipDuringPause->GetBool() : false;
 
     // unlock sting tables to allow changes, helps to find unwanted changes (bebug build only)
     networkStringTableContainerServer->Lock( false );
