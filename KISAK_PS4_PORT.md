@@ -76,13 +76,13 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v5.02, 2026-07-17 |
-| Staged candidate | None; v5.03 ConVar-registry lookup probe built locally |
-| Package version | 3.69 candidate |
+| Staged candidate | v5.03 ConVar-registry lookup probe |
+| Package version | 3.69 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Package size | Not yet packaged |
-| Package SHA-256 | Not yet packaged |
+| Package size | 103,481,344 bytes |
+| Package SHA-256 | `bf4c420de4e9962f7eaf32ed952ad7ca278e3543c002c836fd342fdbd587c4a8` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | Pending v5.03 probe commit |
+| Candidate commit | `c8bf8f75` (`Trace PS4 ConVar registry lookup`) |
 | Hardware-result commit | `80a5e42b` (`Record v5.02 ConVar lookup crash`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
@@ -510,6 +510,18 @@ Validation before the candidate commit:
 Hardware acceptance requires a last marker that selects virtual dispatch,
 VProf, or the command hash as the failing boundary. No alternate lookup or
 registry bypass is introduced by this candidate.
+
+Candidate commit `c8bf8f75` produces a 103,481,344-byte package with SHA-256
+`bf4c420de4e9962f7eaf32ed952ad7ca278e3543c002c836fd342fdbd587c4a8`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.69. PkgTool validation has no
+`[FAIL]` entries and reports every digest/signature check `[OK]`. FTP metadata
+reports the same 103,481,344-byte size and a 2026-07-17 04:38:58 UTC modified
+time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance is pending. The Linux
+package script now derives the extracted Scaleform root from the repository
+parent, replacing the stale `/home/bizkut/CSGO` default encountered during this
+build.
 
 ## Runtime topology: two tracks, one production authority
 
