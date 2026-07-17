@@ -75,15 +75,15 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Last hardware result | v5.05, 2026-07-17 |
-| Staged candidate | v5.06 engine-pointer ownership repair; awaiting manual install/run |
+| Last hardware result | v5.06, 2026-07-17 |
+| Staged candidate | None; v5.07 world-factory attribution is in development |
 | Package version | 3.72 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
 | Package SHA-256 | `add8d8eab92095f5619b20bdbe46cd4818214fc11f4941fc3a50dc3e73173012` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `df4e6833` (`Separate PS4 engine ConVar cache storage`) |
-| Hardware-result commit | `0e937dee` (`Record v5.05 ConVar storage collision`) |
+| Hardware-result commit | Pending this documentation checkpoint |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -714,6 +714,23 @@ no `[FAIL]` entry. FTP metadata reports the same size and a
 readbacks match the local SHA-256. Hardware acceptance is pending manual
 installation and launch.
 
+Hardware acceptance completed with a fresh 2,025,094-byte, 49,027-line log,
+last modified at 2026-07-17 05:41:45 UTC and having SHA-256
+`9f92071835aae354b7f5f193b027cbff28455ce36c108649558ce6e4a6ee1296`.
+The v5.06 build marker is present. Normal duplicate registration completes,
+all eleven competitive ConVar callbacks install, `CCompetitiveCvarManager`
+returns success, and every client game system through index 45 initializes.
+Client-mode enable, view, effects, temporary entities, input, global panels,
+smoke/fog, user messages, voice, physics, and save/restore initialization also
+complete.
+
+The exact final marker is `client game systems before world factory init`.
+There is no paired `client game systems world factory ready` marker, placing
+the new hard fault inside `ClientWorldFactoryInit()`. Source inspection reduces
+that function to `g_pClientWorld = new C_World`; v5.07 must distinguish aligned
+allocation/zeroing from `C_BaseEntity` base/member construction and the empty
+`C_World` constructor body before changing world behavior.
+
 ## Runtime topology: two tracks, one production authority
 
 `KisakRegisterStaticModules` registers both tracks in
@@ -878,12 +895,12 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v5.06 hardware gate: give the engine's cached
-`sv_noclipduringpause` pointer a unique symbol, prove the final OELF no longer
-aliases pointer and ConVar storage, and let the normal client/server duplicate
-link complete. v5.04 already proves the independent construction manifest
-restores `fps_max` and its `sys_engine.cpp` neighbors; retain that repair and do
-not skip either the shared registry or `CCompetitiveCvarManager`.
+Immediate v5.07 hardware gate: attribute `ClientWorldFactoryInit()` across
+`C_BaseEntity::operator new`, aligned allocation and zeroing, base/member
+construction, the `C_BaseEntity` constructor body, and the empty `C_World`
+constructor body. v5.06 closes the ConVar collision and proves all 46 client
+game systems plus the following view/input/UI/physics/save-restore stages;
+retain that repair and do not bypass world creation.
 
 Phase hardware gate: preflight passes, every default viewport panel completes,
 `ClientDLL_Init` completes, EngineVGui/GameUI connect, and the first real Source
