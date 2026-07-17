@@ -67,6 +67,13 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_CLIENT_MODE_SHARED_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_CLIENT_MODE_SHARED_BREADCRUMB( line ) ((void)0)
+#endif
+
 class CHudWeaponSelection;
 class CHudChat;
 
@@ -241,6 +248,7 @@ void ClientModeShared::ReloadSchemeWithRoot( vgui::VPANEL pRoot )
 //-----------------------------------------------------------------------------
 void ClientModeShared::Init()
 {
+	PS4_CLIENT_MODE_SHARED_BREADCRUMB( "kisak-ps4: client mode shared init entered" );
 	InitChatHudElement();
 
 	InitWeaponSelectionHudElement();
@@ -270,15 +278,23 @@ void ClientModeShared::Init()
 
 
 
+	PS4_CLIENT_MODE_SHARED_BREADCRUMB( "kisak-ps4: client mode shared before hltv camera init" );
 	HLTVCamera()->Init();
+	PS4_CLIENT_MODE_SHARED_BREADCRUMB( "kisak-ps4: client mode shared hltv camera init ready" );
 #if defined( REPLAY_ENABLED )
 	ReplayCamera()->Init();
 #endif
 
 	m_CursorNone = vgui::dc_none;
+	PS4_CLIENT_MODE_SHARED_BREADCRUMB( "kisak-ps4: client mode shared cursor ready" );
 
+	PS4_CLIENT_MODE_SHARED_BREADCRUMB( "kisak-ps4: client mode shared before VGUIMenu hook" );
 	HOOK_MESSAGE( VGUIMenu );
+	PS4_CLIENT_MODE_SHARED_BREADCRUMB( "kisak-ps4: client mode shared VGUIMenu hook ready" );
+	PS4_CLIENT_MODE_SHARED_BREADCRUMB( "kisak-ps4: client mode shared before Rumble hook" );
 	HOOK_MESSAGE( Rumble );
+	PS4_CLIENT_MODE_SHARED_BREADCRUMB( "kisak-ps4: client mode shared Rumble hook ready" );
+	PS4_CLIENT_MODE_SHARED_BREADCRUMB( "kisak-ps4: client mode shared init complete" );
 }
 
 void ClientModeShared::InitChatHudElement()

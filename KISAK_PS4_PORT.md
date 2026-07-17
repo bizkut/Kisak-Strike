@@ -83,7 +83,7 @@ coverage.
 | Package SHA-256 | `b8d4169510a4d5d39f4df9437938dcf0ed56147b11c12756697f9fa21e80aae4` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `8bf3cba8` (`Disable Chrome HTML MOTD on PS4`) |
-| Hardware-result commit | pending (`Record v4.96 client-mode init crash`) |
+| Hardware-result commit | `ca8cda5f` (`Record v4.96 client-mode init crash`) |
 
 v4.96 closes the optional HTML gate. The disabled-HTML path returns, every
 default viewport panel completes, both normal and fullscreen viewport startups
@@ -192,6 +192,39 @@ time. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
 readbacks match the local SHA-256. Hardware acceptance remains pending manual
 installation and launch.
+
+### v4.97 candidate: attribute client-mode initialization
+
+Package version 3.63 and build marker `client_mode_init_v497` identify this
+attribution-only candidate. It does not skip a listener, guard the camera
+singleton, or alter message-hook behavior. PS4-only breadcrumbs distinguish
+normal from fullscreen client-mode initialization and bracket every remaining
+`C_HLTVCamera::Init` listener, reset, state, and convar operation. They continue
+through the shared VGUI message hooks and the derived CS mode's match-framework
+subscription, event/message registrations, user-message binds, HUD render
+groups, color-correction/post-process setup, and screenshot setup.
+
+Validation before the candidate commit:
+
+- `git diff --check` passes;
+- the full `kisak_ps4_monolithic` target links and generates the SELF;
+- the executable is 126,552,912 bytes with SHA-256
+  `fb986aca9bae2903daeddd5f116f226403115e34b43307daad925e2c34012477`;
+- the OELF is 136,332,640 bytes with SHA-256
+  `83f9c309d823a923f401edcee9ad2c20f88bbede43010016be1b5a804606dc46`;
+- the SELF input is 83,397,872 bytes with SHA-256
+  `16cc493324918d24f5c6144c04c6c537e9dd298df21602ce349a8abd51959c70`;
+- binary strings contain the v4.97 marker, both normal/fullscreen caller tags,
+  all three post-`hltv_status` listener boundaries, camera completion, both
+  shared message-hook completions, and the derived-mode tail boundaries; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
+Hardware acceptance is attribution, not necessarily a successful boot. The
+last completed before/after pair must identify whether the failure is in the
+camera tail, a shared message hook, the normal derived mode, or the second
+fullscreen pass. Only then may the next candidate change lifecycle behavior.
 
 ## Runtime topology: two tracks, one production authority
 

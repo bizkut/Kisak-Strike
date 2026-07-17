@@ -55,6 +55,13 @@ extern ConVar view_recoil_tracking;
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_HLTV_INIT_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_HLTV_INIT_BREADCRUMB( line ) ((void)0)
+#endif
+
 #define CHASE_CAM_DISTANCE		76.0f
 #define WALL_OFFSET				6.0f
 
@@ -85,26 +92,55 @@ C_HLTVCamera::~C_HLTVCamera()
 
 void C_HLTVCamera::Init()
 {
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera init entered" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera before game_newmap listen" );
 	ListenForGameEvent( "game_newmap" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera game_newmap listen ready" );
 #ifdef CAMERAMAN_OLD_WAY
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera before hltv_cameraman listen" );
 	ListenForGameEvent( "hltv_cameraman" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera hltv_cameraman listen ready" );
 #endif
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera before hltv_fixed listen" );
 	ListenForGameEvent( "hltv_fixed" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera hltv_fixed listen ready" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera before hltv_chase listen" );
 	ListenForGameEvent( "hltv_chase" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera hltv_chase listen ready" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera before hltv_message listen" );
 	ListenForGameEvent( "hltv_message" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera hltv_message listen ready" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera before hltv_title listen" );
 	ListenForGameEvent( "hltv_title" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera hltv_title listen ready" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera before hltv_status listen" );
 	ListenForGameEvent( "hltv_status" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera hltv_status listen ready" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera before player_connect listen" );
 	ListenForGameEvent( "player_connect" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera player_connect listen ready" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera before player_connect_full listen" );
 	ListenForGameEvent( "player_connect_full" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera player_connect_full listen ready" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera before player_team listen" );
 	ListenForGameEvent( "player_team" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera player_team listen ready" );
 	
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera before reset" );
 	Reset();
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera reset ready" );
 
 	m_nNumSpectators = 0;
 	m_szTitleText[0] = 0;
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera state ready" );
 
 	// get a handle to the engine convar
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera before tv_transmitall lookup" );
 	tv_transmitall = cvar->FindVar( "tv_transmitall" );
+	PS4_HLTV_INIT_BREADCRUMB( tv_transmitall
+		? "kisak-ps4: hltv camera tv_transmitall ready"
+		: "kisak-ps4: hltv camera tv_transmitall missing" );
+	PS4_HLTV_INIT_BREADCRUMB( "kisak-ps4: hltv camera init complete" );
 }
 
 void C_HLTVCamera::Reset()
