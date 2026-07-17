@@ -44,6 +44,35 @@ static int s_nCVarFlag = 0;
 static int s_nDLLIdentifier = -1;	// A unique identifier indicating which DLL this convar came from
 static bool s_bRegistered = false;
 
+#if defined( PLATFORM_PS4 )
+// A monolithic executable runs constructors from modules that used to own
+// independent copies of this pending list. Duplicate global definitions can
+// reconstruct the same object and rewrite m_pNext, disconnecting otherwise
+// valid ConVars before the first ConVar_Register call. Keep an independent,
+// deduplicated construction manifest so registration does not depend on that
+// mutable linkage.
+static const int KISAK_PS4_MAX_STATIC_CONCOMMAND_BASES = 16384;
+static ConCommandBase *s_KisakPs4StaticConCommandBases[KISAK_PS4_MAX_STATIC_CONCOMMAND_BASES];
+static int s_nKisakPs4StaticConCommandBases;
+
+static void KisakPs4TrackStaticConCommandBase( ConCommandBase *pBase )
+{
+	for ( int i = 0; i < s_nKisakPs4StaticConCommandBases; ++i )
+	{
+		if ( s_KisakPs4StaticConCommandBases[i] == pBase )
+			return;
+	}
+
+	if ( s_nKisakPs4StaticConCommandBases >= KISAK_PS4_MAX_STATIC_CONCOMMAND_BASES )
+	{
+		PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar construction manifest overflow" );
+		return;
+	}
+
+	s_KisakPs4StaticConCommandBases[s_nKisakPs4StaticConCommandBases++] = pBase;
+}
+#endif
+
 class CDefaultAccessor : public IConCommandBaseAccessor
 {
 public:
@@ -84,14 +113,28 @@ void ConVar_Register( int nCVarFlag, IConCommandBaseAccessor *pAccessor )
 	ConCommandBase *pCur, *pNext;
 
 	ConCommandBase::s_pAccessor = pAccessor ? pAccessor : &s_DefaultAccessor;
+	#if defined( PLATFORM_PS4 )
+	int nManifestIndex = s_nKisakPs4StaticConCommandBases;
+	pCur = nManifestIndex > 0
+		? s_KisakPs4StaticConCommandBases[--nManifestIndex]
+		: NULL;
+	PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register using construction manifest" );
+	#else
 	pCur = ConCommandBase::s_pConCommandBases;
+	#endif
 	PS4_CONVAR_REGISTER_BREADCRUMB( pCur
 		? "kisak-ps4: ConVar_Register pending list ready"
 		: "kisak-ps4: ConVar_Register pending list empty" );
 	while ( pCur )
 	{
 		PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: ConVar_Register pending item" );
+		#if defined( PLATFORM_PS4 )
+		pNext = nManifestIndex > 0
+			? s_KisakPs4StaticConCommandBases[--nManifestIndex]
+			: NULL;
+		#else
 		pNext = pCur->m_pNext;
+		#endif
 		#if defined( PLATFORM_PS4 )
 		const char *pPendingName = pCur->GetName();
 		PS4_CONVAR_REGISTER_BREADCRUMB( pPendingName ? pPendingName : "<unnamed ConCommandBase>" );
@@ -190,6 +233,10 @@ CVarDLLIdentifier_t ConCommandBase::GetDLLIdentifier() const
 void ConCommandBase::Create( const char *pName, const char *pHelpString /*= 0*/, int flags /*= 0*/ )
 {
 	static const char *empty_string = "";
+
+	#if defined( PLATFORM_PS4 )
+	KisakPs4TrackStaticConCommandBase( this );
+	#endif
 
 	m_bRegistered = false;
 

@@ -83,7 +83,7 @@ coverage.
 | Package SHA-256 | `bf4c420de4e9962f7eaf32ed952ad7ca278e3543c002c836fd342fdbd587c4a8` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `c8bf8f75` (`Trace PS4 ConVar registry lookup`) |
-| Hardware-result commit | Pending this documentation checkpoint |
+| Hardware-result commit | `77632a15` (`Record v5.03 missing ConVar crash`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -539,6 +539,48 @@ later module-level `ConVar_Register` calls report `skipped already registered`.
 The final OELF retains one constructed `fps_max` object and its constructor in
 `.kisak_ctors`, so the next repair targets monolithic static-ConVar composition
 instead of weakening `CCompetitiveCvarManager` or substituting a lookup path.
+
+### v5.04 candidate: register from a PS4 construction manifest
+
+Package version 3.70 and build marker
+`convar_construction_manifest_v504` identify this composition repair. The
+hardware log and final binary prove that the `sys_engine.cpp` constructor runs,
+but `fps_max`, `engine_no_focus_sleep`, `mat_powersavingsmode`, and
+`sleep_when_meeting_framerate` are all absent from the first registration
+traversal. Re-running `ConVar_Register` cannot reconstruct a chain that was
+already lost: after the shared accessor exists, genuinely late ConVars register
+immediately from `ConCommandBase::Create`.
+
+The PS4 tier1 path now records every unique constructed `ConCommandBase` pointer
+in a fixed-capacity, zero-initialized side manifest. Duplicate constructors for
+the same monolithic address are deduplicated. The first registration traverses
+this manifest in reverse construction order, matching the original pending-list
+ordering without depending on mutable `m_pNext` links; desktop behavior remains
+unchanged. The existing `CCvar::RegisterConCommand` duplicate handling, hash,
+lookup, flags, split-screen expansion, and queued material-thread processing are
+preserved.
+
+Validation before the candidate commit:
+
+- `git diff --check` and both packaging-script syntax checks pass;
+- the full `kisak_ps4_monolithic` target links and `create-fself` completes;
+- the executable is 126,570,488 bytes with SHA-256
+  `b2dbaf952e5315bc2b919995982fcc601baf69036311ca41410d73eae1554d88`;
+- the OELF is 136,350,504 bytes with SHA-256
+  `0a1a93264ca093747ec1b68615f24e33dc37d6678c1f861b37d48492013c018a`;
+- the SELF input is 83,414,576 bytes with SHA-256
+  `05b6d541e57bbf79bcdd3fdb538f9f1dea6add84e1abf7792fd11aaa472954c8`;
+- binary strings contain the v5.04 marker, construction-manifest selection, and
+  bounded overflow marker; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
+Hardware acceptance requires the initial registration output to contain
+`fps_max`, the competitive manager to resolve each required ConVar and finish
+callback installation, and client game-system initialization to advance beyond
+index 28. A manifest overflow or another missing `sys_engine.cpp` neighbor is a
+candidate failure, not permission to bypass the manager.
 
 ## Runtime topology: two tracks, one production authority
 
