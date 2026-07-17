@@ -76,14 +76,14 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v4.99, 2026-07-17 |
-| Staged candidate | None; v5.00 identity probe pending |
-| Package version | 3.65 |
+| Staged candidate | None; v5.00 `CInventoryManager::Init()` phase probe built locally |
+| Package version | 3.66 candidate |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Package size | 103,481,344 bytes |
-| Package SHA-256 | `a4ff1c2632510ccf69fce456d65efac87b9d784b6371e93e33a0be3cffb8efd9` |
+| Package size | Not yet packaged |
+| Package SHA-256 | Not yet packaged |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `cc76c903` (`Trace PS4 client game-system initialization`) |
-| Hardware-result commit | This checkpoint (`Record v4.99 unnamed game-system crash`) |
+| Candidate commit | Pending v5.00 probe commit |
+| Hardware-result commit | `eae7dabc` (`Record v4.99 unnamed game-system crash`) |
 
 v4.99 proves list construction and the model-cache lock are healthy through
 client game-system index 28. Systems 0 through 27 all return true from `Init()`;
@@ -96,10 +96,13 @@ systems occupy indices 0 through 12.
 The fresh log was last modified at 2026-07-17 03:35:17 UTC; it is 542,341 bytes
 and 13,495 lines with SHA-256
 `ae0bddb134f12e798bdb38d843729cf3f2fb021c590f009331c93d194a742685`.
-The immediate v5.00 gate is deterministic identity attribution: correlate the
-hardware list with the monolith's `.kisak_ctors` order or emit a stable concrete
-type/object tag for unnamed systems. Do not skip index 28 until its concrete
-class and `Init()` dependency are proven.
+The monolith's `.kisak_ctors` relocations and disassembly of calls to
+`CAutoGameSystem::CAutoGameSystem` identify auto-list entry 15 as the global
+`CInventoryManager`: it follows `CBulletWhizTimer` and `CMP3PlayerGameSystem`
+and precedes `CCompetitiveCvarManager`. Source inspection confirms that its
+unnamed `Init()` body performs four shared-object registrations and then creates
+the generated-icon cache directory. The immediate v5.00 gate is to identify the
+exact failing operation without skipping any of them.
 
 ### v4.95 candidate: attribute info-panel construction
 
@@ -319,6 +322,42 @@ time. The package is staged at
 readbacks match the local SHA-256. Hardware acceptance completed: the probe
 identifies a hard fault inside client game-system index 28, auto-list entry 15,
 whose inherited name is `unnamed`.
+
+### v5.00 candidate: trace inventory-manager initialization
+
+Package version 3.66 and build marker `trace_inventory_manager_init_v500`
+identify this attribution-only candidate. `CInventoryManager` now supplies its
+stable class name to `CAutoGameSystem`; PS4 client breadcrumbs bracket entry,
+each of the `CEconItem`, default-equipped, game-account, and coupon shared-object
+registrations, generated-icon cache-directory creation, and normal completion.
+Registration and filesystem behavior are unchanged.
+
+The identity attribution is stronger than a guessed registration order: the
+linked constructor table and calls in the final monolith place
+`CInventoryManager` at hardware auto-list entry 15. Its source `Init()` body is
+the only remaining boundary under test, so the final paired markers will
+separate a `CSharedObject::RegisterFactory` fault from a filesystem fault.
+
+Validation before the candidate commit:
+
+- `git diff --check` and both packaging-script syntax checks pass;
+- the full `kisak_ps4_monolithic` target links and generates the SELF;
+- the executable is 126,552,968 bytes with SHA-256
+  `a6d047b33deca376498f102788b44fd7e37cd97e3905d50e7223c14ed7b9fa2e`;
+- the OELF is 136,332,696 bytes with SHA-256
+  `c20f98ed3c6829368c2f19b889fdc7a926c80560c6be446dc39d480aaec3475f`;
+- the SELF input is 83,397,872 bytes with SHA-256
+  `30334f5ff6533b5941b1e4570425efdee940d2a6ffbec27edbff4e5851986b0d`;
+- binary strings contain the v5.00 marker, inventory-manager entry marker, and
+  the final cache-directory completion marker; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
+Hardware acceptance requires a last `before` marker that names the exact
+operation, or full inventory-manager completion followed by the existing
+per-system `after init` marker. No registration or filesystem operation is
+bypassed by this candidate.
 
 ## Runtime topology: two tracks, one production authority
 

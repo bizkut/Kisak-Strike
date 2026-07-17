@@ -20,6 +20,13 @@
 #include "cs_econ_item_string_table.h"
 #include "econ_game_account_client.h"
 
+#if defined( PLATFORM_PS4 ) && defined( CLIENT_DLL )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_INVENTORY_INIT_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_INVENTORY_INIT_BREADCRUMB( line ) ((void)0)
+#endif
+
 #ifdef CLIENT_DLL
 #include <igameevents.h>
 #include "ienginevgui.h"
@@ -162,8 +169,9 @@ bool CInventoryListLess::Less( CEconItemView* const &src1, CEconItemView *const 
 // Purpose:
 //-----------------------------------------------------------------------------
 CInventoryManager::CInventoryManager( void )
+	: CAutoGameSystem( "CInventoryManager" )
 #ifdef CLIENT_DLL
-	: m_mapPersonaNamesCache( DefLessFunc( uint32 ) ),
+	, m_mapPersonaNamesCache( DefLessFunc( uint32 ) ),
 	  m_mapPredictedFilledSlots( DefLessFunc( uint32 ) )
 #endif
 {
@@ -289,22 +297,34 @@ void CInventoryManager::UpdateLocalInventory( void )
 //-----------------------------------------------------------------------------
 bool CInventoryManager::Init( void )
 {
+	PS4_INVENTORY_INIT_BREADCRUMB( "kisak-ps4: inventory manager init entered" );
+	PS4_INVENTORY_INIT_BREADCRUMB( "kisak-ps4: inventory manager before CEconItem registration" );
 	REG_SHARED_OBJECT_SUBCLASS( CEconItem );
+	PS4_INVENTORY_INIT_BREADCRUMB( "kisak-ps4: inventory manager after CEconItem registration" );
+	PS4_INVENTORY_INIT_BREADCRUMB( "kisak-ps4: inventory manager before default-equipped registration" );
 	REG_SHARED_OBJECT_SUBCLASS( CEconDefaultEquippedDefinitionInstanceClient );
+	PS4_INVENTORY_INIT_BREADCRUMB( "kisak-ps4: inventory manager after default-equipped registration" );
 
 #if defined (CLIENT_DLL)
+	PS4_INVENTORY_INIT_BREADCRUMB( "kisak-ps4: inventory manager before game-account registration" );
 	REG_SHARED_OBJECT_SUBCLASS( CEconGameAccountClient );
+	PS4_INVENTORY_INIT_BREADCRUMB( "kisak-ps4: inventory manager after game-account registration" );
 
+	PS4_INVENTORY_INIT_BREADCRUMB( "kisak-ps4: inventory manager before coupon registration" );
 	REG_SHARED_OBJECT_SUBCLASS( CEconCoupon );
+	PS4_INVENTORY_INIT_BREADCRUMB( "kisak-ps4: inventory manager after coupon registration" );
 
 	// Make sure the cache directory exists
+	PS4_INVENTORY_INIT_BREADCRUMB( "kisak-ps4: inventory manager before cache directory creation" );
 	g_pFullFileSystem->CreateDirHierarchy( ECON_ITEM_GENERATED_ICON_DIR, "DEFAULT_WRITE_PATH" );
+	PS4_INVENTORY_INIT_BREADCRUMB( "kisak-ps4: inventory manager after cache directory creation" );
 #endif
 
 #if defined(GAME_DLL)
 	REG_SHARED_OBJECT_SUBCLASS( CEconPersonaDataPublic );
 #endif
 
+	PS4_INVENTORY_INIT_BREADCRUMB( "kisak-ps4: inventory manager init complete" );
 	return true;
 }
 
