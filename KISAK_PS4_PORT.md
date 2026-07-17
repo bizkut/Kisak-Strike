@@ -76,13 +76,13 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v5.06, 2026-07-17 |
-| Staged candidate | None; v5.07 world-factory attribution is in development |
-| Package version | 3.72 |
+| Staged candidate | v5.07 alpha-property ownership repair; awaiting manual install/run |
+| Package version | 3.73 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
-| Package SHA-256 | `add8d8eab92095f5619b20bdbe46cd4818214fc11f4941fc3a50dc3e73173012` |
+| Package SHA-256 | `48b5fc62c12b079ded83efb658b66aac6ff3f8b016cf5bdef3e3e385ddf40b60` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `df4e6833` (`Separate PS4 engine ConVar cache storage`) |
+| Candidate commit | `ca53660d` (`Separate PS4 alpha property manager storage`) |
 | Hardware-result commit | `35ee4ac3` (`Record v5.06 world factory crash`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
@@ -776,6 +776,16 @@ of `ClientWorldFactoryInit()`, and advancement to the next `ClientDLL_Init`
 stage. A fault before the base-entity constructor body instead isolates one of
 its generated base/member initializers and must be attributed from the final
 marker.
+
+Candidate commit `ca53660d` produces a 103,481,344-byte package with SHA-256
+`48b5fc62c12b079ded83efb658b66aac6ff3f8b016cf5bdef3e3e385ddf40b60`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.73. A separate verbose
+PkgTool validation reports every limit, digest, and signature check `[OK]` and
+no `[FAIL]` entry. FTP metadata reports the same size and a
+2026-07-17 05:52:22 UTC modified time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance is pending manual
+installation and launch.
 
 ## Runtime topology: two tracks, one production authority
 
