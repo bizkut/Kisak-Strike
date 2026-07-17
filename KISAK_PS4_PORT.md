@@ -76,13 +76,13 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v5.03, 2026-07-17 |
-| Staged candidate | None; v5.04 monolithic ConVar-registration repair is in development |
-| Package version | 3.69 |
+| Staged candidate | v5.04 PS4 ConVar construction manifest |
+| Package version | 3.70 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
-| Package SHA-256 | `bf4c420de4e9962f7eaf32ed952ad7ca278e3543c002c836fd342fdbd587c4a8` |
+| Package SHA-256 | `451da200b20032c71af79a1ec5c8984fbec4c6f8d37176bf4e087fd265df7930` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `c8bf8f75` (`Trace PS4 ConVar registry lookup`) |
+| Candidate commit | `6ad1c731` (`Preserve PS4 monolithic ConVar construction`) |
 | Hardware-result commit | `77632a15` (`Record v5.03 missing ConVar crash`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
@@ -581,6 +581,16 @@ Hardware acceptance requires the initial registration output to contain
 callback installation, and client game-system initialization to advance beyond
 index 28. A manifest overflow or another missing `sys_engine.cpp` neighbor is a
 candidate failure, not permission to bypass the manager.
+
+Candidate commit `6ad1c731` produces a 103,481,344-byte package with SHA-256
+`451da200b20032c71af79a1ec5c8984fbec4c6f8d37176bf4e087fd265df7930`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.70. A separate verbose
+PkgTool validation reports every limit, digest, and signature check `[OK]` and
+no `[FAIL]` entry. FTP metadata reports the same size and a
+2026-07-17 05:00:23 UTC modified time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance is pending manual
+installation and launch.
 
 ## Runtime topology: two tracks, one production authority
 
