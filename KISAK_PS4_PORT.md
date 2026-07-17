@@ -75,36 +75,30 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Last hardware result | v4.97, 2026-07-17 |
-| Staged candidate | v4.98 |
+| Last hardware result | v4.98, 2026-07-17 |
+| Staged candidate | None; v4.99 attribution candidate pending |
 | Package version | 3.64 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
 | Package SHA-256 | `7956b86934f820efbe8db382c4c08bfde3e3add32bb8bb0df0d7a153d442516a` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `cf682ee2` (`Defer PS4 color correction lookup allocation`) |
-| Hardware-result commit | `da8b0066` (`Record v4.97 color-correction crash`) |
+| Hardware-result commit | This checkpoint (`Record v4.98 game-system init crash`) |
 
-v4.97 closes the client-mode lifecycle attribution gate through the normal
-mode's shared base. The complete HLTV camera initialization returns, both shared
-message hooks return, and the normal mode completes match-framework
-subscription, game-event registrations, user-message hooks and binds, and HUD
-render-group setup.
+v4.98 clears the optional color-correction gate. Both normal and fullscreen
+`ClientModeCSNormal::Init()` passes return after completing shared mode, HLTV,
+event, message, color-correction defer, post-process load, and screenshot-enable
+stages. The exact final line is
+`client game systems before init all systems`; the missing paired completion
+marker moves the crash into the client copy of `IGameSystem::InitAllSystems()`.
 
-The exact last line is
-`kisak-ps4: client mode before color corrections slot=0`. The missing paired
-marker places the crash inside the normal mode's initial color-correction lookup
-and load sequence, before post-process parameter loading and before the
-fullscreen mode begins. The fresh log was last modified at 2026-07-17 03:10:31
-UTC; it is 527,274 bytes and 13,274 lines with SHA-256
-`62e801a3689ee3e94acd838a8275b6778c16fedcdac6596db54b3bd765e735e8`.
-
-The immediate v4.98 gate is the optional color-correction lookup startup path.
-Its four `.raw` lookup files are absent from the packaged source assets, and the
-current rendering path has no validated PS4 3D procedural lookup-texture
-support. Defer only those allocations on PS4 and keep all handles invalid until
-the production GNM backend supports lookups. Keep post-process parameter loading
-active so the next hardware boundary remains attributable.
+The fresh log was last modified at 2026-07-17 03:22:40 UTC; it is 532,459 bytes
+and 13,373 lines with SHA-256
+`73161d9ea43ad29121d09a098ec2bbb7b81d2fc9d23655e4c196d046687a1eb6`.
+The immediate v4.99 gate is attribution-only: expose the existing PS4
+auto-registration, per-frame registration, model-cache lock, and per-system
+`Init()` before/after breadcrumbs in the client build. Do not skip a game system
+until hardware identifies its name and failing phase.
 
 ### v4.95 candidate: attribute info-panel construction
 
@@ -274,8 +268,9 @@ The embedded SFO reports `APP_VER` and `VERSION` 3.64. PkgTool validation has no
 reports the same 103,481,344-byte size and a 2026-07-17 03:19:35 UTC modified
 time. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
-readbacks match the local SHA-256. Hardware acceptance remains pending manual
-installation and launch.
+readbacks match the local SHA-256. Hardware acceptance completed: both client
+modes return, including active post-process loading, and startup reaches
+`IGameSystem::InitAllSystems()`.
 
 ## Runtime topology: two tracks, one production authority
 
@@ -285,7 +280,7 @@ installation and launch.
 | Registered runtime | Factory | Purpose | Acceptance status |
 |---|---|---|---|
 | `presentation_engine` | `KisakEngineBootstrapFactory()` | Diagnostic OpenGNM/Scaleform/input loop and rollback target | Hardware validated, but not a production Source-frame result |
-| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes the normal mode's shared initialization and registration work, then crashes in optional color-correction lookup/load setup; no first frame yet |
+| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes both normal and fullscreen client modes, then crashes inside client `IGameSystem::InitAllSystems()`; no first frame yet |
 
 The launcher requests production `engine` (`launcher/launcher.cpp:773-820`).
 The presentation loop owns VideoOut and calls `RenderMenuFrame` and
@@ -441,11 +436,10 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v4.98 hardware gate: defer only the unsupported color-correction
-lookup allocations on PS4 while retaining invalid handles and safe no-op weight
-semantics. Keep post-process loading active, and require normal and fullscreen
-client-mode initialization to return before addressing the next observed
-blocker.
+Immediate v4.99 hardware gate: trace the client `IGameSystem::InitAllSystems()`
+list construction and every model-cache-lock/`Init()` boundary. Require the log
+to identify the exact registered system and phase before applying any PS4-native
+bypass or replacement.
 
 Phase hardware gate: preflight passes, every default viewport panel completes,
 `ClientDLL_Init` completes, EngineVGui/GameUI connect, and the first real Source
@@ -454,9 +448,10 @@ frame completes. This phase is not done merely because a registrar is found.
 ### 2. Direct Source/OpenGNM convergence
 
 Keep `presentation_engine` as a diagnostic rollback target, not a second
-product runtime. Do not begin the renderer-selection change until the v4.98
-client-mode gate clears optional color-correction startup: changing the active
-backend is broad and would destroy the current crash boundary.
+product runtime. Do not begin the renderer-selection change until the v4.99
+game-system gate identifies and closes the current Source-lifecycle blocker:
+changing the active backend is broad and would destroy the current crash
+boundary.
 
 #### Source/OpenGNM rendering closure checklist
 
