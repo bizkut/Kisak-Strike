@@ -75,35 +75,36 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Last hardware result | v4.96, 2026-07-17 |
-| Staged candidate | v4.97 |
+| Last hardware result | v4.97, 2026-07-17 |
+| Staged candidate | none |
 | Package version | 3.63 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
 | Package SHA-256 | `dd41b07110cdfacf83bf8a2efca96123eb43af0a01f8fd5fef5e0edaa3926152` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `328fe8a2` (`Trace PS4 client mode initialization`) |
-| Hardware-result commit | `ca8cda5f` (`Record v4.96 client-mode init crash`) |
+| Hardware-result commit | pending (`Record v4.97 color-correction crash`) |
 
-v4.96 closes the optional HTML gate. The disabled-HTML path returns, every
-default viewport panel completes, both normal and fullscreen viewport startups
-complete, and HUD initialization returns. The production client then enters
-`ClientModeShared::Init` and reaches `C_HLTVCamera::Init`.
+v4.97 closes the client-mode lifecycle attribution gate through the normal
+mode's shared base. The complete HLTV camera initialization returns, both shared
+message hooks return, and the normal mode completes match-framework
+subscription, game-event registrations, user-message hooks and binds, and HUD
+render-group setup.
 
 The exact last line is
-`kisak-ps4: game event listener hltv add returned true`. The listener descriptor,
-callback lookup, listener-vector insertion, and public `AddListener` return all
-succeed for `hltv_status`; therefore the crash is after that successful call,
-not inside the previously repaired event-manager insertion. The fresh log was
-last modified at 2026-07-17 01:01:35 UTC; it is 524,909 bytes and 13,226 lines
-with SHA-256
-`8641eea829dbe205b66c57defafef17e4489e74d377f554ee97ec83314e32ec3`.
+`kisak-ps4: client mode before color corrections slot=0`. The missing paired
+marker places the crash inside the normal mode's initial color-correction lookup
+and load sequence, before post-process parameter loading and before the
+fullscreen mode begins. The fresh log was last modified at 2026-07-17 03:10:31
+UTC; it is 527,274 bytes and 13,274 lines with SHA-256
+`62e801a3689ee3e94acd838a8275b6778c16fedcdac6596db54b3bd765e735e8`.
 
-The immediate v4.97 gate is attribution-only. Bracket every remaining
-`C_HLTVCamera::Init` listener registration, `Reset`, state initialization, and
-`tv_transmitall` lookup, plus the return to `ClientModeShared::Init` and both
-message hooks. Do not change event behavior until hardware identifies the exact
-next operation.
+The immediate v4.98 gate is the optional color-correction/post-process startup
+path. Its four `.raw` lookup files are absent from the packaged source assets,
+and the current null rendering context has no real color-correction backend.
+Treat this as a deferrable renderer feature: either prove a smaller required
+operation with focused boundaries or install a PS4-native no-op policy that
+keeps all handles invalid until the production GNM backend supports lookups.
 
 ### v4.95 candidate: attribute info-panel construction
 
@@ -244,7 +245,7 @@ installation and launch.
 | Registered runtime | Factory | Purpose | Acceptance status |
 |---|---|---|---|
 | `presentation_engine` | `KisakEngineBootstrapFactory()` | Diagnostic OpenGNM/Scaleform/input loop and rollback target | Hardware validated, but not a production Source-frame result |
-| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes all default viewport panels and HUD init, then crashes during `C_HLTVCamera::Init` after a successful `hltv_status` listener registration; no first frame yet |
+| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes the normal mode's shared initialization and registration work, then crashes in optional color-correction lookup/load setup; no first frame yet |
 
 The launcher requests production `engine` (`launcher/launcher.cpp:773-820`).
 The presentation loop owns VideoOut and calls `RenderMenuFrame` and
@@ -400,11 +401,10 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v4.97 hardware gate: bracket the rest of `C_HLTVCamera::Init` after
-the successful `hltv_status` registration and its return to
-`ClientModeShared::Init`. Require attribution through the remaining listener
-registrations, reset/state/convar work, and VGUI message hooks before changing
-behavior.
+Immediate v4.98 hardware gate: defer the unsupported color-correction and
+post-process startup path on PS4 while retaining invalid handles and safe no-op
+runtime semantics. Require normal and fullscreen client-mode initialization to
+return before addressing the next observed blocker.
 
 Phase hardware gate: preflight passes, every default viewport panel completes,
 `ClientDLL_Init` completes, EngineVGui/GameUI connect, and the first real Source
@@ -413,9 +413,9 @@ frame completes. This phase is not done merely because a registrar is found.
 ### 2. Direct Source/OpenGNM convergence
 
 Keep `presentation_engine` as a diagnostic rollback target, not a second
-product runtime. Do not begin the renderer-selection change until the v4.97
-client-mode attribution gate closes: changing the active backend is broad and
-would destroy the current crash boundary.
+product runtime. Do not begin the renderer-selection change until the v4.98
+client-mode gate clears optional color-correction startup: changing the active
+backend is broad and would destroy the current crash boundary.
 
 #### Source/OpenGNM rendering closure checklist
 
