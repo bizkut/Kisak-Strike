@@ -75,34 +75,32 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Last hardware result | v4.99, 2026-07-17 |
-| Staged candidate | v5.00 `CInventoryManager::Init()` phase probe |
+| Last hardware result | v5.00, 2026-07-17 |
+| Staged candidate | None; v5.01 next-system identity probe pending |
 | Package version | 3.66 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
 | Package SHA-256 | `846c1fb7d60cb3d62fd391ba510ba75b2ccc94e4884ac87e2b4539dceb86f2e5` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `0b6d8525` (`Trace PS4 inventory manager initialization`) |
-| Hardware-result commit | `eae7dabc` (`Record v4.99 unnamed game-system crash`) |
+| Hardware-result commit | Pending v5.00 result commit |
 
-v4.99 proves list construction and the model-cache lock are healthy through
-client game-system index 28. Systems 0 through 27 all return true from `Init()`;
-the exact final marker is
+v5.00 proves list construction and the model-cache lock are healthy through
+client game-system index 28. `CInventoryManager` is index 27, auto-list entry
+14; every shared-object registration and cache-directory operation completes,
+followed by its paired successful `after init`. The exact final marker remains
 `kisak-ps4: client game system before init index=28 name=unnamed value=46`.
 The missing paired `after init` places the hard fault inside that system's
 `Init()` body. It is auto-registration list entry 15 because explicitly added
 systems occupy indices 0 through 12.
 
-The fresh log was last modified at 2026-07-17 03:35:17 UTC; it is 542,341 bytes
-and 13,495 lines with SHA-256
-`ae0bddb134f12e798bdb38d843729cf3f2fb021c590f009331c93d194a742685`.
-The monolith's `.kisak_ctors` relocations and disassembly of calls to
-`CAutoGameSystem::CAutoGameSystem` identify auto-list entry 15 as the global
-`CInventoryManager`: it follows `CBulletWhizTimer` and `CMP3PlayerGameSystem`
-and precedes `CCompetitiveCvarManager`. Source inspection confirms that its
-unnamed `Init()` body performs four shared-object registrations and then creates
-the generated-icon cache directory. The immediate v5.00 gate is to identify the
-exact failing operation without skipping any of them.
+The fresh log was last modified at 2026-07-17 03:54:03 UTC; it is 543,092 bytes
+and 13,507 lines with SHA-256
+`342597e0f8e2be42896afe46b04e97a06538e93492f40bb002de3b0cd9d12d6a`.
+The earlier constructor-order inference assigned entry 15 to
+`CInventoryManager`; the stable runtime name corrects that attribution to entry
+14. Entry 15 is the immediately following global auto system and must now be
+identified from final-binary order before its `Init()` dependencies are changed.
 
 ### v4.95 candidate: attribute info-panel construction
 
@@ -332,10 +330,9 @@ each of the `CEconItem`, default-equipped, game-account, and coupon shared-objec
 registrations, generated-icon cache-directory creation, and normal completion.
 Registration and filesystem behavior are unchanged.
 
-The identity attribution is stronger than a guessed registration order: the
-linked constructor table and calls in the final monolith place
-`CInventoryManager` at hardware auto-list entry 15. Its source `Init()` body is
-the only remaining boundary under test, so the final paired markers will
+The stable runtime name is authoritative over the earlier constructor-order
+inference: `CInventoryManager` is hardware auto-list entry 14. Its source
+`Init()` body remains the boundary under test, so the final paired markers
 separate a `CSharedObject::RegisterFactory` fault from a filesystem fault.
 
 Validation before the candidate commit:
@@ -366,7 +363,9 @@ The embedded SFO reports `APP_VER` and `VERSION` 3.66. PkgTool validation has no
 reports the same 103,481,344-byte size and a 2026-07-17 03:51:00 UTC modified
 time. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
-readbacks match the local SHA-256. Hardware acceptance is pending.
+readbacks match the local SHA-256. Hardware acceptance completed: all inventory
+registrations and filesystem work return successfully, and the crash is in the
+next unnamed client auto system at index 28, auto-list entry 15.
 
 ## Runtime topology: two tracks, one production authority
 
@@ -532,7 +531,7 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v5.00 hardware gate: identify unnamed client auto system index 28 by
+Immediate v5.01 hardware gate: identify unnamed client auto system index 28 by
 concrete class/object and bracket its `Init()` dependencies. Require a proven
 identity before applying any PS4-native bypass or replacement.
 
@@ -543,7 +542,7 @@ frame completes. This phase is not done merely because a registrar is found.
 ### 2. Direct Source/OpenGNM convergence
 
 Keep `presentation_engine` as a diagnostic rollback target, not a second
-product runtime. Do not begin the renderer-selection change until the v5.00
+product runtime. Do not begin the renderer-selection change until the v5.01
 game-system identity gate identifies and closes the current Source-lifecycle blocker:
 changing the active backend is broad and would destroy the current crash
 boundary.
