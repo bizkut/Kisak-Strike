@@ -18232,28 +18232,39 @@ float CCSGameRules::CheckTotalSmokedLength( float flSmokeRadiusSq, Vector vecGre
 //-----------------------------------------------------------------------------
 void EnforceCompetitiveCVar( const char *szCvarName, float fMinValue, float fMaxValue = FLT_MAX, int iArgs = 0, ... )
 {
+    KisakPs4TraceCompetitiveCvarPhase( "enforce entered", -1, szCvarName );
     // Doing this check first because OK values might be outside the min/max range
     ConVarRef competitiveConvar(szCvarName);
+    KisakPs4TraceCompetitiveCvarPhase( competitiveConvar.IsValid() ? "enforce lookup valid" : "enforce lookup missing", -1, szCvarName );
     float fValue = competitiveConvar.GetFloat();
+    KisakPs4TraceCompetitiveCvarPhase( "enforce value read", -1, szCvarName );
     va_list vl;
     va_start(vl, iArgs);
     for( int i=0; i< iArgs; ++i )
     {
         if( (int)fValue == va_arg(vl,int) )
+        {
+            KisakPs4TraceCompetitiveCvarPhase( "enforce optional value accepted", -1, szCvarName );
             return;
+        }
     }
     va_end(vl);
 
     if ( fValue < fMinValue || fValue > fMaxValue )
     {
         float fNewValue = MAX( MIN( fValue, fMaxValue ), fMinValue );
+        KisakPs4TraceCompetitiveCvarPhase( "enforce before clamped set", -1, szCvarName );
         competitiveConvar.SetValue( fNewValue );
+        KisakPs4TraceCompetitiveCvarPhase( "enforce after clamped set", -1, szCvarName );
         DevMsg( "Convar %s was out of range and forced to %.2f. Valid values are between %.2f and %.2f. To remove the restriction set sv_competitive_minspec 0 on the server.\n", szCvarName, fNewValue, fMinValue, fMaxValue );
     }
 	else
 	{
+		KisakPs4TraceCompetitiveCvarPhase( "enforce before unchanged set", -1, szCvarName );
 		competitiveConvar.SetValue( fValue );
+		KisakPs4TraceCompetitiveCvarPhase( "enforce after unchanged set", -1, szCvarName );
 	}
+    KisakPs4TraceCompetitiveCvarPhase( "enforce complete", -1, szCvarName );
 }
 
 //-----------------------------------------------------------------------------
@@ -18374,14 +18385,30 @@ public: \
     CCompetitiveMinspecConvar##convarName(){ CCompetitiveCvarManager::AddConvarToList(this);} \
     virtual const char *GetName() const { return #convarName; } \
     static void on_changed_##convarName( IConVar *var, const char *pOldValue, float flOldValue ){ \
-        if( sv_competitive_minspec.GetBool() ) { \
-            EnforceCompetitiveCVar( #convarName , __VA_ARGS__  ); }\
+        KisakPs4TraceCompetitiveCvarPhase( "callback entered", -1, #convarName ); \
+        KisakPs4TraceCompetitiveCvarPhase( "callback before minspec read", -1, #convarName ); \
+        bool bCompetitiveMinspec = sv_competitive_minspec.GetBool(); \
+        KisakPs4TraceCompetitiveCvarPhase( bCompetitiveMinspec ? "callback minspec enabled" : "callback minspec disabled", -1, #convarName ); \
+        if( bCompetitiveMinspec ) { \
+            KisakPs4TraceCompetitiveCvarPhase( "callback before enforce", -1, #convarName ); \
+            EnforceCompetitiveCVar( #convarName , __VA_ARGS__  ); \
+            KisakPs4TraceCompetitiveCvarPhase( "callback after enforce", -1, #convarName ); }\
         else {\
-            CCompetitiveCvarManager::GetConVarBackupKV()->SetFloat( #convarName, ConVarRef( #convarName ).GetFloat() ); } } \
+            KisakPs4TraceCompetitiveCvarPhase( "callback before backup", -1, #convarName ); \
+            CCompetitiveCvarManager::GetConVarBackupKV()->SetFloat( #convarName, ConVarRef( #convarName ).GetFloat() ); \
+            KisakPs4TraceCompetitiveCvarPhase( "callback after backup", -1, #convarName ); } \
+        KisakPs4TraceCompetitiveCvarPhase( "callback complete", -1, #convarName ); } \
     virtual void BackupConvar() { CCompetitiveCvarManager::GetConVarBackupKV()->SetFloat( #convarName, ConVarRef( #convarName ).GetFloat() ); } \
     virtual void EnforceRestrictions() { EnforceCompetitiveCVar( #convarName , __VA_ARGS__  ); } \
     virtual void RestoreOriginalValue() { ConVarRef(#convarName).SetValue(CCompetitiveCvarManager::GetConVarBackupKV()->GetFloat( #convarName ) ); } \
-    virtual void InstallChangeCallback() { static_cast<ConVar*>(ConVarRef( #convarName ).GetLinkedConVar())->InstallChangeCallback( CCompetitiveMinspecConvar##convarName::on_changed_##convarName); } \
+    virtual void InstallChangeCallback() { \
+        KisakPs4TraceCompetitiveCvarPhase( "install before lookup", -1, #convarName ); \
+        ConVarRef competitiveConvar( #convarName ); \
+        KisakPs4TraceCompetitiveCvarPhase( competitiveConvar.IsValid() ? "install lookup valid" : "install lookup missing", -1, #convarName ); \
+        IConVar *pLinkedConvar = competitiveConvar.GetLinkedConVar(); \
+        KisakPs4TraceCompetitiveCvarPhase( pLinkedConvar ? "install linked valid" : "install linked null", -1, #convarName ); \
+        static_cast<ConVar*>(pLinkedConvar)->InstallChangeCallback( CCompetitiveMinspecConvar##convarName::on_changed_##convarName); \
+        KisakPs4TraceCompetitiveCvarPhase( "install complete", -1, #convarName ); } \
 }; \
 static CCompetitiveMinspecConvar##convarName *s_pCompetitiveConvar##convarName = new CCompetitiveMinspecConvar##convarName();
 

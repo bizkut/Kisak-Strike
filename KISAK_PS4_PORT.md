@@ -76,14 +76,14 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v5.01, 2026-07-17 |
-| Staged candidate | None; v5.02 `fps_max` callback-phase probe pending |
-| Package version | 3.67 |
+| Staged candidate | None; v5.02 `fps_max` callback-phase probe built locally |
+| Package version | 3.68 candidate |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Package size | 103,481,344 bytes |
-| Package SHA-256 | `4a3d15cefe79bd3988a204e14ea52dbe4a5577cfef5040bdc75f519471f136b9` |
+| Package size | Not yet packaged |
+| Package SHA-256 | Not yet packaged |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `c663b8a2` (`Trace PS4 competitive ConVar initialization`) |
-| Hardware-result commit | Pending v5.01 result commit |
+| Candidate commit | Pending v5.02 probe commit |
+| Hardware-result commit | `4ebe5206` (`Record v5.01 fps_max callback crash`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -425,6 +425,42 @@ invocation still share one trace boundary. Because ConVar lookup is a shared
 monolithic contract, v5.02 must distinguish those phases before choosing a
 PS4-only bypass or registry repair.
 
+### v5.02 candidate: trace `fps_max` lookup and immediate callback
+
+Package version 3.68 and build marker `trace_fps_max_callback_v502` identify
+this attribution-only candidate. The generated competitive-ConVar method now
+brackets `ConVarRef` construction, validity, linked-object access, and callback
+installation. The generated callback brackets its `sv_competitive_minspec`
+read and enforcement call; `EnforceCompetitiveCVar` brackets lookup, value read,
+and both clamped and unchanged writes. Original callback insertion and default
+immediate invocation remain enabled.
+
+This is the smallest probe that separates a shared monolithic registry failure
+from optional desktop competitive enforcement. A successful lookup followed by
+callback entry proves registry ownership is sufficient at this boundary; a
+fault before callback entry instead keeps callback-vector/ConVar object state
+as the active architecture issue.
+
+Validation before the candidate commit:
+
+- `git diff --check` and both packaging-script syntax checks pass;
+- the full `kisak_ps4_monolithic` target links and generates the SELF;
+- the executable is 126,570,280 bytes with SHA-256
+  `357763781e1603b2b7c43b0ee763ba832c372a04f89de733994209099393d129`;
+- the OELF is 136,350,296 bytes with SHA-256
+  `820efaf3d8376379a6c92f75076c6c1f77d66245ebea3b4df7aa34f55dd8b530`;
+- the SELF input is 83,414,576 bytes with SHA-256
+  `f3e572ffb28b9b2db77a6fb08924df253028e1cc6f90e74c9bc05663a15cbe9b`;
+- binary strings contain the v5.02 marker and lookup, minspec-read, and
+  enforcement-write phase markers; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
+Hardware acceptance requires a last marker that assigns the fault to lookup,
+linked-object access, callback insertion, immediate invocation, minspec state,
+or enforcement read/write. No callback is skipped by this candidate.
+
 ## Runtime topology: two tracks, one production authority
 
 `KisakRegisterStaticModules` registers both tracks in
@@ -433,7 +469,7 @@ PS4-only bypass or registry repair.
 | Registered runtime | Factory | Purpose | Acceptance status |
 |---|---|---|---|
 | `presentation_engine` | `KisakEngineBootstrapFactory()` | Diagnostic OpenGNM/Scaleform/input loop and rollback target | Hardware validated, but not a production Source-frame result |
-| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes both client modes and game systems 0-27, then hard-faults inside unnamed auto system index 28; no first frame yet |
+| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes both client modes and game systems 0-27, then hard-faults in `CCompetitiveCvarManager` while installing the `fps_max` callback; no first frame yet |
 
 The launcher requests production `engine` (`launcher/launcher.cpp:773-820`).
 The presentation loop owns VideoOut and calls `RenderMenuFrame` and
