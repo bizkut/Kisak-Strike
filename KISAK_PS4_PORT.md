@@ -75,15 +75,15 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Last hardware result | v5.01, 2026-07-17 |
-| Staged candidate | v5.02 `fps_max` callback-phase probe |
+| Last hardware result | v5.02, 2026-07-17 |
+| Staged candidate | None; v5.03 ConVar-registry lookup probe pending |
 | Package version | 3.68 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
 | Package SHA-256 | `a58ff7b2809d893ddcae0a70c8b46bf94dfb3926c67e8c2f91dc1f01562203ac` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `dab1a35f` (`Trace PS4 fps_max callback phases`) |
-| Hardware-result commit | `4ebe5206` (`Record v5.01 fps_max callback crash`) |
+| Hardware-result commit | Pending v5.02 result commit |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -468,7 +468,20 @@ The embedded SFO reports `APP_VER` and `VERSION` 3.68. PkgTool validation has no
 reports the same 103,481,344-byte size and a 2026-07-17 04:12:21 UTC modified
 time. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
-readbacks match the local SHA-256. Hardware acceptance is pending.
+readbacks match the local SHA-256. Hardware acceptance completed: after the
+outer `fps_max` callback marker, the exact final marker is
+`competitive cvar install before lookup index=-1 name=fps_max`. No lookup
+validity marker is emitted, placing the hard fault inside the `ConVarRef`
+constructor before `g_pCVar->FindVar("fps_max")` returns.
+
+The v5.02 log was last modified at 2026-07-17 04:30:31 UTC; it is 543,315 bytes
+and 13,510 lines with SHA-256
+`4efb2c319bea9ab97ce8e7fc678d94ce63caf652706a1e975b7bad0caecb0505`.
+Earlier startup proves `CCvar::Connect` assigned `g_pCVar` to the live `CCvar`
+singleton and completed `ConVar_Register`. The next gate must therefore separate
+virtual dispatch, `CCvar::FindVar`, VProf instrumentation, and
+`m_CommandHash.FindPtr`; skipping the competitive manager would conceal a
+shared registry defect required by later Source systems.
 
 ## Runtime topology: two tracks, one production authority
 
@@ -634,10 +647,10 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v5.02 hardware gate: bracket `fps_max` lookup, linked-ConVar access,
-callback insertion, immediate invocation, and competitive enforcement. Repair
-the shared registry if lookup is broken; use a PS4-native replacement only if
-the desktop competitive enforcement itself is the failing optional behavior.
+Immediate v5.03 hardware gate: bracket `ConVarRef::Init`, virtual dispatch into
+`CCvar::FindVar`, VProf instrumentation, and `m_CommandHash.FindPtr`. If the hash
+is the failing component, replace PS4 lookup with a validated linear registry
+path; if dispatch or singleton ownership is broken, repair that shared contract.
 
 Phase hardware gate: preflight passes, every default viewport panel completes,
 `ClientDLL_Init` completes, EngineVGui/GameUI connect, and the first real Source
@@ -646,7 +659,7 @@ frame completes. This phase is not done merely because a registrar is found.
 ### 2. Direct Source/OpenGNM convergence
 
 Keep `presentation_engine` as a diagnostic rollback target, not a second
-product runtime. Do not begin the renderer-selection change until the v5.02
+product runtime. Do not begin the renderer-selection change until the v5.03
 game-system identity gate identifies and closes the current Source-lifecycle blocker:
 changing the active backend is broad and would destroy the current crash
 boundary.
