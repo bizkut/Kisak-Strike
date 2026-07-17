@@ -75,15 +75,15 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Last hardware result | v5.06, 2026-07-17 |
-| Staged candidate | v5.07 alpha-property ownership repair; awaiting manual install/run |
+| Last hardware result | v5.07, 2026-07-17 |
+| Staged candidate | None; v5.08 host-configuration attribution is in development |
 | Package version | 3.73 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
 | Package SHA-256 | `48b5fc62c12b079ded83efb658b66aac6ff3f8b016cf5bdef3e3e385ddf40b60` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `ca53660d` (`Separate PS4 alpha property manager storage`) |
-| Hardware-result commit | `35ee4ac3` (`Record v5.06 world factory crash`) |
+| Hardware-result commit | Pending this documentation checkpoint |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -592,6 +592,25 @@ no `[FAIL]` entry. FTP metadata reports the same size and a
 readbacks match the local SHA-256. Hardware acceptance is pending manual
 installation and launch.
 
+Hardware acceptance completed with a fresh 2,050,568-byte, 49,583-line log,
+last modified at 2026-07-17 05:55:44 UTC and having SHA-256
+`32ee4685b39cb4118731331ea6853fde7bc9928120ea4daf3e16eb0ca6fed870`.
+The v5.07 build marker is present. Aligned allocation, zeroing, every probed
+`C_BaseEntity` constructor stage, the nonzero client alpha manager, alpha and
+particle property creation, the `C_World` body, and
+`ClientWorldFactoryInit()` all complete. `InitGameSystems`, the full client
+implementation, the engine's post-client prediction/leaf/alpha/tool/recv-table
+work, and `ClientDLL_Init()` also complete.
+
+Startup then completes `SCR_Init`, `R_Init`, `Decal_Init`, and
+`EngineVGui()->Connect()`. `Host_ReadConfiguration()` enters command-buffer
+execution and its last observed command completes
+`UpdateMaterialSystemConfig()`. The exact final marker is
+`kisak-ps4: material config complete`; no boundary proves that `Cbuf_Execute()`
+returned. v5.08 must bracket configuration selection, command-buffer return,
+key-binding/default-binding work, console binding, config-executed state, and
+the optional initial configuration write before changing any of them.
+
 Hardware acceptance completed with an 858,333-byte, 23,012-line log, last
 modified at 2026-07-17 05:02:59 UTC and having SHA-256
 `28d3ff23072b8a4c5aa1a274829a3f838037e0dbc16779151c4592853395bbf9`.
@@ -951,12 +970,12 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v5.07 hardware gate: preserve the client's initialized alpha-property
-manager by giving the engine's later-populated cache a unique symbol, then
-prove allocation, alpha/particle property setup, and world construction
-complete. v5.06 closes the ConVar collision and proves all 46 client game
-systems plus the following view/input/UI/physics/save-restore stages; retain
-that repair and do not bypass world creation.
+Immediate v5.08 hardware gate: attribute `Host_ReadConfiguration()` from
+configuration-file selection through `Cbuf_Execute()`, key-binding fallback,
+mandatory escape/console binding, executed-state update, and optional initial
+write. v5.07 closes world construction and `ClientDLL_Init`; retain both
+monolithic ownership repairs and do not skip configuration processing without
+an observed PS4-specific dependency failure.
 
 Phase hardware gate: preflight passes, every default viewport panel completes,
 `ClientDLL_Init` completes, EngineVGui/GameUI connect, and the first real Source
