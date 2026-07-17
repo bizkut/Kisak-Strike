@@ -75,15 +75,15 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Last hardware result | v5.02, 2026-07-17 |
-| Staged candidate | v5.03 ConVar-registry lookup probe |
+| Last hardware result | v5.03, 2026-07-17 |
+| Staged candidate | None; v5.04 monolithic ConVar-registration repair is in development |
 | Package version | 3.69 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
 | Package SHA-256 | `bf4c420de4e9962f7eaf32ed952ad7ca278e3543c002c836fd342fdbd587c4a8` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `c8bf8f75` (`Trace PS4 ConVar registry lookup`) |
-| Hardware-result commit | `80a5e42b` (`Record v5.02 ConVar lookup crash`) |
+| Hardware-result commit | Pending this documentation checkpoint |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -507,9 +507,9 @@ Validation before the candidate commit:
   high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
   `ps4_gnm_constants`).
 
-Hardware acceptance requires a last marker that selects virtual dispatch,
+Hardware acceptance required a last marker that selected virtual dispatch,
 VProf, or the command hash as the failing boundary. No alternate lookup or
-registry bypass is introduced by this candidate.
+registry bypass was introduced by this candidate.
 
 Candidate commit `c8bf8f75` produces a 103,481,344-byte package with SHA-256
 `bf4c420de4e9962f7eaf32ed952ad7ca278e3543c002c836fd342fdbd587c4a8`.
@@ -518,10 +518,27 @@ The embedded SFO reports `APP_VER` and `VERSION` 3.69. PkgTool validation has no
 reports the same 103,481,344-byte size and a 2026-07-17 04:38:58 UTC modified
 time. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
-readbacks match the local SHA-256. Hardware acceptance is pending. The Linux
+readbacks match the local SHA-256. The Linux
 package script now derives the extracted Scaleform root from the repository
 parent, replacing the stale `/home/bizkut/CSGO` default encountered during this
 build.
+
+Hardware acceptance completed with a fresh 969,556-byte, 23,465-line log,
+last modified at 2026-07-17 04:43:27 UTC and having SHA-256
+`a129c350dbb00059b13a349df51cf8f0d8fb7f4b634e8aaf071146e42886be1a`.
+The `fps_max` lookup enters `CCvar::FindVar`, completes VProf entry/exit and
+`m_CommandHash.FindPtr`, returns from `FindCommandBase`, returns from
+`FindVar`, and reaches `ConVarRef::Init`'s `after FindVar` marker. It does not
+emit the non-null `FindVar complete` marker or `convar ref init complete`.
+Therefore the hash lookup safely returns null and the hard fault is in the
+missing-ConVar fallback, most narrowly its warning/fallback block; it is not a
+virtual-dispatch, VProf, hash-table, or `IsCommand` failure.
+
+The same log contains no initial registration entry for `fps_max`, while all
+later module-level `ConVar_Register` calls report `skipped already registered`.
+The final OELF retains one constructed `fps_max` object and its constructor in
+`.kisak_ctors`, so the next repair targets monolithic static-ConVar composition
+instead of weakening `CCompetitiveCvarManager` or substituting a lookup path.
 
 ## Runtime topology: two tracks, one production authority
 
@@ -687,10 +704,12 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v5.03 hardware gate: bracket `ConVarRef::Init`, virtual dispatch into
-`CCvar::FindVar`, VProf instrumentation, and `m_CommandHash.FindPtr`. If the hash
-is the failing component, replace PS4 lookup with a validated linear registry
-path; if dispatch or singleton ownership is broken, repair that shared contract.
+Immediate v5.04 hardware gate: preserve every unique statically constructed
+`ConCommandBase` independently of its mutable `m_pNext` linkage, register that
+manifest into the shared `CCvar`, and prove `fps_max` plus the remaining
+competitive ConVars resolve before callback installation. The v5.03 hardware
+log rules out virtual dispatch, VProf, and hash mechanics; do not replace the
+lookup implementation or skip `CCompetitiveCvarManager`.
 
 Phase hardware gate: preflight passes, every default viewport panel completes,
 `ClientDLL_Init` completes, EngineVGui/GameUI connect, and the first real Source
@@ -699,8 +718,8 @@ frame completes. This phase is not done merely because a registrar is found.
 ### 2. Direct Source/OpenGNM convergence
 
 Keep `presentation_engine` as a diagnostic rollback target, not a second
-product runtime. Do not begin the renderer-selection change until the v5.03
-game-system identity gate identifies and closes the current Source-lifecycle blocker:
+product runtime. Do not begin the renderer-selection change until the v5.04
+ConVar-composition gate closes the current Source-lifecycle blocker:
 changing the active backend is broad and would destroy the current crash
 boundary.
 
