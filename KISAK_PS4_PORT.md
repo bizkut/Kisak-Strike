@@ -76,13 +76,13 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v4.99, 2026-07-17 |
-| Staged candidate | None; v5.00 `CInventoryManager::Init()` phase probe built locally |
-| Package version | 3.66 candidate |
+| Staged candidate | v5.00 `CInventoryManager::Init()` phase probe |
+| Package version | 3.66 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Package size | Not yet packaged |
-| Package SHA-256 | Not yet packaged |
+| Package size | 103,481,344 bytes |
+| Package SHA-256 | `846c1fb7d60cb3d62fd391ba510ba75b2ccc94e4884ac87e2b4539dceb86f2e5` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | Pending v5.00 probe commit |
+| Candidate commit | `0b6d8525` (`Trace PS4 inventory manager initialization`) |
 | Hardware-result commit | `eae7dabc` (`Record v4.99 unnamed game-system crash`) |
 
 v4.99 proves list construction and the model-cache lock are healthy through
@@ -358,6 +358,15 @@ Hardware acceptance requires a last `before` marker that names the exact
 operation, or full inventory-manager completion followed by the existing
 per-system `after init` marker. No registration or filesystem operation is
 bypassed by this candidate.
+
+Candidate commit `0b6d8525` produces a 103,481,344-byte package with SHA-256
+`846c1fb7d60cb3d62fd391ba510ba75b2ccc94e4884ac87e2b4539dceb86f2e5`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.66. PkgTool validation has no
+`[FAIL]` entries and reports every digest/signature check `[OK]`. FTP metadata
+reports the same 103,481,344-byte size and a 2026-07-17 03:51:00 UTC modified
+time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance is pending.
 
 ## Runtime topology: two tracks, one production authority
 
