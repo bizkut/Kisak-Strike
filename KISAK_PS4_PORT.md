@@ -76,13 +76,13 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v4.97, 2026-07-17 |
-| Staged candidate | none |
-| Package version | 3.63 |
+| Staged candidate | v4.98 |
+| Package version | 3.64 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
-| Package SHA-256 | `dd41b07110cdfacf83bf8a2efca96123eb43af0a01f8fd5fef5e0edaa3926152` |
+| Package SHA-256 | `7956b86934f820efbe8db382c4c08bfde3e3add32bb8bb0df0d7a153d442516a` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `328fe8a2` (`Trace PS4 client mode initialization`) |
+| Candidate commit | `cf682ee2` (`Defer PS4 color correction lookup allocation`) |
 | Hardware-result commit | `da8b0066` (`Record v4.97 color-correction crash`) |
 
 v4.97 closes the client-mode lifecycle attribution gate through the normal
@@ -266,6 +266,16 @@ Validation before the candidate commit:
 Hardware acceptance requires the defer and color-correction completion markers.
 If post-process loading or a later normal/fullscreen stage fails, attribute that
 new boundary independently rather than expanding this bypass.
+
+Candidate commit `cf682ee2` produces a 103,481,344-byte package with SHA-256
+`7956b86934f820efbe8db382c4c08bfde3e3add32bb8bb0df0d7a153d442516a`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.64. PkgTool validation has no
+`[FAIL]` entries and reports every digest/signature check `[OK]`. FTP metadata
+reports the same 103,481,344-byte size and a 2026-07-17 03:19:35 UTC modified
+time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance remains pending manual
+installation and launch.
 
 ## Runtime topology: two tracks, one production authority
 
