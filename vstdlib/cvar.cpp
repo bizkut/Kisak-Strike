@@ -657,10 +657,16 @@ const ConCommandBase *CCvar::FindCommandBase( const char *name ) const
 
 ConCommandBase *CCvar::FindCommandBase( const char *name )
 {
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar FindCommandBase entered" );
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar FindCommandBase before vprof" );
 	VPROF_INCREMENT_COUNTER( "CCvar::FindCommandBase", 1 );
 	VPROF_BUDGET( "CCvar::FindCommandBase", VPROF_BUDGETGROUP_CVAR_FIND );
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar FindCommandBase after vprof" );
 
-	return m_CommandHash.FindPtr( name );
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar FindCommandBase before hash" );
+	ConCommandBase *pCommand = m_CommandHash.FindPtr( name );
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar FindCommandBase after hash" );
+	return pCommand;
 }
 
 
@@ -688,7 +694,10 @@ const ConVar *CCvar::FindVar( const char *var_name ) const
 
 ConVar *CCvar::FindVar( const char *var_name )
 {
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar FindVar entered" );
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar FindVar before command base" );
 	ConCommandBase *var = FindCommandBase( var_name );
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar FindVar after command base" );
 	if ( !var )
 	{
 		return NULL;
@@ -702,6 +711,7 @@ ConVar *CCvar::FindVar( const char *var_name )
 		}
 	}
 	
+	PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar FindVar complete" );
 	return static_cast<ConVar*>( var );
 }
 

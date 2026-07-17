@@ -76,14 +76,14 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v5.02, 2026-07-17 |
-| Staged candidate | None; v5.03 ConVar-registry lookup probe pending |
-| Package version | 3.68 |
+| Staged candidate | None; v5.03 ConVar-registry lookup probe built locally |
+| Package version | 3.69 candidate |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Package size | 103,481,344 bytes |
-| Package SHA-256 | `a58ff7b2809d893ddcae0a70c8b46bf94dfb3926c67e8c2f91dc1f01562203ac` |
+| Package size | Not yet packaged |
+| Package SHA-256 | Not yet packaged |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `dab1a35f` (`Trace PS4 fps_max callback phases`) |
-| Hardware-result commit | Pending v5.02 result commit |
+| Candidate commit | Pending v5.03 probe commit |
+| Hardware-result commit | `80a5e42b` (`Record v5.02 ConVar lookup crash`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -482,6 +482,34 @@ singleton and completed `ConVar_Register`. The next gate must therefore separate
 virtual dispatch, `CCvar::FindVar`, VProf instrumentation, and
 `m_CommandHash.FindPtr`; skipping the competitive manager would conceal a
 shared registry defect required by later Source systems.
+
+### v5.03 candidate: trace the shared ConVar registry lookup
+
+Package version 3.69 and build marker `trace_cvar_find_v503` identify this
+attribution-only candidate. `ConVarRef::Init` now brackets its `g_pCVar` branch
+and virtual `FindVar` call. The non-const `CCvar::FindVar` path brackets entry,
+`FindCommandBase`, and completion; `FindCommandBase` separately brackets VProf
+and `m_CommandHash.FindPtr`. Lookup behavior and return values are unchanged.
+
+Validation before the candidate commit:
+
+- `git diff --check` and both packaging-script syntax checks pass;
+- the full `kisak_ps4_monolithic` target links and generates the SELF;
+- the executable is 126,570,280 bytes with SHA-256
+  `0be4abe5def8704b650b1c73c322c8d42c0a98b3b13b4c3660553ed7b54ca05a`;
+- the OELF is 136,350,296 bytes with SHA-256
+  `02ce5b3f44c2e0340a9e45d3abad48d32fae30a29239ea7dd77a49579e9b6000`;
+- the SELF input is 83,414,576 bytes with SHA-256
+  `e88afd384533b7fd52545e5d37a3a7e6600e2563f33f9334cdcb56428f4c3fc6`;
+- binary strings contain the v5.03 marker and both sides of the virtual call and
+  command-hash lookup; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
+Hardware acceptance requires a last marker that selects virtual dispatch,
+VProf, or the command hash as the failing boundary. No alternate lookup or
+registry bypass is introduced by this candidate.
 
 ## Runtime topology: two tracks, one production authority
 

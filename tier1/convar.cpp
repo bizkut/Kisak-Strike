@@ -1299,7 +1299,18 @@ ConVarRef::ConVarRef( const char *pName, bool bIgnoreMissing )
 
 void ConVarRef::Init( const char *pName, bool bIgnoreMissing )
 {
-	m_pConVar = g_pCVar ? g_pCVar->FindVar( pName ) : &s_EmptyConVar;
+	PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: convar ref init entered" );
+	if ( g_pCVar )
+	{
+		PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: convar ref before FindVar" );
+		m_pConVar = g_pCVar->FindVar( pName );
+		PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: convar ref after FindVar" );
+	}
+	else
+	{
+		PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: convar ref g_pCVar null" );
+		m_pConVar = &s_EmptyConVar;
+	}
 	if ( !m_pConVar )
 	{
 		m_pConVar = &s_EmptyConVar;
@@ -1317,6 +1328,7 @@ void ConVarRef::Init( const char *pName, bool bIgnoreMissing )
 			bFirst = false;
 		}
 	}
+	PS4_CONVAR_REGISTER_BREADCRUMB( "kisak-ps4: convar ref init complete" );
 }
 
 ConVarRef::ConVarRef( IConVar *pConVar )
