@@ -76,14 +76,14 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v5.00, 2026-07-17 |
-| Staged candidate | None; v5.01 next-system identity probe pending |
-| Package version | 3.66 |
+| Staged candidate | None; v5.01 competitive-ConVar phase probe built locally |
+| Package version | 3.67 candidate |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Package size | 103,481,344 bytes |
-| Package SHA-256 | `846c1fb7d60cb3d62fd391ba510ba75b2ccc94e4884ac87e2b4539dceb86f2e5` |
+| Package size | Not yet packaged |
+| Package SHA-256 | Not yet packaged |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `0b6d8525` (`Trace PS4 inventory manager initialization`) |
-| Hardware-result commit | Pending v5.00 result commit |
+| Candidate commit | Pending v5.01 probe commit |
+| Hardware-result commit | `3d79d8e4` (`Record v5.00 post-inventory crash`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -366,6 +366,43 @@ time. The package is staged at
 readbacks match the local SHA-256. Hardware acceptance completed: all inventory
 registrations and filesystem work return successfully, and the crash is in the
 next unnamed client auto system at index 28, auto-list entry 15.
+
+### v5.01 candidate: trace competitive-ConVar callbacks
+
+Package version 3.67 and build marker `trace_competitive_cvars_v501` identify
+this attribution-only candidate. Final-binary symbols and constructor order make
+`CCompetitiveCvarManager` the next candidate after `CInventoryManager`; its
+constructor now supplies a stable game-system name so hardware can confirm that
+identity directly. Its `Init()` retains the original callback-install loop while
+emitting the list count and paired before/after breadcrumbs for every ConVar.
+The macro-generated objects expose their compile-time ConVar token solely for
+those stable diagnostic names.
+
+This probe tests the concrete risk in the source: every callback installation
+casts `ConVarRef(name).GetLinkedConVar()` and dereferences it. A missing or
+foreign-owned monolithic ConVar can therefore fault before returning. The last
+paired breadcrumb will identify the exact token without bypassing callback
+installation or treating a desktop ConVar requirement as immutable.
+
+Validation before the candidate commit:
+
+- `git diff --check` and both packaging-script syntax checks pass;
+- the full `kisak_ps4_monolithic` target links and generates the SELF;
+- the executable is 126,553,896 bytes with SHA-256
+  `c04d0830d9033640af4101810f68dd82dbb9a3b5c6f85e80aab7832b8b3b0bb1`;
+- the OELF is 136,333,912 bytes with SHA-256
+  `9449f1c34f0952b38fb17ba3fca8b62761e9769f80229cc86317411112e0b807`;
+- the SELF input is 83,398,160 bytes with SHA-256
+  `d1e0472e673df66ece9458bef5fda49f97fefbd1b133b0aa5b682f2004e82ced`;
+- binary strings contain the v5.01 marker, stable manager name, and per-ConVar
+  trace format; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
+Hardware acceptance requires index 28 to report `CCompetitiveCvarManager` and
+either name the exact callback that faults or complete the manager and advance
+to the next system. No competitive callback is bypassed by this candidate.
 
 ## Runtime topology: two tracks, one production authority
 

@@ -94,6 +94,23 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 ) && defined( CLIENT_DLL )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+
+static void KisakPs4TraceCompetitiveCvarPhase( const char *phase, int index, const char *name )
+{
+	char line[256];
+	V_snprintf( line, sizeof( line ),
+		"kisak-ps4: competitive cvar %s index=%d name=%s",
+		phase, index, name ? name : "<null>" );
+	KisakPs4StartupBreadcrumb( line );
+}
+#else
+static void KisakPs4TraceCompetitiveCvarPhase( const char *, int, const char * )
+{
+}
+#endif
+
 #ifndef CLIENT_DLL
 
 #define CS_GAME_STATS_UPDATE 79200 //22 hours
@@ -18246,6 +18263,7 @@ void EnforceCompetitiveCVar( const char *szCvarName, float fMinValue, float fMax
 class ICompetitiveConvar
 {
 public:
+    virtual const char *GetName() const = 0;
     virtual void BackupConvar() = 0;
     virtual void EnforceRestrictions() = 0;
     virtual void RestoreOriginalValue() = 0;
@@ -18308,10 +18326,16 @@ public:
 
     virtual bool Init() 
     { 
-        FOR_EACH_VEC( *GetConvarList(), i )
+        CompetitiveConvarList_t *pConvars = GetConvarList();
+        KisakPs4TraceCompetitiveCvarPhase( "list ready", pConvars ? pConvars->Count() : -1, "<list>" );
+        FOR_EACH_VEC( *pConvars, i )
         {
-            (*GetConvarList())[i]->InstallChangeCallback();
+            ICompetitiveConvar *pConvar = (*pConvars)[i];
+            KisakPs4TraceCompetitiveCvarPhase( "before callback", i, pConvar ? pConvar->GetName() : "<null>" );
+            pConvar->InstallChangeCallback();
+            KisakPs4TraceCompetitiveCvarPhase( "after callback", i, pConvar->GetName() );
         }
+        KisakPs4TraceCompetitiveCvarPhase( "init complete", pConvars->Count(), "<list>" );
         return true;
     }
 
@@ -18327,7 +18351,7 @@ public:
         s_pConVarBackups = 0;
     }
 
-    CCompetitiveCvarManager()
+    CCompetitiveCvarManager() : CAutoGameSystem( "CCompetitiveCvarManager" )
     {
         s_pCompetitiveConvars = 0;
         s_pConVarBackups = 0;
@@ -18348,6 +18372,7 @@ KeyValues* CCompetitiveCvarManager::s_pConVarBackups = 0;
 class CCompetitiveMinspecConvar##convarName : public ICompetitiveConvar { \
 public: \
     CCompetitiveMinspecConvar##convarName(){ CCompetitiveCvarManager::AddConvarToList(this);} \
+    virtual const char *GetName() const { return #convarName; } \
     static void on_changed_##convarName( IConVar *var, const char *pOldValue, float flOldValue ){ \
         if( sv_competitive_minspec.GetBool() ) { \
             EnforceCompetitiveCVar( #convarName , __VA_ARGS__  ); }\
@@ -18554,4 +18579,3 @@ bool CCSGameRules::OnReplayPrompt( CBasePlayer *pVictim, CBasePlayer *pScorer )
 	return CTeamplayRules::OnReplayPrompt( pVictim, pScorer ); // delegate to the base class
 }
 #endif
-
