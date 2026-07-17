@@ -76,13 +76,13 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v4.96, 2026-07-17 |
-| Staged candidate | none |
-| Package version | 3.62 |
+| Staged candidate | v4.97 |
+| Package version | 3.63 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
-| Package SHA-256 | `b8d4169510a4d5d39f4df9437938dcf0ed56147b11c12756697f9fa21e80aae4` |
+| Package SHA-256 | `dd41b07110cdfacf83bf8a2efca96123eb43af0a01f8fd5fef5e0edaa3926152` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `8bf3cba8` (`Disable Chrome HTML MOTD on PS4`) |
+| Candidate commit | `328fe8a2` (`Trace PS4 client mode initialization`) |
 | Hardware-result commit | `ca8cda5f` (`Record v4.96 client-mode init crash`) |
 
 v4.96 closes the optional HTML gate. The disabled-HTML path returns, every
@@ -225,6 +225,16 @@ Hardware acceptance is attribution, not necessarily a successful boot. The
 last completed before/after pair must identify whether the failure is in the
 camera tail, a shared message hook, the normal derived mode, or the second
 fullscreen pass. Only then may the next candidate change lifecycle behavior.
+
+Candidate commit `328fe8a2` produces a 103,481,344-byte package with SHA-256
+`dd41b07110cdfacf83bf8a2efca96123eb43af0a01f8fd5fef5e0edaa3926152`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.63. PkgTool validation has no
+`[FAIL]` entries and reports every digest/signature check `[OK]`. FTP metadata
+reports the same 103,481,344-byte size and a 2026-07-17 01:13:48 UTC modified
+time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance remains pending manual
+installation and launch.
 
 ## Runtime topology: two tracks, one production authority
 
