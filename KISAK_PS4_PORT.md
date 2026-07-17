@@ -75,15 +75,15 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Last hardware result | v5.04, 2026-07-17 |
-| Staged candidate | v5.05 duplicate-ConVar attribution probe |
+| Last hardware result | v5.05, 2026-07-17 |
+| Staged candidate | None; v5.06 engine-pointer ownership repair is in development |
 | Package version | 3.71 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
 | Package SHA-256 | `35325810ef119e50a2ae89c83a218f32753db1831706dfca2b16d28f71d4fe6c` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `84dd5c34` (`Trace PS4 duplicate ConVar linking`) |
-| Hardware-result commit | `fe827543` (`Record v5.04 duplicate ConVar crash`) |
+| Hardware-result commit | Pending this documentation checkpoint |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -592,6 +592,24 @@ no `[FAIL]` entry. FTP metadata reports the same size and a
 readbacks match the local SHA-256. Hardware acceptance is pending manual
 installation and launch.
 
+Hardware acceptance completed with an 898,490-byte, 23,937-line log, last
+modified at 2026-07-17 05:30:57 UTC and having SHA-256
+`c53beb47e4d22cc704b2f57520feb5f3b654d02161c208b5ba991eac2f978781`.
+The duplicate passes child/parent type dispatch, a live `ICvarQuery`,
+`AreConVarsLinkable`, parent assignment, and flag absorption. The exact final
+marker is `cvar register before callback transfer`.
+
+Final-OELF inspection identifies the corruption rather than a callback-policy
+failure. `sv_noclipduringpause` has one 144-byte ConVar object and one 8-byte
+object. The 8-byte definition is the engine's `ConVar *` cache in
+`engine/sys_dll.cpp`; its unmangled variable name collides with the client
+ConVar in `game/client/in_main.cpp` under global
+`--allow-multiple-definition`. The client constructor therefore writes a full
+ConVar over pointer-sized engine storage and adjacent BSS. The server-isolated
+ConVar remains correctly sized. v5.06 must rename the engine cache and all of
+its engine references, then verify two distinct 144-byte client/server ConVars
+plus one uniquely named 8-byte engine pointer in the final OELF.
+
 Hardware acceptance completed with an 858,333-byte, 23,012-line log, last
 modified at 2026-07-17 05:02:59 UTC and having SHA-256
 `28d3ff23072b8a4c5aa1a274829a3f838037e0dbc16779151c4592853395bbf9`.
@@ -816,9 +834,10 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v5.05 hardware gate: attribute the second `sv_noclipduringpause`
-duplicate across type dispatch, linkability, parent linkage, callback transfer,
-and warning output. v5.04 already proves the independent construction manifest
+Immediate v5.06 hardware gate: give the engine's cached
+`sv_noclipduringpause` pointer a unique symbol, prove the final OELF no longer
+aliases pointer and ConVar storage, and let the normal client/server duplicate
+link complete. v5.04 already proves the independent construction manifest
 restores `fps_max` and its `sys_engine.cpp` neighbors; retain that repair and do
 not skip either the shared registry or `CCompetitiveCvarManager`.
 
