@@ -82,7 +82,7 @@ coverage.
 | Package size | 103,481,344 bytes |
 | Package SHA-256 | `7956b86934f820efbe8db382c4c08bfde3e3add32bb8bb0df0d7a153d442516a` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `cf682ee2` (`Defer PS4 color correction lookup allocation`) |
+| Candidate source commit | This checkpoint (`Trace PS4 client game-system initialization`) |
 | Hardware-result commit | This checkpoint (`Record v4.98 game-system init crash`) |
 
 v4.98 clears the optional color-correction gate. Both normal and fullscreen
@@ -271,6 +271,42 @@ time. The package is staged at
 readbacks match the local SHA-256. Hardware acceptance completed: both client
 modes return, including active post-process loading, and startup reaches
 `IGameSystem::InitAllSystems()`.
+
+### v4.99 candidate: trace client game-system initialization
+
+Package version 3.65 and build marker `trace_client_game_systems_v499` identify
+this attribution-only candidate. `IGameSystem::InitAllSystems()` now exposes its
+existing PS4 list-walk, model-cache-lock, per-system `Init()`, and failure-unwind
+breadcrumbs in both the client and server copies. The role, system name, index,
+and list count/return value are retained; registration order and lifecycle
+behavior are unchanged.
+
+The independent ACP audit and local source inspection agree that this is the
+smallest discriminating test. The explicitly added client systems run first,
+followed by linker-ordered auto systems. The last `before init` without a paired
+`after init` will identify a hard fault; a paired false result plus unwind will
+identify a normal initialization rejection. The pre-existing per-frame-list
+clear typo is deliberately left for a separate behavior change.
+
+Validation before the candidate commit:
+
+- `git diff --check` passes;
+- the full `kisak_ps4_monolithic` target links and generates the SELF;
+- the executable is 126,552,968 bytes with SHA-256
+  `b848a4bbb6b300cf5412326bf728978c416a93ffa295961dcf887391afc70ac9`;
+- the OELF is 136,332,696 bytes with SHA-256
+  `86e239fac7f9c5139ccb9903c1ef3df82d3d2a6a5be33c7943fd38df980e6762`;
+- the SELF input is 83,397,872 bytes with SHA-256
+  `6d76379978968bd3fa01edf1cc771d3e7265cd34806d8d7df2377fcc48713787`;
+- binary strings contain the v4.99 marker, client entry marker, role-aware trace
+  format, and every registration/init phase; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
+Hardware acceptance requires the final trace to name the exact failing client
+game system and whether the fault occurs in list construction, model-cache lock,
+or the system's `Init()` body. No system is bypassed by this candidate.
 
 ## Runtime topology: two tracks, one production authority
 

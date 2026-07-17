@@ -20,14 +20,19 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+#if defined( PLATFORM_PS4 )
 extern "C" void KisakPs4StartupBreadcrumb( const char *line );
 
-static void KisakPs4TraceServerGameSystem( const char *phase, int index, const char *name, int value )
+static void KisakPs4TraceGameSystem( const char *phase, int index, const char *name, int value )
 {
 	char line[256];
 	Q_snprintf( line, sizeof( line ),
-		"kisak-ps4: server game system %s index=%d name=%s value=%d",
+		"kisak-ps4: %s game system %s index=%d name=%s value=%d",
+		#ifdef CLIENT_DLL
+		"client",
+		#else
+		"server",
+		#endif
 		phase, index, name ? name : "<null>", value );
 	KisakPs4StartupBreadcrumb( line );
 }
@@ -190,8 +195,12 @@ bool IGameSystem::InitAllSystems()
 {
 	int i;
 
-#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+#if defined( PLATFORM_PS4 )
+	#ifdef CLIENT_DLL
+	KisakPs4StartupBreadcrumb( "kisak-ps4: client game system init all entered" );
+	#else
 	KisakPs4StartupBreadcrumb( "kisak-ps4: server game system init all entered" );
+	#endif
 #endif
 
 	{
@@ -200,9 +209,9 @@ bool IGameSystem::InitAllSystems()
 		int autoSystemIndex = 0;
 		while ( pSystem )
 		{
-#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+#if defined( PLATFORM_PS4 )
 			if ( autoSystemIndex < 256 )
-				KisakPs4TraceServerGameSystem( "auto before add", autoSystemIndex, pSystem->Name(), 0 );
+				KisakPs4TraceGameSystem( "auto before add", autoSystemIndex, pSystem->Name(), 0 );
 #endif
 			if ( s_GameSystems.Find( pSystem ) == s_GameSystems.InvalidIndex() )
 			{
@@ -216,8 +225,8 @@ bool IGameSystem::InitAllSystems()
 			++autoSystemIndex;
 		}
 		s_pSystemList = NULL;
-#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
-		KisakPs4TraceServerGameSystem( "auto list ready", autoSystemIndex, NULL, s_GameSystems.Count() );
+#if defined( PLATFORM_PS4 )
+		KisakPs4TraceGameSystem( "auto list ready", autoSystemIndex, NULL, s_GameSystems.Count() );
 #endif
 	}
 
@@ -226,9 +235,9 @@ bool IGameSystem::InitAllSystems()
 		int perFrameSystemIndex = 0;
 		while ( pSystem )
 		{
-#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
+#if defined( PLATFORM_PS4 )
 			if ( perFrameSystemIndex < 256 )
-				KisakPs4TraceServerGameSystem( "per-frame before add", perFrameSystemIndex, pSystem->Name(), 0 );
+				KisakPs4TraceGameSystem( "per-frame before add", perFrameSystemIndex, pSystem->Name(), 0 );
 #endif
 			if ( s_GameSystems.Find( pSystem ) == s_GameSystems.InvalidIndex() )
 			{
@@ -243,8 +252,8 @@ bool IGameSystem::InitAllSystems()
 			++perFrameSystemIndex;
 		}
 		s_pSystemList = NULL;
-#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
-		KisakPs4TraceServerGameSystem( "per-frame list ready", perFrameSystemIndex, NULL, s_GameSystems.Count() );
+#if defined( PLATFORM_PS4 )
+		KisakPs4TraceGameSystem( "per-frame list ready", perFrameSystemIndex, NULL, s_GameSystems.Count() );
 #endif
 	}
 	// Now remember that we are initted so new CAutoGameSystems will add themselves automatically.
@@ -256,14 +265,14 @@ bool IGameSystem::InitAllSystems()
 		IGameSystem *sys = s_GameSystems[i];
 		bool valid = false;
 		{
-#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
-			KisakPs4TraceServerGameSystem( "before mdlcache lock", i, NULL, s_GameSystems.Count() );
+#if defined( PLATFORM_PS4 )
+			KisakPs4TraceGameSystem( "before mdlcache lock", i, NULL, s_GameSystems.Count() );
 #endif
 			MDLCACHE_COARSE_LOCK();
 			MDLCACHE_CRITICAL_SECTION();
 
-#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
-			KisakPs4TraceServerGameSystem( "before init", i, sys->Name(), s_GameSystems.Count() );
+#if defined( PLATFORM_PS4 )
+			KisakPs4TraceGameSystem( "before init", i, sys->Name(), s_GameSystems.Count() );
 #endif
 
 #if defined( _GAMECONSOLE )
@@ -273,8 +282,8 @@ bool IGameSystem::InitAllSystems()
 #endif
 			valid = sys->Init();
 
-#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
-			KisakPs4TraceServerGameSystem( "after init", i, sys->Name(), valid ? 1 : 0 );
+#if defined( PLATFORM_PS4 )
+			KisakPs4TraceGameSystem( "after init", i, sys->Name(), valid ? 1 : 0 );
 #endif
 
 #if defined( _GAMECONSOLE )
@@ -287,8 +296,8 @@ bool IGameSystem::InitAllSystems()
 			DevWarning( 1, "Failed to load %s\n", sys->Name() );
 			for ( int shutdownIndex = i - 1; shutdownIndex >= 0; --shutdownIndex )
 			{
-#if defined( PLATFORM_PS4 ) && !defined( CLIENT_DLL )
-				KisakPs4TraceServerGameSystem( "failure unwind", shutdownIndex,
+#if defined( PLATFORM_PS4 )
+				KisakPs4TraceGameSystem( "failure unwind", shutdownIndex,
 					s_GameSystems[shutdownIndex]->Name(), i );
 #endif
 				s_GameSystems[shutdownIndex]->Shutdown();
