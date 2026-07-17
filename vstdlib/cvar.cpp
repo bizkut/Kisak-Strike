@@ -395,7 +395,18 @@ void CCvar::RegisterConCommand( ConCommandBase *variable )
 	const ConCommandBase *pOther = FindCommandBase( variable->GetName() );
 	if ( pOther )
 	{
-		if ( variable->IsCommand() || pOther->IsCommand() )
+		PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register duplicate found" );
+		PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register before child type" );
+		const bool bVariableIsCommand = variable->IsCommand();
+		PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register after child type" );
+		bool bOtherIsCommand = false;
+		if ( !bVariableIsCommand )
+		{
+			PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register before parent type" );
+			bOtherIsCommand = pOther->IsCommand();
+			PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register after parent type" );
+		}
+		if ( bVariableIsCommand || bOtherIsCommand )
 		{
 #ifdef _DEBUG
 			// Don't warn if the commands are the same - this happens with some debug only commands
@@ -407,30 +418,42 @@ void CCvar::RegisterConCommand( ConCommandBase *variable )
 		}
 		else
 		{
+			PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register duplicate convar" );
 			// This cast is ok because we make sure they're ConVars above.
 			ConVar *pChildVar = const_cast< ConVar* >( static_cast< const ConVar* >( variable ) );
 			ConVar *pParentVar = const_cast< ConVar* >( static_cast< const ConVar* >( pOther ) );
 
 			// See if it's a valid linkage
+			PS4_CVAR_CONNECT_BREADCRUMB( s_pCVarQuery
+				? "kisak-ps4: cvar register query ready"
+				: "kisak-ps4: cvar register query missing" );
+			PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register before link query" );
 			if ( s_pCVarQuery->AreConVarsLinkable( pChildVar, pParentVar ) )
 			{
+				PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register link query accepted" );
 				// Make sure the default values are the same (but only spew about this for FCVAR_REPLICATED)
 				if(  pChildVar->m_pszDefaultValue && pParentVar->m_pszDefaultValue &&
 					 pChildVar->IsFlagSet( FCVAR_REPLICATED ) && pParentVar->IsFlagSet( FCVAR_REPLICATED ) )
 				{
 					if( Q_stricmp( pChildVar->m_pszDefaultValue, pParentVar->m_pszDefaultValue ) != 0 )
 					{
+						PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register before default warning" );
 						Warning( "Parent and child ConVars with different default values! %s child: %s parent: %s (parent wins)\n", 
 							variable->GetName(), pChildVar->m_pszDefaultValue, pParentVar->m_pszDefaultValue );
+						PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register after default warning" );
 					}
 				}
 
+				PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register before parent link" );
 				pChildVar->m_pParent = pParentVar->m_pParent;
+				PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register after parent link" );
 
 				// Absorb material thread related convar flags
 				pParentVar->m_nFlags |= pChildVar->m_nFlags & ( FCVAR_MATERIAL_THREAD_MASK | FCVAR_ACCESSIBLE_FROM_THREADS );
+				PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register flags absorbed" );
 
 				// Transfer children's callbacks to parent
+				PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register before callback transfer" );
 				if ( pChildVar->m_fnChangeCallbacks.Count() )
 				{
 					for ( int i = 0; i < pChildVar->m_fnChangeCallbacks.Count(); ++i )
@@ -440,16 +463,20 @@ void CCvar::RegisterConCommand( ConCommandBase *variable )
 					// Wipe child callbacks
 					pChildVar->m_fnChangeCallbacks.RemoveAll();
 				}
+				PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register after callback transfer" );
 
 				// make sure we don't have conflicting help strings.
+				PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register before help merge" );
 				if ( pChildVar->m_pszHelpString && Q_strlen( pChildVar->m_pszHelpString ) != 0 )
 				{
 					if ( pParentVar->m_pszHelpString && Q_strlen( pParentVar->m_pszHelpString ) != 0 )
 					{
 						if ( Q_stricmp( pParentVar->m_pszHelpString, pChildVar->m_pszHelpString ) != 0 )
 						{
+							PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register before help warning" );
 							Warning( "Convar %s has multiple help strings:\n\tparent (wins): \"%s\"\n\tchild: \"%s\"\n", 
 								variable->GetName(), pParentVar->m_pszHelpString, pChildVar->m_pszHelpString );
+							PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register after help warning" );
 						}
 					}
 					else
@@ -457,8 +484,10 @@ void CCvar::RegisterConCommand( ConCommandBase *variable )
 						pParentVar->m_pszHelpString = pChildVar->m_pszHelpString;
 					}
 				}
+				PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register after help merge" );
 
 				// make sure we don't have conflicting FCVAR_*** flags.
+				PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register before flag comparison" );
 				static int const nFlags[] =
 					{ FCVAR_CHEAT, FCVAR_REPLICATED, FCVAR_DONTRECORD, FCVAR_ARCHIVE, FCVAR_ARCHIVE_GAMECONSOLE };
 				static char const * const szFlags[] =
@@ -470,16 +499,24 @@ void CCvar::RegisterConCommand( ConCommandBase *variable )
 				{
 					if ( ( pChildVar->m_nFlags & nFlags[k] ) != ( pParentVar->m_nFlags & nFlags[k] ) )
 					{
+						PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register before flag warning" );
 						Warning( "Convar %s has conflicting %s flags (child: %s%s, parent: %s%s, parent wins)\n", 
 							variable->GetName(), szFlags[k],
 							( pChildVar->m_nFlags & nFlags[k] ) ? "has " : "no ", szFlags[k],
 							( pParentVar->m_nFlags & nFlags[k] ) ? "has " : "no ", szFlags[k] );
+						PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register after flag warning" );
 					}
 				}
+				PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register duplicate linked" );
+			}
+			else
+			{
+				PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register link query rejected" );
 			}
 		}
 
 		variable->m_pNext = NULL;
+		PS4_CVAR_CONNECT_BREADCRUMB( "kisak-ps4: cvar register duplicate complete" );
 		return;
 	}
 

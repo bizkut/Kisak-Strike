@@ -83,7 +83,7 @@ coverage.
 | Package SHA-256 | `451da200b20032c71af79a1ec5c8984fbec4c6f8d37176bf4e087fd265df7930` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `6ad1c731` (`Preserve PS4 monolithic ConVar construction`) |
-| Hardware-result commit | Pending this documentation checkpoint |
+| Hardware-result commit | `fe827543` (`Record v5.04 duplicate ConVar crash`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -610,6 +610,38 @@ not a missing registrar. The v5.05 probe must bracket command/type checks,
 `ICvarQuery::AreConVarsLinkable`, parent assignment, callback transfer, and
 diagnostic-warning branches before changing duplicate semantics.
 
+### v5.05 candidate: attribute duplicate-ConVar linking
+
+Package version 3.71 and build marker `trace_duplicate_convar_v505` identify
+this attribution-only candidate. The duplicate path in
+`CCvar::RegisterConCommand` now brackets child and parent type dispatch,
+`ICvarQuery` presence and `AreConVarsLinkable`, parent assignment, flag
+absorption, callback transfer, help-string comparison, flag comparison, and
+each diagnostic warning. The original short-circuit ordering for `IsCommand`
+is preserved, and no duplicate-parent or warning behavior is bypassed.
+
+Validation before the candidate commit:
+
+- `git diff --check` and both packaging-script syntax checks pass;
+- the full `kisak_ps4_monolithic` target links and `create-fself` completes;
+- the executable is 126,570,488 bytes with SHA-256
+  `e09520b1401ac7b39da35a6bf51cd32a5faca0704d757e3e87c72275b6f7a92e`;
+- the OELF is 136,350,504 bytes with SHA-256
+  `da629ab03315b0d99f427c5ee97c16f30cb3a496528202c307c1cb3795e62465`;
+- the SELF input is 83,414,576 bytes with SHA-256
+  `6e311ee5b28e801f59371c870f2f5cf4bba9357f3ce1f93e369b9167c936b2eb`;
+- binary strings contain the v5.05 marker and every duplicate-link attribution
+  boundary; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
+Hardware acceptance requires a final marker within the second
+`sv_noclipduringpause` duplicate path. If a `before ... warning` marker is last,
+repair PS4 diagnostic output before changing duplicate ownership. If parent or
+callback state fails first, validate both objects' final-binary identity and
+construction state before choosing the monolithic owner.
+
 ## Runtime topology: two tracks, one production authority
 
 `KisakRegisterStaticModules` registers both tracks in
@@ -774,12 +806,11 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v5.04 hardware gate: preserve every unique statically constructed
-`ConCommandBase` independently of its mutable `m_pNext` linkage, register that
-manifest into the shared `CCvar`, and prove `fps_max` plus the remaining
-competitive ConVars resolve before callback installation. The v5.03 hardware
-log rules out virtual dispatch, VProf, and hash mechanics; do not replace the
-lookup implementation or skip `CCompetitiveCvarManager`.
+Immediate v5.05 hardware gate: attribute the second `sv_noclipduringpause`
+duplicate across type dispatch, linkability, parent linkage, callback transfer,
+and warning output. v5.04 already proves the independent construction manifest
+restores `fps_max` and its `sys_engine.cpp` neighbors; retain that repair and do
+not skip either the shared registry or `CCompetitiveCvarManager`.
 
 Phase hardware gate: preflight passes, every default viewport panel completes,
 `ClientDLL_Init` completes, EngineVGui/GameUI connect, and the first real Source
