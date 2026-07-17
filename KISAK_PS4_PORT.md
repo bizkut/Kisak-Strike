@@ -76,13 +76,13 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v5.05, 2026-07-17 |
-| Staged candidate | None; v5.06 engine-pointer ownership repair is in development |
-| Package version | 3.71 |
+| Staged candidate | v5.06 engine-pointer ownership repair; awaiting manual install/run |
+| Package version | 3.72 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
-| Package SHA-256 | `35325810ef119e50a2ae89c83a218f32753db1831706dfca2b16d28f71d4fe6c` |
+| Package SHA-256 | `add8d8eab92095f5619b20bdbe46cd4818214fc11f4941fc3a50dc3e73173012` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate commit | `84dd5c34` (`Trace PS4 duplicate ConVar linking`) |
+| Candidate commit | `df4e6833` (`Separate PS4 engine ConVar cache storage`) |
 | Hardware-result commit | `0e937dee` (`Record v5.05 ConVar storage collision`) |
 
 v5.00 proves list construction and the model-cache lock are healthy through
@@ -703,6 +703,16 @@ to complete, all competitive-manager ConVar lookups and callback installation
 to finish, and client game-system initialization to advance beyond index 28.
 Any new final marker is the next observed integration blocker; it is not a
 reason to restore the colliding engine symbol.
+
+Candidate commit `df4e6833` produces a 103,481,344-byte package with SHA-256
+`add8d8eab92095f5619b20bdbe46cd4818214fc11f4941fc3a50dc3e73173012`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.72. A separate verbose
+PkgTool validation reports every limit, digest, and signature check `[OK]` and
+no `[FAIL]` entry. FTP metadata reports the same size and a
+2026-07-17 05:36:45 UTC modified time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance is pending manual
+installation and launch.
 
 ## Runtime topology: two tracks, one production authority
 
