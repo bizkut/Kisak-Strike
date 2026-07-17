@@ -75,15 +75,15 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Last hardware result | v5.03, 2026-07-17 |
-| Staged candidate | v5.04 PS4 ConVar construction manifest |
+| Last hardware result | v5.04, 2026-07-17 |
+| Staged candidate | None; v5.05 duplicate-ConVar attribution probe is in development |
 | Package version | 3.70 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
 | Package SHA-256 | `451da200b20032c71af79a1ec5c8984fbec4c6f8d37176bf4e087fd265df7930` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `6ad1c731` (`Preserve PS4 monolithic ConVar construction`) |
-| Hardware-result commit | `77632a15` (`Record v5.03 missing ConVar crash`) |
+| Hardware-result commit | Pending this documentation checkpoint |
 
 v5.00 proves list construction and the model-cache lock are healthy through
 client game-system index 28. `CInventoryManager` is index 27, auto-list entry
@@ -591,6 +591,24 @@ no `[FAIL]` entry. FTP metadata reports the same size and a
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
 readbacks match the local SHA-256. Hardware acceptance is pending manual
 installation and launch.
+
+Hardware acceptance completed with an 858,333-byte, 23,012-line log, last
+modified at 2026-07-17 05:02:59 UTC and having SHA-256
+`28d3ff23072b8a4c5aa1a274829a3f838037e0dbc16779151c4592853395bbf9`.
+The construction-manifest marker appears and there is no overflow. The initial
+registration now contains `sleep_when_meeting_framerate`,
+`mat_powersavingsmode`, `fps_max`, and `engine_no_focus_sleep`, proving the lost
+`sys_engine.cpp` segment is restored.
+
+The new final item is the second `sv_noclipduringpause` registration. The first
+copy registers at log line 6,561; the client/server peer reaches registration at
+line 23,007, completes the initial `FindCommandBase` VProf and hash lookup, and
+then faults before the next manifest item. Source defines matching replicated
+cheat ConVars in `game/server/player.cpp` and `game/client/in_main.cpp`, so this
+is a duplicate-parent integration failure inside `CCvar::RegisterConCommand`,
+not a missing registrar. The v5.05 probe must bracket command/type checks,
+`ICvarQuery::AreConVarsLinkable`, parent assignment, callback transfer, and
+diagnostic-warning branches before changing duplicate semantics.
 
 ## Runtime topology: two tracks, one production authority
 
