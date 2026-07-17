@@ -75,35 +75,35 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Last hardware result | v4.95, 2026-07-16 |
-| Staged candidate | v4.96 |
+| Last hardware result | v4.96, 2026-07-17 |
+| Staged candidate | none |
 | Package version | 3.62 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
 | Package SHA-256 | `b8d4169510a4d5d39f4df9437938dcf0ed56147b11c12756697f9fa21e80aae4` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `8bf3cba8` (`Disable Chrome HTML MOTD on PS4`) |
-| Prior hardware-result commit | `4b8078f1` (`Record v4.95 HTML control crash`) |
+| Hardware-result commit | pending (`Record v4.96 client-mode init crash`) |
 
-v4.95 clears the complete `Frame` body and `TextEntry` allocation for the
-default `info` viewport panel. `CTextWindow::CTextWindow` reaches
-`before html allocation`, enters `new CMOTDHTML(this, "HTMLMessage")`, and then
-dies after the HTML child panel's mouse-input setup. The allocation-ready marker
-never appears, so this is an optional Steam HTML control failure rather than a
-new renderer, base-frame, popup, or text-entry requirement.
+v4.96 closes the optional HTML gate. The disabled-HTML path returns, every
+default viewport panel completes, both normal and fullscreen viewport startups
+complete, and HUD initialization returns. The production client then enters
+`ClientModeShared::Init` and reaches `C_HLTVCamera::Init`.
 
-The exact last line is `kisak-ps4: panel set mouse input complete`. The fresh log
-was last modified at 2026-07-16 23:14:28 UTC; it is 504,364 bytes and 12,833 lines
+The exact last line is
+`kisak-ps4: game event listener hltv add returned true`. The listener descriptor,
+callback lookup, listener-vector insertion, and public `AddListener` return all
+succeed for `hltv_status`; therefore the crash is after that successful call,
+not inside the previously repaired event-manager insertion. The fresh log was
+last modified at 2026-07-17 01:01:35 UTC; it is 524,909 bytes and 13,226 lines
 with SHA-256
-`ed9b9e4439b3e84b263962f76bce61f86153c717f4e8f1780aa4ec547dfe4192`.
+`8641eea829dbe205b66c57defafef17e4489e74d377f554ee97ec83314e32ec3`.
 
-The immediate v4.96 gate is to compile `ENABLE_CHROMEHTMLWINDOW` out of the PS4
-client only. All direct `m_pHTMLMessage` uses are already guarded by the same
-macro, the disabled branch initializes the pointer to `NULL`, and the resource
-loader has no registered `HTML` build factory with which to recreate the child.
-Retain the plain-text MOTD path and require the text-window constructor, panel
-allocation, and viewport insertion to return before advancing toward the first
-real Source frame.
+The immediate v4.97 gate is attribution-only. Bracket every remaining
+`C_HLTVCamera::Init` listener registration, `Reset`, state initialization, and
+`tv_transmitall` lookup, plus the return to `ClientModeShared::Init` and both
+message hooks. Do not change event behavior until hardware identifies the exact
+next operation.
 
 ### v4.95 candidate: attribute info-panel construction
 
@@ -201,7 +201,7 @@ installation and launch.
 | Registered runtime | Factory | Purpose | Acceptance status |
 |---|---|---|---|
 | `presentation_engine` | `KisakEngineBootstrapFactory()` | Diagnostic OpenGNM/Scaleform/input loop and rollback target | Hardware validated, but not a production Source-frame result |
-| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes server DLL init and scoreboard insertion, then crashes inside the optional `CMOTDHTML` child of the `info` viewport panel; no first frame yet |
+| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes all default viewport panels and HUD init, then crashes during `C_HLTVCamera::Init` after a successful `hltv_status` listener registration; no first frame yet |
 
 The launcher requests production `engine` (`launcher/launcher.cpp:773-820`).
 The presentation loop owns VideoOut and calls `RenderMenuFrame` and
@@ -357,11 +357,11 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v4.96 hardware gate: omit the now-isolated Steam-oriented
-`CMOTDHTML` from the PS4 client by disabling `ENABLE_CHROMEHTMLWINDOW` for that
-platform. Require the disabled-HTML marker, the remainder of
-`CTextWindow::CTextWindow`, `CreatePanelByName`, and viewport insertion to
-complete. Plain-text MOTDs remain the supported first-match behavior.
+Immediate v4.97 hardware gate: bracket the rest of `C_HLTVCamera::Init` after
+the successful `hltv_status` registration and its return to
+`ClientModeShared::Init`. Require attribution through the remaining listener
+registrations, reset/state/convar work, and VGUI message hooks before changing
+behavior.
 
 Phase hardware gate: preflight passes, every default viewport panel completes,
 `ClientDLL_Init` completes, EngineVGui/GameUI connect, and the first real Source
@@ -370,9 +370,9 @@ frame completes. This phase is not done merely because a registrar is found.
 ### 2. Direct Source/OpenGNM convergence
 
 Keep `presentation_engine` as a diagnostic rollback target, not a second
-product runtime. Do not begin the renderer-selection change until the v4.96
-startup gate clears the isolated optional HTML control: changing the active
-backend is broad and would destroy the current crash boundary.
+product runtime. Do not begin the renderer-selection change until the v4.97
+client-mode attribution gate closes: changing the active backend is broad and
+would destroy the current crash boundary.
 
 #### Source/OpenGNM rendering closure checklist
 
