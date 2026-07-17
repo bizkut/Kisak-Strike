@@ -75,30 +75,31 @@ coverage.
 
 | Item | Value |
 |---|---|
-| Last hardware result | v4.98, 2026-07-17 |
-| Staged candidate | v4.99 |
+| Last hardware result | v4.99, 2026-07-17 |
+| Staged candidate | None; v5.00 identity probe pending |
 | Package version | 3.65 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
 | Package SHA-256 | `a4ff1c2632510ccf69fce456d65efac87b9d784b6371e93e33a0be3cffb8efd9` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `cc76c903` (`Trace PS4 client game-system initialization`) |
-| Hardware-result commit | `90e293ee` (`Record v4.98 game-system init crash`) |
+| Hardware-result commit | This checkpoint (`Record v4.99 unnamed game-system crash`) |
 
-v4.98 clears the optional color-correction gate. Both normal and fullscreen
-`ClientModeCSNormal::Init()` passes return after completing shared mode, HLTV,
-event, message, color-correction defer, post-process load, and screenshot-enable
-stages. The exact final line is
-`client game systems before init all systems`; the missing paired completion
-marker moves the crash into the client copy of `IGameSystem::InitAllSystems()`.
+v4.99 proves list construction and the model-cache lock are healthy through
+client game-system index 28. Systems 0 through 27 all return true from `Init()`;
+the exact final marker is
+`kisak-ps4: client game system before init index=28 name=unnamed value=46`.
+The missing paired `after init` places the hard fault inside that system's
+`Init()` body. It is auto-registration list entry 15 because explicitly added
+systems occupy indices 0 through 12.
 
-The fresh log was last modified at 2026-07-17 03:22:40 UTC; it is 532,459 bytes
-and 13,373 lines with SHA-256
-`73161d9ea43ad29121d09a098ec2bbb7b81d2fc9d23655e4c196d046687a1eb6`.
-The immediate v4.99 gate is attribution-only: expose the existing PS4
-auto-registration, per-frame registration, model-cache lock, and per-system
-`Init()` before/after breadcrumbs in the client build. Do not skip a game system
-until hardware identifies its name and failing phase.
+The fresh log was last modified at 2026-07-17 03:35:17 UTC; it is 542,341 bytes
+and 13,495 lines with SHA-256
+`ae0bddb134f12e798bdb38d843729cf3f2fb021c590f009331c93d194a742685`.
+The immediate v5.00 gate is deterministic identity attribution: correlate the
+hardware list with the monolith's `.kisak_ctors` order or emit a stable concrete
+type/object tag for unnamed systems. Do not skip index 28 until its concrete
+class and `Init()` dependency are proven.
 
 ### v4.95 candidate: attribute info-panel construction
 
@@ -315,8 +316,9 @@ The embedded SFO reports `APP_VER` and `VERSION` 3.65. PkgTool validation has no
 reports the same 103,481,344-byte size and a 2026-07-17 03:32:24 UTC modified
 time. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
-readbacks match the local SHA-256. Hardware acceptance remains pending manual
-installation and launch.
+readbacks match the local SHA-256. Hardware acceptance completed: the probe
+identifies a hard fault inside client game-system index 28, auto-list entry 15,
+whose inherited name is `unnamed`.
 
 ## Runtime topology: two tracks, one production authority
 
@@ -326,7 +328,7 @@ installation and launch.
 | Registered runtime | Factory | Purpose | Acceptance status |
 |---|---|---|---|
 | `presentation_engine` | `KisakEngineBootstrapFactory()` | Diagnostic OpenGNM/Scaleform/input loop and rollback target | Hardware validated, but not a production Source-frame result |
-| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes both normal and fullscreen client modes, then crashes inside client `IGameSystem::InitAllSystems()`; no first frame yet |
+| `engine` and `source_engine` | `KisakSourceEngineFactory()` | Real Source app systems, server, client, host, and frame lifecycle | Hardware completes both client modes and game systems 0-27, then hard-faults inside unnamed auto system index 28; no first frame yet |
 
 The launcher requests production `engine` (`launcher/launcher.cpp:773-820`).
 The presentation loop owns VideoOut and calls `RenderMenuFrame` and
@@ -482,10 +484,9 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v4.99 hardware gate: trace the client `IGameSystem::InitAllSystems()`
-list construction and every model-cache-lock/`Init()` boundary. Require the log
-to identify the exact registered system and phase before applying any PS4-native
-bypass or replacement.
+Immediate v5.00 hardware gate: identify unnamed client auto system index 28 by
+concrete class/object and bracket its `Init()` dependencies. Require a proven
+identity before applying any PS4-native bypass or replacement.
 
 Phase hardware gate: preflight passes, every default viewport panel completes,
 `ClientDLL_Init` completes, EngineVGui/GameUI connect, and the first real Source
@@ -494,8 +495,8 @@ frame completes. This phase is not done merely because a registrar is found.
 ### 2. Direct Source/OpenGNM convergence
 
 Keep `presentation_engine` as a diagnostic rollback target, not a second
-product runtime. Do not begin the renderer-selection change until the v4.99
-game-system gate identifies and closes the current Source-lifecycle blocker:
+product runtime. Do not begin the renderer-selection change until the v5.00
+game-system identity gate identifies and closes the current Source-lifecycle blocker:
 changing the active backend is broad and would destroy the current crash
 boundary.
 
