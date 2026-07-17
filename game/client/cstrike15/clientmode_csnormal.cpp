@@ -759,6 +759,13 @@ void ClientModeCSNormal::Init()
 	KisakPs4ClientModeBreadcrumb( "hud render groups ready", GET_ACTIVE_SPLITSCREEN_SLOT() );
 
 	KisakPs4ClientModeBreadcrumb( "before color corrections", GET_ACTIVE_SPLITSCREEN_SLOT() );
+#if defined( PLATFORM_PS4 )
+	// Source color correction allocates and downloads 32^3 procedural lookup
+	// textures. Defer this optional visual path until the production GNM render
+	// context supports those resources; constructor defaults keep every handle
+	// invalid and the runtime weight setters already ignore invalid handles.
+	KisakPs4ClientModeBreadcrumb( "color corrections deferred", GET_ACTIVE_SPLITSCREEN_SLOT() );
+#else
 	char szName[ MAX_PATH ] = "";
 
 	if ( m_CCKillCamReplay == INVALID_CLIENT_CCHANDLE )
@@ -819,6 +826,7 @@ void ClientModeCSNormal::Init()
 // 			m_CCPlayerFlashedHandle = g_pColorCorrectionMgr->AddColorCorrection( szName, szRawFile );
 // 		}
 // 	}
+#endif
 
 
 	

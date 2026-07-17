@@ -83,7 +83,7 @@ coverage.
 | Package SHA-256 | `dd41b07110cdfacf83bf8a2efca96123eb43af0a01f8fd5fef5e0edaa3926152` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Candidate commit | `328fe8a2` (`Trace PS4 client mode initialization`) |
-| Hardware-result commit | pending (`Record v4.97 color-correction crash`) |
+| Hardware-result commit | `da8b0066` (`Record v4.97 color-correction crash`) |
 
 v4.97 closes the client-mode lifecycle attribution gate through the normal
 mode's shared base. The complete HLTV camera initialization returns, both shared
@@ -99,12 +99,12 @@ fullscreen mode begins. The fresh log was last modified at 2026-07-17 03:10:31
 UTC; it is 527,274 bytes and 13,274 lines with SHA-256
 `62e801a3689ee3e94acd838a8275b6778c16fedcdac6596db54b3bd765e735e8`.
 
-The immediate v4.98 gate is the optional color-correction/post-process startup
-path. Its four `.raw` lookup files are absent from the packaged source assets,
-and the current null rendering context has no real color-correction backend.
-Treat this as a deferrable renderer feature: either prove a smaller required
-operation with focused boundaries or install a PS4-native no-op policy that
-keeps all handles invalid until the production GNM backend supports lookups.
+The immediate v4.98 gate is the optional color-correction lookup startup path.
+Its four `.raw` lookup files are absent from the packaged source assets, and the
+current rendering path has no validated PS4 3D procedural lookup-texture
+support. Defer only those allocations on PS4 and keep all handles invalid until
+the production GNM backend supports lookups. Keep post-process parameter loading
+active so the next hardware boundary remains attributable.
 
 ### v4.95 candidate: attribute info-panel construction
 
@@ -236,6 +236,36 @@ time. The package is staged at
 `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
 readbacks match the local SHA-256. Hardware acceptance remains pending manual
 installation and launch.
+
+### v4.98 candidate: defer PS4 color-correction lookup allocation
+
+Package version 3.64 and build marker `defer_color_correction_v498` identify
+this single-behavior candidate. On PS4, `ClientModeCSNormal::Init` leaves the
+four constructor-initialized color-correction handles invalid instead of
+creating and downloading 32x32x32 procedural lookup textures. Existing runtime
+weight setters already ignore invalid handles. Non-PS4 behavior is unchanged,
+and post-process parameter loading remains active and bracketed.
+
+Validation before the candidate commit:
+
+- `git diff --check` passes;
+- the full `kisak_ps4_monolithic` target links and generates the SELF;
+- the executable is 126,552,912 bytes with SHA-256
+  `dc175b68b2b1b21556db00d98a118a202ac62c444142902e9b7778966017489e`;
+- the OELF is 136,332,640 bytes with SHA-256
+  `e70495d5828a724f5b29a6d393b7e68e18fc85b7df7dec9eb4e831ab9bf617e6`;
+- the SELF input is 83,397,872 bytes with SHA-256
+  `fb796d7327d4bf6723480b417c33166047d0a609160210d0c989921098de758e`;
+- binary strings contain the v4.98 marker, color-correction defer/completion
+  markers, active post-process before/after markers, and both normal/fullscreen
+  caller tags; and
+- the host suite remains 11/14, with only the three documented Linux
+  high-address OpenGNM fixture failures (`ps4_gnm_device`, `ps4_gnm_buffer`, and
+  `ps4_gnm_constants`).
+
+Hardware acceptance requires the defer and color-correction completion markers.
+If post-process loading or a later normal/fullscreen stage fails, attribute that
+new boundary independently rather than expanding this bypass.
 
 ## Runtime topology: two tracks, one production authority
 
@@ -401,10 +431,11 @@ Host/static gates for this phase:
 - prove with a lifecycle-failure test that no downstream callback runs after
   any failed Load/Connect/Init.
 
-Immediate v4.98 hardware gate: defer the unsupported color-correction and
-post-process startup path on PS4 while retaining invalid handles and safe no-op
-runtime semantics. Require normal and fullscreen client-mode initialization to
-return before addressing the next observed blocker.
+Immediate v4.98 hardware gate: defer only the unsupported color-correction
+lookup allocations on PS4 while retaining invalid handles and safe no-op weight
+semantics. Keep post-process loading active, and require normal and fullscreen
+client-mode initialization to return before addressing the next observed
+blocker.
 
 Phase hardware gate: preflight passes, every default viewport panel completes,
 `ClientDLL_Init` completes, EngineVGui/GameUI connect, and the first real Source
