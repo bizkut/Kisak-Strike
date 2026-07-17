@@ -76,14 +76,14 @@ coverage.
 | Item | Value |
 |---|---|
 | Last hardware result | v4.98, 2026-07-17 |
-| Staged candidate | None; v4.99 attribution candidate pending |
-| Package version | 3.64 |
+| Staged candidate | v4.99 |
+| Package version | 3.65 |
 | Package | `IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
 | Package size | 103,481,344 bytes |
-| Package SHA-256 | `7956b86934f820efbe8db382c4c08bfde3e3add32bb8bb0df0d7a153d442516a` |
+| Package SHA-256 | `a4ff1c2632510ccf69fce456d65efac87b9d784b6371e93e33a0be3cffb8efd9` |
 | FTP staging path | `/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg` |
-| Candidate source commit | This checkpoint (`Trace PS4 client game-system initialization`) |
-| Hardware-result commit | This checkpoint (`Record v4.98 game-system init crash`) |
+| Candidate commit | `cc76c903` (`Trace PS4 client game-system initialization`) |
+| Hardware-result commit | `90e293ee` (`Record v4.98 game-system init crash`) |
 
 v4.98 clears the optional color-correction gate. Both normal and fullscreen
 `ClientModeCSNormal::Init()` passes return after completing shared mode, HLTV,
@@ -307,6 +307,16 @@ Validation before the candidate commit:
 Hardware acceptance requires the final trace to name the exact failing client
 game system and whether the fault occurs in list construction, model-cache lock,
 or the system's `Init()` body. No system is bypassed by this candidate.
+
+Candidate commit `cc76c903` produces a 103,481,344-byte package with SHA-256
+`a4ff1c2632510ccf69fce456d65efac87b9d784b6371e93e33a0be3cffb8efd9`.
+The embedded SFO reports `APP_VER` and `VERSION` 3.65. PkgTool validation has no
+`[FAIL]` entries and reports every digest/signature check `[OK]`. FTP metadata
+reports the same 103,481,344-byte size and a 2026-07-17 03:32:24 UTC modified
+time. The package is staged at
+`/data/pkg/IV0000-KISK00002_00-KISAKMONOLITHIC0.pkg`; two complete remote
+readbacks match the local SHA-256. Hardware acceptance remains pending manual
+installation and launch.
 
 ## Runtime topology: two tracks, one production authority
 
