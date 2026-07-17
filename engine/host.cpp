@@ -2011,14 +2011,20 @@ void Host_ReadConfiguration_Console( const int iController )
 //-----------------------------------------------------------------------------
 void Host_ReadConfiguration( const int iController, const bool readDefault )
 {
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration entered" );
 	if ( sv.IsDedicated() )
+	{
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration dedicated skip" );
 		return;
+	}
 
 	// Rebind keys and set cvars
 	if ( !g_pFileSystem )
 	{
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration filesystem missing" );
 		Sys_Error( "Host_ReadConfiguration:  g_pFileSystem == NULL\n" );
 	}
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration filesystem ready" );
 
 	// Handle the console case
 #ifdef _GAMECONSOLE
@@ -2029,8 +2035,12 @@ void Host_ReadConfiguration( const int iController, const bool readDefault )
 #else
 	bool saveconfig = false;
 
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration before remote storage" );
 	ISteamRemoteStorage *pRemoteStorage = Steam3Client().SteamClient() ? (ISteamRemoteStorage *)Steam3Client().SteamClient()->GetISteamGenericInterface(
 		SteamAPI_GetHSteamUser(), SteamAPI_GetHSteamPipe(), STEAMREMOTESTORAGE_INTERFACE_VERSION ):NULL;
+	PS4_HOST_INIT_BREADCRUMB( pRemoteStorage
+		? "kisak-ps4: host read configuration remote storage ready"
+		: "kisak-ps4: host read configuration remote storage unavailable" );
 
 	if ( pRemoteStorage )
 	{
@@ -2050,51 +2060,76 @@ void Host_ReadConfiguration( const int iController, const bool readDefault )
 		}
 	}
 
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration before config selection" );
 	if ( g_pFileSystem->FileExists( "//usrlocal/cfg/config.cfg" ) )
 	{
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration selected usrlocal" );
 		Cbuf_AddText( Cbuf_GetCurrentPlayer(), "exec config.cfg usrlocal\n" );
 	}
 	else if ( g_pFileSystem->FileExists( "//mod/cfg/config.cfg" ) )
 	{
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration selected mod" );
 		Cbuf_AddText( Cbuf_GetCurrentPlayer(), "exec config.cfg mod\n" );
 	}
 	else
 	{
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration selected default" );
 		Cbuf_AddText( Cbuf_GetCurrentPlayer(), "exec config_default.cfg\n" );
 		saveconfig = true;
 	}
 	
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration before command execute" );
 	Cbuf_Execute();
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration command execute ready" );
 
 	// check to see if we actually set any keys, if not, load defaults from kb_def.lst
 	// so we at least have basics setup.
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration before binding count" );
 	int nNumBinds = Key_CountBindings();
+	PS4_HOST_INIT_BREADCRUMB( nNumBinds
+		? "kisak-ps4: host read configuration bindings present"
+		: "kisak-ps4: host read configuration bindings empty" );
 	if ( nNumBinds == 0 )
 	{
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration before default bindings" );
 		UseDefaultBindings();
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration default bindings ready" );
 	}
 
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration before escape binding" );
 	Key_SetBinding( KEY_ESCAPE, "cancelselect" );
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration escape binding ready" );
 
 	// Make sure that something is always bound to console
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration before console binding lookup" );
 	if (NULL == Key_NameForBinding("toggleconsole"))
 	{
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration before console default binding" );
 		// If nothing is bound to it then bind it to '
 		Key_SetBinding( KEY_BACKQUOTE, "toggleconsole" );
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration console default binding ready" );
 	}
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration console binding ready" );
 
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration before ask-connect binding" );
 	SetupDefaultAskConnectAcceptKey();
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration ask-connect binding ready" );
 
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration before executed state" );
 	Host_SetConfigCfgExecuted( iController );
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration executed state ready" );
 
 	if ( saveconfig )
 	{
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration before initial write" );
 		// An ugly hack, but we can probably save this safely
 		bool saveinit = host_initialized;
 		host_initialized = true;
 		Host_WriteConfiguration( iController, "config.cfg" );
 		host_initialized = saveinit;
+		PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration initial write ready" );
 	}
+	PS4_HOST_INIT_BREADCRUMB( "kisak-ps4: host read configuration complete" );
 #endif
 }
 

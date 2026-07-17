@@ -35,6 +35,13 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#if defined( PLATFORM_PS4 )
+extern "C" void KisakPs4StartupBreadcrumb( const char *line );
+#define PS4_CBUF_BREADCRUMB( line ) KisakPs4StartupBreadcrumb( line )
+#else
+#define PS4_CBUF_BREADCRUMB( line ) ((void)0)
+#endif
+
 
 // This denotes an execution marker in the command stream.
 #define CMDSTR_ADD_EXECUTION_MARKER "[$&*,`]"
@@ -251,6 +258,7 @@ static void Cbuf_ExecuteCommand( ECommandTarget_t eTarget, const CCommand &args 
 //-----------------------------------------------------------------------------
 void Cbuf_Execute()
 {
+	PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer execute entered" );
 	VPROF("Cbuf_Execute");
 
 	if ( !ThreadInMainThread() )
@@ -260,18 +268,24 @@ void Cbuf_Execute()
 	}
 
 	LOCK_COMMAND_BUFFER();
+	PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer lock ready" );
 
 #if !defined( SPLIT_SCREEN_STUBS )
 	int nSaveIndex = GET_ACTIVE_SPLITSCREEN_SLOT();
 	bool bSaveResolvable = SET_LOCAL_PLAYER_RESOLVABLE( __FILE__, __LINE__, false );
+	PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer player state saved" );
 #endif
 
 	for ( int i = 0; i < CBUF_COUNT; ++i )
 	{
+		PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer slot entered" );
 		// If text was added with Cbuf_AddText and then Cbuf_Execute gets called from within handler, we're going
 		//  to execute the new commands anyway, so we can ignore this extra execute call here.
 		if ( s_CommandBuffer[ i ].IsProcessingCommands() )
+		{
+			PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer slot already processing" );
 			continue;
+		}
 
 		// For player slots, force the correct context
 		if ( i >= CBUF_FIRST_PLAYER && 
@@ -290,17 +304,28 @@ void Cbuf_Execute()
 		// but since HL2 doesn't, we're going to spoof the command time to simply
 		// be the the number of times Cbuf_Execute is called.
 		s_CommandBuffer[ i ].BeginProcessingCommands( 1 );
+		PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer begin processing ready" );
 		CCommand nextCommand;
 
+		PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer before dequeue" );
 		while ( s_CommandBuffer[ i ].DequeueNextCommand( &nextCommand ) )
 		{
+			PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer command dequeued" );
+			PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer before command execute" );
 			Cbuf_ExecuteCommand( ( ECommandTarget_t )i, nextCommand );
+			PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer command execute ready" );
+			PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer before dequeue" );
 		}
+		PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer dequeue exhausted" );
+		PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer before end processing" );
 		s_CommandBuffer[ i ].EndProcessingCommands( );
+		PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer end processing ready" );
 	}
 
+	PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer before player state restore" );
 	SET_ACTIVE_SPLIT_SCREEN_PLAYER_SLOT( nSaveIndex );
 	SET_LOCAL_PLAYER_RESOLVABLE( __FILE__, __LINE__, bSaveResolvable );
+	PS4_CBUF_BREADCRUMB( "kisak-ps4: command buffer execute complete" );
 }
 
 
